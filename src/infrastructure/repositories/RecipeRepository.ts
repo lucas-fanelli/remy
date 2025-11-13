@@ -1,0 +1,230 @@
+import { PrismaClient } from '@prisma/client';
+import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
+import {
+  Recipe,
+  CreateRecipeDTO,
+  UpdateRecipeDTO,
+  RecipeSearchOptions,
+  Ingredient,
+  Instruction,
+} from '@/domain/types/recipe';
+
+/**
+ * Concrete implementation of IRecipeRepository using Prisma
+ * Follows Single Responsibility Principle - only handles data access for recipes
+ */
+export class RecipeRepository implements IRecipeRepository {
+  constructor(private prisma: PrismaClient) {}
+
+  async create(data: CreateRecipeDTO): Promise<Recipe> {
+    const post = await this.prisma.post.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        userId: data.userId,
+        caption: data.caption,
+        cookingTime: data.cookingTime,
+        prepTime: data.prepTime,
+        servings: data.servings,
+        difficulty: data.difficulty,
+        cuisine: data.cuisine,
+        ingredients: data.ingredients as any,
+        instructions: data.instructions as any,
+      },
+    });
+
+    return this.mapToRecipe(post);
+  }
+
+  async findById(id: string): Promise<Recipe | null> {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            username: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return post ? this.mapToRecipe(post) : null;
+  }
+
+  async findByUserId(userId: string, limit = 20, offset = 0): Promise<Recipe[]> {
+    const posts = await this.prisma.post.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+    });
+
+    return posts.map(this.mapToRecipe);
+  }
+
+  async search(options: RecipeSearchOptions): Promise<Recipe[]> {
+    const {
+      query,
+      filters,
+      limit = 20,
+      offset = 0,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = options;
+
+    const where: any = {};
+
+    // Apply text search
+    if (query) {
+      where.OR = [
+        { title: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { cuisine: { contains: query, mode: 'insensitive' } },
+      ];
+    }
+
+    // Apply filters
+    if (filters) {
+      if (filters.cuisine) {
+        where.cuisine = filters.cuisine;
+      }
+      if (filters.difficulty) {
+        where.difficulty = filters.difficulty;
+      }
+      if (filters.maxCookingTime) {
+        where.cookingTime = { lte: filters.maxCookingTime };
+      }
+      if (filters.maxPrepTime) {
+        where.prepTime = { lte: filters.maxPrepTime };
+      }
+      if (filters.userId) {
+        where.userId = filters.userId;
+      }
+    }
+
+    const posts = await this.prisma.post.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      take: limit,
+      skip: offset,
+      include: {
+        user: {
+          select: {
+            username: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    return posts.map(this.mapToRecipe);
+  }
+
+  async update(id: string, data: UpdateRecipeDTO): Promise<Recipe> {
+    const post = await this.prisma.post.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        caption: data.caption,
+        cookingTime: data.cookingTime,
+        prepTime: data.prepTime,
+        servings: data.servings,
+        difficulty: data.difficulty,
+        cuisine: data.cuisine,
+        ingredients: data.ingredients as any,
+        instructions: data.instructions as any,
+      },
+    });
+
+    return this.mapToRecipe(post);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.post.delete({
+      where: { id },
+    });
+  }
+
+  async getRecent(limit = 20, offset = 0): Promise<Recipe[]> {
+    const posts = await this.prisma.post.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+    });
+
+    return posts.map(this.mapToRecipe);
+  }
+
+  async getByCuisine(cuisine: string, limit = 20, offset = 0): Promise<Recipe[]> {
+    const posts = await this.prisma.post.findMany({
+      where: { cuisine },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+    });
+
+    return posts.map(this.mapToRecipe);
+  }
+
+  async getByDifficulty(difficulty: string, limit = 20, offset = 0): Promise<Recipe[]> {
+    const posts = await this.prisma.post.findMany({
+      where: { difficulty },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+    });
+
+    return posts.map(this.mapToRecipe);
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const count = await this.prisma.post.count({
+      where: { id },
+    });
+    return count > 0;
+  }
+
+  async count(): Promise<number> {
+    return this.prisma.post.count();
+  }
+
+  async countByUser(userId: string): Promise<number> {
+    return this.prisma.post.count({
+      where: { userId },
+    });
+  }
+
+  /**
+   * Maps a Prisma Post to a Recipe domain model
+   */
+  private mapToRecipe(post: any): Recipe {
+    return {
+      id: post.id,
+      title: post.title || '',
+      description: post.description || '',
+      imageUrl: post.imageUrl,
+      userId: post.userId,
+      cookingTime: post.cookingTime || 0,
+      prepTime: post.prepTime || 0,
+      servings: post.servings || 0,
+      difficulty: post.difficulty || 'medium',
+      cuisine: post.cuisine || '',
+      ingredients: (post.ingredients as Ingredient[]) || [],
+      instructions: (post.instructions as Instruction[]) || [],
+      caption: post.caption || undefined,
+      author: post.user ? {
+        username: post.user.username,
+        fullName: post.user.fullName || undefined,
+        avatar: post.user.avatar || undefined,
+      } : undefined,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+    };
+  }
+}

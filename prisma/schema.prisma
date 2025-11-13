@@ -1,0 +1,352 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  password      String
+  fullName      String?
+  bio           String?
+  avatar        String?
+  website       String?
+  isVerified    Boolean   @default(false)
+  isPrivate     Boolean   @default(false)
+
+  // Subscription
+  subscriptionTier       String    @default("free") // "free", "basic", "pro", "chef"
+  subscriptionExpiresAt  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  followers     Follow[]  @relation("UserFollowers")
+  following     Follow[]  @relation("UserFollowing")
+  stories       Story[]
+  pantry        UserPantry?
+  aiUsage       AIUsageLog[]
+  savedRecipes  SavedRecipe[]
+  ratings       Rating[]
+  collections   RecipeCollection[]
+  shoppingLists ShoppingList[]
+  notifications Notification[] @relation("NotificationRecipient")
+  sentNotifications Notification[] @relation("NotificationSender")
+
+  @@index([email])
+  @@index([username])
+  @@index([subscriptionTier])
+  @@map("users")
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  caption     String?
+  imageUrl    String
+  userId      String
+
+  // Recipe-specific fields
+  title           String?
+  description     String?
+  cookingTime     Int?              // in minutes
+  prepTime        Int?              // in minutes
+  servings        Int?
+  difficulty      String?           // "easy", "medium", "hard"
+  cuisine         String?           // e.g., "Italian", "Mexican", "Japanese"
+  ingredients     Json?             // Array of {name, amount, unit}
+  instructions    Json?             // Array of {step, description, image?}
+
+  // Dietary and nutritional info
+  dietaryTags     String[]          // ["vegetarian", "vegan", "gluten-free", "keto", "dairy-free"]
+  calories        Int?
+  protein         Int?              // in grams
+  carbs           Int?              // in grams
+  fat             Int?              // in grams
+
+  // AI-generated recipe metadata
+  isAIGenerated     Boolean  @default(false)
+  aiProvider        String?  // "gemini", "openai", "claude"
+  aiModel           String?  // "gemini-1.5-pro", etc.
+  generatedBy       String?  // userId who requested generation
+  sourceIngredients Json?    // Original ingredients used for generation
+  matchPercentage   Int?     // If from ingredient matching
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  likes       Like[]
+  savedBy     SavedRecipe[]
+  ratings     Rating[]
+  collectionItems CollectionItem[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([difficulty])
+  @@index([cuisine])
+  @@index([isAIGenerated])
+  @@map("posts")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  postId    String
+  userId    String
+  rating    Int?     // Optional 1-5 star rating with comment
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("likes")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  // Relations
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Story {
+  id        String   @id @default(uuid())
+  imageUrl  String
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("stories")
+}
+
+model UserPantry {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       PantryItem[]
+
+  @@map("user_pantries")
+}
+
+model PantryItem {
+  id          String   @id @default(uuid())
+  pantryId    String
+  name        String   // ingredient name (e.g., "Tomatoes", "Chicken Breast")
+  quantity    Float    // numeric amount (e.g., 200, 3)
+  unit        String   // unit of measurement (e.g., "g", "kg", "units", "ml", "l")
+  category    String?  // "vegetable", "protein", "dairy", "grain", "spice", "fruit", "other"
+  addedAt     DateTime @default(now())
+  expiresAt   DateTime? // optional expiration date
+  notes       String?  // optional notes about the ingredient
+
+  // Relations
+  pantry      UserPantry @relation(fields: [pantryId], references: [id], onDelete: Cascade)
+
+  @@index([pantryId])
+  @@index([name])
+  @@map("pantry_items")
+}
+
+model ShoppingList {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String   @default("Shopping List")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  // Relations
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       ShoppingListItem[]
+
+  @@index([userId])
+  @@map("shopping_lists")
+}
+
+model ShoppingListItem {
+  id             String   @id @default(uuid())
+  shoppingListId String
+  name           String
+  quantity       Float
+  unit           String
+  category       String?
+  checked        Boolean  @default(false)
+  recipeId       String?  // Optional: track which recipe this ingredient is for
+  addedAt        DateTime @default(now())
+
+  // Relations
+  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+
+  @@index([shoppingListId])
+  @@map("shopping_list_items")
+}
+
+model AIUsageLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String   // "generate_recipe", "substitution", "cooking_advice"
+  provider    String   // "gemini", "openai", "claude"
+  model       String   // "gemini-1.5-pro", etc.
+  tokensUsed  Int?
+  success     Boolean
+  errorMessage String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, action])
+  @@map("ai_usage_logs")
+}
+
+model Ingredient {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  category  String   // "vegetable", "protein", "dairy", "grain", "spice", "fruit", "other"
+  createdAt DateTime @default(now())
+
+  @@index([category])
+  @@index([name])
+  @@map("ingredients")
+}
+
+model SavedRecipe {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+  @@map("saved_recipes")
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  rating    Int      // 1-5 stars
+  review    String?  // Optional written review
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+  @@index([rating])
+  @@map("ratings")
+}
+
+model RecipeCollection {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       CollectionItem[]
+
+  @@index([userId])
+  @@map("recipe_collections")
+}
+
+model CollectionItem {
+  id           String   @id @default(uuid())
+  collectionId String
+  postId       String
+  addedAt      DateTime @default(now())
+
+  // Relations
+  collection   RecipeCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  post         Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, postId])
+  @@index([collectionId])
+  @@index([postId])
+  @@map("collection_items")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  recipientId String   // User who receives the notification
+  senderId    String   // User who triggered the notification
+  type        String   // "follow", "like", "comment", "rating"
+  postId      String?  // Optional: related post for likes/comments
+  commentId   String?  // Optional: related comment
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  recipient   User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender      User     @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@unique([recipientId, senderId, type, postId, commentId])
+  @@index([recipientId, isRead])
+  @@index([recipientId, createdAt])
+  @@map("notifications")
+}

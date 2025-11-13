@@ -1,0 +1,483 @@
+import React from 'react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import MatchedRecipes from '../MatchedRecipes';
+import { AuthProvider } from '@/contexts/AuthContext';
+
+// Mock framer-motion - comprehensive mock supporting all patterns
+jest.mock('framer-motion', () => {
+  const mockMotion: any = (component: any) => component;
+  mockMotion.create = (component: any) => component;
+  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
+    <div {...props}>{children}</div>;
+
+  return {
+    motion: mockMotion,
+    AnimatePresence: ({ children, mode }: any) => <>{children}</>,
+  };
+});
+
+// Mock next/navigation
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
+// Mock AuthContext
+const mockUseAuth = jest.fn();
+jest.mock('@/contexts/AuthContext', () => ({
+  ...jest.requireActual('@/contexts/AuthContext'),
+  useAuth: () => mockUseAuth(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+const mockTheme = createTheme();
+
+const renderWithProviders = (component: React.ReactElement) => {
+  return render(
+    <ThemeProvider theme={mockTheme}>
+      {component}
+    </ThemeProvider>
+  );
+};
+
+describe('MatchedRecipes Component', () => {
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockClear();
+    mockPush.mockClear();
+    mockUseAuth.mockReturnValue({ token: null }); // Default to no token
+  });
+
+  it('should render loading state initially', () => {
+    mockFetch.mockImplementation(() => new Promise(() => {}));
+
+    const { container } = renderWithProviders(<MatchedRecipes />);
+
+    // Should show skeleton loading cards instead of progressbar
+    // MUI Skeleton uses the class "MuiSkeleton-root"
+    const skeletons = container.querySelectorAll('.MuiSkeleton-root');
+    expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it('should render without fetching when no token', () => {
+    const { container } = renderWithProviders(<MatchedRecipes />);
+
+    // Should show skeleton loading cards
+    const skeletons = container.querySelectorAll('.MuiSkeleton-root');
+    expect(skeletons.length).toBeGreaterThan(0);
+
+    // Verify no fetch was called
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('should render empty pantry state', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [],
+        pantryItemsCount: 0,
+      }),
+    });
+
+    // Mock AuthContext to provide a token
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/your pantry is empty/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/add ingredients to your pantry/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /go to my pantry/i })).toBeInTheDocument();
+  });
+
+  it('should navigate to pantry when clicking Go to My Pantry button', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [],
+        pantryItemsCount: 0,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /go to my pantry/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /go to my pantry/i }));
+    expect(mockPush).toHaveBeenCalledWith('/pantry');
+  });
+
+  it('should render Ready to Cook recipes', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [
+          {
+            id: '1',
+            title: 'Pasta Carbonara',
+            description: 'Classic Italian pasta',
+            imageUrl: 'https://example.com/pasta.jpg',
+            cuisine: 'Italian',
+            difficulty: 'Medium',
+            matchPercentage: 100,
+            matchedIngredients: 5,
+            totalIngredients: 5,
+            missingIngredients: [],
+          },
+        ],
+        almostThere: [],
+        pantryItemsCount: 10,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Pasta Carbonara')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Classic Italian pasta')).toBeInTheDocument();
+    expect(screen.getByText('100% Match')).toBeInTheDocument();
+    expect(screen.getByText('Italian')).toBeInTheDocument();
+    expect(screen.getByText('Medium')).toBeInTheDocument();
+  });
+
+  it('should show info message when no ready to cook recipes', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [],
+        pantryItemsCount: 5,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no recipes match 100%/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should render Almost There recipes when switching tabs', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [
+          {
+            id: '2',
+            title: 'Chicken Curry',
+            description: 'Spicy chicken curry',
+            imageUrl: 'https://example.com/curry.jpg',
+            cuisine: 'Indian',
+            difficulty: 'Hard',
+            matchPercentage: 75,
+            matchedIngredients: 3,
+            totalIngredients: 4,
+            missingIngredients: [{ name: 'Garam Masala', amount: 1, unit: 'tbsp' }],
+          },
+        ],
+        pantryItemsCount: 8,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/recipes based on your pantry/i)).toBeInTheDocument();
+    });
+
+    // Switch to Almost There tab
+    const almostThereTab = screen.getByRole('tab', { name: /almost there/i });
+    fireEvent.click(almostThereTab);
+
+    await waitFor(() => {
+      expect(screen.getByText('Chicken Curry')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Spicy chicken curry')).toBeInTheDocument();
+    expect(screen.getByText('75% Match')).toBeInTheDocument();
+    expect(screen.getByText('3/4 ingredients')).toBeInTheDocument();
+    expect(screen.getByText(/missing: garam masala/i)).toBeInTheDocument();
+  });
+
+  it('should show info message when no almost there recipes', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [],
+        pantryItemsCount: 3,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /almost there/i })).toBeInTheDocument();
+    });
+
+    // Switch to Almost There tab
+    const almostThereTab = screen.getByRole('tab', { name: /almost there/i });
+    fireEvent.click(almostThereTab);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no recipes are close to matching/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should navigate to recipe detail when clicking a recipe card', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [
+          {
+            id: 'recipe-123',
+            title: 'Test Recipe',
+            description: 'Test Description',
+            imageUrl: 'https://example.com/test.jpg',
+            cuisine: 'American',
+            difficulty: 'Easy',
+            matchPercentage: 100,
+            matchedIngredients: 3,
+            totalIngredients: 3,
+            missingIngredients: [],
+          },
+        ],
+        almostThere: [],
+        pantryItemsCount: 5,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe')).toBeInTheDocument();
+    });
+
+    // Click on the recipe card
+    const recipeCard = screen.getByText('Test Recipe').closest('[class*="MuiCard"]');
+    fireEvent.click(recipeCard!);
+
+    expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-123');
+  });
+
+  it('should navigate to recipe detail when clicking an almost there recipe card', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [
+          {
+            id: 'recipe-456',
+            title: 'Almost There Recipe',
+            description: 'Need a few ingredients',
+            imageUrl: 'https://example.com/almost.jpg',
+            cuisine: 'Italian',
+            difficulty: 'Medium',
+            matchPercentage: 75,
+            matchedIngredients: 3,
+            totalIngredients: 4,
+            missingIngredients: [{ name: 'Basil', amount: 1, unit: 'cup' }],
+          },
+        ],
+        pantryItemsCount: 5,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    // Switch to Almost There tab
+    const almostThereTab = await screen.findByRole('tab', { name: /almost there/i });
+    fireEvent.click(almostThereTab);
+
+    await waitFor(() => {
+      expect(screen.getByText('Almost There Recipe')).toBeInTheDocument();
+    });
+
+    // Click on the recipe card
+    const recipeCard = screen.getByText('Almost There Recipe').closest('[class*="MuiCard"]');
+    fireEvent.click(recipeCard!);
+
+    expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-456');
+  });
+
+  it('should display pantry items count', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [],
+        pantryItemsCount: 15,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/15 ingredients/i)).toBeInTheDocument();
+    });
+  });
+
+  it('should handle fetch error gracefully', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading matched recipes:', expect.any(Error));
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should display multiple ready to cook recipes', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [
+          {
+            id: '1',
+            title: 'Recipe 1',
+            description: 'Description 1',
+            imageUrl: 'https://example.com/1.jpg',
+            cuisine: 'Italian',
+            difficulty: 'Easy',
+            matchPercentage: 100,
+            matchedIngredients: 3,
+            totalIngredients: 3,
+            missingIngredients: [],
+          },
+          {
+            id: '2',
+            title: 'Recipe 2',
+            description: 'Description 2',
+            imageUrl: 'https://example.com/2.jpg',
+            cuisine: 'French',
+            difficulty: 'Hard',
+            matchPercentage: 100,
+            matchedIngredients: 5,
+            totalIngredients: 5,
+            missingIngredients: [],
+          },
+        ],
+        almostThere: [],
+        pantryItemsCount: 10,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Recipe 1')).toBeInTheDocument();
+      expect(screen.getByText('Recipe 2')).toBeInTheDocument();
+    });
+  });
+
+  it('should display multiple almost there recipes', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [],
+        almostThere: [
+          {
+            id: '1',
+            title: 'Almost Recipe 1',
+            description: 'Almost Description 1',
+            imageUrl: 'https://example.com/1.jpg',
+            cuisine: 'Chinese',
+            difficulty: 'Medium',
+            matchPercentage: 85,
+            matchedIngredients: 4,
+            totalIngredients: 5,
+            missingIngredients: [{ name: 'Soy Sauce', amount: 2, unit: 'tbsp' }],
+          },
+          {
+            id: '2',
+            title: 'Almost Recipe 2',
+            description: 'Almost Description 2',
+            imageUrl: 'https://example.com/2.jpg',
+            cuisine: 'Mexican',
+            difficulty: 'Easy',
+            matchPercentage: 60,
+            matchedIngredients: 3,
+            totalIngredients: 5,
+            missingIngredients: [
+              { name: 'Cumin', amount: 1, unit: 'tsp' },
+              { name: 'Cilantro', amount: 1, unit: 'bunch' },
+            ],
+          },
+        ],
+        pantryItemsCount: 8,
+      }),
+    });
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /almost there/i })).toBeInTheDocument();
+    });
+
+    // Switch to Almost There tab
+    const almostThereTab = screen.getByRole('tab', { name: /almost there/i });
+    fireEvent.click(almostThereTab);
+
+    await waitFor(() => {
+      expect(screen.getByText('Almost Recipe 1')).toBeInTheDocument();
+      expect(screen.getByText('Almost Recipe 2')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/missing: soy sauce/i)).toBeInTheDocument();
+    expect(screen.getByText(/missing: cumin, cilantro/i)).toBeInTheDocument();
+  });
+});

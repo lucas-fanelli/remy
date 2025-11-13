@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Chef Hat -->
+  <ellipse cx="100" cy="45" rx="35" ry="15" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
+  <path d="M 65 45 Q 65 35 75 30 Q 85 25 100 25 Q 115 25 125 30 Q 135 35 135 45 L 135 60 Q 135 70 100 70 Q 65 70 65 60 Z" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
+
+  <!-- Rat Head -->
+  <ellipse cx="100" cy="100" rx="40" ry="35" fill="#2C3E50"/>
+
+  <!-- Rat Ears -->
+  <ellipse cx="75" cy="80" rx="18" ry="22" fill="#2C3E50"/>
+  <ellipse cx="75" cy="80" rx="12" ry="16" fill="#34495E"/>
+  <ellipse cx="125" cy="80" rx="18" ry="22" fill="#2C3E50"/>
+  <ellipse cx="125" cy="80" rx="12" ry="16" fill="#34495E"/>
+
+  <!-- Rat Snout -->
+  <ellipse cx="110" cy="105" rx="20" ry="15" fill="#34495E"/>
+
+  <!-- Eye -->
+  <circle cx="95" cy="95" r="4" fill="#FFFFFF"/>
+
+  <!-- Nose -->
+  <circle cx="118" cy="102" r="3" fill="#1A252F"/>
+
+  <!-- Rat Body -->
+  <ellipse cx="100" cy="145" rx="35" ry="40" fill="#2C3E50"/>
+
+  <!-- Rat Tail (curved) -->
+  <path d="M 70 160 Q 40 170 30 190" stroke="#2C3E50" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+  <!-- Rat Arms -->
+  <ellipse cx="75" cy="135" rx="8" ry="18" fill="#2C3E50" transform="rotate(-20 75 135)"/>
+  <ellipse cx="125" cy="135" rx="8" ry="18" fill="#2C3E50" transform="rotate(20 125 135)"/>
+
+  <!-- Rat Paws -->
+  <circle cx="72" cy="150" r="6" fill="#34495E"/>
+  <circle cx="128" cy="150" r="6" fill="#34495E"/>
+
+  <!-- Wooden Spoon -->
+  <g transform="rotate(-35 100 100)">
+    <!-- Spoon Handle -->
+    <rect x="115" y="90" width="60" height="6" rx="3" fill="#C9A063"/>
+    <rect x="115" y="91" width="60" height="3" rx="1.5" fill="#B8935A"/>
+
+    <!-- Spoon Bowl -->
+    <ellipse cx="180" cy="93" rx="12" ry="10" fill="#C9A063"/>
+    <ellipse cx="180" cy="92" rx="10" ry="8" fill="#B8935A"/>
+  </g>
+
+  <!-- Whiskers -->
+  <line x1="85" y1="108" x2="60" y2="105" stroke="#1A252F" stroke-width="1.5"/>
+  <line x1="85" y1="112" x2="60" y2="115" stroke="#1A252F" stroke-width="1.5"/>
+</svg>

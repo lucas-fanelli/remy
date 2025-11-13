@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Chef Hat -->
+  <ellipse cx="50" cy="22" rx="18" ry="8" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="1"/>
+  <path d="M 32 22 Q 32 17 38 15 Q 44 13 50 13 Q 56 13 62 15 Q 68 17 68 22 L 68 30 Q 68 35 50 35 Q 32 35 32 30 Z" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="1"/>
+
+  <!-- Rat Head -->
+  <ellipse cx="50" cy="50" rx="20" ry="18" fill="#2C3E50"/>
+
+  <!-- Rat Ears -->
+  <ellipse cx="38" cy="40" rx="9" ry="11" fill="#2C3E50"/>
+  <ellipse cx="38" cy="40" rx="6" ry="8" fill="#34495E"/>
+  <ellipse cx="62" cy="40" rx="9" ry="11" fill="#2C3E50"/>
+  <ellipse cx="62" cy="40" rx="6" ry="8" fill="#34495E"/>
+
+  <!-- Rat Snout -->
+  <ellipse cx="55" cy="53" rx="10" ry="8" fill="#34495E"/>
+
+  <!-- Eye -->
+  <circle cx="47" cy="48" r="2" fill="#FFFFFF"/>
+
+  <!-- Nose -->
+  <circle cx="59" cy="51" r="1.5" fill="#1A252F"/>
+
+  <!-- Rat Body -->
+  <ellipse cx="50" cy="73" rx="18" ry="20" fill="#2C3E50"/>
+
+  <!-- Wooden Spoon -->
+  <g transform="rotate(-35 50 50)">
+    <rect x="58" y="45" width="30" height="3" rx="1.5" fill="#C9A063"/>
+    <ellipse cx="90" cy="46.5" rx="6" ry="5" fill="#C9A063"/>
+  </g>
+
+  <!-- Whiskers -->
+  <line x1="43" y1="54" x2="30" y2="53" stroke="#1A252F" stroke-width="1"/>
+  <line x1="43" y1="56" x2="30" y2="58" stroke="#1A252F" stroke-width="1"/>
+</svg>
