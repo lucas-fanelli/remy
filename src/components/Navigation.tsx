@@ -86,6 +86,8 @@ interface Notification {
 export default function Navigation() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallDesktop = useMediaQuery(theme.breakpoints.down('lg'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, token } = useAuth();
@@ -386,14 +388,9 @@ export default function Navigation() {
     // Pages that need an Up button (profile pages excluded)
     const needsUpButton = pathname === '/pantry' || pathname === '/settings' || isDetailPage;
 
-    // Determine parent page for Up navigation
-    const getParentPath = () => {
-      if (pathname === '/pantry' || pathname === '/settings') return '/';
-      if (isDetailPage) {
-        // For detail pages, parent is always home
-        return '/';
-      }
-      return '/';
+    // Use browser back for navigation
+    const handleBackClick = () => {
+      router.back();
     };
 
     // Show breadcrumbs on detail pages to make hierarchy tangible
@@ -410,15 +407,22 @@ export default function Navigation() {
           boxShadow: 'none',
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between', maxWidth: '935px', width: '100%', margin: '0 auto' }}>
+        <Toolbar sx={{
+          justifyContent: 'space-between',
+          maxWidth: { xs: '100%', md: '935px', lg: '1200px' },
+          width: '100%',
+          margin: '0 auto',
+          px: { xs: 1, sm: 2, md: 3 }
+        }}>
           {/* Left Side - Logo (always visible) with optional Up button */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
             {needsUpButton && (
               <IconButton
-                onClick={() => router.push(getParentPath())}
+                onClick={handleBackClick}
                 edge="start"
                 sx={{ mr: 0.5 }}
-                aria-label="Navigate up"
+                aria-label="Navigate back"
+                size={isSmallDesktop ? 'small' : 'medium'}
               >
                 <ArrowBack />
               </IconButton>
@@ -428,14 +432,14 @@ export default function Navigation() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1, md: 1.5 } }}>
                 <Box
                   component="img"
                   src={BRANDING.logo}
                   alt={BRANDING.name}
                   sx={{
-                    height: 48,
-                    width: 48,
+                    height: { xs: 36, sm: 40, md: 48 },
+                    width: { xs: 36, sm: 40, md: 48 },
                     cursor: 'pointer',
                   }}
                   onClick={() => router.push('/')}
@@ -443,10 +447,11 @@ export default function Navigation() {
                 <Box
                   sx={{
                     fontFamily: BRANDING.font,
-                    fontSize: '24px',
+                    fontSize: { xs: '18px', sm: '20px', md: '24px' },
                     fontWeight: 600,
                     color: BRANDING.colors.primary,
                     cursor: 'pointer',
+                    display: { xs: isSmallDesktop ? 'none' : 'block', lg: 'block' }
                   }}
                   onClick={() => router.push('/')}
                 >
@@ -458,23 +463,35 @@ export default function Navigation() {
 
           {/* Search Bar */}
           <ClickAwayListener onClickAway={handleCloseSearch}>
-            <Box sx={{ position: 'relative', minWidth: 200 }}>
+            <Box sx={{
+              position: 'relative',
+              minWidth: { xs: 0, sm: 150, md: 200, lg: 300 },
+              maxWidth: { xs: 'none', md: 400 },
+              flex: { xs: 0, sm: '0 1 auto', md: 1 },
+              mx: { xs: 0, sm: 1, md: 2 }
+            }}>
               <Box
                 sx={{
                   backgroundColor: 'background.default',
                   borderRadius: 2,
-                  px: 2,
-                  py: 1,
+                  px: { xs: 1, sm: 1.5, md: 2 },
+                  py: { xs: 0.5, sm: 0.75, md: 1 },
                   display: 'flex',
                   alignItems: 'center',
                 }}
               >
-                <Search sx={{ color: 'text.secondary', mr: 1 }} />
+                <Search sx={{ color: 'text.secondary', mr: { xs: 0.5, md: 1 }, fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
                 <InputBase
-                  placeholder="Search recipes or users..."
+                  placeholder={isSmallDesktop ? "Search..." : "Search recipes or users..."}
                   value={searchQuery}
                   onChange={handleSearchChange}
-                  sx={{ flex: 1 }}
+                  sx={{
+                    flex: 1,
+                    fontSize: { xs: '0.875rem', md: '1rem' },
+                    '& input::placeholder': {
+                      fontSize: { xs: '0.875rem', md: '1rem' }
+                    }
+                  }}
                 />
               </Box>
               {showSearchResults && (
@@ -490,7 +507,7 @@ export default function Navigation() {
           </ClickAwayListener>
 
           {/* Right Icons */}
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1, md: 2 }, alignItems: 'center' }}>
             {navItems.map((item) => {
               const Icon = activeTab === item.id ? item.activeIcon : item.icon;
               return (
@@ -499,8 +516,13 @@ export default function Navigation() {
                   onClick={() => handleTabClick(item.id)}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
+                  size={isSmallDesktop ? 'small' : 'medium'}
+                  sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
                 >
-                  <Icon sx={{ color: activeTab === item.id ? 'text.primary' : 'text.secondary' }} />
+                  <Icon sx={{
+                    color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                    fontSize: { sm: '1.25rem', md: '1.5rem' }
+                  }} />
                 </MotionIconButton>
               );
             })}
@@ -508,17 +530,19 @@ export default function Navigation() {
               onClick={handleNotificationsOpen}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              size={isSmallDesktop ? 'small' : 'medium'}
             >
               <Badge badgeContent={unreadNotifications} color="error">
-                <FavoriteBorder />
+                <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
               </Badge>
             </MotionIconButton>
             <MotionIconButton
               onClick={handleMenuOpen}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
+              size={isSmallDesktop ? 'small' : 'medium'}
             >
-              <Avatar sx={{ width: 24, height: 24 }} src={user?.avatar || '/avatar.jpg'}>
+              <Avatar sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }} src={user?.avatar || '/avatar.jpg'}>
                 {user?.username?.charAt(0).toUpperCase()}
               </Avatar>
             </MotionIconButton>
@@ -598,8 +622,9 @@ export default function Navigation() {
         paper: {
           sx: {
             mt: 1.5,
-            maxHeight: 400,
-            width: 360,
+            maxHeight: { xs: '70vh', sm: 500, md: 400 },
+            width: { xs: 'calc(100vw - 32px)', sm: 400, md: 360 },
+            maxWidth: { xs: 'calc(100vw - 32px)', sm: 400 },
             overflow: 'auto',
           },
         },
@@ -716,21 +741,21 @@ export default function Navigation() {
           boxShadow: 'none',
         }}
       >
-        <Toolbar>
-          <IconButton edge="start" onClick={() => setDrawerOpen(true)}>
+        <Toolbar sx={{ px: { xs: 1, sm: 2 }, minHeight: { xs: 56, sm: 64 } }}>
+          <IconButton edge="start" onClick={() => setDrawerOpen(true)} size="small">
             <MenuIcon />
           </IconButton>
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: { xs: 0.5, sm: 1 } }}>
             <Box
               component="img"
               src={BRANDING.logo}
               alt={BRANDING.name}
-              sx={{ height: 28, width: 28 }}
+              sx={{ height: { xs: 24, sm: 28 }, width: { xs: 24, sm: 28 } }}
             />
             <Box
               sx={{
                 fontFamily: BRANDING.font,
-                fontSize: '20px',
+                fontSize: { xs: '16px', sm: '20px' },
                 fontWeight: 600,
                 color: BRANDING.colors.primary,
               }}
@@ -738,9 +763,9 @@ export default function Navigation() {
               {BRANDING.name}
             </Box>
           </Box>
-          <IconButton onClick={handleNotificationsOpen}>
+          <IconButton onClick={handleNotificationsOpen} size="small">
             <Badge badgeContent={unreadNotifications} color="error">
-              <FavoriteBorder />
+              <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
             </Badge>
           </IconButton>
         </Toolbar>
@@ -758,7 +783,11 @@ export default function Navigation() {
           boxShadow: 'none',
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-around', minHeight: 56 }}>
+        <Toolbar sx={{
+          justifyContent: 'space-around',
+          minHeight: { xs: 56, sm: 64 },
+          px: { xs: 0.5, sm: 2 }
+        }}>
           {navItems.map((item) => {
             const Icon = activeTab === item.id ? item.activeIcon : item.icon;
             return (
@@ -766,37 +795,113 @@ export default function Navigation() {
                 key={item.id}
                 onClick={() => handleTabClick(item.id)}
                 whileTap={{ scale: 0.9 }}
+                size="small"
+                sx={{ p: { xs: 0.5, sm: 1 } }}
               >
-                <Icon sx={{ color: activeTab === item.id ? 'text.primary' : 'text.secondary' }} />
+                <Icon sx={{
+                  color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                  fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                }} />
               </MotionIconButton>
             );
           })}
-          <MotionIconButton whileTap={{ scale: 0.9 }}>
-            <Avatar sx={{ width: 24, height: 24 }} src="/avatar.jpg" />
+          <MotionIconButton
+            whileTap={{ scale: 0.9 }}
+            size="small"
+            sx={{ p: { xs: 0.5, sm: 1 } }}
+            onClick={handleProfileClick}
+          >
+            <Avatar sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }} src={user?.avatar || '/avatar.jpg'}>
+              {user?.username?.charAt(0).toUpperCase()}
+            </Avatar>
           </MotionIconButton>
         </Toolbar>
       </AppBar>
 
       <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <Box sx={{ width: 250 }} role="presentation">
+        <Box sx={{ width: { xs: 280, sm: 320 } }} role="presentation">
           <List>
-            <ListItem>
+            <ListItem sx={{ py: 2 }}>
               <ListItemIcon>
-                <Avatar src={user?.avatar || '/avatar.jpg'}>
+                <Avatar
+                  src={user?.avatar || '/avatar.jpg'}
+                  sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }}
+                >
                   {user?.username?.charAt(0).toUpperCase()}
                 </Avatar>
               </ListItemIcon>
-              <ListItemText primary={user?.username || 'Your Profile'} secondary={`@${user?.username || 'username'}`} />
+              <ListItemText
+                primary={user?.username || 'Your Profile'}
+                secondary={`@${user?.username || 'username'}`}
+                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                secondaryTypographyProps={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+              />
             </ListItem>
             <Divider />
             {navItems.map((item) => (
-              <ListItem key={item.id} onClick={() => handleTabClick(item.id)}>
+              <ListItemButton
+                key={item.id}
+                onClick={() => {
+                  handleTabClick(item.id);
+                  setDrawerOpen(false);
+                }}
+                sx={{ py: { xs: 1.5, sm: 2 } }}
+              >
                 <ListItemIcon>
-                  <item.icon />
+                  <item.icon sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
                 </ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItem>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                />
+              </ListItemButton>
             ))}
+            <Divider />
+            <ListItemButton
+              onClick={() => {
+                router.push('/settings');
+                setDrawerOpen(false);
+              }}
+              sx={{ py: { xs: 1.5, sm: 2 } }}
+            >
+              <ListItemIcon>
+                <Settings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Settings"
+                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+              />
+            </ListItemButton>
+            <ListItemButton
+              onClick={() => {
+                toggleTheme();
+                setDrawerOpen(false);
+              }}
+              sx={{ py: { xs: 1.5, sm: 2 } }}
+            >
+              <ListItemIcon>
+                {mode === 'dark' ? <LightMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} /> : <DarkMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />}
+              </ListItemIcon>
+              <ListItemText
+                primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+              />
+            </ListItemButton>
+            <ListItemButton
+              onClick={() => {
+                handleLogout();
+                setDrawerOpen(false);
+              }}
+              sx={{ py: { xs: 1.5, sm: 2 } }}
+            >
+              <ListItemIcon>
+                <Logout sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Logout"
+                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+              />
+            </ListItemButton>
           </List>
         </Box>
       </Drawer>

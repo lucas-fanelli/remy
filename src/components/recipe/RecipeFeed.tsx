@@ -22,6 +22,8 @@ import {
   Skeleton,
   Card,
   CardContent,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { Add as AddIcon, FilterList } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -41,6 +43,9 @@ interface RecipeFeedProps {
 export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedProps) {
   const router = useRouter();
   const { user, token } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -283,6 +288,18 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       return;
     }
 
+    // Optimistic update
+    const currentLikeState = recipeLikes[recipeId] || { liked: false, count: 0 };
+    const optimisticLiked = !currentLikeState.liked;
+    const optimisticCount = optimisticLiked
+      ? currentLikeState.count + 1
+      : Math.max(0, currentLikeState.count - 1);
+
+    setRecipeLikes((prev) => ({
+      ...prev,
+      [recipeId]: { liked: optimisticLiked, count: optimisticCount },
+    }));
+
     try {
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
@@ -293,13 +310,30 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
       if (response.ok) {
         const data = await response.json();
+        // Update with server response
         setRecipeLikes((prev) => ({
           ...prev,
           [recipeId]: { liked: data.liked, count: data.likesCount },
         }));
+      } else {
+        // Revert on error
+        setRecipeLikes((prev) => ({
+          ...prev,
+          [recipeId]: currentLikeState,
+        }));
+        setSnackbar({
+          open: true,
+          message: 'Failed to update like',
+          severity: 'error',
+        });
       }
     } catch (error) {
       console.error('Error toggling like:', error);
+      // Revert on error
+      setRecipeLikes((prev) => ({
+        ...prev,
+        [recipeId]: currentLikeState,
+      }));
       setSnackbar({
         open: true,
         message: 'Failed to update like',
@@ -314,12 +348,21 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       <Box
         sx={{
           display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
           justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3,
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: { xs: 1.5, sm: 0 },
+          mb: { xs: 2, md: 3 },
         }}
       >
-        <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+        <Typography
+          variant="h5"
+          sx={{
+            fontWeight: 600,
+            color: 'text.primary',
+            fontSize: { xs: '1.25rem', sm: '1.5rem' },
+          }}
+        >
           Discover Recipes
         </Typography>
         {onCreateRecipe && (
@@ -327,6 +370,8 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
             variant="contained"
             startIcon={<AddIcon />}
             onClick={onCreateRecipe}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
             sx={{ borderRadius: 2 }}
           >
             Share Recipe
@@ -337,17 +382,24 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       {/* Filters */}
       <Box
         sx={{
-          mb: 3,
-          p: 2,
+          mb: { xs: 2, md: 3 },
+          p: { xs: 1.5, md: 2 },
           backgroundColor: 'background.paper',
           borderRadius: 2,
           border: 1,
           borderColor: 'divider',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <FilterList sx={{ color: 'text.primary' }} />
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.5, md: 2 } }}>
+          <FilterList sx={{ color: 'text.primary', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 600,
+              color: 'text.primary',
+              fontSize: { xs: '0.9375rem', md: '1rem' },
+            }}
+          >
             Filters
           </Typography>
           {hasActiveFilters && (
@@ -356,13 +408,13 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
               size="small"
               onClick={clearFilters}
               onDelete={clearFilters}
-              sx={{ ml: 'auto' }}
+              sx={{ ml: 'auto', fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
             />
           )}
         </Box>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, md: 2 }}>
+          <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
             <InputLabel>Cuisine</InputLabel>
             <Select
               value={cuisineFilter}
@@ -377,7 +429,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
             <InputLabel>Difficulty</InputLabel>
             <Select
               value={difficultyFilter}
@@ -391,7 +443,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
             </Select>
           </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
             <InputLabel>Max Time</InputLabel>
             <Select
               value={maxTimeFilter}
@@ -409,7 +461,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
       {/* Recipe Grid */}
       {recipes.length > 0 ? (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
           {recipes.map((recipe, index) => (
             <Grid item xs={12} sm={6} md={4} key={recipe.id}>
               <MotionBox
@@ -436,11 +488,20 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
         </Grid>
       ) : (
         !loading && (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
+          <Box sx={{ textAlign: 'center', py: { xs: 6, md: 8 } }}>
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              gutterBottom
+              sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
+            >
               No recipes found
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.875rem', md: '1rem' } }}
+            >
               Try adjusting your filters or be the first to share a recipe!
             </Typography>
             {onCreateRecipe && (
@@ -448,6 +509,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={onCreateRecipe}
+                size={isMobile ? 'large' : 'medium'}
               >
                 Share Your First Recipe
               </Button>
@@ -458,19 +520,19 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
       {/* Loading Skeleton Cards */}
       {loading && recipes.length === 0 && (
-        <Grid container spacing={3}>
+        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
           {[1, 2, 3, 4, 5, 6].map((item) => (
             <Grid item xs={12} sm={6} md={4} key={item}>
               <Card>
-                <Skeleton variant="rectangular" width="100%" height={240} />
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Skeleton variant="circular" width={40} height={40} />
+                <Skeleton variant="rectangular" width="100%" height={{ xs: 180, sm: 200, md: 240 }} />
+                <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.5, md: 2 } }}>
+                    <Skeleton variant="circular" width={{ xs: 32, md: 40 }} height={{ xs: 32, md: 40 }} />
                     <Skeleton variant="text" width={120} height={24} />
                   </Box>
                   <Skeleton variant="text" width="90%" height={28} />
                   <Skeleton variant="text" width="70%" height={20} sx={{ mt: 1 }} />
-                  <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mt: { xs: 1.5, md: 2 } }}>
                     <Skeleton variant="rectangular" width={70} height={24} sx={{ borderRadius: 2 }} />
                     <Skeleton variant="rectangular" width={70} height={24} sx={{ borderRadius: 2 }} />
                   </Box>
@@ -483,15 +545,15 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
       {/* Loading More Indicator */}
       {loading && recipes.length > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 3, md: 4 } }}>
           <CircularProgress />
         </Box>
       )}
 
       {/* End of Feed Message */}
       {!loading && !hasMore && recipes.length > 0 && (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ textAlign: 'center', py: { xs: 3, md: 4 } }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
             You've reached the end! 🍽️
           </Typography>
         </Box>
@@ -501,19 +563,27 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
+        fullScreen={isMobile}
+        maxWidth="sm"
+        fullWidth
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">
+        <DialogTitle id="delete-dialog-title" sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
           Delete Recipe?
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-dialog-description">
+          <DialogContentText id="delete-dialog-description" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
             Are you sure you want to delete "{recipeToDelete?.title}"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={deleting}>
+        <DialogActions sx={{ p: { xs: 2, md: 3 }, gap: { xs: 1, sm: 0 }, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
+          <Button
+            onClick={handleDeleteCancel}
+            disabled={deleting}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
+          >
             Cancel
           </Button>
           <Button
@@ -521,6 +591,8 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
             color="error"
             variant="contained"
             disabled={deleting}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
             autoFocus
           >
             {deleting ? 'Deleting...' : 'Delete'}

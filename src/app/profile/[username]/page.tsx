@@ -170,8 +170,6 @@ export default function ProfilePage() {
       console.error('Error loading profile:', err);
       setError(err instanceof Error ? err.message : 'Failed to load profile');
     } finally {
-      // Add 2-second delay to simulate real loading
-      await new Promise(resolve => setTimeout(resolve, 2000));
       setLoading(false);
     }
   };

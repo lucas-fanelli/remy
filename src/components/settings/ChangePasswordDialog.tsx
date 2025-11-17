@@ -12,6 +12,8 @@ import {
   CircularProgress,
   Alert,
   InputAdornment,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -29,6 +31,8 @@ interface ChangePasswordDialogProps {
 export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProps) {
   const { token } = useAuth();
   const { showSuccess, showError } = useToast();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -163,23 +167,33 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: 2,
+          borderRadius: isMobile ? 0 : 2,
         },
       }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: { xs: '1.25rem', md: '1.5rem' },
+          px: { xs: 2, md: 3 },
+          py: { xs: 1.5, md: 2 }
+        }}
+      >
         Change Password
-        <IconButton onClick={handleClose} size="small">
-          <CloseIcon />
+        <IconButton onClick={handleClose} size={isMobile ? 'small' : 'medium'}>
+          <CloseIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
         </IconButton>
       </DialogTitle>
 
       <form onSubmit={handleSubmit}>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Alert severity="info">
+        <DialogContent sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
+            <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
               Your password must be at least 8 characters and include uppercase, lowercase, and numbers.
             </Alert>
 
@@ -193,14 +207,20 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
               onChange={handleChange}
               error={!!errors.currentPassword}
               helperText={errors.currentPassword}
+              size={isMobile ? 'small' : 'medium'}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
                       onClick={() => toggleShowPassword('current')}
                       edge="end"
+                      size={isMobile ? 'small' : 'medium'}
                     >
-                      {showPasswords.current ? <VisibilityOff /> : <Visibility />}
+                      {showPasswords.current ? (
+                        <VisibilityOff sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                      ) : (
+                        <Visibility sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -217,14 +237,20 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
               onChange={handleChange}
               error={!!errors.newPassword}
               helperText={errors.newPassword}
+              size={isMobile ? 'small' : 'medium'}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
                       onClick={() => toggleShowPassword('new')}
                       edge="end"
+                      size={isMobile ? 'small' : 'medium'}
                     >
-                      {showPasswords.new ? <VisibilityOff /> : <Visibility />}
+                      {showPasswords.new ? (
+                        <VisibilityOff sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                      ) : (
+                        <Visibility sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -241,14 +267,20 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
               onChange={handleChange}
               error={!!errors.confirmPassword}
               helperText={errors.confirmPassword}
+              size={isMobile ? 'small' : 'medium'}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
                       onClick={() => toggleShowPassword('confirm')}
                       edge="end"
+                      size={isMobile ? 'small' : 'medium'}
                     >
-                      {showPasswords.confirm ? <VisibilityOff /> : <Visibility />}
+                      {showPasswords.confirm ? (
+                        <VisibilityOff sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                      ) : (
+                        <Visibility sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                      )}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -257,15 +289,29 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={handleClose} disabled={saving}>
+        <DialogActions
+          sx={{
+            px: { xs: 2, md: 3 },
+            pb: { xs: 2, md: 3 },
+            gap: { xs: 1, sm: 0 },
+            flexDirection: { xs: 'column-reverse', sm: 'row' }
+          }}
+        >
+          <Button
+            onClick={handleClose}
+            disabled={saving}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
+          >
             Cancel
           </Button>
           <Button
             type="submit"
             variant="contained"
             disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} /> : null}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
+            startIcon={saving ? <CircularProgress size={isMobile ? 18 : 20} /> : null}
           >
             {saving ? 'Changing...' : 'Change Password'}
           </Button>

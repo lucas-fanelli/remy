@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { NotificationService } from '@/infrastructure/services/NotificationService';
 
 // GET comments for a recipe
 export async function GET(
@@ -149,11 +148,13 @@ export async function POST(
       });
 
       // Create rating notification
-      await NotificationService.createRatingNotification(payload.userId, recipeId, recipe.userId);
+      const notificationService = container.getNotificationService();
+      await notificationService.createRatingNotification(payload.userId, recipeId, recipe.userId);
     }
 
     // Create comment notification
-    await NotificationService.createCommentNotification(payload.userId, recipeId, recipe.userId, comment.id);
+    const notificationService = container.getNotificationService();
+    await notificationService.createCommentNotification(payload.userId, recipeId, recipe.userId, comment.id);
 
     // Add rating to comment object for response
     const commentWithRating = {

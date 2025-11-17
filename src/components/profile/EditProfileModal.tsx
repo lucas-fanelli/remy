@@ -14,6 +14,8 @@ import {
   Typography,
   CircularProgress,
   IconButton,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -38,6 +40,9 @@ interface ProfileForm {
 export default function EditProfileModal({ open, onClose, onSuccess }: EditProfileModalProps) {
   const { user, token, updateProfile } = useAuth();
   const { showSuccess, showError } = useToast();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ProfileForm>({
@@ -167,30 +172,38 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
         sx: {
-          borderRadius: 2,
+          borderRadius: isMobile ? 0 : 2,
         },
       }}
     >
-      <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        Edit Profile
-        <IconButton onClick={onClose} size="small">
+      <DialogTitle sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        pb: { xs: 1, md: 2 }
+      }}>
+        <Typography component="span" variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+          Edit Profile
+        </Typography>
+        <IconButton onClick={onClose} size={isMobile ? 'small' : 'medium'}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
       <form onSubmit={handleSubmit}>
-        <DialogContent>
+        <DialogContent sx={{ px: { xs: 2, md: 3 } }}>
           {/* Avatar Section */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: { xs: 2, md: 3 } }}>
             <Avatar
               src={avatarPreview}
               sx={{
-                width: 100,
-                height: 100,
-                mb: 2,
-                border: '3px solid',
+                width: { xs: 80, sm: 100, md: 120 },
+                height: { xs: 80, sm: 100, md: 120 },
+                mb: { xs: 1.5, md: 2 },
+                border: { xs: '2px solid', md: '3px solid' },
                 borderColor: 'primary.main',
               }}
             >
@@ -208,12 +221,22 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
                 variant="outlined"
                 component="span"
                 startIcon={<PhotoCamera />}
-                size="small"
+                size={isMobile ? 'small' : 'medium'}
+                fullWidth={isMobile}
               >
                 Change Photo
               </Button>
             </label>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                mt: 1,
+                textAlign: 'center',
+                fontSize: { xs: '0.7rem', md: '0.75rem' },
+                px: { xs: 2, md: 0 }
+              }}
+            >
               {avatarFile ? 'New photo selected - will be uploaded when you save' : 'Click to change your profile photo'}
             </Typography>
           </Box>
@@ -224,7 +247,8 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             label="Username"
             value={user.username}
             disabled
-            sx={{ mb: 2 }}
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ mb: { xs: 1.5, md: 2 } }}
             helperText="Username cannot be changed"
           />
 
@@ -233,7 +257,8 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             label="Email"
             value={user.email}
             disabled
-            sx={{ mb: 2 }}
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ mb: { xs: 1.5, md: 2 } }}
             helperText="Email cannot be changed"
           />
 
@@ -243,7 +268,8 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             name="fullName"
             value={formData.fullName}
             onChange={handleInputChange}
-            sx={{ mb: 2 }}
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ mb: { xs: 1.5, md: 2 } }}
             placeholder="Enter your full name"
           />
 
@@ -254,8 +280,9 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             value={formData.bio}
             onChange={handleInputChange}
             multiline
-            rows={4}
-            sx={{ mb: 2 }}
+            rows={isMobile ? 3 : 4}
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ mb: { xs: 1.5, md: 2 } }}
             placeholder="Tell us about yourself..."
             helperText={`${formData.bio.length}/300 characters`}
             inputProps={{ maxLength: 300 }}
@@ -267,7 +294,8 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             name="website"
             value={formData.website}
             onChange={handleInputChange}
-            sx={{ mb: 2 }}
+            size={isMobile ? 'small' : 'medium'}
+            sx={{ mb: { xs: 1.5, md: 2 } }}
             placeholder="https://yourwebsite.com"
             type="url"
           />
@@ -291,8 +319,18 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
           />
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={onClose} disabled={saving}>
+        <DialogActions sx={{
+          px: { xs: 2, md: 3 },
+          pb: { xs: 2, md: 3 },
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          gap: { xs: 1, sm: 0 }
+        }}>
+          <Button
+            onClick={onClose}
+            disabled={saving}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
+          >
             Cancel
           </Button>
           <Button
@@ -300,6 +338,8 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             variant="contained"
             disabled={saving}
             startIcon={saving ? <CircularProgress size={20} /> : null}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>

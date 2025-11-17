@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { BRANDING } from '@/config/branding';
@@ -45,28 +45,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         palette: {
           mode,
           primary: {
-            main: BRANDING.colors.primary,
-            light: '#E85E35',
-            dark: '#BF360C',
+            main: BRANDING.colors.primary,    // #673AB7 - Rich purple
+            light: '#D1C4E9',                  // Light purple
+            dark: BRANDING.colors.secondary,   // #512DA8 - Deep purple
           },
           secondary: {
-            main: BRANDING.colors.secondary,
-            light: '#FF9800',
-            dark: '#E65100',
+            main: BRANDING.colors.accent,      // #FFC107 - Golden yellow
+            light: '#FFD54F',                  // Light yellow
+            dark: '#FFA000',                   // Dark yellow/amber
           },
           background: mode === 'light' ? {
-            default: '#FFF8E1',
-            paper: '#FFFFFF',
+            default: '#FAFAFA',                // Light gray (clean background)
+            paper: '#FFFFFF',                  // White surfaces
           } : {
-            default: '#121212',
-            paper: '#1E1E1E',
+            default: '#121212',                // Very dark gray
+            paper: '#1E1E1E',                  // Dark surfaces
           },
           text: mode === 'light' ? {
-            primary: '#262626',
-            secondary: '#8E8E8E',
+            primary: '#212121',                // Almost black (high contrast)
+            secondary: '#757575',              // Medium gray
           } : {
-            primary: '#FFFFFF',
-            secondary: '#B0B0B0',
+            primary: '#FFFFFF',                // White text
+            secondary: '#B0B0B0',              // Light gray text
           },
         },
         typography: {

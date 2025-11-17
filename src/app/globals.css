@@ -25,6 +25,46 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   background-color: #ffffff;
   color: #000000;
+  /* Responsive base font size */
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Responsive typography */
+@media (max-width: 600px) {
+  body {
+    font-size: 14px;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.25rem;
+  }
+
+  h4 {
+    font-size: 1.125rem;
+  }
+
+  h5 {
+    font-size: 1rem;
+  }
+
+  h6 {
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 960px) {
+  body {
+    font-size: 15px;
+  }
 }
 
 a {
@@ -54,4 +94,63 @@ a {
 /* Smooth transitions */
 * {
   transition: background-color 0.2s ease-in-out;
+}
+
+/* Touch-friendly tap targets */
+button,
+a,
+[role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (max-width: 600px) {
+  /* Reduce tap target size slightly on very small screens */
+  button,
+  a,
+  [role="button"] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 600px) {
+  /* Improve text readability on small screens */
+  p {
+    margin-bottom: 1rem;
+  }
+
+  /* Ensure images don't overflow */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Prevent horizontal scrolling */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Dark mode scrollbar */
+html.dark-mode::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+html.dark-mode::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+html.dark-mode::-webkit-scrollbar-thumb:hover {
+  background: #666;
 }

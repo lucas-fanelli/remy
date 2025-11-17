@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { NotificationService } from '@/infrastructure/services/NotificationService';
 
 export async function POST(
   request: NextRequest,
@@ -59,7 +58,8 @@ export async function POST(
       });
 
       // Delete the like notification
-      await NotificationService.deleteLikeNotification(payload.userId, recipeId, recipe.userId);
+      const notificationService = container.getNotificationService();
+      await notificationService.deleteLikeNotification(payload.userId, recipeId, recipe.userId);
 
       // Get updated count
       const likesCount = await prisma.like.count({
@@ -81,7 +81,8 @@ export async function POST(
       });
 
       // Create like notification
-      await NotificationService.createLikeNotification(payload.userId, recipeId, recipe.userId);
+      const notificationService = container.getNotificationService();
+      await notificationService.createLikeNotification(payload.userId, recipeId, recipe.userId);
 
       // Get updated count
       const likesCount = await prisma.like.count({

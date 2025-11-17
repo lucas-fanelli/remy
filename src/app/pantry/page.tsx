@@ -37,6 +37,7 @@ import {
   FilterList,
   ArrowBack,
 } from '@mui/icons-material';
+import { Autocomplete } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -140,6 +141,9 @@ export default function PantryPage() {
       return;
     }
 
+    // Use the category from formData, trim it, and default to 'other' only if empty
+    const categoryToSave = formData.category.trim() || 'other';
+
     try {
       const url = editingItem ? `/api/pantry/${editingItem.id}` : '/api/pantry';
       const method = editingItem ? 'PUT' : 'POST';
@@ -154,7 +158,7 @@ export default function PantryPage() {
           name: formData.name.trim(),
           quantity: parseFloat(formData.quantity),
           unit: formData.unit,
-          category: formData.category,
+          category: categoryToSave,
           notes: formData.notes.trim() || null,
         }),
       });
@@ -200,6 +204,13 @@ export default function PantryPage() {
       setSnackbar({ open: true, message: 'Failed to delete item', severity: 'error' });
     }
   };
+
+  // Get all unique categories from items (both predefined and custom)
+  const allCategories = React.useMemo(() => {
+    const customCategories = new Set(items.map(item => item.category).filter(Boolean));
+    const combined = new Set([...categories, ...Array.from(customCategories)]);
+    return Array.from(combined).sort();
+  }, [items]);
 
   const filteredItems = items.filter(item =>
     categoryFilter === 'all' || item.category === categoryFilter
@@ -249,7 +260,7 @@ export default function PantryPage() {
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
                 <MenuItem value="all">All Categories</MenuItem>
-                {categories.map((cat) => (
+                {allCategories.map((cat) => (
                   <MenuItem key={cat} value={cat}>
                     {cat.charAt(0).toUpperCase() + cat.slice(1)}
                   </MenuItem>
@@ -374,20 +385,34 @@ export default function PantryPage() {
                   </Select>
                 </FormControl>
               </Box>
-              <FormControl fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={formData.category}
-                  label="Category"
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                >
-                  {categories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete
+                freeSolo
+                options={allCategories}
+                value={formData.category}
+                onChange={(event, newValue) => {
+                  if (newValue) {
+                    const value = typeof newValue === 'string' ? newValue.toLowerCase().trim() : newValue;
+                    setFormData({ ...formData, category: value });
+                  }
+                }}
+                onInputChange={(event, newInputValue, reason) => {
+                  // When user types, pastes, or clears, update the category
+                  if (reason === 'input' || reason === 'clear') {
+                    const value = newInputValue ? newInputValue.toLowerCase().trim() : 'other';
+                    setFormData({ ...formData, category: value });
+                  }
+                }}
+                getOptionLabel={(option) => option.charAt(0).toUpperCase() + option.slice(1)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Category"
+                    placeholder="Select or type a category"
+                    fullWidth
+                    helperText={formData.category ? `Will be saved as: ${formData.category.charAt(0).toUpperCase() + formData.category.slice(1)}` : ''}
+                  />
+                )}
+              />
               <TextField
                 label="Notes (optional)"
                 fullWidth

@@ -17,9 +17,9 @@ export const BRANDING = {
 
   // Color scheme
   colors: {
-    primary: "#D84315", // Cooking/warm orange-red
-    secondary: "#F57C00", // Warm orange
-    accent: "#FF6F00", // Bright orange
+    primary: "#673AB7", // Rich purple (primary brand color)
+    secondary: "#512DA8", // Deep purple
+    accent: "#FFC107", // Golden yellow (accent/highlights)
   },
 
   // Font

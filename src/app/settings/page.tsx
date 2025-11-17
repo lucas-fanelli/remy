@@ -19,6 +19,8 @@ import {
   ListItemIcon,
   ListItemText,
   Alert,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Language,
@@ -43,6 +45,9 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const { showSuccess, showInfo } = useToast();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const [language, setLanguage] = useState('en');
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -72,16 +77,28 @@ export default function SettingsPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', pb: 8, backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', pb: { xs: 6, md: 8 }, backgroundColor: 'background.default' }}>
       <Toolbar />
 
-      <Container maxWidth="md" sx={{ pt: 4 }}>
+      <Container maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, px: { xs: 2, md: 3 } }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'text.primary' }}>
+        <Box sx={{ mb: { xs: 3, md: 4 } }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            gutterBottom
+            sx={{
+              color: 'text.primary',
+              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' }
+            }}
+          >
             Settings
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+          >
             Manage your account preferences and settings
           </Typography>
         </Box>
@@ -92,13 +109,15 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           elevation={2}
-          sx={{ p: 3, mb: 3 }}
+          sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Palette sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6">Appearance</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
+            <Palette sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+              Appearance
+            </Typography>
           </Box>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
 
           <FormControlLabel
             control={
@@ -110,8 +129,14 @@ export default function SettingsPage() {
             }
             label={
               <Box>
-                <Typography variant="body1">Dark Mode</Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
+                  Dark Mode
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                >
                   Use dark theme across the app
                 </Typography>
               </Box>
@@ -125,15 +150,17 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           elevation={2}
-          sx={{ p: 3, mb: 3 }}
+          sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Language sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6">Language & Region</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
+            <Language sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+              Language & Region
+            </Typography>
           </Box>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
 
-          <FormControl fullWidth>
+          <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
             <InputLabel>Language</InputLabel>
             <Select
               value={language}
@@ -156,16 +183,18 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           elevation={2}
-          sx={{ p: 3, mb: 3 }}
+          sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Notifications sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6">Notifications</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
+            <Notifications sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+              Notifications
+            </Typography>
           </Box>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
 
-          <List>
-            <ListItem>
+          <List sx={{ px: { xs: 0, md: 0 } }}>
+            <ListItem sx={{ px: { xs: 0, md: 2 } }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -176,15 +205,21 @@ export default function SettingsPage() {
                 }
                 label={
                   <Box>
-                    <Typography variant="body1">Email Notifications</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
+                      Email Notifications
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                    >
                       Receive email updates about your recipes and activity
                     </Typography>
                   </Box>
                 }
               />
             </ListItem>
-            <ListItem>
+            <ListItem sx={{ px: { xs: 0, md: 2 } }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -195,15 +230,21 @@ export default function SettingsPage() {
                 }
                 label={
                   <Box>
-                    <Typography variant="body1">Push Notifications</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
+                      Push Notifications
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                    >
                       Get push notifications for comments and likes
                     </Typography>
                   </Box>
                 }
               />
             </ListItem>
-            <ListItem>
+            <ListItem sx={{ px: { xs: 0, md: 2 } }}>
               <FormControlLabel
                 control={
                   <Switch
@@ -214,8 +255,14 @@ export default function SettingsPage() {
                 }
                 label={
                   <Box>
-                    <Typography variant="body1">Marketing Emails</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
+                      Marketing Emails
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                    >
                       Receive emails about new features and updates
                     </Typography>
                   </Box>
@@ -231,46 +278,95 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
           elevation={2}
-          sx={{ p: 3, mb: 3 }}
+          sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <Security sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6">Privacy & Security</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
+            <Security sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+              Privacy & Security
+            </Typography>
           </Box>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
 
-          <List>
+          <List sx={{ px: { xs: 0, md: 0 } }}>
             <ListItem
               component="button"
               onClick={() => setChangePasswordOpen(true)}
-              sx={{ borderRadius: 1, mb: 1, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+              sx={{
+                borderRadius: 1,
+                mb: 1,
+                cursor: 'pointer',
+                border: 'none',
+                background: 'transparent',
+                width: '100%',
+                textAlign: 'left',
+                px: { xs: 0, md: 2 },
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                }
+              }}
             >
               <ListItemIcon>
-                <VpnKey />
+                <VpnKey sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' }, color: 'text.primary' }} />
               </ListItemIcon>
               <ListItemText
-                primary="Change Password"
-                secondary="Update your password to keep your account secure"
+                primary={
+                  <Typography sx={{ fontSize: { xs: '0.9375rem', md: '1rem' }, color: 'text.primary' }}>
+                    Change Password
+                  </Typography>
+                }
+                secondary={
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                  >
+                    Update your password to keep your account secure
+                  </Typography>
+                }
               />
             </ListItem>
             <ListItem
               component="button"
               onClick={() => showInfo('Cookie settings coming soon')}
-              sx={{ borderRadius: 1, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}
+              sx={{
+                borderRadius: 1,
+                cursor: 'pointer',
+                border: 'none',
+                background: 'transparent',
+                width: '100%',
+                textAlign: 'left',
+                px: { xs: 0, md: 2 },
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                }
+              }}
             >
               <ListItemIcon>
-                <Cookie />
+                <Cookie sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' }, color: 'text.primary' }} />
               </ListItemIcon>
               <ListItemText
-                primary="Cookie Preferences"
-                secondary="Manage your cookie and tracking preferences"
+                primary={
+                  <Typography sx={{ fontSize: { xs: '0.9375rem', md: '1rem' }, color: 'text.primary' }}>
+                    Cookie Preferences
+                  </Typography>
+                }
+                secondary={
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                  >
+                    Manage your cookie and tracking preferences
+                  </Typography>
+                }
               />
             </ListItem>
           </List>
         </MotionPaper>
 
         {/* Info Alert */}
-        <Alert severity="info" sx={{ mb: 3 }}>
+        <Alert severity="info" sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
           These are basic settings for V1. More options will be added in future updates!
         </Alert>
       </Container>

@@ -15,6 +15,8 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Favorite,
@@ -61,6 +63,9 @@ export default function RecipeCard({
   currentUserId,
 }: RecipeCardProps) {
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
   const totalTime = recipe.prepTime + recipe.cookingTime;
@@ -116,23 +121,26 @@ export default function RecipeCard({
       <Box sx={{ position: 'relative' }} onClick={onClick}>
         <CardMedia
           component="img"
-          height="240"
+          sx={{
+            height: { xs: 180, sm: 200, md: 240 },
+            objectFit: 'cover'
+          }}
           image={recipe.imageUrl}
           alt={recipe.title}
-          sx={{ objectFit: 'cover' }}
         />
 
         {/* Difficulty Badge */}
         {!isOwner && (
-          <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
+          <Box sx={{ position: 'absolute', top: { xs: 8, md: 12 }, right: { xs: 8, md: 12 } }}>
             <Chip
               label={recipe.difficulty}
-              size="small"
+              size={isMobile ? 'small' : 'medium'}
               color={getDifficultyColor(recipe.difficulty) as any}
               sx={{
                 fontWeight: 600,
                 textTransform: 'capitalize',
                 backdropFilter: 'blur(10px)',
+                fontSize: { xs: '0.75rem', md: '0.8125rem' }
               }}
             />
           </Box>
@@ -140,11 +148,11 @@ export default function RecipeCard({
 
         {/* Edit/Delete Menu Button (for owners) - Replaces difficulty badge */}
         {showActions && isOwner && (
-          <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
+          <Box sx={{ position: 'absolute', top: { xs: 8, md: 12 }, right: { xs: 8, md: 12 } }}>
             <Tooltip title="More options">
               <IconButton
                 onClick={handleMenuOpen}
-                size="small"
+                size={isMobile ? 'small' : 'medium'}
                 sx={{
                   backgroundColor: 'rgba(0,0,0,0.6)',
                   color: 'white',
@@ -154,18 +162,18 @@ export default function RecipeCard({
                   },
                 }}
               >
-                <MoreVert />
+                <MoreVert sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
               </IconButton>
             </Tooltip>
           </Box>
         )}
 
         {/* Time Badge */}
-        <Box sx={{ position: 'absolute', bottom: 12, left: 12 }}>
+        <Box sx={{ position: 'absolute', bottom: { xs: 8, md: 12 }, left: { xs: 8, md: 12 } }}>
           <Chip
-            icon={<AccessTime sx={{ fontSize: 16 }} />}
+            icon={<AccessTime sx={{ fontSize: { xs: 14, md: 16 } }} />}
             label={`${totalTime} min`}
-            size="small"
+            size={isMobile ? 'small' : 'medium'}
             sx={{
               backdropFilter: 'blur(10px)',
               backgroundColor: (theme) =>
@@ -178,21 +186,22 @@ export default function RecipeCard({
                 color: (theme) =>
                   theme.palette.mode === 'dark' ? 'black' : 'white',
               },
+              fontSize: { xs: '0.75rem', md: '0.8125rem' }
             }}
           />
         </Box>
       </Box>
 
       {/* Recipe Info */}
-      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+      <CardContent sx={{ flexGrow: 1, pb: { xs: 0.5, md: 1 }, px: { xs: 1.5, md: 2 } }}>
         {/* Author Info */}
         {recipe.author && (
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1,
-              mb: 2,
+              gap: { xs: 0.75, md: 1 },
+              mb: { xs: 1.5, md: 2 },
               cursor: 'pointer',
               '&:hover': {
                 opacity: 0.8
@@ -206,11 +215,18 @@ export default function RecipeCard({
             <Avatar
               src={recipe.author.avatar}
               alt={recipe.author.username}
-              sx={{ width: 32, height: 32 }}
+              sx={{ width: { xs: 28, md: 32 }, height: { xs: 28, md: 32 } }}
             >
               {recipe.author.username.charAt(0).toUpperCase()}
             </Avatar>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: 'text.primary',
+                fontSize: { xs: '0.8125rem', md: '0.875rem' }
+              }}
+            >
               {recipe.author.fullName || recipe.author.username}
             </Typography>
           </Box>
@@ -229,7 +245,8 @@ export default function RecipeCard({
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            mb: 1,
+            mb: { xs: 0.75, md: 1 },
+            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' }
           }}
         >
           {recipe.title}
@@ -244,32 +261,35 @@ export default function RecipeCard({
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
-            mb: 2,
+            mb: { xs: 1, md: 2 },
+            fontSize: { xs: '0.8125rem', md: '0.875rem' }
           }}
         >
           {recipe.description}
         </Typography>
 
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+        <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 0.5, md: 1 } }}>
           <Chip
-            icon={<Restaurant sx={{ fontSize: 16 }} />}
+            icon={<Restaurant sx={{ fontSize: { xs: 14, md: 16 } }} />}
             label={recipe.cuisine}
             size="small"
             variant="outlined"
+            sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
           />
           <Chip
-            icon={<Person sx={{ fontSize: 16 }} />}
+            icon={<Person sx={{ fontSize: { xs: 14, md: 16 } }} />}
             label={`${recipe.servings} servings`}
             size="small"
             variant="outlined"
+            sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
           />
         </Box>
         </Box>
       </CardContent>
 
       {/* Actions */}
-      <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <CardActions sx={{ px: { xs: 1.5, md: 2 }, pb: { xs: 1.5, md: 2 }, pt: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 } }}>
           <Tooltip title={liked ? 'Unlike' : 'Like'}>
             <IconButton
               onClick={(e) => {
@@ -279,15 +299,23 @@ export default function RecipeCard({
               size="small"
               color={liked ? 'error' : 'default'}
             >
-              {liked ? <Favorite /> : <FavoriteBorder />}
+              {liked ? (
+                <Favorite sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+              ) : (
+                <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+              )}
             </IconButton>
           </Tooltip>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+          >
             {likeCount}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 }, ml: { xs: 1.5, md: 2 } }}>
           <Tooltip title="Comments">
             <IconButton
               onClick={(e) => {
@@ -296,10 +324,14 @@ export default function RecipeCard({
               }}
               size="small"
             >
-              <ChatBubbleOutline />
+              <ChatBubbleOutline sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
             </IconButton>
           </Tooltip>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+          >
             {commentCount}
           </Typography>
         </Box>

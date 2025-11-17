@@ -21,6 +21,9 @@ import {
   Grid,
   Chip,
   Alert,
+  useTheme,
+  useMediaQuery,
+  MobileStepper,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -58,6 +61,9 @@ const commonUnits = [
 
 export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: EditRecipeModalProps) {
   const { token } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -340,8 +346,13 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
 
             {ingredients.map((ingredient, index) => (
               <Card key={index} variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                <CardContent sx={{ p: { xs: 1.5, md: 2 }, '&:last-child': { pb: { xs: 1.5, md: 2 } } }}>
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 1, md: 2 },
+                    alignItems: { xs: 'stretch', sm: 'flex-start' }
+                  }}>
                     <TextField
                       label="Ingredient"
                       value={ingredient.name}
@@ -351,34 +362,37 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       placeholder="e.g., Tomatoes"
                       size="small"
                     />
-                    <TextField
-                      label="Amount"
-                      value={ingredient.amount}
-                      onChange={(e) => handleIngredientChange(index, 'amount', e.target.value)}
-                      required
-                      placeholder="2"
-                      size="small"
-                      sx={{ width: 100 }}
-                    />
-                    <FormControl size="small" sx={{ minWidth: 120 }} required>
-                      <InputLabel>Unit</InputLabel>
-                      <Select
-                        value={ingredient.unit}
-                        label="Unit"
-                        onChange={(e) => handleIngredientChange(index, 'unit', e.target.value)}
+                    <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+                      <TextField
+                        label="Amount"
+                        value={ingredient.amount}
+                        onChange={(e) => handleIngredientChange(index, 'amount', e.target.value)}
+                        required
+                        placeholder="2"
+                        size="small"
+                        sx={{ width: { xs: '100px', sm: '100px' } }}
+                      />
+                      <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 120 } }} required>
+                        <InputLabel>Unit</InputLabel>
+                        <Select
+                          value={ingredient.unit}
+                          label="Unit"
+                          onChange={(e) => handleIngredientChange(index, 'unit', e.target.value)}
+                        >
+                          {commonUnits.map((unit) => (
+                            <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <IconButton
+                        onClick={() => handleRemoveIngredient(index)}
+                        color="error"
+                        disabled={ingredients.length === 1}
+                        size={isMobile ? 'small' : 'medium'}
                       >
-                        {commonUnits.map((unit) => (
-                          <MenuItem key={unit} value={unit}>{unit}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <IconButton
-                      onClick={() => handleRemoveIngredient(index)}
-                      color="error"
-                      disabled={ingredients.length === 1}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>
@@ -388,6 +402,8 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               startIcon={<AddIcon />}
               onClick={handleAddIngredient}
               variant="outlined"
+              fullWidth={isMobile}
+              size={isMobile ? 'large' : 'medium'}
             >
               Add Ingredient
             </Button>
@@ -403,10 +419,30 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
 
             {instructions.map((instruction, index) => (
               <Card key={index} variant="outlined">
-                <CardContent>
-                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                    <Chip label={`Step ${instruction.step}`} color="primary" />
-                    <Box sx={{ flex: 1 }}>
+                <CardContent sx={{ p: { xs: 1.5, md: 2 }, '&:last-child': { pb: { xs: 1.5, md: 2 } } }}>
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: { xs: 1.5, md: 2 },
+                    alignItems: { xs: 'flex-start', sm: 'flex-start' }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', justifyContent: 'space-between' }}>
+                      <Chip
+                        label={`Step ${instruction.step}`}
+                        color="primary"
+                        size={isMobile ? 'small' : 'medium'}
+                      />
+                      <IconButton
+                        onClick={() => handleRemoveInstruction(index)}
+                        color="error"
+                        disabled={instructions.length === 1}
+                        size="small"
+                        sx={{ display: { sm: 'none' } }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                    <Box sx={{ flex: 1, width: '100%' }}>
                       <TextField
                         label="Instruction"
                         value={instruction.description}
@@ -432,6 +468,8 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       onClick={() => handleRemoveInstruction(index)}
                       color="error"
                       disabled={instructions.length === 1}
+                      size={isMobile ? 'small' : 'medium'}
+                      sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -444,6 +482,8 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               startIcon={<AddIcon />}
               onClick={handleAddInstruction}
               variant="outlined"
+              fullWidth={isMobile}
+              size={isMobile ? 'large' : 'medium'}
             >
               Add Step
             </Button>
@@ -500,29 +540,52 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
       onClose={handleClose}
       maxWidth="md"
       fullWidth
+      fullScreen={isMobile}
       PaperProps={{
-        sx: { maxHeight: '90vh' }
+        sx: { maxHeight: isMobile ? '100vh' : '90vh' }
       }}
     >
-      <DialogTitle>
+      <DialogTitle sx={{ pb: { xs: 1, md: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6">Edit Recipe</Typography>
-          <IconButton onClick={handleClose} edge="end">
+          <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+            Edit Recipe
+          </Typography>
+          <IconButton onClick={handleClose} edge="end" size={isMobile ? 'small' : 'medium'}>
             <CloseIcon />
           </IconButton>
         </Box>
       </DialogTitle>
 
       <DialogContent>
-        <Box sx={{ mt: 2 }}>
-          {/* Stepper */}
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+        <Box sx={{ mt: { xs: 1, md: 2 } }}>
+          {/* Stepper - Desktop */}
+          {!isMobile && (
+            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          )}
+
+          {/* Mobile Stepper */}
+          {isMobile && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 1 }}>
+                Step {activeStep + 1} of {steps.length}: {steps[activeStep]}
+              </Typography>
+              <MobileStepper
+                variant="progress"
+                steps={steps.length}
+                position="static"
+                activeStep={activeStep}
+                sx={{ flexGrow: 1, backgroundColor: 'transparent' }}
+                nextButton={<Box />}
+                backButton={<Box />}
+              />
+            </Box>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -545,11 +608,19 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
+            justifyContent: 'space-between',
+            gap: { xs: 1, sm: 0 },
+            mt: { xs: 3, md: 4 }
+          }}>
             <Button
               onClick={activeStep === 0 ? handleClose : handleBack}
               startIcon={activeStep === 0 ? undefined : <ArrowBack />}
               disabled={loading}
+              fullWidth={isMobile}
+              size={isMobile ? 'large' : 'medium'}
             >
               {activeStep === 0 ? 'Cancel' : 'Back'}
             </Button>
@@ -559,6 +630,8 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
               endIcon={activeStep === steps.length - 1 ? <Check /> : <ArrowForward />}
               disabled={!canProceed() || loading}
+              fullWidth={isMobile}
+              size={isMobile ? 'large' : 'medium'}
             >
               {loading ? 'Updating...' : activeStep === steps.length - 1 ? 'Update Recipe' : 'Next'}
             </Button>

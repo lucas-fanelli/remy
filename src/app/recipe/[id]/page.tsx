@@ -22,6 +22,8 @@ import {
   Snackbar,
   Toolbar,
   Skeleton,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -52,6 +54,9 @@ export default function RecipeDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user, token } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -337,16 +342,16 @@ export default function RecipeDetailPage() {
     return (
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Toolbar />
-        <Container maxWidth="md" sx={{ pt: 4, pb: 8 }}>
+        <Container maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, pb: { xs: 6, md: 8 }, px: { xs: 2, md: 3 } }}>
           <LoadingWithProgress color="primary" inline />
 
           {/* Recipe Image Skeleton */}
-          <Skeleton variant="rectangular" width="100%" height={400} sx={{ borderRadius: 2, mb: 3 }} />
+          <Skeleton variant="rectangular" width="100%" height={{ xs: 250, sm: 350, md: 400 }} sx={{ borderRadius: 2, mb: { xs: 2, md: 3 } }} />
 
           {/* Title and Meta Skeleton */}
-          <Box sx={{ mb: 3 }}>
-            <Skeleton variant="text" width="80%" height={48} sx={{ mb: 2 }} />
-            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <Box sx={{ mb: { xs: 2, md: 3 } }}>
+            <Skeleton variant="text" width={{ xs: '90%', md: '80%' }} height={{ xs: 36, md: 48 }} sx={{ mb: { xs: 1.5, md: 2 } }} />
+            <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mb: { xs: 1.5, md: 2 }, flexWrap: 'wrap' }}>
               <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 2 }} />
               <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 2 }} />
               <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 2 }} />
@@ -354,8 +359,8 @@ export default function RecipeDetailPage() {
           </Box>
 
           {/* Author Skeleton */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-            <Skeleton variant="circular" width={48} height={48} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, md: 2 }, mb: { xs: 2, md: 3 } }}>
+            <Skeleton variant="circular" width={{ xs: 40, md: 48 }} height={{ xs: 40, md: 48 }} />
             <Box sx={{ flex: 1 }}>
               <Skeleton variant="text" width={150} height={24} />
               <Skeleton variant="text" width={100} height={20} />
@@ -363,18 +368,18 @@ export default function RecipeDetailPage() {
           </Box>
 
           {/* Action Buttons Skeleton */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-            <Skeleton variant="rectangular" width={120} height={40} sx={{ borderRadius: 1 }} />
-            <Skeleton variant="rectangular" width={120} height={40} sx={{ borderRadius: 1 }} />
-            <Skeleton variant="rectangular" width={150} height={40} sx={{ borderRadius: 1 }} />
+          <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, mb: { xs: 3, md: 4 }, flexWrap: 'wrap' }}>
+            <Skeleton variant="rectangular" width={{ xs: '100%', sm: 120 }} height={40} sx={{ borderRadius: 1 }} />
+            <Skeleton variant="rectangular" width={{ xs: '100%', sm: 120 }} height={40} sx={{ borderRadius: 1 }} />
+            <Skeleton variant="rectangular" width={{ xs: '100%', sm: 150 }} height={40} sx={{ borderRadius: 1 }} />
           </Box>
 
-          <Divider sx={{ my: 4 }} />
+          <Divider sx={{ my: { xs: 3, md: 4 } }} />
 
           {/* Details Cards Skeleton */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 4 }}>
-            <Card><CardContent><Skeleton variant="text" width="60%" height={30} /><Skeleton variant="text" width="80%" height={24} /></CardContent></Card>
-            <Card><CardContent><Skeleton variant="text" width="60%" height={30} /><Skeleton variant="text" width="80%" height={24} /></CardContent></Card>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: { xs: 1.5, md: 2 }, mb: { xs: 3, md: 4 } }}>
+            <Card><CardContent sx={{ p: { xs: 1.5, md: 2 } }}><Skeleton variant="text" width="60%" height={30} /><Skeleton variant="text" width="80%" height={24} /></CardContent></Card>
+            <Card><CardContent sx={{ p: { xs: 1.5, md: 2 } }}><Skeleton variant="text" width="60%" height={30} /><Skeleton variant="text" width="80%" height={24} /></CardContent></Card>
           </Box>
         </Container>
       </Box>
@@ -383,11 +388,11 @@ export default function RecipeDetailPage() {
 
   if (error || !recipe) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
+      <Container maxWidth="md" sx={{ py: { xs: 3, md: 4 }, px: { xs: 2, md: 3 } }}>
+        <Alert severity="error" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}>
           {error || 'Recipe not found'}
         </Alert>
-        <Button onClick={handleBack} startIcon={<ArrowBack />}>
+        <Button onClick={handleBack} startIcon={<ArrowBack />} size={isMobile ? 'large' : 'medium'}>
           Go Back
         </Button>
       </Container>
@@ -397,11 +402,11 @@ export default function RecipeDetailPage() {
   const totalTime = recipe.prepTime + recipe.cookingTime;
 
   return (
-    <Box sx={{ minHeight: '100vh', pb: 8, backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', pb: { xs: 6, md: 8 }, backgroundColor: 'background.default' }}>
       {/* Spacer for fixed AppBar - Material Design pattern */}
       <Toolbar />
 
-      <Container maxWidth="lg" sx={{ pt: 2 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 } }}>
         {/* Recipe Image */}
         <MotionBox
           initial={{ opacity: 0, y: 20 }}
@@ -414,7 +419,7 @@ export default function RecipeDetailPage() {
             alt={recipe.title}
             sx={{
               width: '100%',
-              maxHeight: '500px',
+              maxHeight: { xs: '300px', sm: '400px', md: '500px' },
               objectFit: 'cover',
               borderRadius: 2,
               boxShadow: 3,
@@ -427,22 +432,54 @@ export default function RecipeDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          sx={{ mt: 3 }}
+          sx={{ mt: { xs: 2, md: 3 } }}
         >
           {/* Title and Tags */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 700, color: 'text.primary' }}>
+          <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
+            <Typography
+              variant="h3"
+              component="h1"
+              gutterBottom
+              sx={{
+                fontWeight: 700,
+                color: 'text.primary',
+                fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' },
+              }}
+            >
               {recipe.title}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+            <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 1.5, md: 2 } }}>
               <Chip
                 label={recipe.difficulty}
                 color={getDifficultyColor(recipe.difficulty) as any}
-                sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+                size={isMobile ? 'small' : 'medium'}
+                sx={{
+                  textTransform: 'capitalize',
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', md: '0.8125rem' },
+                }}
               />
-              <Chip icon={<Restaurant />} label={recipe.cuisine} variant="outlined" />
-              <Chip icon={<Person />} label={`${recipe.servings} servings`} variant="outlined" />
-              <Chip icon={<AccessTime />} label={`${totalTime} min total`} variant="outlined" />
+              <Chip
+                icon={<Restaurant sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
+                label={recipe.cuisine}
+                variant="outlined"
+                size={isMobile ? 'small' : 'medium'}
+                sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+              />
+              <Chip
+                icon={<Person sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
+                label={`${recipe.servings} servings`}
+                variant="outlined"
+                size={isMobile ? 'small' : 'medium'}
+                sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+              />
+              <Chip
+                icon={<AccessTime sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
+                label={`${totalTime} min total`}
+                variant="outlined"
+                size={isMobile ? 'small' : 'medium'}
+                sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+              />
             </Box>
           </Box>
 
@@ -452,8 +489,8 @@ export default function RecipeDetailPage() {
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 2,
-                mb: 3,
+                gap: { xs: 1.5, md: 2 },
+                mb: { xs: 2, md: 3 },
                 cursor: 'pointer',
                 '&:hover': {
                   opacity: 0.8
@@ -464,15 +501,15 @@ export default function RecipeDetailPage() {
               <Avatar
                 src={recipe.author.avatar}
                 alt={recipe.author.username}
-                sx={{ width: 48, height: 48 }}
+                sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 } }}
               >
                 {recipe.author.username.charAt(0).toUpperCase()}
               </Avatar>
               <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', fontSize: { xs: '0.9375rem', md: '1rem' } }}>
                   {recipe.author.fullName || recipe.author.username}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
                   @{recipe.author.username}
                 </Typography>
               </Box>
@@ -480,23 +517,23 @@ export default function RecipeDetailPage() {
           )}
 
           {/* Description */}
-          <Typography variant="body1" color="text.secondary" paragraph sx={{ fontSize: '1.1rem' }}>
+          <Typography variant="body1" color="text.secondary" paragraph sx={{ fontSize: { xs: '0.9375rem', sm: '1rem', md: '1.1rem' } }}>
             {recipe.description}
           </Typography>
 
           {/* Action Buttons */}
-          <Box sx={{ display: 'flex', gap: 2, my: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, my: { xs: 2, md: 3 }, alignItems: 'center', flexWrap: 'wrap' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <IconButton
                 onClick={handleLike}
                 color={liked ? 'error' : 'default'}
-                size="large"
+                size={isMobile ? 'medium' : 'large'}
                 disabled={likeLoading}
               >
                 {liked ? <Favorite /> : <FavoriteBorder />}
               </IconButton>
               {likesCount > 0 && (
-                <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary' }}>
+                <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary', fontSize: { xs: '0.875rem', md: '1rem' } }}>
                   {likesCount}
                 </Typography>
               )}
@@ -504,12 +541,12 @@ export default function RecipeDetailPage() {
             <IconButton
               onClick={handleSave}
               color={saved ? 'primary' : 'default'}
-              size="large"
+              size={isMobile ? 'medium' : 'large'}
               disabled={saveLoading}
             >
               {saved ? <Bookmark /> : <BookmarkBorder />}
             </IconButton>
-            <IconButton onClick={handleShare} size="large">
+            <IconButton onClick={handleShare} size={isMobile ? 'medium' : 'large'}>
               <Share />
             </IconButton>
             <Button
@@ -517,37 +554,38 @@ export default function RecipeDetailPage() {
               startIcon={<ShoppingCart />}
               onClick={handleCreateShoppingList}
               disabled={shoppingListLoading}
-              size="large"
+              size={isMobile ? 'medium' : 'large'}
+              fullWidth={isMobile}
             >
               {shoppingListLoading ? 'Creating...' : 'Shopping List'}
             </Button>
           </Box>
 
-          <Divider sx={{ my: 3 }} />
+          <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
           {/* Time Breakdown */}
-          <Box sx={{ display: 'flex', gap: 4, mb: 3 }}>
+          <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, md: 3 }, flexWrap: 'wrap' }}>
             <Box>
-              <Typography variant="caption" color="text.secondary" display="block">
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
                 PREP TIME
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
                 {recipe.prepTime} min
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" display="block">
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
                 COOK TIME
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
                 {recipe.cookingTime} min
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" color="text.secondary" display="block">
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
                 TOTAL TIME
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
                 {totalTime} min
               </Typography>
             </Box>

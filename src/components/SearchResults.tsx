@@ -11,6 +11,8 @@ import {
   Typography,
   Divider,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { Person, Restaurant } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
@@ -40,6 +42,9 @@ interface SearchResultsProps {
 
 export default function SearchResults({ query, users, recipes, loading, onClose }: SearchResultsProps) {
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const handleUserClick = (username: string) => {
     router.push(`/profile/${username}`);
@@ -60,10 +65,11 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
       sx={{
         position: 'absolute',
         top: '100%',
-        left: 0,
-        right: 0,
+        left: { xs: '-100%', sm: 0 },
+        right: { xs: '-100%', sm: 0 },
         mt: 1,
-        maxHeight: 400,
+        maxHeight: { xs: '60vh', sm: 500, md: 400 },
+        width: { xs: '100vw', sm: 'auto' },
         overflow: 'auto',
         zIndex: 1000,
         boxShadow: 3,
@@ -74,8 +80,8 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
           <CircularProgress size={24} />
         </Box>
       ) : !hasResults ? (
-        <Box sx={{ py: 3, px: 2, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
+        <Box sx={{ py: { xs: 2, md: 3 }, px: { xs: 1.5, md: 2 }, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
             No results found for "{query}"
           </Typography>
         </Box>
@@ -84,8 +90,13 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
           {/* Users Section */}
           {users.length > 0 && (
             <>
-              <ListItem sx={{ bgcolor: 'background.default' }}>
-                <Typography variant="caption" fontWeight={600} color="text.secondary">
+              <ListItem sx={{ bgcolor: 'background.default', py: { xs: 0.75, md: 1 } }}>
+                <Typography
+                  variant="caption"
+                  fontWeight={600}
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.625rem', md: '0.75rem' } }}
+                >
                   USERS
                 </Typography>
               </ListItem>
@@ -95,20 +106,35 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                   button
                   onClick={() => handleUserClick(user.username)}
                   sx={{
+                    py: { xs: 1, md: 1.5 },
+                    px: { xs: 1.5, md: 2 },
                     '&:hover': {
                       bgcolor: 'action.hover',
                     },
                   }}
                 >
-                  <ListItemAvatar>
-                    <Avatar src={user.avatar} sx={{ bgcolor: 'primary.main' }}>
-                      <Person />
+                  <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
+                    <Avatar
+                      src={user.avatar}
+                      sx={{
+                        bgcolor: 'primary.main',
+                        width: { xs: 32, md: 40 },
+                        height: { xs: 32, md: 40 }
+                      }}
+                    >
+                      <Person sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={user.username}
-                    secondary={user.email}
-                    primaryTypographyProps={{ fontWeight: 600 }}
+                    secondary={isMobile ? null : user.email}
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                      fontSize: { xs: '0.875rem', md: '1rem' }
+                    }}
+                    secondaryTypographyProps={{
+                      fontSize: { xs: '0.75rem', md: '0.875rem' }
+                    }}
                   />
                 </ListItem>
               ))}
@@ -119,8 +145,13 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
           {/* Recipes Section */}
           {recipes.length > 0 && (
             <>
-              <ListItem sx={{ bgcolor: 'background.default' }}>
-                <Typography variant="caption" fontWeight={600} color="text.secondary">
+              <ListItem sx={{ bgcolor: 'background.default', py: { xs: 0.75, md: 1 } }}>
+                <Typography
+                  variant="caption"
+                  fontWeight={600}
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.625rem', md: '0.75rem' } }}
+                >
                   RECIPES
                 </Typography>
               </ListItem>
@@ -130,24 +161,39 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                   button
                   onClick={() => handleRecipeClick(recipe.id)}
                   sx={{
+                    py: { xs: 1, md: 1.5 },
+                    px: { xs: 1.5, md: 2 },
                     '&:hover': {
                       bgcolor: 'action.hover',
                     },
                   }}
                 >
-                  <ListItemAvatar>
+                  <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
                     <Avatar
                       src={recipe.imageUrl}
                       variant="rounded"
-                      sx={{ bgcolor: 'secondary.main' }}
+                      sx={{
+                        bgcolor: 'secondary.main',
+                        width: { xs: 32, md: 40 },
+                        height: { xs: 32, md: 40 }
+                      }}
                     >
-                      <Restaurant />
+                      <Restaurant sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
                     primary={recipe.title}
-                    secondary={`${recipe.cuisine} • ${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`}
-                    primaryTypographyProps={{ fontWeight: 600 }}
+                    secondary={isMobile
+                      ? recipe.cuisine
+                      : `${recipe.cuisine} • ${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
+                    }
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                      fontSize: { xs: '0.875rem', md: '1rem' }
+                    }}
+                    secondaryTypographyProps={{
+                      fontSize: { xs: '0.75rem', md: '0.875rem' }
+                    }}
                   />
                 </ListItem>
               ))}

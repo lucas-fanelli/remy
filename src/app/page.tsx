@@ -32,21 +32,21 @@ export default function Home() {
         }}
       >
         <Toolbar />
-        <Container maxWidth="lg" sx={{ pt: 2, pb: 8 }}>
+        <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 6, md: 8 }, px: { xs: 2, md: 3 } }}>
           <LoadingWithProgress color="primary" inline />
 
           {/* Matched Recipes Section Skeleton */}
-          <Box sx={{ mb: 6 }}>
-            <Skeleton variant="text" width={250} height={40} sx={{ mb: 2 }} />
-            <Grid container spacing={2}>
+          <Box sx={{ mb: { xs: 4, md: 6 } }}>
+            <Skeleton variant="text" width={{ xs: 200, md: 250 }} height={{ xs: 32, md: 40 }} sx={{ mb: { xs: 1.5, md: 2 } }} />
+            <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
               {[1, 2, 3].map((item) => (
                 <Grid item xs={12} sm={6} md={4} key={item}>
                   <Card>
-                    <Skeleton variant="rectangular" width="100%" height={200} />
-                    <CardContent>
+                    <Skeleton variant="rectangular" width="100%" height={{ xs: 160, sm: 180, md: 200 }} />
+                    <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
                       <Skeleton variant="text" width="80%" height={30} />
                       <Skeleton variant="text" width="60%" height={24} sx={{ mt: 1 }} />
-                      <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mt: { xs: 1.5, md: 2 } }}>
                         <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 2 }} />
                         <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 2 }} />
                       </Box>
@@ -59,23 +59,23 @@ export default function Home() {
 
           {/* Recipe Feed Section Skeleton */}
           <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Skeleton variant="text" width={200} height={40} />
-              <Skeleton variant="rectangular" width={150} height={40} sx={{ borderRadius: 1 }} />
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: { xs: 1.5, sm: 0 }, mb: { xs: 2, md: 3 } }}>
+              <Skeleton variant="text" width={{ xs: '60%', md: 200 }} height={40} />
+              <Skeleton variant="rectangular" width={{ xs: '100%', sm: 150 }} height={40} sx={{ borderRadius: 1 }} />
             </Box>
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
               {[1, 2, 3, 4, 5, 6].map((item) => (
                 <Grid item xs={12} sm={6} md={4} key={item}>
                   <Card>
-                    <Skeleton variant="rectangular" width="100%" height={240} />
-                    <CardContent>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                        <Skeleton variant="circular" width={40} height={40} />
+                    <Skeleton variant="rectangular" width="100%" height={{ xs: 180, sm: 200, md: 240 }} />
+                    <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.5, md: 2 } }}>
+                        <Skeleton variant="circular" width={{ xs: 32, md: 40 }} height={{ xs: 32, md: 40 }} />
                         <Skeleton variant="text" width={120} height={24} />
                       </Box>
                       <Skeleton variant="text" width="90%" height={28} />
                       <Skeleton variant="text" width="70%" height={20} sx={{ mt: 1 }} />
-                      <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mt: { xs: 1.5, md: 2 } }}>
                         <Skeleton variant="rectangular" width={70} height={24} sx={{ borderRadius: 2 }} />
                         <Skeleton variant="rectangular" width={70} height={24} sx={{ borderRadius: 2 }} />
                       </Box>
@@ -128,7 +128,7 @@ export default function Home() {
       <Toolbar />
 
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ pt: 2, pb: isMobile ? 8 : 4 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 6, md: 8 }, px: { xs: 2, md: 3 } }}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -138,7 +138,7 @@ export default function Home() {
           <MatchedRecipes />
 
           {/* Divider */}
-          <Box sx={{ my: 6 }} />
+          <Box sx={{ my: { xs: 4, md: 6 } }} />
 
           {/* All Recipes Feed */}
           <RecipeFeed onCreateRecipe={() => setCreateDialogOpen(true)} />
@@ -153,9 +153,9 @@ export default function Home() {
         fullWidth
         fullScreen={isMobile}
       >
-        <DialogTitle>Create New Recipe</DialogTitle>
+        <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Create New Recipe</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt: 2 }}>
+          <Box sx={{ pt: { xs: 1, md: 2 } }}>
             <CreateRecipeForm
               onSubmit={handleCreateRecipe}
               onCancel={() => setCreateDialogOpen(false)}

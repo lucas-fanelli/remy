@@ -54,7 +54,14 @@
       "Bash(git branch:*)",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(Stop-Process -Id 33784 -Force)",
+      "Bash(npx expo install expo-image-picker)",
+      "Bash(dir:*)",
+      "Bash(Stop-Process -Id 39964 -Force)",
+      "Bash(powershell -Command \"Stop-Process -Id 39964 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 23272 -Force\")",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

@@ -18,6 +18,9 @@ import {
   Grid,
   Chip,
   Alert,
+  useTheme,
+  useMediaQuery,
+  MobileStepper,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -51,6 +54,9 @@ const commonUnits = [
 ];
 
 export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFormProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -181,10 +187,11 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  size={isMobile ? 'small' : 'medium'}
                   label="Recipe Title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -196,8 +203,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  size={isMobile ? 'small' : 'medium'}
                   multiline
-                  rows={3}
+                  rows={isMobile ? 2 : 3}
                   label="Description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -219,7 +227,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
                   <InputLabel>Cuisine</InputLabel>
                   <Select value={cuisine} onChange={(e) => setCuisine(e.target.value)} label="Cuisine">
                     {cuisines.map((c) => (
@@ -230,7 +238,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
                   <InputLabel>Difficulty</InputLabel>
                   <Select
                     value={difficulty}
@@ -247,6 +255,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
+                  size={isMobile ? 'small' : 'medium'}
                   type="number"
                   label="Prep Time (min)"
                   value={prepTime}
@@ -258,6 +267,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
+                  size={isMobile ? 'small' : 'medium'}
                   type="number"
                   label="Cooking Time (min)"
                   value={cookingTime}
@@ -269,6 +279,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               <Grid item xs={12} sm={4}>
                 <TextField
                   fullWidth
+                  size={isMobile ? 'small' : 'medium'}
                   type="number"
                   label="Servings"
                   value={servings}
@@ -280,6 +291,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  size={isMobile ? 'small' : 'medium'}
                   label="Caption (Optional)"
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
@@ -297,21 +309,21 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" gutterBottom>
+            <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
+              <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
                 Ingredients
               </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
                 Add all ingredients with amounts and units (e.g., "2 cups flour", "1 tsp salt")
               </Typography>
-              <Alert severity="info" sx={{ mt: 1 }}>
+              <Alert severity="info" sx={{ mt: 1, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
                 💡 Tip: Make sure to select a unit for each ingredient to avoid validation errors
               </Alert>
             </Box>
 
             {ingredients.map((ingredient, index) => (
-              <Card key={index} sx={{ mb: 2, p: 2 }}>
-                <Grid container spacing={2} alignItems="center">
+              <Card key={index} sx={{ mb: { xs: 1.5, md: 2 }, p: { xs: 1.5, md: 2 } }}>
+                <Grid container spacing={{ xs: 1.5, md: 2 }} alignItems="center">
                   <Grid item xs={12} sm={5}>
                     <TextField
                       fullWidth
@@ -322,7 +334,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       placeholder="e.g., All-purpose flour"
                     />
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid item xs={5} sm={3}>
                     <TextField
                       fullWidth
                       size="small"
@@ -332,7 +344,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       placeholder="2"
                     />
                   </Grid>
-                  <Grid item xs={6} sm={3}>
+                  <Grid item xs={5} sm={3}>
                     <FormControl fullWidth size="small" error={!ingredient.unit && ingredient.name !== ''}>
                       <InputLabel>Unit *</InputLabel>
                       <Select
@@ -346,13 +358,14 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={1}>
+                  <Grid item xs={2} sm={1} sx={{ display: 'flex', justifyContent: 'center' }}>
                     <IconButton
                       color="error"
+                      size={isMobile ? 'small' : 'medium'}
                       onClick={() => removeIngredient(index)}
                       disabled={ingredients.length === 1}
                     >
-                      <DeleteIcon />
+                      <DeleteIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
                     </IconButton>
                   </Grid>
                 </Grid>
@@ -364,7 +377,8 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               onClick={addIngredient}
               variant="outlined"
               fullWidth
-              sx={{ mt: 2 }}
+              size={isMobile ? 'large' : 'medium'}
+              sx={{ mt: { xs: 1.5, md: 2 } }}
             >
               Add Ingredient
             </Button>
@@ -378,24 +392,41 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" gutterBottom>
+            <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
+              <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
                 Cooking Instructions
               </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
                 Break down the cooking process into clear steps
               </Typography>
             </Box>
 
             {instructions.map((instruction, index) => (
-              <Card key={index} sx={{ mb: 2, p: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                  <Chip label={`Step ${instruction.step}`} color="primary" />
+              <Card key={index} sx={{ mb: { xs: 1.5, md: 2 }, p: { xs: 1.5, md: 2 } }}>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-start' }, gap: { xs: 1.5, md: 2 } }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Chip
+                      label={`Step ${instruction.step}`}
+                      color="primary"
+                      size={isMobile ? 'small' : 'medium'}
+                      sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                    />
+                    <IconButton
+                      color="error"
+                      size={isMobile ? 'small' : 'medium'}
+                      onClick={() => removeInstruction(index)}
+                      disabled={instructions.length === 1}
+                      sx={{ display: { xs: 'block', sm: 'none' } }}
+                    >
+                      <DeleteIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                    </IconButton>
+                  </Box>
                   <Box sx={{ flex: 1 }}>
                     <TextField
                       fullWidth
+                      size="small"
                       multiline
-                      rows={2}
+                      rows={isMobile ? 2 : 3}
                       label={`Step ${instruction.step}`}
                       value={instruction.description}
                       onChange={(e) => updateInstruction(index, 'description', e.target.value)}
@@ -404,10 +435,12 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   </Box>
                   <IconButton
                     color="error"
+                    size={isMobile ? 'small' : 'medium'}
                     onClick={() => removeInstruction(index)}
                     disabled={instructions.length === 1}
+                    sx={{ display: { xs: 'none', sm: 'block' } }}
                   >
-                    <DeleteIcon />
+                    <DeleteIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
                   </IconButton>
                 </Box>
               </Card>
@@ -418,7 +451,8 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
               onClick={addInstruction}
               variant="outlined"
               fullWidth
-              sx={{ mt: 2 }}
+              size={isMobile ? 'large' : 'medium'}
+              sx={{ mt: { xs: 1.5, md: 2 } }}
             >
               Add Step
             </Button>
@@ -432,39 +466,52 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
               Review Your Recipe
             </Typography>
 
-            <Card sx={{ mb: 2 }}>
-              <CardContent>
-                <Typography variant="h5" gutterBottom>{title}</Typography>
-                <Typography color="text.secondary" paragraph>{description}</Typography>
+            <Card sx={{ mb: { xs: 1.5, md: 2 } }}>
+              <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                  {title}
+                </Typography>
+                <Typography
+                  color="text.secondary"
+                  paragraph
+                  sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+                >
+                  {description}
+                </Typography>
 
-                <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                  <Chip label={cuisine} size="small" />
-                  <Chip label={difficulty} size="small" color="primary" />
-                  <Chip label={`${prepTime + cookingTime} min total`} size="small" />
-                  <Chip label={`${servings} servings`} size="small" />
+                <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mb: { xs: 1.5, md: 2 }, flexWrap: 'wrap' }}>
+                  <Chip label={cuisine} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
+                  <Chip label={difficulty} size="small" color="primary" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
+                  <Chip label={`${prepTime + cookingTime} min total`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
+                  <Chip label={`${servings} servings`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                 </Box>
 
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
                   Ingredients ({ingredients.filter(i => i.name).length})
                 </Typography>
-                <Box sx={{ mb: 2 }}>
+                <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
                   {ingredients.filter(i => i.name).map((ing, i) => (
-                    <Typography key={i} variant="body2">
+                    <Typography key={i} variant="body2" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
                       • {ing.amount} {ing.unit} {ing.name}
                     </Typography>
                   ))}
                 </Box>
 
-                <Typography variant="subtitle2" gutterBottom>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
                   Instructions ({instructions.filter(i => i.description).length} steps)
                 </Typography>
                 <Box>
                   {instructions.filter(i => i.description).map((inst, i) => (
-                    <Typography key={i} variant="body2" paragraph>
+                    <Typography
+                      key={i}
+                      variant="body2"
+                      paragraph
+                      sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                    >
                       {inst.step}. {inst.description}
                     </Typography>
                   ))}
@@ -481,13 +528,34 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
 
   return (
     <Box>
-      <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
+      {/* Desktop Stepper */}
+      {!isMobile && (
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          {steps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+      )}
+
+      {/* Mobile Stepper */}
+      {isMobile && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 1 }}>
+            Step {activeStep + 1} of {steps.length}: {steps[activeStep]}
+          </Typography>
+          <MobileStepper
+            variant="progress"
+            steps={steps.length}
+            position="static"
+            activeStep={activeStep}
+            sx={{ flexGrow: 1, backgroundColor: 'transparent' }}
+            nextButton={<Box />}
+            backButton={<Box />}
+          />
+        </Box>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
@@ -499,11 +567,19 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         {renderStepContent()}
       </AnimatePresence>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column-reverse', sm: 'row' },
+        justifyContent: 'space-between',
+        gap: { xs: 1, sm: 0 },
+        mt: { xs: 3, md: 4 }
+      }}>
         <Button
           startIcon={<ArrowBack />}
           onClick={activeStep === 0 ? onCancel : handleBack}
           disabled={loading}
+          fullWidth={isMobile}
+          size={isMobile ? 'large' : 'medium'}
         >
           {activeStep === 0 ? 'Cancel' : 'Back'}
         </Button>
@@ -514,6 +590,8 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             endIcon={<ArrowForward />}
             onClick={handleNext}
             disabled={loading}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
           >
             Next
           </Button>
@@ -523,6 +601,8 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             startIcon={<Check />}
             onClick={handleSubmit}
             disabled={loading}
+            fullWidth={isMobile}
+            size={isMobile ? 'large' : 'medium'}
           >
             {loading ? 'Creating...' : 'Create Recipe'}
           </Button>
