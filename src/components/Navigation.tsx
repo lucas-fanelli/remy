@@ -388,9 +388,9 @@ export default function Navigation() {
     // Pages that need an Up button (profile pages excluded)
     const needsUpButton = pathname === '/pantry' || pathname === '/settings' || isDetailPage;
 
-    // Use browser back for navigation
+    // Navigate up to home
     const handleBackClick = () => {
-      router.back();
+      router.push('/');
     };
 
     // Show breadcrumbs on detail pages to make hierarchy tangible
@@ -421,7 +421,7 @@ export default function Navigation() {
                 onClick={handleBackClick}
                 edge="start"
                 sx={{ mr: 0.5 }}
-                aria-label="Navigate back"
+                aria-label="Navigate up"
                 size={isSmallDesktop ? 'small' : 'medium'}
               >
                 <ArrowBack />
@@ -839,69 +839,76 @@ export default function Navigation() {
             </ListItem>
             <Divider />
             {navItems.map((item) => (
+              <ListItem key={item.id} disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    handleTabClick(item.id);
+                    setDrawerOpen(false);
+                  }}
+                  sx={{ py: { xs: 1.5, sm: 2 } }}
+                >
+                  <ListItemIcon>
+                    <item.icon sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+            <Divider />
+            <ListItem disablePadding>
               <ListItemButton
-                key={item.id}
                 onClick={() => {
-                  handleTabClick(item.id);
+                  router.push('/settings');
                   setDrawerOpen(false);
                 }}
                 sx={{ py: { xs: 1.5, sm: 2 } }}
               >
                 <ListItemIcon>
-                  <item.icon sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                  <Settings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary={item.label}
+                  primary="Settings"
                   primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                 />
               </ListItemButton>
-            ))}
-            <Divider />
-            <ListItemButton
-              onClick={() => {
-                router.push('/settings');
-                setDrawerOpen(false);
-              }}
-              sx={{ py: { xs: 1.5, sm: 2 } }}
-            >
-              <ListItemIcon>
-                <Settings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Settings"
-                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-              />
-            </ListItemButton>
-            <ListItemButton
-              onClick={() => {
-                toggleTheme();
-                setDrawerOpen(false);
-              }}
-              sx={{ py: { xs: 1.5, sm: 2 } }}
-            >
-              <ListItemIcon>
-                {mode === 'dark' ? <LightMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} /> : <DarkMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />}
-              </ListItemIcon>
-              <ListItemText
-                primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-              />
-            </ListItemButton>
-            <ListItemButton
-              onClick={() => {
-                handleLogout();
-                setDrawerOpen(false);
-              }}
-              sx={{ py: { xs: 1.5, sm: 2 } }}
-            >
-              <ListItemIcon>
-                <Logout sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-              </ListItemIcon>
-              <ListItemText
-                primary="Logout"
-                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-              />
-            </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => {
+                  toggleTheme();
+                  setDrawerOpen(false);
+                }}
+                sx={{ py: { xs: 1.5, sm: 2 } }}
+              >
+                <ListItemIcon>
+                  {mode === 'dark' ? <LightMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} /> : <DarkMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />}
+                </ListItemIcon>
+                <ListItemText
+                  primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => {
+                  handleLogout();
+                  setDrawerOpen(false);
+                }}
+                sx={{ py: { xs: 1.5, sm: 2 } }}
+              >
+                <ListItemIcon>
+                  <Logout sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Logout"
+                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
           </List>
         </Box>
       </Drawer>
