@@ -1,4 +1,4 @@
-# Project Roadmap - Instagram Clone (Recipe Focus)
+# Project Roadmap - Recipe Sharing Platform
 
 ## Current Status (2025-10-17)
 
@@ -173,39 +173,6 @@
 - [ ] Featured recipes
 - [ ] Recipe of the day
 - [ ] Community challenges
-
-### Subscription Tiers (Already in schema!)
-Current schema supports: free, basic, pro, chef
-
-**Free Tier:**
-- Create up to 10 recipes
-- Basic recipe search
-- Follow up to 50 users
-- Standard image uploads
-
-**Basic Tier ($4.99/month):**
-- Unlimited recipes
-- Priority search results
-- Follow unlimited users
-- HD image uploads
-- No ads
-
-**Pro Tier ($9.99/month):**
-- All Basic features
-- AI recipe generation (10/month)
-- Advanced analytics
-- Recipe collections (unlimited)
-- Early access to new features
-- Custom recipe branding
-
-**Chef Tier ($19.99/month):**
-- All Pro features
-- AI recipe generation (unlimited)
-- Verified chef badge
-- Featured in discovery
-- Monetization options
-- Advanced AI assistance
-- Premium support
 
 ### Platform Expansion
 - [ ] Mobile apps (React Native)

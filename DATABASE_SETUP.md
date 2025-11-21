@@ -168,7 +168,6 @@ psql -h localhost -U postgres -d recipe_sharing_db
 # - comments
 # - likes
 # - follows
-# - stories
 \`\`\`
 
 ## Database Schema
@@ -216,13 +215,6 @@ The following tables will be created:
 - followerId (Foreign Key)
 - followingId (Foreign Key)
 - createdAt
-
-### stories
-- id (UUID, Primary Key)
-- imageUrl
-- userId (Foreign Key)
-- createdAt
-- expiresAt
 
 ## Troubleshooting
 

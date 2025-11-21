@@ -13,13 +13,12 @@ Your Recipe Sharing app is now fully configured and running with Docker PostgreS
 - **Password**: `postgres`
 
 ### 2. Database Tables Created
-✅ All 6 tables created successfully:
+✅ All 5 core tables created successfully:
 - `users` - User accounts and authentication
-- `posts` - User posts
+- `posts` - User posts (recipes)
 - `comments` - Post comments
 - `likes` - Post likes
 - `follows` - User follow relationships
-- `stories` - 24-hour stories
 
 ### 3. Next.js Application
 - **Status**: Running
@@ -151,7 +150,7 @@ curl -X POST http://localhost:3001/api/auth/login \
 │  │  • Auth Context  │        │  • comments      │      │
 │  │  • Services      │        │  • likes         │      │
 │  │  • Repositories  │        │  • follows       │      │
-│  └──────────────────┘        │  • stories       │      │
+│  └──────────────────┘        └──────────────────┘      │
 │                              └──────────────────┘      │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -209,7 +208,6 @@ testing-ai-capabilities/
 │   │   ├── auth/              # Login/Register forms
 │   │   ├── Navigation.tsx
 │   │   ├── Post.tsx
-│   │   ├── Stories.tsx
 │   │   └── Suggestions.tsx
 │   ├── contexts/
 │   │   └── AuthContext.tsx    # Auth state management
@@ -245,7 +243,6 @@ testing-ai-capabilities/
 - [ ] Add comments to posts
 - [ ] Like/unlike posts
 - [ ] Follow/unfollow users
-- [ ] Create 24-hour stories
 - [ ] Real-time notifications
 - [ ] Direct messaging
 - [ ] Explore feed

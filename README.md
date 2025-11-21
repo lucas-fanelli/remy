@@ -14,7 +14,7 @@
 
 ## ✨ Key Features
 
-- 🤖 **AI Recipe Generation** - Create custom recipes using Google Gemini AI
+- 🤖 **AI Recipe Generation** - Create custom recipes with smart AI assistance
 - 🔍 **Smart Recipe Discovery** - Browse, search, and filter recipes
 - 🥘 **Pantry Management** - Track ingredients and get personalized suggestions
 - 💬 **Social Interaction** - Follow users, like and comment on recipes
@@ -75,7 +75,7 @@ Open **http://localhost:3000** 🎉
 
 **Frontend:** Next.js 15 • TypeScript • Material-UI • Framer Motion
 **Backend:** Next.js API Routes • Prisma • PostgreSQL
-**AI:** Google Gemini
+**AI:** Advanced Recipe Generation
 **Auth:** JWT • bcrypt • NextAuth
 **Testing:** Jest • React Testing Library • Playwright
 **DevOps:** Docker • Vercel-ready
@@ -132,7 +132,7 @@ NEXT_PUBLIC_APP_URL="https://yourdomain.com"
 
 Optional:
 ```env
-GEMINI_API_KEY="your-api-key"  # For AI features
+AI_API_KEY="your-api-key"  # For AI recipe generation features
 ```
 
 ---
@@ -151,7 +151,7 @@ src/
 │   └── auth/             # Auth components
 ├── contexts/             # React Context (Auth, Toast, Theme)
 ├── infrastructure/       # Services & repositories
-│   ├── ai/              # AI providers (Gemini)
+│   ├── ai/              # AI recipe providers
 │   ├── services/        # Business logic
 │   └── repositories/    # Data access
 ├── lib/                  # Utilities & validation
@@ -263,7 +263,7 @@ Built with:
 - [Next.js](https://nextjs.org/) - React Framework
 - [Prisma](https://www.prisma.io/) - Database ORM
 - [Material-UI](https://mui.com/) - Component Library
-- [Google Gemini](https://deepmind.google/technologies/gemini/) - AI
+- Advanced AI Technology - Recipe Generation
 
 ---
 

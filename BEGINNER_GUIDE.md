@@ -7,7 +7,7 @@ This project was built by a professional developer with help from Claude AI, fol
 ## What You Need to Know
 
 ### The Project
-This is an Instagram-like application focused on **recipes**. Users can:
+This is a recipe sharing platform. Users can:
 - Create accounts and log in
 - Share recipes with photos
 - Search and browse recipes

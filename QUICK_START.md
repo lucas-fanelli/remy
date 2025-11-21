@@ -77,10 +77,10 @@ The app will be available at: **http://localhost:3001**
 
 ```bash
 # View all tables
-docker exec instagram_postgres psql -U postgres -d instagram_clone -c "\dt"
+docker exec remys_postgres psql -U postgres -d remys_db -c "\dt"
 
 # View your user
-docker exec instagram_postgres psql -U postgres -d instagram_clone -c "SELECT username, email FROM users;"
+docker exec remys_postgres psql -U postgres -d remys_db -c "SELECT username, email FROM users;"
 ```
 
 ### Open Prisma Studio (Database GUI)
@@ -115,7 +115,7 @@ docker-compose down -v
 The `.env` file is already configured for local development:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/instagram_clone?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/remys_db?schema=public"
 JWT_SECRET="dev-secret-key-please-change-in-production-12345"
 JWT_EXPIRES_IN="7d"
 NEXTAUTH_URL="http://localhost:3001"
@@ -168,7 +168,7 @@ ports:
   - "5433:5432"  # Use 5433 instead
 
 # Then update .env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5433/instagram_clone"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/remys_db"
 ```
 
 ### Database connection failed
@@ -246,4 +246,4 @@ Now that everything is running:
 
 **You're all set! 🎉**
 
-Your Instagram clone with authentication is running at http://localhost:3001
+Your recipe sharing platform with authentication is running at http://localhost:3001

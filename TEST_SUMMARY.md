@@ -278,7 +278,7 @@ But **the hard part is done**: The business logic (where bugs actually happen) h
 
 **Mission Accomplished** ✅
 
-The Instagram clone's **core business logic** has:
+The recipe sharing platform's **core business logic** has:
 - ✅ 99.06% test coverage
 - ✅ 103 comprehensive unit tests
 - ✅ Zero failing tests
