@@ -5,6 +5,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
+// Configure route to use Node.js runtime for file operations
+export const runtime = 'nodejs';
+// Disable body parsing to handle FormData properly
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // Get authorization token
@@ -24,6 +29,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid token' },
         { status: 401 }
+      );
+    }
+
+    // Check Content-Type header
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        { error: `Invalid Content-Type. Expected multipart/form-data, got: ${contentType}` },
+        { status: 400 }
       );
     }
 
