@@ -142,7 +142,7 @@ export default function MatchedRecipes() {
           color="text.secondary"
           sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.875rem', md: '1rem' } }}
         >
-          Add ingredients to your pantry and we'll show you recipes you can make!
+          Add ingredients to your pantry and we&apos;ll show you recipes you can make!
         </Typography>
         <Button
           variant="contained"
@@ -202,7 +202,7 @@ export default function MatchedRecipes() {
         <Box>
           {readyToCook.length === 0 ? (
             <Alert severity="info" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-              No recipes match 100% with your pantry yet. Check the "Almost There" tab for recipes you're close to making!
+              No recipes match 100% with your pantry yet. Check the &ldquo;Almost There&rdquo; tab for recipes you&apos;re close to making!
             </Alert>
           ) : (
             <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>

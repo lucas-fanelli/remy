@@ -172,7 +172,7 @@ export default function NotificationsPage() {
             No notifications yet
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            When someone follows you or interacts with your recipes, you'll see it here
+            When someone follows you or interacts with your recipes, you&apos;ll see it here
           </Typography>
         </Paper>
       ) : (

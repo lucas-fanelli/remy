@@ -554,7 +554,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       {!loading && !hasMore && recipes.length > 0 && (
         <Box sx={{ textAlign: 'center', py: { xs: 3, md: 4 } }}>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
-            You've reached the end! 🍽️
+            You&apos;ve reached the end! 🍽️
           </Typography>
         </Box>
       )}
@@ -574,7 +574,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
-            Are you sure you want to delete "{recipeToDelete?.title}"? This action cannot be undone.
+            Are you sure you want to delete &ldquo;{recipeToDelete?.title}&rdquo;? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: { xs: 2, md: 3 }, gap: { xs: 1, sm: 0 }, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>

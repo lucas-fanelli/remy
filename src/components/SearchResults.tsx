@@ -93,7 +93,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
       ) : !hasResults ? (
         <Box sx={{ py: { xs: 2, md: 3 }, px: { xs: 1.5, md: 2 }, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
-            No results found for "{query}"
+            No results found for &ldquo;{query}&rdquo;
           </Typography>
         </Box>
       ) : (

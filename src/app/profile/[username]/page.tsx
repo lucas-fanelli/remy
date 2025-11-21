@@ -529,7 +529,7 @@ export default function ProfilePage() {
                     No saved recipes yet
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Bookmark recipes you'd like to try later!
+                    Bookmark recipes you&apos;d like to try later!
                   </Typography>
                 </Box>
               </Grid>

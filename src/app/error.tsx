@@ -56,7 +56,7 @@ export default function Error({ error, reset }: ErrorProps) {
           </Typography>
 
           <Typography variant="body1" color="text.secondary" paragraph>
-            We encountered an unexpected error. Don't worry, our team has been notified and we're working on it.
+            We encountered an unexpected error. Don&apos;t worry, our team has been notified and we&apos;re working on it.
           </Typography>
 
           {process.env.NODE_ENV === 'development' && (

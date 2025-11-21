@@ -16,11 +16,20 @@ export async function PUT(request: NextRequest) {
     // Validate input
     const validatedData = updateProfileSchema.parse(body);
 
+    // Convert null to undefined for TypeScript compatibility
+    const profileData = {
+      ...validatedData,
+      fullName: validatedData.fullName ?? undefined,
+      bio: validatedData.bio ?? undefined,
+      avatar: validatedData.avatar ?? undefined,
+      website: validatedData.website ?? undefined,
+    };
+
     // Get user service from container
     const userService = container.getUserService();
 
     // Update profile
-    const updatedUser = await userService.updateProfile(user.id, validatedData);
+    const updatedUser = await userService.updateProfile(user.id, profileData);
 
     return ApiResponseHelper.success(updatedUser, 'Profile updated successfully');
   } catch (error) {

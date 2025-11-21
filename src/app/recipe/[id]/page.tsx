@@ -690,7 +690,7 @@ export default function RecipeDetailPage() {
               backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
             }}>
               <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
-                "{recipe.caption}"
+                &ldquo;{recipe.caption}&rdquo;
               </Typography>
             </Paper>
           </MotionBox>
@@ -722,7 +722,7 @@ export default function RecipeDetailPage() {
         <DialogTitle>Delete Recipe?</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete "{recipe?.title}"? This action cannot be undone.
+            Are you sure you want to delete &ldquo;{recipe?.title}&rdquo;? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

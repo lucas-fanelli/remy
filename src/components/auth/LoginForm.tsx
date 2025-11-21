@@ -153,7 +153,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         }}
       >
         <Typography variant="body2">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Typography
             component="span"
             sx={{

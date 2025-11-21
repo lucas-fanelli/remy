@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { NotificationService } from '@/infrastructure/services/NotificationService';
+import { INotificationService } from '@/domain/services/INotificationService';
 
 export async function POST(
   request: NextRequest,
@@ -56,7 +56,8 @@ export async function POST(
     }
 
     // Delete the follow notification
-    await NotificationService.deleteFollowNotification(payload.userId, userToUnfollow.id);
+    const notificationService = container.get<INotificationService>('INotificationService');
+    await notificationService.deleteFollowNotification(payload.userId, userToUnfollow.id);
 
     return NextResponse.json({ success: true, message: 'Unfollowed successfully' });
   } catch (error) {

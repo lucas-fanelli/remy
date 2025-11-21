@@ -314,7 +314,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                 Ingredients
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                Add all ingredients with amounts and units (e.g., "2 cups flour", "1 tsp salt")
+                Add all ingredients with amounts and units (e.g., &ldquo;2 cups flour&rdquo;, &ldquo;1 tsp salt&rdquo;)
               </Typography>
               <Alert severity="info" sx={{ mt: 1, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
                 💡 Tip: Make sure to select a unit for each ingredient to avoid validation errors

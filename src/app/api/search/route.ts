@@ -19,19 +19,17 @@ export async function GET(request: NextRequest) {
     const recipeService = container.get<IRecipeService>('IRecipeService');
 
     // Search users by username
-    const users = await userService.searchUsers(query.trim());
+    const users = await userService.searchUsers(query.trim(), 100);
 
-    // Search recipes by title
-    const allRecipes = await recipeService.getAllRecipes();
-    const recipes = allRecipes.filter((recipe) =>
-      recipe.title.toLowerCase().includes(query.toLowerCase()) ||
-      recipe.description.toLowerCase().includes(query.toLowerCase()) ||
-      recipe.cuisine.toLowerCase().includes(query.toLowerCase())
-    );
+    // Search recipes
+    const recipes = await recipeService.searchRecipes({
+      query: query.trim(),
+      limit: 100,
+    });
 
     return NextResponse.json({
-      users: users.slice(0, 5), // Limit to 5 users
-      recipes: recipes.slice(0, 5), // Limit to 5 recipes
+      users,
+      recipes,
     });
   } catch (error) {
     console.error('Search error:', error);

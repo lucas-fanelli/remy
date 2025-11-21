@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
     // Get all recipes with ingredients
     const recipes = await prisma.post.findMany({
       where: {
-        ingredients: { not: prisma.DbNull },
+        ingredients: { not: Prisma.DbNull },
       },
       include: {
         _count: {
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
     for (const recipe of recipes) {
       if (!recipe.ingredients || !Array.isArray(recipe.ingredients)) continue;
 
-      const recipeIngredients = recipe.ingredients as Ingredient[];
+      const recipeIngredients = recipe.ingredients as unknown as Ingredient[];
       const totalIngredients = recipeIngredients.length;
 
       if (totalIngredients === 0) continue;
