@@ -25,11 +25,13 @@ const renderWithTheme = (component: React.ReactElement) => {
 const mockUsers = [
   { id: '1', username: 'testuser1', email: 'test1@example.com', avatar: '/avatar1.jpg' },
   { id: '2', username: 'testuser2', email: 'test2@example.com' },
+  { id: '3', username: 'testuser3', email: 'test3@example.com' },
 ];
 
 const mockRecipes = [
   { id: 'r1', title: 'Test Recipe 1', description: 'A delicious test recipe', imageUrl: '/recipe1.jpg', cuisine: 'Italian' },
-  { id: 'r2', title: 'Test Recipe 2', description: 'Another amazing recipe with a very long description that should be truncated', imageUrl: '/recipe2.jpg', cuisine: 'Mexican' },
+  { id: 'r2', title: 'Test Recipe 2', description: 'Another amazing recipe', imageUrl: '/recipe2.jpg', cuisine: 'Mexican' },
+  { id: 'r3', title: 'Test Recipe 3', description: 'Third recipe', imageUrl: '/recipe3.jpg', cuisine: 'Chinese' },
 ];
 
 describe('SearchResults Component', () => {
@@ -63,34 +65,58 @@ describe('SearchResults Component', () => {
     expect(screen.getByText('No results found for "test"')).toBeInTheDocument();
   });
 
-  it('should render users section with results', () => {
+  it('should show "Search query" button as first item when results exist', () => {
     renderWithTheme(
       <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
     );
 
-    expect(screen.getByText('USERS')).toBeInTheDocument();
+    expect(screen.getByText('Search "test"')).toBeInTheDocument();
+    expect(screen.getByText('View all results')).toBeInTheDocument();
+  });
+
+  it('should navigate to full search results page when "Search query" is clicked', () => {
+    renderWithTheme(
+      <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+    );
+
+    const searchButton = screen.getByText('Search "test"');
+    fireEvent.click(searchButton);
+
+    expect(mockPush).toHaveBeenCalledWith('/search?q=test');
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('should prioritize users and limit to 2 results', () => {
+    renderWithTheme(
+      <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+    );
+
+    // Should show first 2 users only
     expect(screen.getByText('testuser1')).toBeInTheDocument();
-    expect(screen.getByText('test1@example.com')).toBeInTheDocument();
     expect(screen.getByText('testuser2')).toBeInTheDocument();
-    expect(screen.getByText('test2@example.com')).toBeInTheDocument();
+    expect(screen.queryByText('testuser3')).not.toBeInTheDocument();
   });
 
-  it('should render recipes section with results', () => {
+  it('should show recipes when fewer than 2 users exist', () => {
     renderWithTheme(
-      <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+      <SearchResults query="test" users={[mockUsers[0]]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
     );
 
-    expect(screen.getByText('RECIPES')).toBeInTheDocument();
+    // Should show 1 user + 1 recipe (total 2 results)
+    expect(screen.getByText('testuser1')).toBeInTheDocument();
     expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
-    expect(screen.getByText(/Italian • A delicious test recipe/)).toBeInTheDocument();
+    expect(screen.queryByText('Test Recipe 2')).not.toBeInTheDocument();
   });
 
-  it('should truncate long recipe descriptions', () => {
+  it('should show only recipes when no users exist', () => {
     renderWithTheme(
       <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
     );
 
-    expect(screen.getByText(/Mexican • Another amazing recipe with a very long descriptio\.\.\./)).toBeInTheDocument();
+    // Should show 2 recipes
+    expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Recipe 2')).toBeInTheDocument();
+    expect(screen.queryByText('Test Recipe 3')).not.toBeInTheDocument();
   });
 
   it('should navigate to user profile when user is clicked', () => {
@@ -117,14 +143,18 @@ describe('SearchResults Component', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('should render both users and recipes sections when both have results', () => {
+  it('should show correct total of 3 items (search button + 2 results)', () => {
     renderWithTheme(
       <SearchResults query="test" users={mockUsers} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
     );
 
-    expect(screen.getByText('USERS')).toBeInTheDocument();
-    expect(screen.getByText('RECIPES')).toBeInTheDocument();
+    // Search button + 2 users (prioritized)
+    expect(screen.getByText('Search "test"')).toBeInTheDocument();
     expect(screen.getByText('testuser1')).toBeInTheDocument();
-    expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+    expect(screen.getByText('testuser2')).toBeInTheDocument();
+    // Third user should not appear
+    expect(screen.queryByText('testuser3')).not.toBeInTheDocument();
+    // No recipes should appear when 2 users exist
+    expect(screen.queryByText('Test Recipe 1')).not.toBeInTheDocument();
   });
 });

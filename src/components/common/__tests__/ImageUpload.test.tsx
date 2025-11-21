@@ -100,8 +100,7 @@ describe('ImageUpload Component', () => {
     );
 
     const file = new File(['dummy content'], 'test.txt', { type: 'text/plain' });
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     Object.defineProperty(input, 'files', {
       value: [file],
@@ -123,8 +122,7 @@ describe('ImageUpload Component', () => {
 
     // Create a file larger than 5MB
     const largeFile = new File(['x'.repeat(6 * 1024 * 1024)], 'large.jpg', { type: 'image/jpeg' });
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     Object.defineProperty(input, 'files', {
       value: [largeFile],
@@ -150,8 +148,7 @@ describe('ImageUpload Component', () => {
     );
 
     const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     Object.defineProperty(input, 'files', {
       value: [file],
@@ -176,8 +173,7 @@ describe('ImageUpload Component', () => {
     );
 
     const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     Object.defineProperty(input, 'files', {
       value: [file],
@@ -214,8 +210,7 @@ describe('ImageUpload Component', () => {
     );
 
     const file = new File(['dummy content'], 'test.txt', { type: 'text/plain' });
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     Object.defineProperty(input, 'files', {
       value: [file],
@@ -257,8 +252,7 @@ describe('ImageUpload Component', () => {
       <ImageUpload value="" onChange={mockOnChange} />
     );
 
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     // Trigger change event with no files
     Object.defineProperty(input, 'files', {
@@ -281,8 +275,7 @@ describe('ImageUpload Component', () => {
     );
 
     const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     Object.defineProperty(input, 'files', {
       value: [file],
@@ -308,8 +301,7 @@ describe('ImageUpload Component', () => {
     );
 
     const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
-    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
-      .querySelector('input[type="file"]') as HTMLInputElement;
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     Object.defineProperty(input, 'files', {
       value: [file],
