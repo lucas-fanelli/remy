@@ -22,7 +22,6 @@ import {
   Snackbar,
   Toolbar,
   Skeleton,
-  Fab,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -746,22 +745,6 @@ export default function RecipeDetailPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-
-      {/* Floating Share Button (Mobile Only) */}
-      {isMobile && (
-        <Fab
-          color="primary"
-          onClick={handleShare}
-          sx={{
-            position: 'fixed',
-            bottom: { xs: 16, sm: 24 },
-            right: { xs: 16, sm: 24 },
-            zIndex: 1000,
-          }}
-        >
-          <Share />
-        </Fab>
-      )}
     </Box>
   );
 }

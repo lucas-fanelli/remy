@@ -30,6 +30,10 @@ import {
   ListItemAvatar,
   Button,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Slide,
 } from '@mui/material';
 import {
   Home,
@@ -58,12 +62,15 @@ import {
   PersonAdd,
   ChatBubbleOutline,
   Star,
+  Close,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { BRANDING } from '@/config/branding';
 import SearchResults from './SearchResults';
+import CreateRecipeForm from './recipe/CreateRecipeForm';
+import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Notification {
@@ -109,12 +116,25 @@ export default function Navigation() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
 
-  const navItems = [
+  // Mobile dialog states
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [createRecipeOpen, setCreateRecipeOpen] = useState(false);
+
+  // Desktop nav items (all items for desktop)
+  const desktopNavItems = [
     { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
     { id: 'search', icon: Search, activeIcon: Search, label: 'Search' },
     { id: 'explore', icon: ExploreOutlined, activeIcon: Explore, label: 'Explore' },
     { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen, label: 'Pantry' },
     { id: 'messages', icon: SendOutlined, activeIcon: Send, label: 'Messages' },
+  ];
+
+  // Mobile nav items (simplified for bottom nav)
+  const mobileNavItems = [
+    { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
+    { id: 'search', icon: Search, activeIcon: Search, label: 'Search' },
+    { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'Add' },
+    { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen, label: 'Pantry' },
   ];
 
   const handleTabClick = (tabId: string) => {
@@ -135,7 +155,14 @@ export default function Navigation() {
         // TODO: Add messages page
         break;
       case 'search':
-        // Search is handled by the search input
+        // On mobile, open search dialog; on desktop, handled by search input
+        if (isMobile) {
+          setMobileSearchOpen(true);
+        }
+        break;
+      case 'add':
+        // Open create recipe dialog (mobile only)
+        setCreateRecipeOpen(true);
         break;
       default:
         break;
@@ -341,6 +368,34 @@ export default function Navigation() {
     }
   };
 
+  // Handle create recipe
+  const handleCreateRecipe = async (data: CreateRecipeDTO) => {
+    try {
+      const response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create recipe');
+      }
+
+      // Close dialog and navigate to home to show new recipe
+      setCreateRecipeOpen(false);
+      router.push('/');
+      // Trigger a page reload to show the new recipe
+      window.location.reload();
+    } catch (error) {
+      console.error('Error creating recipe:', error);
+      throw error;
+    }
+  };
+
   // Generate breadcrumbs based on current pathname
   const generateBreadcrumbs = () => {
     const pathSegments = pathname.split('/').filter((segment) => segment !== '');
@@ -506,7 +561,7 @@ export default function Navigation() {
 
           {/* Right Icons */}
           <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1, md: 2 }, alignItems: 'center' }}>
-            {navItems.map((item) => {
+            {desktopNavItems.map((item) => {
               const Icon = activeTab === item.id ? item.activeIcon : item.icon;
               return (
                 <motion.div key={item.id} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
@@ -649,7 +704,7 @@ export default function Navigation() {
             No notifications yet
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            When someone follows you or interacts with your recipes, you'll see it here
+            When someone follows you or interacts with your recipes, you&apos;ll see it here
           </Typography>
         </Box>
       ) : (
@@ -785,7 +840,7 @@ export default function Navigation() {
           minHeight: { xs: 56, sm: 64 },
           px: { xs: 0.5, sm: 2 }
         }}>
-          {navItems.map((item) => {
+          {mobileNavItems.map((item) => {
             const Icon = activeTab === item.id ? item.activeIcon : item.icon;
             return (
               <motion.div key={item.id} whileTap={{ scale: 0.9 }}>
@@ -836,7 +891,7 @@ export default function Navigation() {
               />
             </ListItem>
             <Divider />
-            {navItems.map((item) => (
+            {mobileNavItems.map((item) => (
               <ListItem key={item.id} disablePadding>
                 <ListItemButton
                   onClick={() => {
@@ -927,6 +982,93 @@ export default function Navigation() {
     <>
       {isMobile ? renderMobileNav() : renderDesktopNav()}
       {renderMenu()}
+
+      {/* Mobile Search Dialog */}
+      <Dialog
+        fullScreen
+        open={mobileSearchOpen}
+        onClose={() => setMobileSearchOpen(false)}
+        TransitionComponent={Slide}
+        TransitionProps={{ direction: 'up' } as any}
+      >
+        <AppBar sx={{ position: 'relative' }}>
+          <Toolbar>
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => setMobileSearchOpen(false)}
+              aria-label="close"
+            >
+              <Close />
+            </IconButton>
+            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+              Search
+            </Typography>
+          </Toolbar>
+        </AppBar>
+        <Box sx={{ p: 2 }}>
+          <Box
+            sx={{
+              backgroundColor: 'background.default',
+              borderRadius: 2,
+              px: 2,
+              py: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+              mb: 2,
+            }}
+          >
+            <Search sx={{ color: 'text.secondary', mr: 1 }} />
+            <InputBase
+              placeholder="Search recipes or users..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              autoFocus
+              sx={{ flex: 1 }}
+            />
+          </Box>
+          {showSearchResults && (
+            <SearchResults
+              query={searchQuery}
+              users={searchResults.users}
+              recipes={searchResults.recipes}
+              loading={searchLoading}
+              onClose={() => {
+                setMobileSearchOpen(false);
+                handleCloseSearch();
+              }}
+            />
+          )}
+        </Box>
+      </Dialog>
+
+      {/* Create Recipe Dialog */}
+      <Dialog
+        fullScreen
+        open={createRecipeOpen}
+        onClose={() => setCreateRecipeOpen(false)}
+        TransitionComponent={Slide}
+        TransitionProps={{ direction: 'up' } as any}
+      >
+        <AppBar sx={{ position: 'relative' }}>
+          <Toolbar>
+            <IconButton
+              edge="start"
+              color="inherit"
+              onClick={() => setCreateRecipeOpen(false)}
+              aria-label="close"
+            >
+              <Close />
+            </IconButton>
+            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+              Share Recipe
+            </Typography>
+          </Toolbar>
+        </AppBar>
+        <Box sx={{ overflow: 'auto', p: 2 }}>
+          <CreateRecipeForm onSubmit={handleCreateRecipe} />
+        </Box>
+      </Dialog>
     </>
   );
 }
