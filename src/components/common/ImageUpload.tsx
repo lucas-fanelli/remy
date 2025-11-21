@@ -11,7 +11,6 @@ import {
   Alert,
 } from '@mui/material';
 import {
-  CloudUpload,
   Delete,
   Image as ImageIcon,
 } from '@mui/icons-material';
@@ -190,19 +189,6 @@ export default function ImageUpload({
             )}
           </Box>
         </Card>
-      )}
-
-      {!value && (
-        <Button
-          variant="outlined"
-          startIcon={<CloudUpload />}
-          onClick={handleUploadClick}
-          disabled={uploading}
-          fullWidth
-          sx={{ mt: 1 }}
-        >
-          {uploading ? 'Uploading...' : 'Choose Image'}
-        </Button>
       )}
 
       <input

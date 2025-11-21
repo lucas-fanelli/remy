@@ -325,13 +325,12 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
                 variant="outlined"
               >
                 <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-                  <Box sx={{ display: 'flex', gap: { xs: 1.5, md: 2 } }}>
+                  <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 } }}>
                     <Avatar
                       src={comment.user.avatar}
                       sx={{
                         width: { xs: 32, md: 40 },
                         height: { xs: 32, md: 40 },
-                        display: { xs: 'none', sm: 'flex' },
                       }}
                     >
                       {comment.user.username.charAt(0).toUpperCase()}
