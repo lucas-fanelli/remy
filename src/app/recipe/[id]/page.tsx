@@ -402,7 +402,7 @@ export default function RecipeDetailPage() {
   const totalTime = recipe.prepTime + recipe.cookingTime;
 
   return (
-    <Box sx={{ minHeight: '100vh', pb: { xs: 6, md: 8 }, backgroundColor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}>
       {/* Spacer for fixed AppBar - Material Design pattern */}
       <Toolbar />
 

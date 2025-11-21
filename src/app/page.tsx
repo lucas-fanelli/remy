@@ -32,7 +32,7 @@ export default function Home() {
         }}
       >
         <Toolbar />
-        <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 6, md: 8 }, px: { xs: 2, md: 3 } }}>
+        <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 10, sm: 11, md: 4 }, px: { xs: 2, md: 3 } }}>
           <LoadingWithProgress color="primary" inline />
 
           {/* Matched Recipes Section Skeleton */}
@@ -128,7 +128,7 @@ export default function Home() {
       <Toolbar />
 
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 6, md: 8 }, px: { xs: 2, md: 3 } }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 10, sm: 11, md: 4 }, px: { xs: 2, md: 3 } }}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

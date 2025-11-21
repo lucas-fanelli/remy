@@ -214,7 +214,7 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
   };
 
   return (
-    <Box>
+    <Box sx={{ pb: { xs: 9, sm: 10, md: 0 } }}>
       <Typography
         variant="h5"
         gutterBottom
