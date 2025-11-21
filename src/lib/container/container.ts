@@ -33,18 +33,8 @@ import { PantryService } from '@/infrastructure/services/PantryService';
 import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
 import { IngredientMatchService } from '@/infrastructure/services/IngredientMatchService';
 
-import { IRateLimitService } from '@/domain/services/IRateLimitService';
-import { RateLimitService } from '@/infrastructure/services/RateLimitService';
-
-import { IAIRecipeService } from '@/domain/services/IAIRecipeService';
-import { AIRecipeService } from '@/infrastructure/services/AIRecipeService';
-
 import { INotificationService } from '@/domain/services/INotificationService';
 import { NotificationService } from '@/infrastructure/services/NotificationService';
-
-// AI Providers
-import { AIProviderFactory } from '@/infrastructure/ai/AIProviderFactory';
-import { GeminiRecipeProvider } from '@/infrastructure/ai/GeminiRecipeProvider';
 
 // Dependency Injection Container
 // Single Responsibility: Manages object creation and dependencies
@@ -127,36 +117,6 @@ class Container {
       new IngredientMatchService(this.services.get('IRecipeRepository') as IRecipeRepository)
     );
 
-    // Register Rate Limit Service
-    this.services.set(
-      'IRateLimitService',
-      new RateLimitService(
-        this.services.get('PrismaClient') as PrismaClient,
-        this.services.get('IUserRepository') as IUserRepository
-      )
-    );
-
-    // Register AI Provider Factory and Providers
-    const providerFactory = AIProviderFactory.getInstance();
-
-    // Register Gemini provider
-    const geminiApiKey = process.env.GEMINI_API_KEY || '';
-    const geminiProvider = new GeminiRecipeProvider(geminiApiKey);
-    providerFactory.registerProvider('gemini', geminiProvider);
-
-    this.services.set('AIProviderFactory', providerFactory);
-
-    // Register AI Recipe Service
-    this.services.set(
-      'IAIRecipeService',
-      new AIRecipeService(
-        providerFactory,
-        this.services.get('IRateLimitService') as IRateLimitService,
-        this.services.get('IRecipeRepository') as IRecipeRepository,
-        this.services.get('IUserRepository') as IUserRepository
-      )
-    );
-
     // Register Notification Service
     this.services.set(
       'INotificationService',
@@ -205,18 +165,6 @@ class Container {
 
   public getIngredientMatchService(): IIngredientMatchService {
     return this.get<IIngredientMatchService>('IIngredientMatchService');
-  }
-
-  public getRateLimitService(): IRateLimitService {
-    return this.get<IRateLimitService>('IRateLimitService');
-  }
-
-  public getAIRecipeService(): IAIRecipeService {
-    return this.get<IAIRecipeService>('IAIRecipeService');
-  }
-
-  public getAIProviderFactory(): AIProviderFactory {
-    return this.get<AIProviderFactory>('AIProviderFactory');
   }
 
   public getPasswordService(): IPasswordService {

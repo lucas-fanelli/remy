@@ -31,6 +31,19 @@ import { useRouter } from 'next/navigation';
 
 const MotionCard = motion.create(Card);
 
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty.toLowerCase()) {
+    case 'easy':
+      return 'success';
+    case 'medium':
+      return 'warning';
+    case 'hard':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
+
 interface MatchedRecipe {
   id: string;
   title: string;
@@ -236,7 +249,7 @@ export default function MatchedRecipes() {
                       </Typography>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
                         <Chip label={recipe.cuisine} size="small" variant="outlined" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
-                        <Chip label={recipe.difficulty} size="small" color="primary" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
+                        <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' }, textTransform: 'capitalize' }} />
                       </Box>
                     </CardContent>
                   </MotionCard>
@@ -319,7 +332,7 @@ export default function MatchedRecipes() {
                       </Box>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
                         <Chip label={recipe.cuisine} size="small" variant="outlined" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
-                        <Chip label={recipe.difficulty} size="small" color="primary" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
+                        <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' }, textTransform: 'capitalize' }} />
                       </Box>
                     </CardContent>
                   </MotionCard>

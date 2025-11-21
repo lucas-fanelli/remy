@@ -22,10 +22,6 @@ model User {
   isVerified    Boolean   @default(false)
   isPrivate     Boolean   @default(false)
 
-  // Subscription
-  subscriptionTier       String    @default("free") // "free", "basic", "pro", "chef"
-  subscriptionExpiresAt  DateTime?
-
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -36,7 +32,6 @@ model User {
   followers     Follow[]  @relation("UserFollowers")
   following     Follow[]  @relation("UserFollowing")
   pantry        UserPantry?
-  aiUsage       AIUsageLog[]
   savedRecipes  SavedRecipe[]
   ratings       Rating[]
   collections   RecipeCollection[]
@@ -46,7 +41,6 @@ model User {
 
   @@index([email])
   @@index([username])
-  @@index([subscriptionTier])
   @@map("users")
 }
 
@@ -74,14 +68,6 @@ model Post {
   carbs           Int?              // in grams
   fat             Int?              // in grams
 
-  // AI-generated recipe metadata
-  isAIGenerated     Boolean  @default(false)
-  aiProvider        String?  // "gemini", "openai", "claude"
-  aiModel           String?  // "gemini-1.5-pro", etc.
-  generatedBy       String?  // userId who requested generation
-  sourceIngredients Json?    // Original ingredients used for generation
-  matchPercentage   Int?     // If from ingredient matching
-
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -97,7 +83,6 @@ model Post {
   @@index([createdAt])
   @@index([difficulty])
   @@index([cuisine])
-  @@index([isAIGenerated])
   @@map("posts")
 }
 
@@ -214,25 +199,6 @@ model ShoppingListItem {
 
   @@index([shoppingListId])
   @@map("shopping_list_items")
-}
-
-model AIUsageLog {
-  id          String   @id @default(uuid())
-  userId      String
-  action      String   // "generate_recipe", "substitution", "cooking_advice"
-  provider    String   // "gemini", "openai", "claude"
-  model       String   // "gemini-1.5-pro", etc.
-  tokensUsed  Int?
-  success     Boolean
-  errorMessage String?
-  createdAt   DateTime @default(now())
-
-  // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([userId, action])
-  @@map("ai_usage_logs")
 }
 
 model Ingredient {

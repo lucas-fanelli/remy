@@ -66,6 +66,19 @@ interface ProfileStats {
   followingCount: number;
 }
 
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty.toLowerCase()) {
+    case 'easy':
+      return 'success';
+    case 'medium':
+      return 'warning';
+    case 'hard':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
+
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -493,7 +506,7 @@ export default function ProfilePage() {
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                             <Chip label={recipe.cuisine} size="small" variant="outlined" />
-                            <Chip label={recipe.difficulty} size="small" color="primary" />
+                            <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ textTransform: 'capitalize' }} />
                           </Box>
                         </CardContent>
                       </MotionCard>
@@ -543,7 +556,7 @@ export default function ProfilePage() {
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                             <Chip label={recipe.cuisine} size="small" variant="outlined" />
-                            <Chip label={recipe.difficulty} size="small" color="primary" />
+                            <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ textTransform: 'capitalize' }} />
                           </Box>
                         </CardContent>
                       </MotionCard>
