@@ -5,6 +5,7 @@ import {
   Paper,
   List,
   ListItem,
+  ListItemButton,
   ListItemAvatar,
   ListItemText,
   Avatar,
@@ -103,16 +104,15 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
               {users.map((user) => (
                 <ListItem
                   key={user.id}
-                  button
-                  onClick={() => handleUserClick(user.username)}
-                  sx={{
-                    py: { xs: 1, md: 1.5 },
-                    px: { xs: 1.5, md: 2 },
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
+                  disablePadding
                 >
+                  <ListItemButton
+                    onClick={() => handleUserClick(user.username)}
+                    sx={{
+                      py: { xs: 1, md: 1.5 },
+                      px: { xs: 1.5, md: 2 },
+                    }}
+                  >
                   <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
                     <Avatar
                       src={user.avatar}
@@ -136,6 +136,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                       fontSize: { xs: '0.75rem', md: '0.875rem' }
                     }}
                   />
+                  </ListItemButton>
                 </ListItem>
               ))}
               {recipes.length > 0 && <Divider />}
@@ -158,16 +159,15 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
               {recipes.map((recipe) => (
                 <ListItem
                   key={recipe.id}
-                  button
-                  onClick={() => handleRecipeClick(recipe.id)}
-                  sx={{
-                    py: { xs: 1, md: 1.5 },
-                    px: { xs: 1.5, md: 2 },
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
+                  disablePadding
                 >
+                  <ListItemButton
+                    onClick={() => handleRecipeClick(recipe.id)}
+                    sx={{
+                      py: { xs: 1, md: 1.5 },
+                      px: { xs: 1.5, md: 2 },
+                    }}
+                  >
                   <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
                     <Avatar
                       src={recipe.imageUrl}
@@ -195,6 +195,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                       fontSize: { xs: '0.75rem', md: '0.875rem' }
                     }}
                   />
+                  </ListItemButton>
                 </ListItem>
               ))}
             </>

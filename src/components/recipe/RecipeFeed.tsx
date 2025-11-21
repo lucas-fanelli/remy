@@ -524,10 +524,10 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
           {[1, 2, 3, 4, 5, 6].map((item) => (
             <Grid item xs={12} sm={6} md={4} key={item}>
               <Card>
-                <Skeleton variant="rectangular" width="100%" height={{ xs: 180, sm: 200, md: 240 }} />
+                <Skeleton variant="rectangular" width="100%" sx={{ height: { xs: 180, sm: 200, md: 240 } }} />
                 <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.5, md: 2 } }}>
-                    <Skeleton variant="circular" width={{ xs: 32, md: 40 }} height={{ xs: 32, md: 40 }} />
+                    <Skeleton variant="circular" sx={{ width: { xs: 32, md: 40 }, height: { xs: 32, md: 40 } }} />
                     <Skeleton variant="text" width={120} height={24} />
                   </Box>
                   <Skeleton variant="text" width="90%" height={28} />

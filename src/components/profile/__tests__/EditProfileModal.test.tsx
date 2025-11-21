@@ -243,6 +243,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should show error when API request fails', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup();
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -257,6 +258,8 @@ describe('EditProfileModal', () => {
       await waitFor(() => {
         expect(mockShowError).toHaveBeenCalledWith('Update failed');
       });
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should disable buttons while saving', async () => {
@@ -336,6 +339,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should handle avatar upload error - non-ok response', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup();
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -364,9 +368,12 @@ describe('EditProfileModal', () => {
       await waitFor(() => {
         expect(mockShowError).toHaveBeenCalledWith('File too large');
       });
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should handle avatar upload error - without specific error message', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup();
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -389,6 +396,8 @@ describe('EditProfileModal', () => {
       await waitFor(() => {
         expect(mockShowError).toHaveBeenCalledWith('Failed to upload avatar');
       });
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should successfully upload avatar and update profile', async () => {

@@ -66,8 +66,6 @@ import { BRANDING } from '@/config/branding';
 import SearchResults from './SearchResults';
 import { formatDistanceToNow } from 'date-fns';
 
-const MotionIconButton = motion(IconButton);
-
 interface Notification {
   id: string;
   type: 'follow' | 'like' | 'comment' | 'rating';
@@ -511,41 +509,40 @@ export default function Navigation() {
             {navItems.map((item) => {
               const Icon = activeTab === item.id ? item.activeIcon : item.icon;
               return (
-                <MotionIconButton
-                  key={item.id}
-                  onClick={() => handleTabClick(item.id)}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  size={isSmallDesktop ? 'small' : 'medium'}
-                  sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                >
-                  <Icon sx={{
-                    color: activeTab === item.id ? 'text.primary' : 'text.secondary',
-                    fontSize: { sm: '1.25rem', md: '1.5rem' }
-                  }} />
-                </MotionIconButton>
+                <motion.div key={item.id} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <IconButton
+                    onClick={() => handleTabClick(item.id)}
+                    size={isSmallDesktop ? 'small' : 'medium'}
+                    sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                  >
+                    <Icon sx={{
+                      color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                      fontSize: { sm: '1.25rem', md: '1.5rem' }
+                    }} />
+                  </IconButton>
+                </motion.div>
               );
             })}
-            <MotionIconButton
-              onClick={handleNotificationsOpen}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              size={isSmallDesktop ? 'small' : 'medium'}
-            >
-              <Badge badgeContent={unreadNotifications} color="error">
-                <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-              </Badge>
-            </MotionIconButton>
-            <MotionIconButton
-              onClick={handleMenuOpen}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              size={isSmallDesktop ? 'small' : 'medium'}
-            >
-              <Avatar sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }} src={user?.avatar || '/avatar.jpg'}>
-                {user?.username?.charAt(0).toUpperCase()}
-              </Avatar>
-            </MotionIconButton>
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <IconButton
+                onClick={handleNotificationsOpen}
+                size={isSmallDesktop ? 'small' : 'medium'}
+              >
+                <Badge badgeContent={unreadNotifications} color="error">
+                  <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                </Badge>
+              </IconButton>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <IconButton
+                onClick={handleMenuOpen}
+                size={isSmallDesktop ? 'small' : 'medium'}
+              >
+                <Avatar sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }} src={user?.avatar || '/avatar.jpg'}>
+                  {user?.username?.charAt(0).toUpperCase()}
+                </Avatar>
+              </IconButton>
+            </motion.div>
           </Box>
         </Toolbar>
       </AppBar>
@@ -791,30 +788,31 @@ export default function Navigation() {
           {navItems.map((item) => {
             const Icon = activeTab === item.id ? item.activeIcon : item.icon;
             return (
-              <MotionIconButton
-                key={item.id}
-                onClick={() => handleTabClick(item.id)}
-                whileTap={{ scale: 0.9 }}
-                size="small"
-                sx={{ p: { xs: 0.5, sm: 1 } }}
-              >
-                <Icon sx={{
-                  color: activeTab === item.id ? 'text.primary' : 'text.secondary',
-                  fontSize: { xs: '1.25rem', sm: '1.5rem' }
-                }} />
-              </MotionIconButton>
+              <motion.div key={item.id} whileTap={{ scale: 0.9 }}>
+                <IconButton
+                  onClick={() => handleTabClick(item.id)}
+                  size="small"
+                  sx={{ p: { xs: 0.5, sm: 1 } }}
+                >
+                  <Icon sx={{
+                    color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                    fontSize: { xs: '1.25rem', sm: '1.5rem' }
+                  }} />
+                </IconButton>
+              </motion.div>
             );
           })}
-          <MotionIconButton
-            whileTap={{ scale: 0.9 }}
-            size="small"
-            sx={{ p: { xs: 0.5, sm: 1 } }}
-            onClick={handleProfileClick}
-          >
-            <Avatar sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }} src={user?.avatar || '/avatar.jpg'}>
-              {user?.username?.charAt(0).toUpperCase()}
-            </Avatar>
-          </MotionIconButton>
+          <motion.div whileTap={{ scale: 0.9 }}>
+            <IconButton
+              size="small"
+              sx={{ p: { xs: 0.5, sm: 1 } }}
+              onClick={handleProfileClick}
+            >
+              <Avatar sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }} src={user?.avatar || '/avatar.jpg'}>
+                {user?.username?.charAt(0).toUpperCase()}
+              </Avatar>
+            </IconButton>
+          </motion.div>
         </Toolbar>
       </AppBar>
 

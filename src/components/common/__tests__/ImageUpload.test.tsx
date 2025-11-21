@@ -165,6 +165,7 @@ describe('ImageUpload Component', () => {
   });
 
   it('should handle upload error', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockResolvedValueOnce({
       ok: false,
       json: async () => ({ error: 'Upload failed' }),
@@ -189,6 +190,7 @@ describe('ImageUpload Component', () => {
     });
 
     expect(mockOnChange).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it('should trigger file input when clicking upload area', () => {
@@ -248,5 +250,96 @@ describe('ImageUpload Component', () => {
     fireEvent.click(deleteButton);
 
     expect(mockOnChange).toHaveBeenCalledWith('');
+  });
+
+  it('should handle file input change with no file selected - line 43', () => {
+    renderWithTheme(
+      <ImageUpload value="" onChange={mockOnChange} />
+    );
+
+    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
+      .querySelector('input[type="file"]') as HTMLInputElement;
+
+    // Trigger change event with no files
+    Object.defineProperty(input, 'files', {
+      value: null,
+    });
+
+    fireEvent.change(input);
+
+    // Should return early and not call onChange
+    expect(mockOnChange).not.toHaveBeenCalled();
+  });
+
+  it('should handle network error in catch block - line 80', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // Mock fetch to throw a network error
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+    renderWithTheme(
+      <ImageUpload value="" onChange={mockOnChange} />
+    );
+
+    const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
+    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
+      .querySelector('input[type="file"]') as HTMLInputElement;
+
+    Object.defineProperty(input, 'files', {
+      value: [file],
+    });
+
+    fireEvent.change(input);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Network error/i)).toBeInTheDocument();
+    });
+
+    expect(mockOnChange).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should handle non-Error exception in catch block - line 80', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // Mock fetch to throw a non-Error object
+    mockFetch.mockRejectedValueOnce('String error');
+
+    renderWithTheme(
+      <ImageUpload value="" onChange={mockOnChange} />
+    );
+
+    const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
+    const input = screen.getByRole('button', { name: /Choose Image/i }).closest('div')!
+      .querySelector('input[type="file"]') as HTMLInputElement;
+
+    Object.defineProperty(input, 'files', {
+      value: [file],
+    });
+
+    fireEvent.change(input);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to upload image/i)).toBeInTheDocument();
+    });
+
+    expect(mockOnChange).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should render with required=false and no error border - line 161', () => {
+    renderWithTheme(
+      <ImageUpload value="" onChange={mockOnChange} required={false} />
+    );
+
+    // Component should render without error border when not required
+    expect(screen.getByText('Click to upload an image')).toBeInTheDocument();
+  });
+
+  it('should render error border when required=true and no value - line 161', () => {
+    renderWithTheme(
+      <ImageUpload value="" onChange={mockOnChange} required={true} />
+    );
+
+    // Should show error border color
+    expect(screen.getByText('Click to upload an image')).toBeInTheDocument();
   });
 });

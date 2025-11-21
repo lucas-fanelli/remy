@@ -94,6 +94,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should handle API error when fetching comments', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
     renderWithProviders(<CommentsSection recipeId="recipe1" />);
@@ -101,6 +102,8 @@ describe('CommentsSection Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/comments/i)).toBeInTheDocument();
     });
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('should show loading state while fetching comments', () => {

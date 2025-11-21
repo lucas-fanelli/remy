@@ -3,8 +3,6 @@ import React from 'react';
 import { Box, Avatar, Typography, Button, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
 
-const MotionButton = motion(Button);
-
 interface Suggestion {
   id: string;
   username: string;
@@ -88,14 +86,14 @@ export default function Suggestions() {
                   {suggestion.subtitle}
                 </Typography>
               </Box>
-              <MotionButton
-                size="small"
-                sx={{ textTransform: 'none', fontWeight: 600, fontSize: '12px' }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Follow
-              </MotionButton>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  size="small"
+                  sx={{ textTransform: 'none', fontWeight: 600, fontSize: '12px' }}
+                >
+                  Follow
+                </Button>
+              </motion.div>
             </Box>
           </motion.div>
         ))}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import RecipeCard from '../RecipeCard';
@@ -290,6 +290,61 @@ describe('RecipeCard Component', () => {
 
       const avatar = screen.getByAltText('johndoe');
       expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+    });
+
+    it('should handle unknown difficulty level with default color - line 105', () => {
+      const recipeWithUnknownDifficulty = {
+        ...mockRecipe,
+        difficulty: 'unknown' as any,
+      };
+      renderWithTheme(<RecipeCard recipe={recipeWithUnknownDifficulty} />);
+
+      // Component should render without errors even with unknown difficulty
+      expect(screen.getByText(mockRecipe.title)).toBeInTheDocument();
+      // Difficulty chip should still be displayed
+      expect(screen.getByText('unknown')).toBeInTheDocument();
+    });
+
+    it('should stop propagation when clicking on menu - line 345', async () => {
+      const mockOnEdit = jest.fn();
+      const mockOnDelete = jest.fn();
+
+      renderWithTheme(
+        <RecipeCard
+          recipe={mockRecipeWithAuthor}
+          currentUserId="user-1"
+          showActions={true}
+          onEdit={mockOnEdit}
+          onDelete={mockOnDelete}
+        />
+      );
+
+      // Find and click the more button to open menu
+      const moreButtons = screen.getAllByRole('button');
+      const moreButton = moreButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+
+      expect(moreButton).toBeDefined();
+      if (moreButton) {
+        fireEvent.click(moreButton);
+
+        // Wait for menu to open
+        await waitFor(() => {
+          expect(screen.getByRole('menu')).toBeInTheDocument();
+        });
+
+        // Click on the menu itself (not a menu item) to test stopPropagation
+        const menu = screen.getByRole('menu');
+        const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
+        const stopPropagationSpy = jest.spyOn(clickEvent, 'stopPropagation');
+
+        fireEvent(menu, clickEvent);
+
+        // stopPropagation should have been called (line 345)
+        expect(stopPropagationSpy).toHaveBeenCalled();
+      }
     });
   });
 });

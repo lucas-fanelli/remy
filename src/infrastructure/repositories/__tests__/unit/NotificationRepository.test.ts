@@ -265,6 +265,18 @@ describe('NotificationRepository', () => {
     });
   });
 
+  describe('delete', () => {
+    it('should delete a notification by id - line 177', async () => {
+      (mockPrisma.notification.delete as jest.Mock).mockResolvedValue(undefined);
+
+      await repository.delete('notif1');
+
+      expect(mockPrisma.notification.delete).toHaveBeenCalledWith({
+        where: { id: 'notif1' },
+      });
+    });
+  });
+
   describe('deleteMany', () => {
     it('should delete notifications matching filters', async () => {
       (mockPrisma.notification.deleteMany as jest.Mock).mockResolvedValue({ count: 3 });

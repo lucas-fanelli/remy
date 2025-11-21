@@ -95,12 +95,12 @@ export default function MatchedRecipes() {
   if (loading) {
     return (
       <Box sx={{ mb: { xs: 4, md: 6 } }}>
-        <Skeleton variant="text" width={{ xs: 200, md: 250 }} height={{ xs: 32, md: 40 }} sx={{ mb: { xs: 1.5, md: 2 } }} />
+        <Skeleton variant="text" sx={{ width: { xs: 200, md: 250 }, height: { xs: 32, md: 40 }, mb: { xs: 1.5, md: 2 } }} />
         <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
           {[1, 2, 3].map((item) => (
             <Grid item xs={12} sm={6} md={4} key={item}>
               <Card>
-                <Skeleton variant="rectangular" width="100%" height={{ xs: 160, sm: 180, md: 200 }} />
+                <Skeleton variant="rectangular" width="100%" sx={{ height: { xs: 160, sm: 180, md: 200 } }} />
                 <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
                   <Skeleton variant="text" width="80%" height={30} />
                   <Skeleton variant="text" width="60%" height={24} sx={{ mt: 1 }} />
@@ -199,9 +199,16 @@ export default function MatchedRecipes() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    sx={{ cursor: 'pointer', height: '100%' }}
+                    sx={{
+                      cursor: 'pointer',
+                      height: '100%',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        transform: 'translateY(-4px)',
+                      },
+                    }}
                     onClick={() => handleRecipeClick(recipe.id)}
-                    whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
                   >
                     <CardMedia
                       component="img"
@@ -255,9 +262,16 @@ export default function MatchedRecipes() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    sx={{ cursor: 'pointer', height: '100%' }}
+                    sx={{
+                      cursor: 'pointer',
+                      height: '100%',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        transform: 'translateY(-4px)',
+                      },
+                    }}
                     onClick={() => handleRecipeClick(recipe.id)}
-                    whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
                   >
                     <CardMedia
                       component="img"

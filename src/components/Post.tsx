@@ -24,8 +24,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const MotionIconButton = motion(IconButton);
-const MotionCard = motion(Card);
+const MotionCard = motion.create(Card);
 
 interface PostProps {
   username: string;
@@ -92,9 +91,11 @@ export default function Post({
           </motion.div>
         }
         action={
-          <MotionIconButton whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <MoreVert />
-          </MotionIconButton>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <IconButton>
+              <MoreVert />
+            </IconButton>
+          </motion.div>
         }
         title={
           <Typography variant="subtitle2" fontWeight={600}>
@@ -148,43 +149,39 @@ export default function Post({
       {/* Actions */}
       <CardActions disableSpacing sx={{ px: 2, py: 1 }}>
         <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
-          <MotionIconButton
-            onClick={handleLike}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <motion.div
-              animate={liked ? { scale: [1, 1.3, 1] } : {}}
-              transition={{ duration: 0.3 }}
-            >
-              {liked ? (
-                <Favorite sx={{ color: 'error.main' }} />
-              ) : (
-                <FavoriteBorder />
-              )}
-            </motion.div>
-          </MotionIconButton>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <IconButton onClick={handleLike}>
+              <motion.div
+                animate={liked ? { scale: [1, 1.3, 1] } : {}}
+                transition={{ duration: 0.3 }}
+              >
+                {liked ? (
+                  <Favorite sx={{ color: 'error.main' }} />
+                ) : (
+                  <FavoriteBorder />
+                )}
+              </motion.div>
+            </IconButton>
+          </motion.div>
 
-          <MotionIconButton
-            onClick={() => setShowComments(!showComments)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <ChatBubbleOutline />
-          </MotionIconButton>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <IconButton onClick={() => setShowComments(!showComments)}>
+              <ChatBubbleOutline />
+            </IconButton>
+          </motion.div>
 
-          <MotionIconButton whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <Send />
-          </MotionIconButton>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <IconButton>
+              <Send />
+            </IconButton>
+          </motion.div>
         </Box>
 
-        <MotionIconButton
-          onClick={() => setSaved(!saved)}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
-          {saved ? <Bookmark /> : <BookmarkBorder />}
-        </MotionIconButton>
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <IconButton onClick={() => setSaved(!saved)}>
+            {saved ? <Bookmark /> : <BookmarkBorder />}
+          </IconButton>
+        </motion.div>
       </CardActions>
 
       {/* Content */}
@@ -247,15 +244,15 @@ export default function Post({
                 }}
                 variant="standard"
               />
-              <MotionIconButton
-                size="small"
-                onClick={handleComment}
-                disabled={!comment.trim()}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <Send fontSize="small" />
-              </MotionIconButton>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <IconButton
+                  size="small"
+                  onClick={handleComment}
+                  disabled={!comment.trim()}
+                >
+                  <Send fontSize="small" />
+                </IconButton>
+              </motion.div>
             </Box>
           </Box>
         </Collapse>

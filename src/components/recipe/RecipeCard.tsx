@@ -108,13 +108,16 @@ export default function RecipeCard({
 
   return (
     <MotionCard
-      whileHover={{ y: -4, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}
-      transition={{ duration: 0.2 }}
       sx={{
         cursor: onClick ? 'pointer' : 'default',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        transition: 'all 0.2s',
+        '&:hover': {
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          transform: 'translateY(-4px)',
+        },
       }}
     >
       {/* Recipe Image */}

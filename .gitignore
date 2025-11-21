@@ -42,3 +42,4 @@ next-env.d.ts
 # Uploaded images (keep folder structure)
 public/uploads/*
 !public/uploads/README.md
+my_backup.sql

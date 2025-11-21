@@ -61,7 +61,11 @@
       "Bash(Stop-Process -Id 39964 -Force)",
       "Bash(powershell -Command \"Stop-Process -Id 39964 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 23272 -Force\")",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(for i in {1..3})",
+      "Bash(do echo \"=== Run $i ===\")",
+      "Bash(done)",
+      "Bash(Select-String -Pattern \"PASS|FAIL|Tests:|Test Suites:|Navigation.tsx\" -Context 0,2)"
     ],
     "deny": [],
     "ask": []
