@@ -15,7 +15,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Person, Restaurant } from '@mui/icons-material';
+import { Person, Restaurant, Search } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -57,9 +57,19 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
     onClose();
   };
 
+  const handleViewAllResults = () => {
+    router.push(`/search?q=${encodeURIComponent(query)}`);
+    onClose();
+  };
+
   if (!query) return null;
 
   const hasResults = users.length > 0 || recipes.length > 0;
+
+  // Prioritize users over recipes, limit to 2 results (plus the "Search 'query'" item = 3 total)
+  const limitedUsers = users.slice(0, 2);
+  const remainingSlots = 2 - limitedUsers.length;
+  const limitedRecipes = recipes.slice(0, remainingSlots);
 
   return (
     <Paper
@@ -88,118 +98,128 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
         </Box>
       ) : (
         <List sx={{ py: 0 }}>
-          {/* Users Section */}
-          {users.length > 0 && (
-            <>
-              <ListItem sx={{ bgcolor: 'background.default', py: { xs: 0.75, md: 1 } }}>
-                <Typography
-                  variant="caption"
-                  fontWeight={600}
-                  color="text.secondary"
-                  sx={{ fontSize: { xs: '0.625rem', md: '0.75rem' } }}
+          {/* "Search 'query'" - View all results */}
+          <ListItem disablePadding>
+            <ListItemButton
+              onClick={handleViewAllResults}
+              sx={{
+                py: { xs: 1.25, md: 1.75 },
+                px: { xs: 1.5, md: 2 },
+                bgcolor: 'action.hover',
+              }}
+            >
+              <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
+                <Avatar
+                  sx={{
+                    bgcolor: 'primary.main',
+                    width: { xs: 32, md: 40 },
+                    height: { xs: 32, md: 40 }
+                  }}
                 >
-                  USERS
-                </Typography>
-              </ListItem>
-              {users.map((user) => (
-                <ListItem
-                  key={user.id}
-                  disablePadding
-                >
-                  <ListItemButton
-                    onClick={() => handleUserClick(user.username)}
-                    sx={{
-                      py: { xs: 1, md: 1.5 },
-                      px: { xs: 1.5, md: 2 },
-                    }}
-                  >
-                  <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
-                    <Avatar
-                      src={user.avatar}
-                      sx={{
-                        bgcolor: 'primary.main',
-                        width: { xs: 32, md: 40 },
-                        height: { xs: 32, md: 40 }
-                      }}
-                    >
-                      <Person sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={user.username}
-                    secondary={isMobile ? null : user.email}
-                    primaryTypographyProps={{
-                      fontWeight: 600,
-                      fontSize: { xs: '0.875rem', md: '1rem' }
-                    }}
-                    secondaryTypographyProps={{
-                      fontSize: { xs: '0.75rem', md: '0.875rem' }
-                    }}
-                  />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-              {recipes.length > 0 && <Divider />}
-            </>
-          )}
+                  <Search sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                </Avatar>
+              </ListItemAvatar>
+              <ListItemText
+                primary={`Search "${query}"`}
+                secondary="View all results"
+                primaryTypographyProps={{
+                  fontWeight: 600,
+                  fontSize: { xs: '0.875rem', md: '1rem' }
+                }}
+                secondaryTypographyProps={{
+                  fontSize: { xs: '0.75rem', md: '0.875rem' }
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
 
-          {/* Recipes Section */}
-          {recipes.length > 0 && (
-            <>
-              <ListItem sx={{ bgcolor: 'background.default', py: { xs: 0.75, md: 1 } }}>
-                <Typography
-                  variant="caption"
-                  fontWeight={600}
-                  color="text.secondary"
-                  sx={{ fontSize: { xs: '0.625rem', md: '0.75rem' } }}
+          {/* Users (prioritized, up to 2) */}
+          {limitedUsers.map((user) => (
+            <React.Fragment key={user.id}>
+              <Divider />
+              <ListItem
+                disablePadding
+              >
+                <ListItemButton
+                  onClick={() => handleUserClick(user.username)}
+                  sx={{
+                    py: { xs: 1, md: 1.5 },
+                    px: { xs: 1.5, md: 2 },
+                  }}
                 >
-                  RECIPES
-                </Typography>
-              </ListItem>
-              {recipes.map((recipe) => (
-                <ListItem
-                  key={recipe.id}
-                  disablePadding
-                >
-                  <ListItemButton
-                    onClick={() => handleRecipeClick(recipe.id)}
+                <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
+                  <Avatar
+                    src={user.avatar}
                     sx={{
-                      py: { xs: 1, md: 1.5 },
-                      px: { xs: 1.5, md: 2 },
+                      bgcolor: 'primary.main',
+                      width: { xs: 32, md: 40 },
+                      height: { xs: 32, md: 40 }
                     }}
                   >
-                  <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
-                    <Avatar
-                      src={recipe.imageUrl}
-                      variant="rounded"
-                      sx={{
-                        bgcolor: 'secondary.main',
-                        width: { xs: 32, md: 40 },
-                        height: { xs: 32, md: 40 }
-                      }}
-                    >
-                      <Restaurant sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={recipe.title}
-                    secondary={isMobile
-                      ? recipe.cuisine
-                      : `${recipe.cuisine} • ${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
-                    }
-                    primaryTypographyProps={{
-                      fontWeight: 600,
-                      fontSize: { xs: '0.875rem', md: '1rem' }
+                    <Person sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={user.username}
+                  secondary={isMobile ? null : user.email}
+                  primaryTypographyProps={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', md: '1rem' }
+                  }}
+                  secondaryTypographyProps={{
+                    fontSize: { xs: '0.75rem', md: '0.875rem' }
+                  }}
+                />
+                </ListItemButton>
+              </ListItem>
+            </React.Fragment>
+          ))}
+
+          {/* Recipes (fill remaining slots) */}
+          {limitedRecipes.map((recipe) => (
+            <React.Fragment key={recipe.id}>
+              <Divider />
+              <ListItem
+                disablePadding
+              >
+                <ListItemButton
+                  onClick={() => handleRecipeClick(recipe.id)}
+                  sx={{
+                    py: { xs: 1, md: 1.5 },
+                    px: { xs: 1.5, md: 2 },
+                  }}
+                >
+                <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
+                  <Avatar
+                    src={recipe.imageUrl}
+                    variant="rounded"
+                    sx={{
+                      bgcolor: 'secondary.main',
+                      width: { xs: 32, md: 40 },
+                      height: { xs: 32, md: 40 }
                     }}
-                    secondaryTypographyProps={{
-                      fontSize: { xs: '0.75rem', md: '0.875rem' }
-                    }}
-                  />
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </>
-          )}
+                  >
+                    <Restaurant sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={recipe.title}
+                  secondary={isMobile
+                    ? recipe.cuisine
+                    : `${recipe.cuisine} • ${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
+                  }
+                  primaryTypographyProps={{
+                    fontWeight: 600,
+                    fontSize: { xs: '0.875rem', md: '1rem' }
+                  }}
+                  secondaryTypographyProps={{
+                    fontSize: { xs: '0.75rem', md: '0.875rem' }
+                  }}
+                />
+                </ListItemButton>
+              </ListItem>
+            </React.Fragment>
+          ))}
         </List>
       )}
     </Paper>
