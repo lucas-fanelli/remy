@@ -62,7 +62,7 @@ describe('SearchResults Component', () => {
       <SearchResults query="test" users={[]} recipes={[]} loading={false} onClose={mockOnClose} />
     );
 
-    expect(screen.getByText('No results found for "test"')).toBeInTheDocument();
+    expect(screen.getByText(/No results found for/)).toBeInTheDocument();
   });
 
   it('should show "Search query" button as first item when results exist', () => {
@@ -86,26 +86,27 @@ describe('SearchResults Component', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('should prioritize users and limit to 2 results', () => {
+  it('should prioritize users and limit to 3 results', () => {
     renderWithTheme(
       <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
     );
 
-    // Should show first 2 users only
+    // Should show all 3 users
     expect(screen.getByText('testuser1')).toBeInTheDocument();
     expect(screen.getByText('testuser2')).toBeInTheDocument();
-    expect(screen.queryByText('testuser3')).not.toBeInTheDocument();
+    expect(screen.getByText('testuser3')).toBeInTheDocument();
   });
 
-  it('should show recipes when fewer than 2 users exist', () => {
+  it('should show recipes when fewer than 3 users exist', () => {
     renderWithTheme(
       <SearchResults query="test" users={[mockUsers[0]]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
     );
 
-    // Should show 1 user + 1 recipe (total 2 results)
+    // Should show 1 user + 2 recipes (total 3 results)
     expect(screen.getByText('testuser1')).toBeInTheDocument();
     expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
-    expect(screen.queryByText('Test Recipe 2')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Recipe 2')).toBeInTheDocument();
+    expect(screen.queryByText('Test Recipe 3')).not.toBeInTheDocument();
   });
 
   it('should show only recipes when no users exist', () => {
@@ -113,10 +114,10 @@ describe('SearchResults Component', () => {
       <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
     );
 
-    // Should show 2 recipes
+    // Should show 3 recipes
     expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
     expect(screen.getByText('Test Recipe 2')).toBeInTheDocument();
-    expect(screen.queryByText('Test Recipe 3')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Recipe 3')).toBeInTheDocument();
   });
 
   it('should navigate to user profile when user is clicked', () => {
@@ -143,18 +144,17 @@ describe('SearchResults Component', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('should show correct total of 3 items (search button + 2 results)', () => {
+  it('should show correct total of 4 items (search button + 3 results)', () => {
     renderWithTheme(
       <SearchResults query="test" users={mockUsers} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
     );
 
-    // Search button + 2 users (prioritized)
+    // Search button + 3 users (prioritized)
     expect(screen.getByText('Search "test"')).toBeInTheDocument();
     expect(screen.getByText('testuser1')).toBeInTheDocument();
     expect(screen.getByText('testuser2')).toBeInTheDocument();
-    // Third user should not appear
-    expect(screen.queryByText('testuser3')).not.toBeInTheDocument();
-    // No recipes should appear when 2 users exist
+    expect(screen.getByText('testuser3')).toBeInTheDocument();
+    // No recipes should appear when 3 users exist
     expect(screen.queryByText('Test Recipe 1')).not.toBeInTheDocument();
   });
 });

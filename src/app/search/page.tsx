@@ -114,7 +114,7 @@ export default function SearchPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, pb: { xs: 10, sm: 11, md: 4 } }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, pb: { xs: 12, sm: 13, md: 4 } }}>
       <Box sx={{ mb: 3 }}>
         <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
           Search Results

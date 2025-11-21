@@ -66,9 +66,9 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
 
   const hasResults = users.length > 0 || recipes.length > 0;
 
-  // Prioritize users over recipes, limit to 2 results (plus the "Search 'query'" item = 3 total)
-  const limitedUsers = users.slice(0, 2);
-  const remainingSlots = 2 - limitedUsers.length;
+  // Prioritize users over recipes, limit to 3 results (plus the "Search 'query'" item = 4 total)
+  const limitedUsers = users.slice(0, 3);
+  const remainingSlots = 3 - limitedUsers.length;
   const limitedRecipes = recipes.slice(0, remainingSlots);
 
   return (
@@ -76,11 +76,10 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
       sx={{
         position: 'absolute',
         top: '100%',
-        left: { xs: '-100%', sm: 0 },
-        right: { xs: '-100%', sm: 0 },
+        left: 0,
+        right: 0,
         mt: 1,
         maxHeight: { xs: '60vh', sm: 500, md: 400 },
-        width: { xs: '100vw', sm: 'auto' },
         overflow: 'auto',
         zIndex: 1000,
         boxShadow: 3,

@@ -1028,16 +1028,18 @@ export default function Navigation() {
             />
           </Box>
           {showSearchResults && (
-            <SearchResults
-              query={searchQuery}
-              users={searchResults.users}
-              recipes={searchResults.recipes}
-              loading={searchLoading}
-              onClose={() => {
-                setMobileSearchOpen(false);
-                handleCloseSearch();
-              }}
-            />
+            <Box sx={{ position: 'relative' }}>
+              <SearchResults
+                query={searchQuery}
+                users={searchResults.users}
+                recipes={searchResults.recipes}
+                loading={searchLoading}
+                onClose={() => {
+                  setMobileSearchOpen(false);
+                  handleCloseSearch();
+                }}
+              />
+            </Box>
           )}
         </Box>
       </Dialog>
