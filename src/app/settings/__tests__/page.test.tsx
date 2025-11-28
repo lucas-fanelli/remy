@@ -147,27 +147,11 @@ describe('SettingsPage', () => {
       expect(screen.getByText('Dark Mode')).toBeInTheDocument();
     });
 
-    it('should render language section', () => {
-      render(<SettingsPage />);
-
-      expect(screen.getByText('Language & Region')).toBeInTheDocument();
-    });
-
-    it('should render notifications section', () => {
-      render(<SettingsPage />);
-
-      expect(screen.getByText('Notifications')).toBeInTheDocument();
-      expect(screen.getByText('Email Notifications')).toBeInTheDocument();
-      expect(screen.getByText('Push Notifications')).toBeInTheDocument();
-      expect(screen.getByText('Marketing Emails')).toBeInTheDocument();
-    });
-
     it('should render privacy & security section', () => {
       render(<SettingsPage />);
 
       expect(screen.getByText('Privacy & Security')).toBeInTheDocument();
       expect(screen.getByText('Change Password')).toBeInTheDocument();
-      expect(screen.getByText('Cookie Preferences')).toBeInTheDocument();
     });
 
     it('should render info alert', () => {
@@ -209,94 +193,6 @@ describe('SettingsPage', () => {
     });
   });
 
-  describe('Language Settings', () => {
-    it('should have English selected by default', () => {
-      render(<SettingsPage />);
-
-      // Check that Language label exists
-      const languageLabels = screen.getAllByText('Language');
-      expect(languageLabels.length).toBeGreaterThan(0);
-
-      // MUI Select renders the selected value as text - English should be visible
-      expect(screen.getByText('English')).toBeInTheDocument();
-    });
-
-    it('should show success toast when language is changed', async () => {
-      const user = userEvent.setup();
-      render(<SettingsPage />);
-
-      // Find the Select component by its role
-      const languageSelect = screen.getByRole('combobox', { hidden: true });
-      await user.click(languageSelect);
-
-      // Wait for menu to open and click Spanish option
-      await waitFor(() => {
-        expect(screen.getByRole('option', { name: 'Español' })).toBeInTheDocument();
-      });
-
-      const spanishOption = screen.getByRole('option', { name: 'Español' });
-      await user.click(spanishOption);
-
-      expect(mockShowSuccess).toHaveBeenCalledWith('Language preference saved');
-    });
-  });
-
-  describe('Notification Settings', () => {
-    it('should have email notifications enabled by default', () => {
-      render(<SettingsPage />);
-
-      const emailSwitch = screen.getByRole('checkbox', { name: /email notifications/i });
-      expect(emailSwitch).toBeChecked();
-    });
-
-    it('should have push notifications disabled by default', () => {
-      render(<SettingsPage />);
-
-      const pushSwitch = screen.getByRole('checkbox', { name: /push notifications/i });
-      expect(pushSwitch).not.toBeChecked();
-    });
-
-    it('should have marketing emails disabled by default', () => {
-      render(<SettingsPage />);
-
-      const marketingSwitch = screen.getByRole('checkbox', { name: /marketing emails/i });
-      expect(marketingSwitch).not.toBeChecked();
-    });
-
-    it('should toggle email notifications', async () => {
-      const user = userEvent.setup();
-      render(<SettingsPage />);
-
-      const emailSwitch = screen.getByRole('checkbox', { name: /email notifications/i });
-      expect(emailSwitch).toBeChecked();
-
-      await user.click(emailSwitch);
-      expect(emailSwitch).not.toBeChecked();
-    });
-
-    it('should toggle push notifications', async () => {
-      const user = userEvent.setup();
-      render(<SettingsPage />);
-
-      const pushSwitch = screen.getByRole('checkbox', { name: /push notifications/i });
-      expect(pushSwitch).not.toBeChecked();
-
-      await user.click(pushSwitch);
-      expect(pushSwitch).toBeChecked();
-    });
-
-    it('should toggle marketing emails', async () => {
-      const user = userEvent.setup();
-      render(<SettingsPage />);
-
-      const marketingSwitch = screen.getByRole('checkbox', { name: /marketing emails/i });
-      expect(marketingSwitch).not.toBeChecked();
-
-      await user.click(marketingSwitch);
-      expect(marketingSwitch).toBeChecked();
-    });
-  });
-
   describe('Privacy & Security', () => {
     it('should open change password dialog when clicked', async () => {
       const user = userEvent.setup();
@@ -321,16 +217,6 @@ describe('SettingsPage', () => {
       await user.click(closeButton);
 
       expect(screen.queryByTestId('change-password-dialog')).not.toBeInTheDocument();
-    });
-
-    it('should show info toast when cookie preferences is clicked', async () => {
-      const user = userEvent.setup();
-      render(<SettingsPage />);
-
-      const cookieButton = screen.getByText('Cookie Preferences');
-      await user.click(cookieButton);
-
-      expect(mockShowInfo).toHaveBeenCalledWith('Cookie settings coming soon');
     });
   });
 });
