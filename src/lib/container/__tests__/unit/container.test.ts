@@ -396,4 +396,36 @@ describe('Container - Unit Tests', () => {
       expect(service1).toBe(service2);
     });
   });
+
+  describe('getNotificationService', () => {
+    it('should return NotificationService instance', () => {
+      const notificationService = container.getNotificationService();
+
+      expect(notificationService).toBeDefined();
+      expect(notificationService.constructor.name).toBe('NotificationService');
+    });
+
+    it('should return same instance on multiple calls (singleton)', () => {
+      const service1 = container.getNotificationService();
+      const service2 = container.getNotificationService();
+
+      expect(service1).toBe(service2);
+    });
+  });
+
+  describe('getNotificationRepository', () => {
+    it('should return NotificationRepository instance', () => {
+      const notificationRepository = container.getNotificationRepository();
+
+      expect(notificationRepository).toBeDefined();
+      expect(notificationRepository.constructor.name).toBe('NotificationRepository');
+    });
+
+    it('should return same instance on multiple calls (singleton)', () => {
+      const repo1 = container.getNotificationRepository();
+      const repo2 = container.getNotificationRepository();
+
+      expect(repo1).toBe(repo2);
+    });
+  });
 });

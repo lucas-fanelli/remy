@@ -1,9 +1,12 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act, configure } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import RecipeFeed from '../RecipeFeed';
 import { AuthProvider } from '@/contexts/AuthContext';
+
+// Speed up waitFor operations (500ms instead of default 1000ms)
+configure({ asyncUtilTimeout: 250 });
 
 // Mock framer-motion - comprehensive mock supporting all patterns
 jest.mock('framer-motion', () => {
@@ -117,9 +120,7 @@ describe('RecipeFeed Component', () => {
 
     while (previousCallCount !== currentCallCount && attempts < maxAttempts) {
       previousCallCount = currentCallCount;
-      await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      });
+      await act(async () => {});
       currentCallCount = mockFetch.mock.calls.length;
       attempts++;
     }
@@ -474,9 +475,7 @@ describe('RecipeFeed Component', () => {
     }, { timeout: 3000 });
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-    });
+    await act(async () => {});
   });
 
   it('should filter by max time', async () => {
@@ -509,9 +508,7 @@ describe('RecipeFeed Component', () => {
     }, { timeout: 3000 });
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-    });
+    await act(async () => {});
   });
 
   it('should show clear filters button when filters are active', async () => {
@@ -549,9 +546,7 @@ describe('RecipeFeed Component', () => {
     }, { timeout: 3000 });
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-    });
+    await act(async () => {});
   });
 
   it('should clear all filters when clear button is clicked', async () => {
@@ -598,9 +593,7 @@ describe('RecipeFeed Component', () => {
     }, { timeout: 3000 });
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-    });
+    await act(async () => {});
   });
 
   it('should delete recipe successfully', async () => {
@@ -890,7 +883,6 @@ describe('RecipeFeed Component', () => {
 
       // Flush all pending promises to prevent act() warnings
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 10));
       });
     });
 
@@ -1032,8 +1024,7 @@ describe('RecipeFeed Component', () => {
 
       // Wait a bit to ensure loadRecipes is called and loading is true
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      });
+        });
 
       // Mock fetch should only be called once (initial load)
       // Even if filters change while loading, it shouldn't trigger another fetch
@@ -1089,8 +1080,7 @@ describe('RecipeFeed Component', () => {
 
       // Should not make delete API call without token
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      });
+        });
 
       // No new fetch calls should have been made
       expect(mockFetch.mock.calls.length).toBe(initialFetchCallCount);

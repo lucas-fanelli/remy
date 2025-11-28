@@ -186,11 +186,9 @@ export default function Navigation() {
   // Fetch notification count and notifications
   const fetchNotifications = async () => {
     if (!token) {
-      console.log('Navigation: No token, skipping notification fetch');
       return;
     }
 
-    console.log('Navigation: Fetching notifications...');
     try {
       const response = await fetch('/api/notifications', {
         headers: {
@@ -198,12 +196,8 @@ export default function Navigation() {
         },
       });
 
-      console.log('Navigation: Notifications response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('Navigation: Notifications data:', data);
-        console.log('Navigation: Setting unread count to:', data.unreadCount || 0);
 
         // Deduplicate notifications by ID to prevent duplicate key warnings
         const notificationsArray = data.notifications || [];

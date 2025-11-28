@@ -1,10 +1,13 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import EditRecipeModal from '../EditRecipeModal';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Recipe } from '@/domain/types/recipe';
+
+// Speed up waitFor operations
+configure({ asyncUtilTimeout: 100 });
 
 // Mock framer-motion - comprehensive mock supporting all patterns
 jest.mock('framer-motion', () => {

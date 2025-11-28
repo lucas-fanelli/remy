@@ -1,6 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ChangePasswordDialog from '../ChangePasswordDialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,14 +12,6 @@ jest.mock('@/contexts/ToastContext');
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseToast = useToast as jest.MockedFunction<typeof useToast>;
 
-// Wrapper to handle MUI FormControl async state updates
-const renderWithAct = (ui: React.ReactElement) => {
-  let result: any;
-  act(() => {
-    result = render(ui);
-  });
-  return result;
-};
 
 describe('ChangePasswordDialog', () => {
   let mockShowSuccess: jest.Mock;
@@ -61,20 +52,20 @@ describe('ChangePasswordDialog', () => {
 
   describe('Dialog Rendering', () => {
     it('should not render when open is false', async () => {
-      renderWithAct(<ChangePasswordDialog open={false} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={false} onClose={mockOnClose} />);
 
       expect(screen.queryByText('Change Password')).not.toBeInTheDocument();
     });
 
     it('should render when open is true', async () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const changePasswordElements = screen.getAllByText('Change Password');
       expect(changePasswordElements.length).toBeGreaterThan(0);
     });
 
     it('should render all password fields', async () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument();
@@ -82,7 +73,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should render info alert with password requirements', async () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       expect(
         screen.getByText(/Your password must be at least 8 characters/i)
@@ -90,14 +81,14 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should render cancel and submit buttons', async () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /change password/i })).toBeInTheDocument();
     });
 
     it('should render close icon button', async () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const closeButtons = screen.getAllByRole('button');
       const closeButton = closeButtons.find((btn) =>
@@ -109,8 +100,7 @@ describe('ChangePasswordDialog', () => {
 
   describe('Password Visibility Toggle', () => {
     it('should toggle current password visibility', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i) as HTMLInputElement;
       expect(currentPasswordInput.type).toBe('password');
@@ -121,7 +111,7 @@ describe('ChangePasswordDialog', () => {
       );
 
       if (visibilityButton) {
-        await user.click(visibilityButton);
+        fireEvent.click(visibilityButton);
         await waitFor(() => {
           expect(currentPasswordInput.type).toBe('text');
         });
@@ -129,8 +119,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should toggle new password visibility', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const newPasswordInput = screen.getByLabelText(/^new password/i) as HTMLInputElement;
       expect(newPasswordInput.type).toBe('password');
@@ -141,7 +130,7 @@ describe('ChangePasswordDialog', () => {
       );
 
       if (visibilityButtons.length > 1) {
-        await user.click(visibilityButtons[1]);
+        fireEvent.click(visibilityButtons[1]);
         await waitFor(() => {
           expect(newPasswordInput.type).toBe('text');
         });
@@ -149,8 +138,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should toggle confirm password visibility', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const confirmPasswordInput = screen.getByLabelText(/confirm new password/i) as HTMLInputElement;
       expect(confirmPasswordInput.type).toBe('password');
@@ -162,7 +150,7 @@ describe('ChangePasswordDialog', () => {
 
       // Third visibility button is for confirm password
       if (visibilityButtons.length > 2) {
-        await user.click(visibilityButtons[2]);
+        fireEvent.click(visibilityButtons[2]);
         await waitFor(() => {
           expect(confirmPasswordInput.type).toBe('text');
         });
@@ -172,31 +160,28 @@ describe('ChangePasswordDialog', () => {
 
   describe('Form Input', () => {
     it('should update current password field', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
-      await user.type(currentPasswordInput, 'OldPass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
 
       expect(currentPasswordInput).toHaveValue('OldPass123');
     });
 
     it('should update new password field', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const newPasswordInput = screen.getByLabelText(/^new password/i);
-      await user.type(newPasswordInput, 'NewPass123');
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
 
       expect(newPasswordInput).toHaveValue('NewPass123');
     });
 
     it('should update confirm password field', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
-      await user.type(confirmPasswordInput, 'NewPass123');
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
 
       expect(confirmPasswordInput).toHaveValue('NewPass123');
     });
@@ -204,56 +189,52 @@ describe('ChangePasswordDialog', () => {
 
   describe('Form Validation', () => {
     it('should show error when current password is empty', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(await screen.findByText('Current password is required')).toBeInTheDocument();
     });
 
     it('should show error when new password is empty', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
-      await user.type(currentPasswordInput, 'OldPass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(await screen.findByText('New password is required')).toBeInTheDocument();
     });
 
     it('should show error when password is too short', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
 
-      await user.type(currentPasswordInput, 'OldPass123');
-      await user.type(newPasswordInput, 'Short1');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'Short1' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(await screen.findByText('Password must be at least 8 characters')).toBeInTheDocument();
     });
 
     it('should show error when password lacks uppercase', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
 
-      await user.type(currentPasswordInput, 'OldPass123');
-      await user.type(newPasswordInput, 'newpass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'newpass123' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(
         await screen.findByText('Password must contain at least one uppercase letter')
@@ -261,17 +242,16 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should show error when password lacks lowercase', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
 
-      await user.type(currentPasswordInput, 'OldPass123');
-      await user.type(newPasswordInput, 'NEWPASS123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NEWPASS123' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(
         await screen.findByText('Password must contain at least one lowercase letter')
@@ -279,17 +259,16 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should show error when password lacks number', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
 
-      await user.type(currentPasswordInput, 'OldPass123');
-      await user.type(newPasswordInput, 'NewPassword');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPassword' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(
         await screen.findByText('Password must contain at least one number')
@@ -297,19 +276,18 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should show error when passwords do not match', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
       const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
 
-      await user.type(currentPasswordInput, 'OldPass123');
-      await user.type(newPasswordInput, 'NewPass123');
-      await user.type(confirmPasswordInput, 'DifferentPass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'DifferentPass123' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       await waitFor(() => {
         expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
@@ -317,19 +295,18 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should show error when new password equals current password', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
       const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
 
-      await user.type(currentPasswordInput, 'SamePass123');
-      await user.type(newPasswordInput, 'SamePass123');
-      await user.type(confirmPasswordInput, 'SamePass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'SamePass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'SamePass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'SamePass123' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       await waitFor(() => {
         expect(
@@ -339,16 +316,15 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should clear error when field is updated', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(await screen.findByText('Current password is required')).toBeInTheDocument();
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
-      await user.type(currentPasswordInput, 'OldPass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
 
       await waitFor(() => {
         expect(screen.queryByText('Current password is required')).not.toBeInTheDocument();
@@ -363,7 +339,7 @@ describe('ChangePasswordDialog', () => {
         json: async () => ({ success: true }),
       });
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -407,7 +383,7 @@ describe('ChangePasswordDialog', () => {
         json: async () => ({ error: 'Current password is incorrect' }),
       });
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -431,7 +407,6 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should show error when not authenticated', async () => {
-      const user = userEvent.setup();
       mockUseAuth.mockReturnValue({
         user: null,
         token: null,
@@ -443,18 +418,18 @@ describe('ChangePasswordDialog', () => {
         updateProfile: jest.fn(),
       });
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
       const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
 
-      await user.type(currentPasswordInput, 'OldPass123');
-      await user.type(newPasswordInput, 'NewPass123');
-      await user.type(confirmPasswordInput, 'NewPass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
 
       const submitButton = screen.getByRole('button', { name: /change password/i });
-      await user.click(submitButton);
+      fireEvent.click(submitButton);
 
       expect(mockShowError).toHaveBeenCalledWith('You must be logged in to change your password');
     });
@@ -474,7 +449,7 @@ describe('ChangePasswordDialog', () => {
           )
       );
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -508,18 +483,16 @@ describe('ChangePasswordDialog', () => {
 
   describe('Dialog Close', () => {
     it('should call onClose when cancel button is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      await user.click(cancelButton);
+      fireEvent.click(cancelButton);
 
       expect(mockOnClose).toHaveBeenCalled();
     });
 
     it('should call onClose when close icon is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const closeButtons = screen.getAllByRole('button');
       const closeButton = closeButtons.find((btn) =>
@@ -527,19 +500,18 @@ describe('ChangePasswordDialog', () => {
       );
 
       if (closeButton) {
-        await user.click(closeButton);
+        fireEvent.click(closeButton);
         expect(mockOnClose).toHaveBeenCalled();
       }
     });
 
     it('should reset form when dialog closes', async () => {
-      const user = userEvent.setup();
-      const { rerender } = renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      const { rerender } = render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
-      await user.type(currentPasswordInput, 'OldPass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
 
-      // Wait for all userEvent operations to complete
+      // Wait for all state updates to complete
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
@@ -564,23 +536,22 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should reset all form fields and states when handleClose is called - lines 150-161', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       // Fill in all fields
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
       const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
 
-      await user.type(currentPasswordInput, 'OldPass123');
-      await user.type(newPasswordInput, 'NewPass123');
-      await user.type(confirmPasswordInput, 'NewPass123');
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
 
       // Toggle password visibility
       const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
         btn.querySelector('[data-testid="VisibilityIcon"]')
       );
-      if (visibilityButtons[0]) await user.click(visibilityButtons[0]);
+      if (visibilityButtons[0]) fireEvent.click(visibilityButtons[0]);
 
       // Trigger validation errors
       fireEvent.change(confirmPasswordInput, { target: { value: 'Different123' } });
@@ -598,7 +569,7 @@ describe('ChangePasswordDialog', () => {
       );
 
       if (closeButton) {
-        await user.click(closeButton);
+        fireEvent.click(closeButton);
       }
 
       // Verify onClose was called
@@ -618,7 +589,7 @@ describe('ChangePasswordDialog', () => {
         json: async () => ({ error: 'Invalid current password' }),
       });
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -650,7 +621,7 @@ describe('ChangePasswordDialog', () => {
         json: async () => ({}),
       });
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -678,7 +649,7 @@ describe('ChangePasswordDialog', () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockFetch.mockRejectedValueOnce('String error');
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -707,7 +678,7 @@ describe('ChangePasswordDialog', () => {
       const testError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(testError);
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -739,7 +710,7 @@ describe('ChangePasswordDialog', () => {
         json: async () => ({ success: true }),
       });
 
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       const newPasswordInput = screen.getByLabelText(/^new password/i);
@@ -765,7 +736,7 @@ describe('ChangePasswordDialog', () => {
 
   describe('UI Rendering - Lines 210-217, 240-247, 270-277', () => {
     it('should render current password field with correct size and InputProps - lines 210-217', () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const currentPasswordInput = screen.getByLabelText(/current password/i);
       expect(currentPasswordInput).toBeInTheDocument();
@@ -779,7 +750,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should render new password field with correct size and InputProps - lines 240-247', () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const newPasswordInput = screen.getByLabelText(/^new password/i);
       expect(newPasswordInput).toBeInTheDocument();
@@ -793,7 +764,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should render confirm password field with correct size and InputProps - lines 270-277', () => {
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
       expect(confirmPasswordInput).toBeInTheDocument();
@@ -807,15 +778,14 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should show VisibilityOff icon when password is visible - lines 220, 250, 280', async () => {
-      const user = userEvent.setup();
-      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
       const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
         btn.querySelector('[data-testid="VisibilityIcon"]')
       );
 
       if (visibilityButtons[0]) {
-        await user.click(visibilityButtons[0]);
+        fireEvent.click(visibilityButtons[0]);
 
         await waitFor(() => {
           const visibilityOffButtons = screen.getAllByRole('button').filter((btn) =>

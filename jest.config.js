@@ -9,6 +9,7 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
+  maxWorkers: '50%', // Use 50% of available CPU cores
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },

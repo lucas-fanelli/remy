@@ -202,6 +202,18 @@ describe('NotificationRepository', () => {
         })
       );
     });
+
+    it('should support includeSender=false', async () => {
+      (mockPrisma.notification.findMany as jest.Mock).mockResolvedValue([]);
+
+      await repository.findByRecipientId('user1', 50, 0, false);
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: undefined,
+        })
+      );
+    });
   });
 
   describe('findUnreadByRecipientId', () => {
@@ -402,6 +414,44 @@ describe('NotificationRepository', () => {
         orderBy: { createdAt: 'asc' },
         take: 20,
         skip: 10,
+        include: {
+          sender: {
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+    });
+
+    it('should support includeSender=false in findMany', async () => {
+      (mockPrisma.notification.findMany as jest.Mock).mockResolvedValue([]);
+
+      await repository.findMany({
+        filters: { recipientId: 'user1' },
+        includeSender: false,
+      });
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: undefined,
+        })
+      );
+    });
+
+    it('should use default values when options are not provided', async () => {
+      (mockPrisma.notification.findMany as jest.Mock).mockResolvedValue([]);
+
+      await repository.findMany({});
+
+      expect(mockPrisma.notification.findMany).toHaveBeenCalledWith({
+        where: {},
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        skip: 0,
         include: {
           sender: {
             select: {

@@ -1,8 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CommentsSection from '../CommentsSection';
+
+// Speed up waitFor operations
+configure({ asyncUtilTimeout: 100 });
 
 // Mock AuthContext
 const mockUseAuth = jest.fn();

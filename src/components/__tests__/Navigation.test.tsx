@@ -1,10 +1,13 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, configure } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Navigation from '../Navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider } from '@/contexts/ThemeContext';
+
+// Speed up waitFor operations
+configure({ asyncUtilTimeout: 100 });
 
 // Mock useAuth hook
 const mockUseAuth = jest.fn();
@@ -79,11 +82,8 @@ describe('Navigation Component', () => {
     });
   });
 
-  afterEach(async () => {
-    // Aggressively flush all pending promises and state updates to eliminate act() warnings
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    });
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should render navigation bar', () => {
@@ -1004,8 +1004,6 @@ describe('Navigation Component', () => {
     });
 
     it('should fetch notifications when user is authenticated - line 186-213', async () => {
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -1027,13 +1025,6 @@ describe('Navigation Component', () => {
           })
         );
       });
-
-      await waitFor(() => {
-        expect(consoleLogSpy).toHaveBeenCalledWith('Navigation: Fetching notifications...');
-        expect(consoleLogSpy).toHaveBeenCalledWith('Navigation: Notifications response status:', 200);
-      });
-
-      consoleLogSpy.mockRestore();
     });
 
     it('should handle failed notification fetch - line 209-211', async () => {
