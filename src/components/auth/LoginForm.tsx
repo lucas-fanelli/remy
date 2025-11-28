@@ -124,26 +124,10 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         </Button>
       </Box>
 
-      {/* Divider */}
-      <Divider sx={{ my: 2 }}>
-        <Typography variant="caption" color="text.secondary">
-          OR
-        </Typography>
-      </Divider>
-
-      {/* Forgot Password */}
-      <Typography
-        variant="caption"
-        align="center"
-        sx={{ display: 'block', color: 'primary.main', cursor: 'pointer' }}
-      >
-        Forgot password?
-      </Typography>
-
       {/* Switch to Register */}
       <Box
         sx={{
-          mt: 3,
+          mt: 2,
           p: 2,
           backgroundColor: 'background.paper',
           borderRadius: 1,

@@ -306,6 +306,7 @@ Built with:
 - ✅ **Pantry**: Replaced browser confirm with Material UI dialog for delete actions
 - ✅ **Image Viewer**: Added fullscreen image viewer for recipe and instruction images
 - ✅ **Settings**: Simplified settings page - removed placeholders for language, notifications, and cookie preferences
+- ✅ **Login**: Removed non-functional "Forgot password?" link (feature not yet implemented)
 - ✅ **Better UX**: Cleaner layouts and improved form usability
 
 ### v1.0.1 - Production Ready
