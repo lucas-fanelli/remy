@@ -429,25 +429,14 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       maxRows={10}
                       placeholder="Describe this step in detail..."
                     />
-                      <TextField
-                        label="Image URL (optional)"
-                        value={instruction.image || ''}
-                        onChange={(e) => handleInstructionChange(index, 'image', e.target.value)}
-                        fullWidth
-                        placeholder="https://example.com/step-image.jpg"
-                        size="small"
-                        sx={{ mt: 1 }}
-                      />
-                    </Box>
-                    <IconButton
-                      onClick={() => handleRemoveInstruction(index)}
-                      color="error"
-                      disabled={instructions.length === 1}
-                      size={isMobile ? 'small' : 'medium'}
-                      sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    <TextField
+                      label="Image URL (optional)"
+                      value={instruction.image || ''}
+                      onChange={(e) => handleInstructionChange(index, 'image', e.target.value)}
+                      fullWidth
+                      placeholder="https://example.com/step-image.jpg"
+                      size="small"
+                    />
                   </Box>
                 </CardContent>
               </Card>
