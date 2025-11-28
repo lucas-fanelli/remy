@@ -36,6 +36,8 @@ import {
   Share,
   BookmarkBorder,
   Bookmark,
+  Close,
+  ZoomIn,
 } from '@mui/icons-material';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -67,6 +69,8 @@ export default function RecipeDetailPage() {
   const [likeLoading, setLikeLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [cookedLoading, setCookedLoading] = useState(false);
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
   const recipeId = params.id as string;
   const isOwner = user && recipe && user.id === recipe.userId;
@@ -271,6 +275,16 @@ export default function RecipeDetailPage() {
     }
   };
 
+  const handleImageClick = (url: string, alt: string) => {
+    setSelectedImage({ url, alt });
+    setImageViewerOpen(true);
+  };
+
+  const handleImageViewerClose = () => {
+    setImageViewerOpen(false);
+    setTimeout(() => setSelectedImage(null), 300); // Clear after animation
+  };
+
   const handleMarkAsCooked = async () => {
     if (!token) {
       setSnackbar({ open: true, message: 'Please login to mark recipes as cooked', severity: 'error' });
@@ -397,6 +411,8 @@ export default function RecipeDetailPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          sx={{ position: 'relative', cursor: 'pointer', '&:hover .zoom-icon': { opacity: 1 } }}
+          onClick={() => handleImageClick(recipe.imageUrl, recipe.title)}
         >
           <Box
             component="img"
@@ -410,6 +426,26 @@ export default function RecipeDetailPage() {
               boxShadow: 3,
             }}
           />
+          <Box
+            className="zoom-icon"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              color: 'white',
+              borderRadius: '50%',
+              width: 40,
+              height: 40,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: 0,
+              transition: 'opacity 0.3s',
+            }}
+          >
+            <ZoomIn />
+          </Box>
         </MotionBox>
 
         {/* Recipe Header */}
@@ -677,16 +713,45 @@ export default function RecipeDetailPage() {
                     </Typography>
                     {instruction.image && (
                       <Box
-                        component="img"
-                        src={instruction.image}
-                        alt={`Step ${instruction.step}`}
                         sx={{
-                          width: '100%',
+                          position: 'relative',
                           maxWidth: 400,
-                          borderRadius: 2,
-                          mt: 2,
+                          cursor: 'pointer',
+                          '&:hover .zoom-icon': { opacity: 1 },
                         }}
-                      />
+                        onClick={() => handleImageClick(instruction.image!, `Step ${instruction.step}`)}
+                      >
+                        <Box
+                          component="img"
+                          src={instruction.image}
+                          alt={`Step ${instruction.step}`}
+                          sx={{
+                            width: '100%',
+                            borderRadius: 2,
+                            mt: 2,
+                          }}
+                        />
+                        <Box
+                          className="zoom-icon"
+                          sx={{
+                            position: 'absolute',
+                            top: 24,
+                            right: 8,
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            color: 'white',
+                            borderRadius: '50%',
+                            width: 32,
+                            height: 32,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: 0,
+                            transition: 'opacity 0.3s',
+                          }}
+                        >
+                          <ZoomIn sx={{ fontSize: 20 }} />
+                        </Box>
+                      </Box>
                     )}
                   </Box>
                 </Box>
@@ -763,6 +828,64 @@ export default function RecipeDetailPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Fullscreen Image Viewer */}
+      <Dialog
+        open={imageViewerOpen}
+        onClose={handleImageViewerClose}
+        maxWidth={false}
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            boxShadow: 'none',
+            margin: 0,
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            height: '100vh',
+          },
+        }}
+      >
+        <IconButton
+          onClick={handleImageViewerClose}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            color: 'white',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            zIndex: 1,
+          }}
+        >
+          <Close />
+        </IconButton>
+        {selectedImage && (
+          <Box
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: { xs: 2, md: 4 },
+            }}
+          >
+            <Box
+              component="img"
+              src={selectedImage.url}
+              alt={selectedImage.alt}
+              sx={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+              }}
+            />
+          </Box>
+        )}
+      </Dialog>
     </Box>
   );
 }
