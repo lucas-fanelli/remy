@@ -35,7 +35,7 @@ model User {
   savedRecipes  SavedRecipe[]
   ratings       Rating[]
   collections   RecipeCollection[]
-  shoppingLists ShoppingList[]
+  cookedRecipes CookedRecipe[]
   notifications Notification[] @relation("NotificationRecipient")
   sentNotifications Notification[] @relation("NotificationSender")
 
@@ -57,7 +57,6 @@ model Post {
   prepTime        Int?              // in minutes
   servings        Int?
   difficulty      String?           // "easy", "medium", "hard"
-  cuisine         String?           // e.g., "Italian", "Mexican", "Japanese"
   ingredients     Json?             // Array of {name, amount, unit}
   instructions    Json?             // Array of {step, description, image?}
 
@@ -78,11 +77,13 @@ model Post {
   savedBy     SavedRecipe[]
   ratings     Rating[]
   collectionItems CollectionItem[]
+  cookedBy    CookedRecipe[]
 
   @@index([userId])
   @@index([createdAt])
   @@index([difficulty])
-  @@index([cuisine])
+  @@index([title])
+  @@index([description])
   @@map("posts")
 }
 
@@ -167,38 +168,22 @@ model PantryItem {
   @@map("pantry_items")
 }
 
-model ShoppingList {
-  id          String   @id @default(uuid())
-  userId      String
-  name        String   @default("Shopping List")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  completedAt DateTime?
+model CookedRecipe {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  cookedAt  DateTime @default(now())
+  rating    Int?     // Optional: user can rate their cooking experience (1-5)
+  notes     String?  // Optional: notes about how it turned out
 
   // Relations
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items       ShoppingListItem[]
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, postId, cookedAt]) // Allow same recipe multiple times but with different timestamps
   @@index([userId])
-  @@map("shopping_lists")
-}
-
-model ShoppingListItem {
-  id             String   @id @default(uuid())
-  shoppingListId String
-  name           String
-  quantity       Float
-  unit           String
-  category       String?
-  checked        Boolean  @default(false)
-  recipeId       String?  // Optional: track which recipe this ingredient is for
-  addedAt        DateTime @default(now())
-
-  // Relations
-  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
-
-  @@index([shoppingListId])
-  @@map("shopping_list_items")
+  @@index([postId])
+  @@map("cooked_recipes")
 }
 
 model Ingredient {
