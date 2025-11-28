@@ -8,11 +8,6 @@ import {
   Divider,
   Switch,
   FormControlLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Button,
   Toolbar,
   List,
   ListItem,
@@ -23,11 +18,8 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import {
-  Language,
-  Notifications,
   Security,
   Palette,
-  Cookie,
   VpnKey,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
@@ -35,7 +27,6 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
-import LoadingWithProgress from '@/components/common/LoadingWithProgress';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 
 const MotionPaper = motion.create(Paper);
@@ -49,10 +40,6 @@ export default function SettingsPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  const [language, setLanguage] = useState('en');
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(false);
-  const [marketingEmails, setMarketingEmails] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useEffect(() => {
@@ -61,11 +48,6 @@ export default function SettingsPage() {
       return;
     }
   }, [user, router]);
-
-  const handleLanguageChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setLanguage(event.target.value as string);
-    showSuccess('Language preference saved');
-  };
 
   const handleThemeToggle = () => {
     toggleTheme();
@@ -144,139 +126,11 @@ export default function SettingsPage() {
           />
         </MotionPaper>
 
-        {/* Language Settings */}
-        <MotionPaper
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          elevation={2}
-          sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
-            <Language sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-            <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-              Language & Region
-            </Typography>
-          </Box>
-          <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
-
-          <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-            <InputLabel>Language</InputLabel>
-            <Select
-              value={language}
-              label="Language"
-              onChange={handleLanguageChange as any}
-            >
-              <MenuItem value="en">English</MenuItem>
-              <MenuItem value="es">Español</MenuItem>
-              <MenuItem value="fr">Français</MenuItem>
-              <MenuItem value="de">Deutsch</MenuItem>
-              <MenuItem value="it">Italiano</MenuItem>
-              <MenuItem value="pt">Português</MenuItem>
-            </Select>
-          </FormControl>
-        </MotionPaper>
-
-        {/* Notification Settings */}
-        <MotionPaper
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          elevation={2}
-          sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
-            <Notifications sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-            <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-              Notifications
-            </Typography>
-          </Box>
-          <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
-
-          <List sx={{ px: { xs: 0, md: 0 } }}>
-            <ListItem sx={{ px: { xs: 0, md: 2 } }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={emailNotifications}
-                    onChange={(e) => setEmailNotifications(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
-                      Email Notifications
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-                    >
-                      Receive email updates about your recipes and activity
-                    </Typography>
-                  </Box>
-                }
-              />
-            </ListItem>
-            <ListItem sx={{ px: { xs: 0, md: 2 } }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={pushNotifications}
-                    onChange={(e) => setPushNotifications(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
-                      Push Notifications
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-                    >
-                      Get push notifications for comments and likes
-                    </Typography>
-                  </Box>
-                }
-              />
-            </ListItem>
-            <ListItem sx={{ px: { xs: 0, md: 2 } }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={marketingEmails}
-                    onChange={(e) => setMarketingEmails(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
-                      Marketing Emails
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-                    >
-                      Receive emails about new features and updates
-                    </Typography>
-                  </Box>
-                }
-              />
-            </ListItem>
-          </List>
-        </MotionPaper>
-
         {/* Privacy & Security */}
         <MotionPaper
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
           elevation={2}
           sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
@@ -322,42 +176,6 @@ export default function SettingsPage() {
                     sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
                   >
                     Update your password to keep your account secure
-                  </Typography>
-                }
-              />
-            </ListItem>
-            <ListItem
-              component="button"
-              onClick={() => showInfo('Cookie settings coming soon')}
-              sx={{
-                borderRadius: 1,
-                cursor: 'pointer',
-                border: 'none',
-                background: 'transparent',
-                width: '100%',
-                textAlign: 'left',
-                px: { xs: 0, md: 2 },
-                '&:hover': {
-                  backgroundColor: 'action.hover',
-                }
-              }}
-            >
-              <ListItemIcon>
-                <Cookie sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' }, color: 'text.primary' }} />
-              </ListItemIcon>
-              <ListItemText
-                primary={
-                  <Typography sx={{ fontSize: { xs: '0.9375rem', md: '1rem' }, color: 'text.primary' }}>
-                    Cookie Preferences
-                  </Typography>
-                }
-                secondary={
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-                  >
-                    Manage your cookie and tracking preferences
                   </Typography>
                 }
               />
