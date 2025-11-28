@@ -82,15 +82,12 @@ export class RecipeRepository implements IRecipeRepository {
       where.OR = [
         { title: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
-        { cuisine: { contains: query, mode: 'insensitive' } },
       ];
     }
 
     // Apply filters
     if (filters) {
-      if (filters.cuisine) {
-        where.cuisine = filters.cuisine;
-      }
+      // Note: cuisine field doesn't exist in Post model, removed from filters
       if (filters.difficulty) {
         where.difficulty = filters.difficulty;
       }
