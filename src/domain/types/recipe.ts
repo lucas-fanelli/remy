@@ -28,7 +28,6 @@ export interface Recipe {
   prepTime: number;     // in minutes
   servings: number;
   difficulty: DifficultyLevel;
-  cuisine: string;
   ingredients: Ingredient[];
   instructions: Instruction[];
 
@@ -57,7 +56,6 @@ export interface CreateRecipeDTO {
   prepTime: number;
   servings: number;
   difficulty: DifficultyLevel;
-  cuisine: string;
   ingredients: Ingredient[];
   instructions: Instruction[];
 
@@ -73,7 +71,6 @@ export interface UpdateRecipeDTO {
   prepTime?: number;
   servings?: number;
   difficulty?: DifficultyLevel;
-  cuisine?: string;
   ingredients?: Ingredient[];
   instructions?: Instruction[];
 
@@ -81,7 +78,6 @@ export interface UpdateRecipeDTO {
 }
 
 export interface RecipeFilters {
-  cuisine?: string;
   difficulty?: DifficultyLevel;
   maxCookingTime?: number;
   maxPrepTime?: number;

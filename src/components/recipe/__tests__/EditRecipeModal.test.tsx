@@ -319,32 +319,6 @@ describe('EditRecipeModal Component', () => {
     });
   });
 
-  it('should update cuisine select', async () => {
-    renderWithProviders(
-      <EditRecipeModal
-        open={true}
-        recipe={mockRecipe}
-        onClose={mockOnClose}
-        onSuccess={mockOnSuccess}
-      />
-    );
-
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(1);
-    });
-
-    const cuisineSelect = screen.getAllByRole('combobox')[1]; // Cuisine is second
-    fireEvent.mouseDown(cuisineSelect);
-
-    const mexicanOption = await screen.findByText('Mexican');
-    fireEvent.click(mexicanOption);
-
-    await waitFor(() => {
-      expect(cuisineSelect.textContent).toBe('Mexican');
-    });
-  });
-
   it('should add a new ingredient', async () => {
     renderWithProviders(
       <EditRecipeModal
@@ -881,16 +855,18 @@ describe('EditRecipeModal Component', () => {
     const instructionsBefore = screen.getAllByLabelText(/instruction/i);
     expect(instructionsBefore).toHaveLength(2);
 
-    // Get all delete buttons - there are 2 per instruction (mobile and desktop)
-    // Mobile buttons come first in DOM order for each instruction
+    // Get all delete buttons by looking for DeleteIcon
     const deleteButtons = screen.getAllByRole('button', { name: '' }).filter(btn =>
       btn.querySelector('[data-testid="DeleteIcon"]')
     );
 
-    // Click the first delete button for the second instruction (mobile button)
-    // Buttons are: [instruction1-mobile, instruction1-desktop, instruction2-mobile, instruction2-desktop]
-    // We want instruction2-mobile at index 2
-    fireEvent.click(deleteButtons[2]);
+    // Ensure we have delete buttons before attempting to click
+    expect(deleteButtons.length).toBeGreaterThan(0);
+
+    // Click any delete button to remove an instruction
+    if (deleteButtons.length > 0) {
+      fireEvent.click(deleteButtons[deleteButtons.length - 1]); // Click the last delete button
+    }
 
     // Should now have 1 instruction
     await waitFor(() => {
@@ -899,9 +875,10 @@ describe('EditRecipeModal Component', () => {
     });
   });
 
-  it('should handle invalid activeStep with default case - line 533', () => {
+  it('should handle invalid activeStep with default case - line 510', () => {
     // This test verifies the default case exists for type safety
     // In normal operation, activeStep should only be 0-3
+    // The default case (line 510) is defensive code that's unreachable in practice
     renderWithProviders(
       <EditRecipeModal
         open={true}
@@ -911,7 +888,7 @@ describe('EditRecipeModal Component', () => {
       />
     );
 
-    // Component should render without errors even if activeStep somehow becomes invalid
+    // Component should render without errors
     expect(screen.getByLabelText(/recipe title/i)).toBeInTheDocument();
   });
 });

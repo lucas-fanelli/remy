@@ -11,7 +11,7 @@ import {
   CardContent,
   CardMedia,
   Avatar,
-  CircularProgress,
+  Skeleton,
   Paper,
   useTheme,
   useMediaQuery,
@@ -31,7 +31,6 @@ interface Recipe {
   title: string;
   description: string;
   imageUrl: string;
-  cuisine: string;
   difficulty: string;
   prepTime: number;
   cookTime: number;
@@ -114,7 +113,7 @@ export default function SearchPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, pb: { xs: 12, sm: 13, md: 4 } }}>
+    <Container maxWidth="lg" sx={{ pt: { xs: 9, sm: 10, md: 12 }, pb: { xs: 12, sm: 13, md: 4 } }}>
       <Box sx={{ mb: 3 }}>
         <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
           Search Results
@@ -137,9 +136,24 @@ export default function SearchPage() {
       </Paper>
 
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
+        <Grid container spacing={3}>
+          {[...Array(6)].map((_, index) => (
+            <Grid item xs={12} sm={6} md={4} key={`skeleton-${index}`}>
+              <Card>
+                <Skeleton variant="rectangular" sx={{ height: 200 }} />
+                <CardContent>
+                  <Skeleton variant="text" width="70%" height={28} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="100%" />
+                  <Skeleton variant="text" width="90%" sx={{ mb: 2 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Skeleton variant="circular" width={24} height={24} />
+                    <Skeleton variant="text" width={100} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       ) : (
         <>
           {/* Recipes Tab */}
@@ -209,7 +223,7 @@ export default function SearchPage() {
                           </Typography>
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                          {recipe.cuisine} • {recipe.difficulty} • {recipe.prepTime + recipe.cookTime} min
+                          {recipe.difficulty} • {recipe.prepTime + recipe.cookTime} min
                         </Typography>
                       </CardContent>
                     </Card>

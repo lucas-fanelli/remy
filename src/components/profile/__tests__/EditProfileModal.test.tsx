@@ -519,4 +519,317 @@ describe('EditProfileModal', () => {
       expect(websiteInput.value).toBe('');
     });
   });
+
+  describe('Whitespace Handling - Lines 139-141', () => {
+    it('should trim whitespace from fullName and send null if empty - line 139', async () => {
+      const user = userEvent.setup();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const fullNameInput = screen.getByLabelText(/full name/i);
+      await user.clear(fullNameInput);
+      await user.type(fullNameInput, '   ');  // Only whitespace
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
+          body: expect.stringContaining('"fullName":null'),
+        }));
+      });
+    });
+
+    it('should trim whitespace from bio and send null if empty - line 140', async () => {
+      const user = userEvent.setup();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const bioInput = screen.getByLabelText(/bio/i);
+      await user.clear(bioInput);
+      await user.type(bioInput, '   ');  // Only whitespace
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
+          body: expect.stringContaining('"bio":null'),
+        }));
+      });
+    });
+
+    it('should trim whitespace from website and send null if empty - line 141', async () => {
+      const user = userEvent.setup();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const websiteInput = screen.getByLabelText(/website/i);
+      await user.clear(websiteInput);
+      await user.type(websiteInput, '   ');  // Only whitespace
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
+          body: expect.stringContaining('"website":null'),
+        }));
+      });
+    });
+
+    it('should preserve trimmed non-empty values', async () => {
+      const user = userEvent.setup();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const fullNameInput = screen.getByLabelText(/full name/i);
+      await user.clear(fullNameInput);
+      await user.type(fullNameInput, '  John Doe  ');  // With surrounding whitespace
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
+          body: expect.stringContaining('"fullName":"John Doe"'),
+        }));
+      });
+    });
+  });
+
+  describe('Error Handling - Lines 150-161', () => {
+    it('should throw Error with custom message when response not ok - line 150', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const user = userEvent.setup();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Custom error message' }),
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error updating profile:', expect.any(Error));
+        expect(mockShowError).toHaveBeenCalledWith('Custom error message');
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should throw Error with fallback message when error field missing - line 150', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const user = userEvent.setup();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockShowError).toHaveBeenCalledWith('Failed to update profile');
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle non-Error exceptions - line 161', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const user = userEvent.setup();
+      mockFetch.mockRejectedValueOnce('String error');  // Non-Error exception
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockShowError).toHaveBeenCalledWith('Failed to update profile');
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should log error to console on update failure - line 160', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const user = userEvent.setup();
+      const testError = new Error('Network error');
+      mockFetch.mockRejectedValueOnce(testError);
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error updating profile:', testError);
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('UI Rendering - Lines 178-332', () => {
+    it('should render username helper text - line 252', () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      expect(screen.getByText('Username cannot be changed')).toBeInTheDocument();
+    });
+
+    it('should render email helper text - line 262', () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      expect(screen.getByText('Email cannot be changed')).toBeInTheDocument();
+    });
+
+    it('should render fullName placeholder - line 273', () => {
+      const userWithNoName = {
+        ...mockUser,
+        fullName: '',
+      };
+      mockUseAuth.mockReturnValue({
+        user: userWithNoName,
+        token: 'mock-token',
+        isLoading: false,
+        isAuthenticated: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: mockUpdateProfile,
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      expect(screen.getByPlaceholderText('Enter your full name')).toBeInTheDocument();
+    });
+
+    it('should render bio placeholder and helper text - lines 286-287', () => {
+      const userWithNoBio = {
+        ...mockUser,
+        bio: '',
+      };
+      mockUseAuth.mockReturnValue({
+        user: userWithNoBio,
+        token: 'mock-token',
+        isLoading: false,
+        isAuthenticated: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: mockUpdateProfile,
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      expect(screen.getByPlaceholderText('Tell us about yourself...')).toBeInTheDocument();
+      expect(screen.getByText('0/300 characters')).toBeInTheDocument();
+    });
+
+    it('should render website placeholder - line 299', () => {
+      const userWithNoWebsite = {
+        ...mockUser,
+        website: '',
+      };
+      mockUseAuth.mockReturnValue({
+        user: userWithNoWebsite,
+        token: 'mock-token',
+        isLoading: false,
+        isAuthenticated: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: mockUpdateProfile,
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      expect(screen.getByPlaceholderText('https://yourwebsite.com')).toBeInTheDocument();
+    });
+
+    it('should render private account description - lines 314-316', () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      expect(screen.getByText('Only approved followers can see your recipes')).toBeInTheDocument();
+    });
+
+    it('should render Cancel and Save buttons with correct props - lines 328-342', () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const cancelButton = screen.getByRole('button', { name: /cancel/i });
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+
+      expect(cancelButton).toBeInTheDocument();
+      expect(cancelButton).not.toBeDisabled();
+
+      expect(saveButton).toBeInTheDocument();
+      expect(saveButton).not.toBeDisabled();
+    });
+  });
+
+  describe('Avatar Handling - Line 107', () => {
+    it('should use user avatar when available', () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const avatar = document.querySelector('.MuiAvatar-root img') as HTMLImageElement;
+      expect(avatar).toBeInTheDocument();
+      expect(avatar.src).toContain('avatar.jpg');
+    });
+
+    it('should use null when user has no avatar - line 107', async () => {
+      const user = userEvent.setup();
+      const userWithNoAvatar = {
+        ...mockUser,
+        avatar: null,
+      };
+      mockUseAuth.mockReturnValue({
+        user: userWithNoAvatar,
+        token: 'mock-token',
+        isLoading: false,
+        isAuthenticated: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: mockUpdateProfile,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
+          body: expect.stringContaining('"avatar":null'),
+        }));
+      });
+    });
+  });
 });

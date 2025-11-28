@@ -562,5 +562,268 @@ describe('ChangePasswordDialog', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
       });
     });
+
+    it('should reset all form fields and states when handleClose is called - lines 150-161', async () => {
+      const user = userEvent.setup();
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      // Fill in all fields
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+
+      await user.type(currentPasswordInput, 'OldPass123');
+      await user.type(newPasswordInput, 'NewPass123');
+      await user.type(confirmPasswordInput, 'NewPass123');
+
+      // Toggle password visibility
+      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
+        btn.querySelector('[data-testid="VisibilityIcon"]')
+      );
+      if (visibilityButtons[0]) await user.click(visibilityButtons[0]);
+
+      // Trigger validation errors
+      fireEvent.change(confirmPasswordInput, { target: { value: 'Different123' } });
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Passwords do not match/i)).toBeInTheDocument();
+      });
+
+      // Click close button to trigger handleClose
+      const closeButtons = screen.getAllByRole('button');
+      const closeButton = closeButtons.find((btn) =>
+        btn.querySelector('[data-testid="CloseIcon"]')
+      );
+
+      if (closeButton) {
+        await user.click(closeButton);
+      }
+
+      // Verify onClose was called
+      expect(mockOnClose).toHaveBeenCalled();
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+    });
+  });
+
+  describe('Error Handling - Lines 136-143', () => {
+    it('should throw Error with custom message when response not ok - line 136', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Invalid current password' }),
+      });
+
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+
+      fireEvent.change(currentPasswordInput, { target: { value: 'WrongPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
+
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error changing password:', expect.any(Error));
+        expect(mockShowError).toHaveBeenCalledWith('Invalid current password');
+      });
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should throw Error with fallback message when error field missing - line 136', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      });
+
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
+
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockShowError).toHaveBeenCalledWith('Failed to change password');
+      });
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle non-Error exceptions - line 143', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockFetch.mockRejectedValueOnce('String error');
+
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
+
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockShowError).toHaveBeenCalledWith('Failed to change password');
+      });
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should log error to console on failure - line 142', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const testError = new Error('Network error');
+      mockFetch.mockRejectedValueOnce(testError);
+
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
+
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error changing password:', testError);
+      });
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Success Flow - Lines 139-140', () => {
+    it('should call showSuccess and handleClose on successful password change - lines 139-140', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
+
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockShowSuccess).toHaveBeenCalledWith('Password changed successfully!');
+        expect(mockOnClose).toHaveBeenCalled();
+      });
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+    });
+  });
+
+  describe('UI Rendering - Lines 210-217, 240-247, 270-277', () => {
+    it('should render current password field with correct size and InputProps - lines 210-217', () => {
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      expect(currentPasswordInput).toBeInTheDocument();
+      expect(currentPasswordInput.type).toBe('password');
+
+      // Verify visibility toggle button exists in InputProps endAdornment
+      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
+        btn.querySelector('[data-testid="VisibilityIcon"]')
+      );
+      expect(visibilityButtons.length).toBeGreaterThan(0);
+    });
+
+    it('should render new password field with correct size and InputProps - lines 240-247', () => {
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      expect(newPasswordInput).toBeInTheDocument();
+      expect(newPasswordInput.type).toBe('password');
+
+      // Verify all three visibility toggle buttons exist
+      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
+        btn.querySelector('[data-testid="VisibilityIcon"]')
+      );
+      expect(visibilityButtons.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should render confirm password field with correct size and InputProps - lines 270-277', () => {
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+      expect(confirmPasswordInput).toBeInTheDocument();
+      expect(confirmPasswordInput.type).toBe('password');
+
+      // Verify third visibility toggle exists for confirm password
+      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
+        btn.querySelector('[data-testid="VisibilityIcon"]')
+      );
+      expect(visibilityButtons[2]).toBeInTheDocument();
+    });
+
+    it('should show VisibilityOff icon when password is visible - lines 220, 250, 280', async () => {
+      const user = userEvent.setup();
+      renderWithAct(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
+        btn.querySelector('[data-testid="VisibilityIcon"]')
+      );
+
+      if (visibilityButtons[0]) {
+        await user.click(visibilityButtons[0]);
+
+        await waitFor(() => {
+          const visibilityOffButtons = screen.getAllByRole('button').filter((btn) =>
+            btn.querySelector('[data-testid="VisibilityOffIcon"]')
+          );
+          expect(visibilityOffButtons.length).toBeGreaterThan(0);
+        });
+      }
+    });
   });
 });

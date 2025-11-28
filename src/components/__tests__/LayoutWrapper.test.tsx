@@ -16,6 +16,13 @@ jest.mock('../Navigation', () => {
   };
 });
 
+// Mock LoadingBar component
+jest.mock('../LoadingBar', () => {
+  return function MockLoadingBar() {
+    return null;
+  };
+});
+
 describe('LayoutWrapper Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();

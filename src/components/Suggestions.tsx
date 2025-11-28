@@ -1,7 +1,8 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Avatar, Typography, Button, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Suggestion {
   id: string;
@@ -19,6 +20,44 @@ const suggestions: Suggestion[] = [
 ];
 
 export default function Suggestions() {
+  const { token } = useAuth();
+  const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
+  const [loadingState, setLoadingState] = useState<Record<string, boolean>>({});
+
+  const handleFollow = async (username: string) => {
+    if (!token) return;
+
+    const isCurrentlyFollowing = followingState[username] || false;
+
+    try {
+      // Set loading state
+      setLoadingState(prev => ({ ...prev, [username]: true }));
+
+      // Optimistically update UI
+      setFollowingState(prev => ({ ...prev, [username]: !isCurrentlyFollowing }));
+
+      const endpoint = isCurrentlyFollowing ? 'unfollow' : 'follow';
+      const response = await fetch(`/api/users/${username}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        // Revert on error
+        setFollowingState(prev => ({ ...prev, [username]: isCurrentlyFollowing }));
+        console.error('Follow/unfollow failed');
+      }
+    } catch (error) {
+      // Revert on error
+      setFollowingState(prev => ({ ...prev, [username]: isCurrentlyFollowing }));
+      console.error('Error toggling follow:', error);
+    } finally {
+      setLoadingState(prev => ({ ...prev, [username]: false }));
+    }
+  };
+
   return (
     <Paper
       elevation={0}
@@ -89,9 +128,12 @@ export default function Suggestions() {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   size="small"
+                  variant={followingState[suggestion.username] ? 'outlined' : 'text'}
+                  onClick={() => handleFollow(suggestion.username)}
+                  disabled={loadingState[suggestion.username]}
                   sx={{ textTransform: 'none', fontWeight: 600, fontSize: '12px' }}
                 >
-                  Follow
+                  {loadingState[suggestion.username] ? '...' : followingState[suggestion.username] ? 'Following' : 'Follow'}
                 </Button>
               </motion.div>
             </Box>

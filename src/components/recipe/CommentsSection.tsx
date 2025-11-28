@@ -10,7 +10,7 @@ import {
   CardContent,
   Rating,
   Divider,
-  CircularProgress,
+  Skeleton,
   Alert,
   Chip,
   IconButton,
@@ -18,6 +18,11 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -60,6 +65,9 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
   const [editText, setEditText] = useState('');
   const [editRating, setEditRating] = useState<number | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<{ [key: string]: HTMLElement | null }>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadComments();
@@ -184,16 +192,23 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
     }
   };
 
-  const handleDeleteClick = async (commentId: string) => {
-    if (!token) return;
+  const handleDeleteClick = (commentId: string) => {
+    setCommentToDelete(commentId);
+    setDeleteDialogOpen(true);
+    handleMenuClose(commentId);
+  };
 
-    if (!window.confirm('Are you sure you want to delete this comment?')) {
-      handleMenuClose(commentId);
-      return;
-    }
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setCommentToDelete(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!token || !commentToDelete) return;
 
     try {
-      const response = await fetch(`/api/recipes/${recipeId}/comments/${commentId}`, {
+      setDeleting(true);
+      const response = await fetch(`/api/recipes/${recipeId}/comments/${commentToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -201,8 +216,9 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
       });
 
       if (response.ok) {
-        setComments(comments.filter(c => c.id !== commentId));
-        handleMenuClose(commentId);
+        setComments(comments.filter(c => c.id !== commentToDelete));
+        setDeleteDialogOpen(false);
+        setCommentToDelete(null);
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to delete comment');
@@ -210,6 +226,8 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
     } catch (error) {
       console.error('Error deleting comment:', error);
       setError('Failed to delete comment');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -301,8 +319,23 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
 
       {/* Comments List */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 3, md: 4 } }}>
-          <CircularProgress />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
+          {[...Array(3)].map((_, index) => (
+            <Card key={`comment-skeleton-${index}`}>
+              <CardContent>
+                <Box sx={{ display: 'flex', gap: { xs: 1, md: 1.5 }, mb: { xs: 1, md: 1.5 } }}>
+                  <Skeleton variant="circular" sx={{ width: { xs: 32, md: 40 }, height: { xs: 32, md: 40 } }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="30%" height={24} />
+                    <Skeleton variant="text" width="20%" height={20} />
+                  </Box>
+                </Box>
+                <Skeleton variant="text" width="100%" />
+                <Skeleton variant="text" width="90%" />
+                <Skeleton variant="text" width="70%" />
+              </CardContent>
+            </Card>
+          ))}
         </Box>
       ) : comments.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: { xs: 4, md: 6 } }}>
@@ -473,6 +506,41 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
           </AnimatePresence>
         </Box>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="xs"
+        aria-labelledby="delete-comment-dialog-title"
+        aria-describedby="delete-comment-dialog-description"
+      >
+        <DialogTitle id="delete-comment-dialog-title">
+          Delete selected comment?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-comment-dialog-description">
+            Comment will be permanently removed from your account and all synced devices
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleDeleteCancel}
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            autoFocus
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -273,13 +273,6 @@ export default function RecipeCard({
 
         <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 0.5, md: 1 } }}>
           <Chip
-            icon={<Restaurant sx={{ fontSize: { xs: 14, md: 16 } }} />}
-            label={recipe.cuisine}
-            size="small"
-            variant="outlined"
-            sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
-          />
-          <Chip
             icon={<Person sx={{ fontSize: { xs: 14, md: 16 } }} />}
             label={`${recipe.servings} servings`}
             size="small"

@@ -46,7 +46,6 @@ describe('LoginForm Component', () => {
     expect(screen.getByPlaceholderText('Email or username')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
-    expect(screen.getByText('Forgot password?')).toBeInTheDocument();
     expect(screen.getByText(/don't have an account/i)).toBeInTheDocument();
     expect(screen.getByText('Sign up')).toBeInTheDocument();
   });

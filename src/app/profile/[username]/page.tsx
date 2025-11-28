@@ -14,14 +14,12 @@ import {
   CardContent,
   IconButton,
   Chip,
-  CircularProgress,
   Alert,
   Divider,
   Skeleton,
   Toolbar,
   Grow,
 } from '@mui/material';
-import LoadingWithProgress from '@/components/common/LoadingWithProgress';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import {
   Settings,
@@ -245,9 +243,6 @@ export default function ProfilePage() {
         <Toolbar />
 
         <Container maxWidth="lg" sx={{ pt: 2 }}>
-          {/* Progress bar inside skeleton */}
-          <LoadingWithProgress color="primary" inline />
-
           {/* Profile Header Skeleton */}
           <Box sx={{ display: 'flex', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -384,7 +379,14 @@ export default function ProfilePage() {
                     recipes
                   </Typography>
                 </Box>
-                <Box sx={{ cursor: 'pointer' }}>
+                <Box
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': { opacity: 0.7 },
+                    transition: 'opacity 0.2s',
+                  }}
+                  onClick={() => router.push(`/profile/${username}/followers`)}
+                >
                   <Typography variant="h6" component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
                     {stats.followersCount}
                   </Typography>
@@ -392,7 +394,14 @@ export default function ProfilePage() {
                     followers
                   </Typography>
                 </Box>
-                <Box sx={{ cursor: 'pointer' }}>
+                <Box
+                  sx={{
+                    cursor: 'pointer',
+                    '&:hover': { opacity: 0.7 },
+                    transition: 'opacity 0.2s',
+                  }}
+                  onClick={() => router.push(`/profile/${username}/following`)}
+                >
                   <Typography variant="h6" component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
                     {stats.followingCount}
                   </Typography>

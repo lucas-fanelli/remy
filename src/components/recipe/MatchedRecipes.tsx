@@ -49,7 +49,6 @@ interface MatchedRecipe {
   title: string;
   description: string;
   imageUrl: string;
-  cuisine: string;
   difficulty: string;
   matchPercentage: number;
   matchedIngredients: number;
@@ -248,7 +247,6 @@ export default function MatchedRecipes() {
                         {recipe.description}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
-                        <Chip label={recipe.cuisine} size="small" variant="outlined" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                         <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' }, textTransform: 'capitalize' }} />
                       </Box>
                     </CardContent>
@@ -331,7 +329,6 @@ export default function MatchedRecipes() {
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
-                        <Chip label={recipe.cuisine} size="small" variant="outlined" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                         <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' }, textTransform: 'capitalize' }} />
                       </Box>
                     </CardContent>

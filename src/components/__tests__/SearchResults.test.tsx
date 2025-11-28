@@ -54,7 +54,9 @@ describe('SearchResults Component', () => {
       <SearchResults query="test" users={[]} recipes={[]} loading={true} onClose={mockOnClose} />
     );
 
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    // Check for skeleton loading state
+    const listItems = screen.getAllByRole('listitem');
+    expect(listItems.length).toBeGreaterThan(0);
   });
 
   it('should show no results message when no users or recipes found', () => {
@@ -156,5 +158,64 @@ describe('SearchResults Component', () => {
     expect(screen.getByText('testuser3')).toBeInTheDocument();
     // No recipes should appear when 3 users exist
     expect(screen.queryByText('Test Recipe 1')).not.toBeInTheDocument();
+  });
+
+  describe('Desktop Rendering - Branch Coverage', () => {
+    it('should show user email on desktop - line 175', () => {
+      renderWithTheme(
+        <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+      );
+
+      // Both username and email should be visible on desktop
+      expect(screen.getByText('testuser1')).toBeInTheDocument();
+      expect(screen.getByText('test1@example.com')).toBeInTheDocument();
+    });
+
+    it('should show recipe description on desktop - lines 218-220', () => {
+      renderWithTheme(
+        <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+      );
+
+      // Recipe title and description should be visible on desktop
+      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      expect(screen.getByText(/A delicious test recipe/)).toBeInTheDocument();
+    });
+
+    it('should truncate long recipe descriptions with ellipsis on desktop - lines 218-220', () => {
+      const longDescriptionRecipe = {
+        id: 'r-long',
+        title: 'Long Description Recipe',
+        description: 'This is a very long description that exceeds the fifty character limit and should be truncated',
+        imageUrl: '/recipe-long.jpg',
+        cuisine: 'French'
+      };
+
+      renderWithTheme(
+        <SearchResults query="test" users={[]} recipes={[longDescriptionRecipe]} loading={false} onClose={mockOnClose} />
+      );
+
+      // Should show truncated description with ellipsis (first 50 chars + "...")
+      expect(screen.getByText('Long Description Recipe')).toBeInTheDocument();
+      // Test for the presence of truncated text - substring(0, 50) = "This is a very long description that exceeds th"
+      expect(screen.getByText(/This is a very long description/)).toBeInTheDocument();
+    });
+
+    it('should show short recipe descriptions without ellipsis on desktop - lines 218-220', () => {
+      const shortDescriptionRecipe = {
+        id: 'r-short',
+        title: 'Short Recipe',
+        description: 'A brief description',
+        imageUrl: '/recipe-short.jpg',
+        cuisine: 'Italian'
+      };
+
+      renderWithTheme(
+        <SearchResults query="test" users={[]} recipes={[shortDescriptionRecipe]} loading={false} onClose={mockOnClose} />
+      );
+
+      // Should show full description without ellipsis
+      expect(screen.getByText('Short Recipe')).toBeInTheDocument();
+      expect(screen.getByText('A brief description')).toBeInTheDocument();
+    });
   });
 });

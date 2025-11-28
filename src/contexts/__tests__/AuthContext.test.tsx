@@ -605,5 +605,145 @@ describe('AuthContext', () => {
       });
     });
 
+    it('should handle update profile error with custom message - lines 136-137', async () => {
+      const initialUser = {
+        id: 'user123',
+        username: 'testuser',
+        email: 'test@example.com',
+        isVerified: true,
+        isPrivate: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      localStorage.clear();
+      localStorage.setItem('auth_token', 'test-token-custom');
+
+      const TestUpdateComponent = () => {
+        const { updateProfile, isAuthenticated } = useAuth();
+        const [error, setError] = React.useState('');
+
+        const handleUpdate = async () => {
+          try {
+            await updateProfile({ fullName: 'New Name' });
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="auth-status">{isAuthenticated ? 'Auth' : 'Not Auth'}</div>
+            <button onClick={handleUpdate}>Update</button>
+            {error && <div data-testid="error-message">Error: {error}</div>}
+          </div>
+        );
+      };
+
+      mockFetch.mockReset();
+      mockFetch.mockImplementation((url) => {
+        const urlString = typeof url === 'string' ? url : url.toString();
+        if (urlString.includes('/api/auth/me')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ data: initialUser }),
+          });
+        } else if (urlString.includes('/api/users/profile')) {
+          return Promise.resolve({
+            ok: false,
+            json: async () => ({ error: 'Profile update not allowed' }),
+          });
+        }
+        return Promise.resolve({ ok: false, json: async () => ({}) });
+      });
+
+      render(
+        <AuthProvider>
+          <TestUpdateComponent />
+        </AuthProvider>
+      );
+
+      // Wait for user to be loaded
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
+      }, { timeout: 2000 });
+
+      fireEvent.click(screen.getByText('Update'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error-message')).toHaveTextContent('Error: Profile update not allowed');
+      }, { timeout: 2000 });
+    });
+
+    it('should handle update profile error without custom message - fallback lines 136-137', async () => {
+      const initialUser = {
+        id: 'user123',
+        username: 'testuser',
+        email: 'test@example.com',
+        isVerified: true,
+        isPrivate: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      localStorage.clear();
+      localStorage.setItem('auth_token', 'test-token-fallback');
+
+      const TestUpdateComponent = () => {
+        const { updateProfile, isAuthenticated } = useAuth();
+        const [error, setError] = React.useState('');
+
+        const handleUpdate = async () => {
+          try {
+            await updateProfile({ fullName: 'New Name' });
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="auth-status">{isAuthenticated ? 'Auth' : 'Not Auth'}</div>
+            <button onClick={handleUpdate}>Update</button>
+            {error && <div data-testid="error-message">Error: {error}</div>}
+          </div>
+        );
+      };
+
+      mockFetch.mockReset();
+      mockFetch.mockImplementation((url) => {
+        const urlString = typeof url === 'string' ? url : url.toString();
+        if (urlString.includes('/api/auth/me')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ data: initialUser }),
+          });
+        } else if (urlString.includes('/api/users/profile')) {
+          return Promise.resolve({
+            ok: false,
+            json: async () => ({}), // No custom error message
+          });
+        }
+        return Promise.resolve({ ok: false, json: async () => ({}) });
+      });
+
+      render(
+        <AuthProvider>
+          <TestUpdateComponent />
+        </AuthProvider>
+      );
+
+      // Wait for user to be loaded
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
+      }, { timeout: 2000 });
+
+      fireEvent.click(screen.getByText('Update'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error-message')).toHaveTextContent('Error: Update failed');
+      }, { timeout: 2000 });
+    });
+
   });
 });

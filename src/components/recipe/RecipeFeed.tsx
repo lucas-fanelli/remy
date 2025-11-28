@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Grid,
-  CircularProgress,
   Typography,
   Button,
   Select,
@@ -52,7 +51,6 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
   const [page, setPage] = useState(0);
 
   // Filters
-  const [cuisineFilter, setCuisineFilter] = useState<string>('all');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [maxTimeFilter, setMaxTimeFilter] = useState<number>(0);
 
@@ -80,10 +78,6 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     severity: 'info',
   });
 
-  const cuisines = [
-    'all', 'Italian', 'Mexican', 'Japanese', 'Chinese', 'Indian',
-    'French', 'Thai', 'Mediterranean', 'American', 'Korean'
-  ];
 
   // Fetch like and comment data for recipes
   const fetchRecipeEngagement = useCallback(async (recipeIds: string[]) => {
@@ -145,9 +139,6 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
         offset: String(reset ? 0 : page * 12),
       });
 
-      if (cuisineFilter !== 'all') {
-        queryParams.append('cuisine', cuisineFilter);
-      }
       if (difficultyFilter !== 'all') {
         queryParams.append('difficulty', difficultyFilter);
       }
@@ -164,7 +155,12 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
         setRecipes(data.recipes);
         setPage(1);
       } else {
-        setRecipes((prev) => [...prev, ...data.recipes]);
+        setRecipes((prev) => {
+          // Prevent duplicate keys by filtering out recipes that already exist
+          const existingIds = new Set(prev.map(r => r.id));
+          const newRecipes = data.recipes.filter((r: Recipe) => !existingIds.has(r.id));
+          return [...prev, ...newRecipes];
+        });
         setPage((prev) => prev + 1);
       }
 
@@ -178,11 +174,11 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     } finally {
       setLoading(false);
     }
-  }, [loading, page, cuisineFilter, difficultyFilter, maxTimeFilter, fetchRecipeEngagement]);
+  }, [loading, page, difficultyFilter, maxTimeFilter, fetchRecipeEngagement]);
 
   useEffect(() => {
     loadRecipes(true);
-  }, [cuisineFilter, difficultyFilter, maxTimeFilter]);
+  }, [difficultyFilter, maxTimeFilter]);
 
   const handleScroll = useCallback(() => {
     if (
@@ -200,12 +196,11 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
   }, [handleScroll]);
 
   const clearFilters = () => {
-    setCuisineFilter('all');
     setDifficultyFilter('all');
     setMaxTimeFilter(0);
   };
 
-  const hasActiveFilters = cuisineFilter !== 'all' || difficultyFilter !== 'all' || maxTimeFilter > 0;
+  const hasActiveFilters = difficultyFilter !== 'all' || maxTimeFilter > 0;
 
   const handleDeleteClick = (recipe: Recipe) => {
     setRecipeToDelete(recipe);
@@ -415,21 +410,6 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, md: 2 }}>
           <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
-            <InputLabel>Cuisine</InputLabel>
-            <Select
-              value={cuisineFilter}
-              label="Cuisine"
-              onChange={(e) => setCuisineFilter(e.target.value)}
-            >
-              {cuisines.map((cuisine) => (
-                <MenuItem key={cuisine} value={cuisine}>
-                  {cuisine === 'all' ? 'All Cuisines' : cuisine}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
             <InputLabel>Difficulty</InputLabel>
             <Select
               value={difficultyFilter}
@@ -545,9 +525,29 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
       {/* Loading More Indicator */}
       {loading && recipes.length > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 3, md: 4 } }}>
-          <CircularProgress />
-        </Box>
+        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
+          {[...Array(3)].map((_, index) => (
+            <Grid item xs={12} sm={6} md={4} key={`skeleton-${index}`}>
+              <Card>
+                <Skeleton
+                  variant="rectangular"
+                  sx={{
+                    height: { xs: 180, sm: 200, md: 240 }
+                  }}
+                />
+                <CardContent>
+                  <Skeleton variant="text" width="60%" height={32} sx={{ mb: 1 }} />
+                  <Skeleton variant="text" width="100%" />
+                  <Skeleton variant="text" width="80%" sx={{ mb: 2 }} />
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 1 }} />
+                    <Skeleton variant="rectangular" width={100} height={24} sx={{ borderRadius: 1 }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       )}
 
       {/* End of Feed Message */}
@@ -563,26 +563,22 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
-        fullScreen={isMobile}
-        maxWidth="sm"
-        fullWidth
+        maxWidth="xs"
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title" sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
-          Delete Recipe?
+        <DialogTitle id="delete-dialog-title">
+          Delete selected recipe?
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-dialog-description" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
-            Are you sure you want to delete &ldquo;{recipeToDelete?.title}&rdquo;? This action cannot be undone.
+          <DialogContentText id="delete-dialog-description">
+            Recipe will be permanently removed from your account and all synced devices.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ p: { xs: 2, md: 3 }, gap: { xs: 1, sm: 0 }, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
+        <DialogActions>
           <Button
             onClick={handleDeleteCancel}
             disabled={deleting}
-            fullWidth={isMobile}
-            size={isMobile ? 'large' : 'medium'}
           >
             Cancel
           </Button>
@@ -591,8 +587,6 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
             color="error"
             variant="contained"
             disabled={deleting}
-            fullWidth={isMobile}
-            size={isMobile ? 'large' : 'medium'}
             autoFocus
           >
             {deleting ? 'Deleting...' : 'Delete'}

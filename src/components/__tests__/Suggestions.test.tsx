@@ -1,8 +1,15 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Suggestions from '../Suggestions';
+
+// Mock AuthContext
+const mockUseAuth = jest.fn();
+jest.mock('@/contexts/AuthContext', () => ({
+  ...jest.requireActual('@/contexts/AuthContext'),
+  useAuth: () => mockUseAuth(),
+}));
 
 // Mock framer-motion - comprehensive mock supporting all patterns
 jest.mock('framer-motion', () => {
@@ -28,6 +35,20 @@ const renderWithTheme = (component: React.ReactElement) => {
 };
 
 describe('Suggestions Component', () => {
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockClear();
+
+    mockUseAuth.mockReturnValue({
+      token: 'mock-token',
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
+    });
+  });
+
   it('should render user profile section', () => {
     renderWithTheme(<Suggestions />);
 
@@ -72,5 +93,122 @@ describe('Suggestions Component', () => {
 
     expect(screen.getByText(/About · Help · Press/)).toBeInTheDocument();
     expect(screen.getByText('© 2025 RECIPE SHARING APP')).toBeInTheDocument();
+  });
+
+  it('should not call API when follow button clicked without token', async () => {
+    mockUseAuth.mockReturnValue({
+      token: null,
+      user: null,
+      isLoading: false,
+      isAuthenticated: false,
+    });
+
+    renderWithTheme(<Suggestions />);
+
+    const followButtons = screen.getAllByText('Follow');
+    fireEvent.click(followButtons[0]);
+
+    // Should not make any API calls
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('should handle follow button click successfully', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    renderWithTheme(<Suggestions />);
+
+    const followButtons = screen.getAllByText('Follow');
+    fireEvent.click(followButtons[0]); // Click on first Follow button
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/users/sarah_designs/follow',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Authorization': 'Bearer mock-token',
+          }),
+        })
+      );
+    });
+
+    // Button should show Following after successful follow
+    await waitFor(() => {
+      expect(screen.getByText('Following')).toBeInTheDocument();
+    });
+  });
+
+  it('should handle unfollow button click successfully', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true });
+
+    renderWithTheme(<Suggestions />);
+
+    const followButtons = screen.getAllByText('Follow');
+    fireEvent.click(followButtons[0]); // Follow first
+
+    await waitFor(() => {
+      expect(screen.getByText('Following')).toBeInTheDocument();
+    });
+
+    // Now unfollow
+    mockFetch.mockResolvedValueOnce({ ok: true });
+    const followingButton = screen.getByText('Following');
+    fireEvent.click(followingButton);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/users/sarah_designs/unfollow',
+        expect.objectContaining({
+          method: 'POST',
+        })
+      );
+    });
+  });
+
+  it('should revert follow state on API error', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockResolvedValueOnce({ ok: false });
+
+    renderWithTheme(<Suggestions />);
+
+    const followButtons = screen.getAllByText('Follow');
+    fireEvent.click(followButtons[0]);
+
+    await waitFor(() => {
+      // Should still show Follow after error
+      expect(screen.getAllByText('Follow').length).toBe(5);
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should revert follow state on network error', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+    renderWithTheme(<Suggestions />);
+
+    const followButtons = screen.getAllByText('Follow');
+    fireEvent.click(followButtons[0]);
+
+    await waitFor(() => {
+      // Should still show Follow after error
+      expect(screen.getAllByText('Follow').length).toBe(5);
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should show loading state when following', async () => {
+    mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
+
+    renderWithTheme(<Suggestions />);
+
+    const followButtons = screen.getAllByText('Follow');
+    fireEvent.click(followButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('...')).toBeInTheDocument();
+    });
   });
 });

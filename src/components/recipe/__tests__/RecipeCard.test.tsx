@@ -68,7 +68,6 @@ describe('RecipeCard Component', () => {
 
     expect(screen.getByText('Test Recipe')).toBeInTheDocument();
     expect(screen.getByText('A delicious test recipe description')).toBeInTheDocument();
-    expect(screen.getByText('Italian')).toBeInTheDocument();
     expect(screen.getByText('4 servings')).toBeInTheDocument();
     expect(screen.getByText('45 min')).toBeInTheDocument(); // 15 + 30
   });

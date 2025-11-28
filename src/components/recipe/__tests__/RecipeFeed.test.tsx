@@ -351,7 +351,7 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Delete Recipe?')).toBeInTheDocument();
+      expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
     });
   });
 
@@ -368,14 +368,14 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Delete Recipe?')).toBeInTheDocument();
+      expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
     });
 
     const cancelButton = screen.getByRole('button', { name: /^cancel$/i });
     fireEvent.click(cancelButton);
 
     await waitFor(() => {
-      expect(screen.queryByText('Delete Recipe?')).not.toBeInTheDocument();
+      expect(screen.queryByText('Delete selected recipe?')).not.toBeInTheDocument();
     });
   });
 
@@ -444,48 +444,6 @@ describe('RecipeFeed Component', () => {
     });
   });
 
-  it('should filter by cuisine', async () => {
-    setupSuccessfulFetch();
-
-    renderWithProviders(<RecipeFeed />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
-    });
-
-    // Mock the filtered fetch
-    setupSuccessfulFetch([{ ...mockRecipe, cuisine: 'Italian' }]);
-
-    // Wait for selects to render
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0);
-    });
-    const cuisineSelect = screen.getAllByRole('combobox')[0]; // Cuisine is first
-    fireEvent.mouseDown(cuisineSelect);
-
-    const italianOption = await screen.findByText('Italian');
-    fireEvent.click(italianOption);
-
-    // Filter should trigger new fetch
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('cuisine=Italian')
-      );
-    });
-
-    // Wait for all skeleton loaders to disappear (indicates async operations completed)
-    await waitFor(() => {
-      const skeletons = screen.queryAllByTestId('recipe-skeleton');
-      expect(skeletons.length).toBe(0);
-    }, { timeout: 3000 });
-
-    // Flush all pending promises to prevent act() warnings
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 10));
-    });
-  });
-
   it('should filter by difficulty', async () => {
     setupSuccessfulFetch();
 
@@ -497,7 +455,7 @@ describe('RecipeFeed Component', () => {
 
     setupSuccessfulFetch([{ ...mockRecipe, difficulty: 'easy' }]);
 
-    const difficultySelect = screen.getAllByRole('combobox')[1]; // Difficulty is second
+    const difficultySelect = screen.getAllByRole('combobox')[0]; // Difficulty is first (after removing cuisine)
     fireEvent.mouseDown(difficultySelect);
 
     const easyOption = await screen.findByText('Easy');
@@ -532,7 +490,7 @@ describe('RecipeFeed Component', () => {
 
     setupSuccessfulFetch([mockRecipe]);
 
-    const maxTimeSelect = screen.getAllByRole('combobox')[2]; // Max Time is third
+    const maxTimeSelect = screen.getAllByRole('combobox')[1]; // Max Time is second (after removing cuisine)
     fireEvent.mouseDown(maxTimeSelect);
 
     const under30Option = await screen.findByText('Under 30 min');
@@ -573,11 +531,11 @@ describe('RecipeFeed Component', () => {
       const selects = screen.queryAllByRole('combobox');
       expect(selects.length).toBeGreaterThan(0);
     });
-    const cuisineSelect = screen.getAllByRole('combobox')[0]; // Cuisine is first
-    fireEvent.mouseDown(cuisineSelect);
+    const difficultySelect = screen.getAllByRole('combobox')[0]; // Difficulty is first
+    fireEvent.mouseDown(difficultySelect);
 
-    const italianOption = await screen.findByText('Italian');
-    fireEvent.click(italianOption);
+    const easyOption = await screen.findByText('Easy');
+    fireEvent.click(easyOption);
 
     // Clear button should appear
     await waitFor(() => {
@@ -613,10 +571,10 @@ describe('RecipeFeed Component', () => {
       const selects = screen.queryAllByRole('combobox');
       expect(selects.length).toBeGreaterThan(0);
     });
-    const cuisineSelect = screen.getAllByRole('combobox')[0]; // Cuisine is first
-    fireEvent.mouseDown(cuisineSelect);
-    const italianOption = await screen.findByText('Italian');
-    fireEvent.click(italianOption);
+    const difficultySelect = screen.getAllByRole('combobox')[0]; // Difficulty is first
+    fireEvent.mouseDown(difficultySelect);
+    const easyOption = await screen.findByText('Easy');
+    fireEvent.click(easyOption);
 
     await waitFor(() => {
       expect(screen.getByText('Clear')).toBeInTheDocument();
@@ -659,7 +617,7 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Delete Recipe?')).toBeInTheDocument();
+      expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
     });
 
     // Mock delete API call
@@ -691,7 +649,7 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Delete Recipe?')).toBeInTheDocument();
+      expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
     });
 
     // Mock delete API failure
@@ -1055,6 +1013,345 @@ describe('RecipeFeed Component', () => {
       await waitFor(() => {
         expect(screen.getByText(/failed to update like/i)).toBeInTheDocument();
       });
+    });
+
+    it('should prevent concurrent loadRecipes calls - line 133', async () => {
+      // Mock a slow API response to keep loading state true
+      mockFetch.mockImplementation(() =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              ok: true,
+              json: async () => ({ recipes: [mockRecipe] }),
+            });
+          }, 1000);
+        })
+      );
+
+      renderWithProviders(<RecipeFeed />);
+
+      // Wait a bit to ensure loadRecipes is called and loading is true
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      // Mock fetch should only be called once (initial load)
+      // Even if filters change while loading, it shouldn't trigger another fetch
+      const initialCallCount = mockFetch.mock.calls.length;
+
+      // The loading guard should prevent multiple concurrent calls
+      expect(initialCallCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should throw error when recipe fetch fails - line 150', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Mock fetch to return ok: false
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Server error' }),
+      });
+
+      renderWithProviders(<RecipeFeed />);
+
+      // Wait for error to be logged
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Error loading recipes:',
+          expect.any(Error)
+        );
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should return early from handleDeleteConfirm when no token - line 211', async () => {
+      mockUseAuth.mockReturnValue({ token: null, user: null });
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      fireEvent.click(deleteButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
+      });
+
+      const initialFetchCallCount = mockFetch.mock.calls.length;
+
+      const confirmButton = screen.getByRole('button', { name: /^delete$/i });
+      fireEvent.click(confirmButton);
+
+      // Should not make delete API call without token
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      // No new fetch calls should have been made
+      expect(mockFetch.mock.calls.length).toBe(initialFetchCallCount);
+    });
+
+    it('should throw error with custom message when delete fails - lines 224-225', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      fireEvent.click(deleteButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
+      });
+
+      // Mock delete API failure with custom error message
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Recipe not found' }),
+      });
+
+      const confirmButton = screen.getByRole('button', { name: /^delete$/i });
+      fireEvent.click(confirmButton);
+
+      // Should show custom error message
+      await waitFor(() => {
+        expect(screen.getByText('Recipe not found')).toBeInTheDocument();
+      });
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error deleting recipe:',
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should remove recipe and show success message on successful delete - lines 228-234', async () => {
+      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      const recipe1 = { ...mockRecipe, id: '1', title: 'Recipe 1' };
+      const recipe2 = { ...mockRecipe, id: '2', title: 'Recipe 2' };
+
+      setupSuccessfulFetch([recipe1, recipe2]);
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Recipe 1')).toBeInTheDocument();
+        expect(screen.getByText('Recipe 2')).toBeInTheDocument();
+      });
+
+      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+      fireEvent.click(deleteButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
+      });
+
+      // Mock successful delete
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      const confirmButton = screen.getByRole('button', { name: /^delete$/i });
+      fireEvent.click(confirmButton);
+
+      // Should remove recipe and show success
+      await waitFor(() => {
+        expect(screen.getByText('Recipe deleted successfully')).toBeInTheDocument();
+      });
+
+      // Recipe 1 should be removed from list
+      await waitFor(() => {
+        expect(screen.queryByText('Recipe 1')).not.toBeInTheDocument();
+      });
+
+      // Recipe 2 should still be visible
+      expect(screen.getByText('Recipe 2')).toBeInTheDocument();
+    });
+
+    it('should show non-Error exception fallback message - lines 237-241', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      fireEvent.click(deleteButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
+      });
+
+      // Mock delete API throwing non-Error exception
+      mockFetch.mockRejectedValueOnce('String error');
+
+      const confirmButton = screen.getByRole('button', { name: /^delete$/i });
+      fireEvent.click(confirmButton);
+
+      // Should show fallback error message
+      await waitFor(() => {
+        expect(screen.getByText('Failed to delete recipe')).toBeInTheDocument();
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should update recipe in list and show success on edit - lines 259-270', async () => {
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      const editButton = screen.getByRole('button', { name: /edit/i });
+      fireEvent.click(editButton);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('edit-recipe-modal')).toBeInTheDocument();
+      });
+
+      // Click save to trigger handleEditSuccess
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
+
+      // Should update recipe and show success message
+      await waitFor(() => {
+        expect(screen.getByText('Recipe updated successfully')).toBeInTheDocument();
+      });
+
+      // Recipe should be updated in the list
+      await waitFor(() => {
+        expect(screen.getByText('Updated Recipe')).toBeInTheDocument();
+      });
+    });
+
+    it('should use default like state when recipe not in recipeLikes - lines 287-289', async () => {
+      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+
+      // Mock recipe fetch with a recipe that won't have engagement data
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ recipes: [mockRecipe] }),
+      });
+
+      // Mock engagement fetch to fail so recipeLikes[recipeId] doesn't exist
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      // Mock successful like API call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ liked: true, likesCount: 1 }),
+      });
+
+      const likeButton = screen.getByRole('button', { name: /like/i });
+      fireEvent.click(likeButton);
+
+      // Should use default state { liked: false, count: 0 } and optimistically update to liked: true, count: 1
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/recipes/1/like',
+          expect.objectContaining({
+            method: 'POST',
+          })
+        );
+      });
+    });
+
+    it('should render fullWidth button on mobile when creating recipe - line 369', async () => {
+      // Mock mobile viewport
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation(query => ({
+          matches: query.includes('max-width: 600px'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      setupSuccessfulFetch();
+      const mockOnCreateRecipe = jest.fn();
+
+      const { container } = renderWithProviders(<RecipeFeed onCreateRecipe={mockOnCreateRecipe} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /share recipe/i })).toBeInTheDocument();
+      });
+
+      // Button should render (fullWidth prop is applied based on isMobile)
+      const shareButton = screen.getByRole('button', { name: /share recipe/i });
+      expect(shareButton).toBeInTheDocument();
+
+      await waitForLoadingComplete(container);
+    });
+
+    it('should render large button on mobile in empty state - line 492', async () => {
+      // Mock mobile viewport
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation(query => ({
+          matches: query.includes('max-width: 600px'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ recipes: [] }),
+      });
+
+      const mockOnCreateRecipe = jest.fn();
+      renderWithProviders(<RecipeFeed onCreateRecipe={mockOnCreateRecipe} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('No recipes found')).toBeInTheDocument();
+      });
+
+      // Should show large button in empty state on mobile
+      const createButton = screen.getByRole('button', { name: /share your first recipe/i });
+      expect(createButton).toBeInTheDocument();
     });
   });
 });

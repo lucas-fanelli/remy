@@ -109,9 +109,11 @@ describe('CommentsSection Component', () => {
   it('should show loading state while fetching comments', () => {
     mockFetch.mockImplementation(() => new Promise(() => {}));
 
-    renderWithProviders(<CommentsSection recipeId="recipe1" />);
+    const { container } = renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    // Check for skeleton loading state (looking for skeleton elements)
+    const skeletons = container.querySelectorAll('.MuiSkeleton-root');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it('should show empty state when no comments', async () => {
@@ -1052,18 +1054,21 @@ describe('CommentsSection Component', () => {
         const deleteMenuItem = screen.getByRole('menuitem', { name: /delete/i });
         fireEvent.click(deleteMenuItem);
 
-        // Confirm should be called and return false (lines 180-182)
-        expect(global.confirm).toHaveBeenCalled();
+        // Delete confirmation dialog should appear
+        await waitFor(() => {
+          expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
+        });
 
-        // No additional API calls should have been made since confirm returned false
+        // Click Cancel button
+        const cancelButton = screen.getByRole('button', { name: /cancel/i });
+        fireEvent.click(cancelButton);
+
+        // No additional API calls should have been made since we canceled
         expect(mockFetch.mock.calls.length).toBe(initialCallCount);
       }
     });
 
     it('should delete comment when confirming delete', async () => {
-      // Mock window.confirm
-      global.confirm = jest.fn(() => true);
-
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       const userComment = {
         ...mockComment,
@@ -1098,11 +1103,20 @@ describe('CommentsSection Component', () => {
         }
       });
 
+      // Delete confirmation dialog should appear
+      await waitFor(() => {
+        expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
+      });
+
       // Mock DELETE response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({}),
       });
+
+      // Click Delete button to confirm
+      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      fireEvent.click(deleteButton);
 
       // Verify DELETE request
       await waitFor(() => {
@@ -1117,6 +1131,390 @@ describe('CommentsSection Component', () => {
       // Comment should be removed
       await waitFor(() => {
         expect(screen.queryByText('Comment to delete')).not.toBeInTheDocument();
+      });
+    });
+
+    // Additional coverage tests for uncovered lines
+    it('should handle edit comment error when response is not ok - lines 184-186', async () => {
+      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: testUser,
+      });
+
+      const userComment = {
+        id: '2',
+        text: 'Comment to edit',
+        rating: 4,
+        createdAt: new Date().toISOString(),
+        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [userComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Comment to edit')).toBeInTheDocument();
+      });
+
+      // Open menu - find by MoreVertIcon
+      const moreButtons = screen.getAllByRole('button');
+      const moreButton = moreButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreButton).toBeDefined();
+      if (moreButton) {
+        fireEvent.click(moreButton);
+      }
+
+      // Click edit option
+      await waitFor(() => {
+        const menuItems = screen.getAllByRole('menuitem');
+        if (menuItems.length > 0) {
+          fireEvent.click(menuItems[0]); // First menu item is Edit
+        }
+      });
+
+      // Update comment text - use getByDisplayValue to find the edit textbox
+      await waitFor(() => {
+        const textInput = screen.getByDisplayValue('Comment to edit');
+        fireEvent.change(textInput, { target: { value: 'Updated comment' } });
+      });
+
+      // Mock PATCH response with error
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Custom edit error' }),
+      });
+
+      // Submit edit
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
+
+      // Check for error message
+      await waitFor(() => {
+        expect(screen.getByText('Custom edit error')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle edit comment exception - lines 187-189', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: testUser,
+      });
+
+      const userComment = {
+        id: '3',
+        text: 'Comment to edit',
+        rating: 4,
+        createdAt: new Date().toISOString(),
+        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [userComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Comment to edit')).toBeInTheDocument();
+      });
+
+      // Open menu - find by MoreVertIcon
+      const moreButtons = screen.getAllByRole('button');
+      const moreButton = moreButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreButton).toBeDefined();
+      if (moreButton) {
+        fireEvent.click(moreButton);
+      }
+
+      // Click edit option
+      await waitFor(() => {
+        const menuItems = screen.getAllByRole('menuitem');
+        if (menuItems.length > 0) {
+          fireEvent.click(menuItems[0]);
+        }
+      });
+
+      // Update comment text - use getByDisplayValue to find the edit textbox
+      await waitFor(() => {
+        const textInput = screen.getByDisplayValue('Comment to edit');
+        fireEvent.change(textInput, { target: { value: 'Updated comment' } });
+      });
+
+      // Mock PATCH response with exception
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      // Submit edit
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
+
+      // Check for error message and console.error
+      await waitFor(() => {
+        expect(screen.getByText('Failed to update comment')).toBeInTheDocument();
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error updating comment:', expect.any(Error));
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle delete comment error when response is not ok - lines 223-225', async () => {
+      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: testUser,
+      });
+
+      const userComment = {
+        id: '4',
+        text: 'Comment to delete',
+        rating: 4,
+        createdAt: new Date().toISOString(),
+        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [userComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Comment to delete')).toBeInTheDocument();
+      });
+
+      // Open menu - find by MoreVertIcon
+      const moreButtons = screen.getAllByRole('button');
+      const moreButton = moreButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreButton).toBeDefined();
+      if (moreButton) {
+        fireEvent.click(moreButton);
+      }
+
+      // Click delete option
+      await waitFor(() => {
+        const menuItems = screen.getAllByRole('menuitem');
+        if (menuItems.length > 1) {
+          fireEvent.click(menuItems[1]); // Delete is second
+        }
+      });
+
+      // Confirm delete
+      await waitFor(() => {
+        expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
+      });
+
+      // Mock DELETE response with error
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Custom delete error' }),
+      });
+
+      const deleteButton = screen.getByRole('button', { name: /^delete$/i });
+      fireEvent.click(deleteButton);
+
+      // Check for error message
+      await waitFor(() => {
+        expect(screen.getByText('Custom delete error')).toBeInTheDocument();
+      });
+    });
+
+    it('should handle delete comment exception - lines 226-228', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: testUser,
+      });
+
+      const userComment = {
+        id: '5',
+        text: 'Comment to delete',
+        rating: 4,
+        createdAt: new Date().toISOString(),
+        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [userComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Comment to delete')).toBeInTheDocument();
+      });
+
+      // Open menu - find by MoreVertIcon
+      const moreButtons = screen.getAllByRole('button');
+      const moreButton = moreButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreButton).toBeDefined();
+      if (moreButton) {
+        fireEvent.click(moreButton);
+      }
+
+      // Click delete option
+      await waitFor(() => {
+        const menuItems = screen.getAllByRole('menuitem');
+        if (menuItems.length > 1) {
+          fireEvent.click(menuItems[1]);
+        }
+      });
+
+      // Confirm delete
+      await waitFor(() => {
+        expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
+      });
+
+      // Mock DELETE response with exception
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      const deleteButton = screen.getByRole('button', { name: /^delete$/i });
+      fireEvent.click(deleteButton);
+
+      // Check for error message and console.error
+      await waitFor(() => {
+        expect(screen.getByText('Failed to delete comment')).toBeInTheDocument();
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error deleting comment:', expect.any(Error));
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle rating change in edit mode - line 434', async () => {
+      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: testUser,
+      });
+
+      const userComment = {
+        id: '6',
+        text: 'Comment with rating',
+        rating: 4,
+        createdAt: new Date().toISOString(),
+        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [userComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Comment with rating')).toBeInTheDocument();
+      });
+
+      // Open menu - find by MoreVertIcon
+      const moreButtons = screen.getAllByRole('button');
+      const moreButton = moreButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreButton).toBeDefined();
+      if (moreButton) {
+        fireEvent.click(moreButton);
+      }
+
+      // Click edit option
+      await waitFor(() => {
+        const menuItems = screen.getAllByRole('menuitem');
+        if (menuItems.length > 0) {
+          fireEvent.click(menuItems[0]);
+        }
+      });
+
+      // Find and change rating
+      await waitFor(() => {
+        const ratingInputs = screen.getAllByRole('radio');
+        // Rating component renders 5 radio buttons (one for each star)
+        if (ratingInputs.length >= 5) {
+          // Click the 5th star to set rating to 5
+          fireEvent.click(ratingInputs[4]);
+        }
+      });
+
+      // Verify we're still in edit mode by checking for the edit textbox
+      await waitFor(() => {
+        const textInput = screen.getByDisplayValue('Comment with rating');
+        expect(textInput).toBeInTheDocument();
+      });
+    });
+
+    it('should close menu when clicking a menu item - line 488', async () => {
+      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: testUser,
+      });
+
+      const userComment = {
+        id: '7',
+        text: 'Comment with menu',
+        rating: 4,
+        createdAt: new Date().toISOString(),
+        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [userComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Comment with menu')).toBeInTheDocument();
+      });
+
+      // Open menu - find by MoreVertIcon
+      const moreButtons = screen.getAllByRole('button');
+      const moreButton = moreButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreButton).toBeDefined();
+      if (moreButton) {
+        fireEvent.click(moreButton);
+      }
+
+      // Verify menu is open
+      await waitFor(() => {
+        expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
+      });
+
+      // Click Edit menu item which triggers onClose (line 488)
+      const menuItems = screen.getAllByRole('menuitem');
+      if (menuItems.length > 0) {
+        fireEvent.click(menuItems[0]);
+      }
+
+      // Menu should close after clicking a menu item
+      await waitFor(() => {
+        // After clicking Edit, we enter edit mode and menu closes
+        expect(screen.getByDisplayValue('Comment with menu')).toBeInTheDocument();
       });
     });
   });

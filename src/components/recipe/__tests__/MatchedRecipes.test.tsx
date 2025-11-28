@@ -157,7 +157,6 @@ describe('MatchedRecipes Component', () => {
 
     expect(screen.getByText('Classic Italian pasta')).toBeInTheDocument();
     expect(screen.getByText('100% Match')).toBeInTheDocument();
-    expect(screen.getByText('Italian')).toBeInTheDocument();
     expect(screen.getByText('Medium')).toBeInTheDocument();
   });
 
@@ -479,5 +478,45 @@ describe('MatchedRecipes Component', () => {
 
     expect(screen.getByText(/missing: soy sauce/i)).toBeInTheDocument();
     expect(screen.getByText(/missing: cumin, cilantro/i)).toBeInTheDocument();
+  });
+
+  it('should handle unknown difficulty level with default color - line 43', async () => {
+    const unknownDifficultyRecipe = {
+      id: '1',
+      title: 'Unknown Difficulty Recipe',
+      description: 'A recipe with unknown difficulty',
+      imageUrl: '/test.jpg',
+      difficulty: 'Unknown',
+      prepTime: 30,
+      cookTime: 45,
+      servings: 4,
+      user: { id: 'user1', username: 'testuser' },
+      ingredients: [{ name: 'Salt', quantity: '1', unit: 'tsp' }],
+      instructions: [],
+      matchPercentage: 100,
+    };
+
+    const mockToken = 'test-token';
+    mockUseAuth.mockReturnValue({ token: mockToken });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [unknownDifficultyRecipe],
+        almostThere: [],
+        pantryItemsCount: 1,
+      }),
+    });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Unknown Difficulty Recipe')).toBeInTheDocument();
+    });
+
+    // Unknown difficulty should render with default color chip
+    await waitFor(() => {
+      expect(screen.getByText('Unknown')).toBeInTheDocument();
+    });
   });
 });

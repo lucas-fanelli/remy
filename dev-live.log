@@ -1,0 +1,124 @@
+
+> recipe-sharing-app@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of C:\Users\Luke-Desktop\package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Luke-Desktop\Desktop\Remy-s-master\package-lock.json
+
+ ⚠ Port 3000 is in use by process 57592, using available port 3003 instead.
+   ▲ Next.js 15.5.5
+   - Local:        http://localhost:3003
+   - Network:      http://192.168.1.16:3003
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1494ms
+ ✓ Compiled /middleware in 136ms (114 modules)
+ ○ Compiling /api/search ...
+ ✓ Compiled /api/search in 712ms (395 modules)
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."username", "public"."users"."password", "public"."users"."fullName", "public"."users"."bio", "public"."users"."avatar", "public"."users"."website", "public"."users"."isVerified", "public"."users"."isPrivate", "public"."users"."createdAt", "public"."users"."updatedAt" FROM "public"."users" WHERE 1=1 ORDER BY "public"."users"."createdAt" DESC LIMIT $1 OFFSET $2
+prisma:error 
+Invalid `prisma.post.findMany()` invocation:
+
+{
+  where: {
+    OR: [
+      {
+        title: {
+          contains: "remy",
+          mode: "insensitive"
+        }
+      },
+      {
+        description: {
+          contains: "remy",
+          mode: "insensitive"
+        }
+      },
+      {
+        cuisine: {
+          contains: "remy",
+          mode: "insensitive"
+        }
+      }
+    ]
+  },
+  orderBy: {
+    createdAt: "desc"
+  },
+  take: 100,
+  skip: 0,
+  include: {
+    user: {
+      select: {
+        username: true,
+        fullName: true,
+        avatar: true
+      }
+    }
+  }
+}
+
+Unknown argument `cuisine`. Available options are marked with ?.
+Search error: Error [PrismaClientValidationError]: 
+Invalid `prisma.post.findMany()` invocation:
+
+{
+  where: {
+    OR: [
+      {
+        title: {
+          contains: "remy",
+          mode: "insensitive"
+        }
+      },
+      {
+        description: {
+          contains: "remy",
+          mode: "insensitive"
+        }
+      },
+      {
+        cuisine: {
+          contains: "remy",
+          mode: "insensitive"
+        }
+      }
+    ]
+  },
+  orderBy: {
+    createdAt: "desc"
+  },
+  take: 100,
+  skip: 0,
+  include: {
+    user: {
+      select: {
+        username: true,
+        fullName: true,
+        avatar: true
+      }
+    }
+  }
+}
+
+Unknown argument `cuisine`. Available options are marked with ?.
+    at async RecipeRepository.search (src\infrastructure\repositories\RecipeRepository.ts:108:19)
+    at async GET (src\app\api\search\route.ts:25:21)
+  106 |     }
+  107 |
+> 108 |     const posts = await this.prisma.post.findMany({
+      |                   ^
+  109 |       where,
+  110 |       orderBy: { [sortBy]: sortOrder },
+  111 |       take: limit, {
+  clientVersion: '6.17.1'
+}
+ GET /api/search?q=remy 500 in 995ms
+ ✓ Compiled in 166ms (200 modules)
+ ✓ Compiled in 72ms (200 modules)
+[?25h

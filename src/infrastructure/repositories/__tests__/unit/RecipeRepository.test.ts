@@ -186,28 +186,8 @@ describe('RecipeRepository - Unit Tests', () => {
           OR: [
             { title: { contains: 'pasta', mode: 'insensitive' } },
             { description: { contains: 'pasta', mode: 'insensitive' } },
-            { cuisine: { contains: 'pasta', mode: 'insensitive' } },
           ],
         },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-        skip: 0,
-        ...authorInclude,
-      });
-    });
-
-    it('should search recipes with cuisine filter', async () => {
-      const searchOptions: RecipeSearchOptions = {
-        filters: { cuisine: 'Italian' },
-      };
-
-      prismaMock.post.findMany.mockResolvedValue([mockPost]);
-
-      const result = await recipeRepository.search(searchOptions);
-
-      expect(result).toHaveLength(1);
-      expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: { cuisine: 'Italian' },
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
@@ -335,7 +315,6 @@ describe('RecipeRepository - Unit Tests', () => {
       const searchOptions: RecipeSearchOptions = {
         query: 'pasta',
         filters: {
-          cuisine: 'Italian',
           difficulty: 'easy',
           maxCookingTime: 60,
           maxPrepTime: 30,
@@ -357,9 +336,7 @@ describe('RecipeRepository - Unit Tests', () => {
           OR: [
             { title: { contains: 'pasta', mode: 'insensitive' } },
             { description: { contains: 'pasta', mode: 'insensitive' } },
-            { cuisine: { contains: 'pasta', mode: 'insensitive' } },
           ],
-          cuisine: 'Italian',
           difficulty: 'easy',
           cookingTime: { lte: 60 },
           prepTime: { lte: 30 },

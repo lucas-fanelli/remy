@@ -366,5 +366,44 @@ describe('IngredientMatchService', () => {
 
       expect(matches).toEqual([]); // Below 50% default
     });
+
+    it('should handle recipe with no ingredients - line 139', async () => {
+      const emptyIngredientRecipe = {
+        ...mockRecipe,
+        ingredients: [],
+      };
+
+      mockRecipeRepository.search.mockResolvedValue([emptyIngredientRecipe]);
+
+      const userIngredients = ['chicken', 'pasta'];
+      const matches = await service.findRecipesByIngredients(userIngredients);
+
+      // Recipe with no ingredients should have 0% match and be filtered out
+      expect(matches).toEqual([]);
+    });
+
+    it('should match simple "s" plurals in both directions - lines 198', () => {
+      // Test word1 + 's' === word2
+      const recipeIngredients1 = ['apple'];
+      const userIngredients1 = ['apples'];
+      expect(service.calculateMatchPercentage(recipeIngredients1, userIngredients1)).toBe(100);
+
+      // Test word2 + 's' === word1
+      const recipeIngredients2 = ['oranges'];
+      const userIngredients2 = ['orange'];
+      expect(service.calculateMatchPercentage(recipeIngredients2, userIngredients2)).toBe(100);
+    });
+
+    it('should match "es" plurals in both directions - line 203', () => {
+      // Test word1 + 'es' === word2
+      const recipeIngredients1 = ['tomato'];
+      const userIngredients1 = ['tomatoes'];
+      expect(service.calculateMatchPercentage(recipeIngredients1, userIngredients1)).toBe(100);
+
+      // Test word2 + 'es' === word1
+      const recipeIngredients2 = ['potatoes'];
+      const userIngredients2 = ['potato'];
+      expect(service.calculateMatchPercentage(recipeIngredients2, userIngredients2)).toBe(100);
+    });
   });
 });
