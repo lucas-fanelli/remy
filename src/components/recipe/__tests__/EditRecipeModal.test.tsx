@@ -56,7 +56,7 @@ const mockRecipe: Recipe = {
   cuisine: 'Italian',
   ingredients: [
     { name: 'Flour', amount: '2', unit: 'cups' },
-    { name: 'Sugar', amount: '1', unit: 'cup' },
+    { name: 'Sugar', amount: '1', unit: 'cups' },
   ],
   instructions: [
     { step: 1, description: 'Mix ingredients', image: '' },
