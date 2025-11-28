@@ -106,8 +106,10 @@ export function middleware(request: NextRequest) {
 
   // Apply rate limiting to API routes only
   if (request.nextUrl.pathname.startsWith('/api')) {
-    // Skip rate limiting for health checks
-    if (request.nextUrl.pathname === '/api/health' || request.nextUrl.pathname === '/api/ready') {
+    // Skip rate limiting and special handling for these routes
+    if (request.nextUrl.pathname === '/api/health' ||
+        request.nextUrl.pathname === '/api/ready' ||
+        request.nextUrl.pathname === '/api/upload') {
       return response;
     }
 
@@ -149,7 +151,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - api/upload (file upload endpoint)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/upload|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
