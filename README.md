@@ -307,6 +307,7 @@ Built with:
 - ✅ **Image Viewer**: Added fullscreen image viewer for recipe and instruction images
 - ✅ **Settings**: Simplified settings page - removed placeholders for language, notifications, and cookie preferences
 - ✅ **Login**: Removed non-functional "Forgot password?" link (feature not yet implemented)
+- ✅ **Theme**: Improved dark mode color palette - softer colors for better eye comfort
 - ✅ **Better UX**: Cleaner layouts and improved form usability
 
 ### v1.0.1 - Production Ready
