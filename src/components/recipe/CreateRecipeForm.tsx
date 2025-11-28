@@ -43,11 +43,6 @@ interface CreateRecipeFormProps {
 
 const steps = ['Recipe Info', 'Ingredients', 'Instructions', 'Review'];
 
-const cuisines = [
-  'Italian', 'Mexican', 'Japanese', 'Chinese', 'Indian', 'French',
-  'Thai', 'Mediterranean', 'American', 'Korean', 'Vietnamese', 'Other'
-];
-
 const commonUnits = [
   'cups', 'tbsp', 'tsp', 'g', 'kg', 'oz', 'lb',
   'ml', 'L', 'pieces', 'pinch', 'to taste', 'whole'
@@ -69,7 +64,6 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
   const [prepTime, setPrepTime] = useState(15);
   const [servings, setServings] = useState(4);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
-  const [cuisine, setCuisine] = useState('Italian');
   const [caption, setCaption] = useState('');
 
   const [ingredients, setIngredients] = useState<Ingredient[]>([
@@ -163,7 +157,6 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         prepTime,
         servings,
         difficulty,
-        cuisine,
         caption,
         ingredients: ingredients.filter(i => i.name.trim()),
         instructions: instructions.filter(i => i.description.trim()),
@@ -224,17 +217,6 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   label="Recipe Image"
                   required
                 />
-              </Grid>
-
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth size={isMobile ? 'small' : 'medium'}>
-                  <InputLabel>Cuisine</InputLabel>
-                  <Select value={cuisine} onChange={(e) => setCuisine(e.target.value)} label="Cuisine">
-                    {cuisines.map((c) => (
-                      <MenuItem key={c} value={c}>{c}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
               </Grid>
 
               <Grid item xs={12} sm={6}>
@@ -402,8 +384,8 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             </Box>
 
             {instructions.map((instruction, index) => (
-              <Card key={index} sx={{ mb: { xs: 1.5, md: 2 }, p: { xs: 1.5, md: 2 } }}>
-                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-start' }, gap: { xs: 1.5, md: 2 } }}>
+              <Card key={index} sx={{ mb: { xs: 1.5, md: 2 }, p: { xs: 2, md: 2.5 } }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Chip
                       label={`Step ${instruction.step}`}
@@ -416,32 +398,20 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       size={isMobile ? 'small' : 'medium'}
                       onClick={() => removeInstruction(index)}
                       disabled={instructions.length === 1}
-                      sx={{ display: { xs: 'block', sm: 'none' } }}
                     >
                       <DeleteIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
                     </IconButton>
                   </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      multiline
-                      rows={isMobile ? 2 : 3}
-                      label={`Step ${instruction.step}`}
-                      value={instruction.description}
-                      onChange={(e) => updateInstruction(index, 'description', e.target.value)}
-                      placeholder="Describe this step in detail..."
-                    />
-                  </Box>
-                  <IconButton
-                    color="error"
-                    size={isMobile ? 'small' : 'medium'}
-                    onClick={() => removeInstruction(index)}
-                    disabled={instructions.length === 1}
-                    sx={{ display: { xs: 'none', sm: 'block' } }}
-                  >
-                    <DeleteIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-                  </IconButton>
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={4}
+                    maxRows={10}
+                    label={`Step ${instruction.step}`}
+                    value={instruction.description}
+                    onChange={(e) => updateInstruction(index, 'description', e.target.value)}
+                    placeholder="Describe this step in detail..."
+                  />
                 </Box>
               </Card>
             ))}
@@ -484,7 +454,6 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                 </Typography>
 
                 <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mb: { xs: 1.5, md: 2 }, flexWrap: 'wrap' }}>
-                  <Chip label={cuisine} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                   <Chip label={difficulty} size="small" color="primary" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                   <Chip label={`${prepTime + cookingTime} min total`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                   <Chip label={`${servings} servings`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />

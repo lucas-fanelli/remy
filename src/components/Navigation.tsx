@@ -39,12 +39,6 @@ import {
   Home,
   HomeOutlined,
   Search,
-  Explore,
-  ExploreOutlined,
-  Movie,
-  MovieOutlined,
-  Send,
-  SendOutlined,
   FavoriteBorder,
   AddBox,
   Menu as MenuIcon,
@@ -123,10 +117,8 @@ export default function Navigation() {
   // Desktop nav items (all items for desktop)
   const desktopNavItems = [
     { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
-    { id: 'search', icon: Search, activeIcon: Search, label: 'Search' },
-    { id: 'explore', icon: ExploreOutlined, activeIcon: Explore, label: 'Explore' },
     { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen, label: 'Pantry' },
-    { id: 'messages', icon: SendOutlined, activeIcon: Send, label: 'Messages' },
+    { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'Create Recipe' },
   ];
 
   // Mobile nav items (simplified for bottom nav)
@@ -148,20 +140,14 @@ export default function Navigation() {
       case 'pantry':
         router.push('/pantry');
         break;
-      case 'explore':
-        // TODO: Add explore page
-        break;
-      case 'messages':
-        // TODO: Add messages page
-        break;
       case 'search':
-        // On mobile, open search dialog; on desktop, handled by search input
+        // On mobile, open search dialog
         if (isMobile) {
           setMobileSearchOpen(true);
         }
         break;
       case 'add':
-        // Open create recipe dialog (mobile only)
+        // Open create recipe dialog
         setCreateRecipeOpen(true);
         break;
       default:
@@ -194,10 +180,6 @@ export default function Navigation() {
       setActiveTab('home');
     } else if (pathname.startsWith('/pantry')) {
       setActiveTab('pantry');
-    } else if (pathname.startsWith('/explore')) {
-      setActiveTab('explore');
-    } else if (pathname.startsWith('/messages')) {
-      setActiveTab('messages');
     }
   }, [pathname]);
 
@@ -521,7 +503,8 @@ export default function Navigation() {
               minWidth: { xs: 0, sm: 150, md: 200, lg: 300 },
               maxWidth: { xs: 'none', md: 400 },
               flex: { xs: 0, sm: '0 1 auto', md: 1 },
-              mx: { xs: 0, sm: 1, md: 2 }
+              mx: { xs: 0, sm: 1, md: 2 },
+              display: { xs: 'none', md: 'block' }
             }}>
               <Box
                 sx={{
@@ -1046,30 +1029,21 @@ export default function Navigation() {
 
       {/* Create Recipe Dialog */}
       <Dialog
-        fullScreen
         open={createRecipeOpen}
         onClose={() => setCreateRecipeOpen(false)}
-        TransitionComponent={Slide}
-        TransitionProps={{ direction: 'up' } as any}
+        maxWidth="md"
+        fullWidth
+        fullScreen={isMobile}
       >
-        <AppBar sx={{ position: 'relative' }}>
-          <Toolbar>
-            <IconButton
-              edge="start"
-              color="inherit"
-              onClick={() => setCreateRecipeOpen(false)}
-              aria-label="close"
-            >
-              <Close />
-            </IconButton>
-            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-              Share Recipe
-            </Typography>
-          </Toolbar>
-        </AppBar>
-        <Box sx={{ overflow: 'auto', p: 2 }}>
-          <CreateRecipeForm onSubmit={handleCreateRecipe} />
-        </Box>
+        <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Create New Recipe</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: { xs: 1, md: 2 } }}>
+            <CreateRecipeForm
+              onSubmit={handleCreateRecipe}
+              onCancel={() => setCreateRecipeOpen(false)}
+            />
+          </Box>
+        </DialogContent>
       </Dialog>
     </>
   );

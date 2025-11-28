@@ -28,6 +28,7 @@ import {
   ListItemSecondaryAction,
   Divider,
   Toolbar,
+  Skeleton,
 } from '@mui/material';
 import {
   Add,
@@ -41,7 +42,6 @@ import { Autocomplete } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import LoadingWithProgress from '@/components/common/LoadingWithProgress';
 
 const MotionCard = motion.create(Card);
 
@@ -68,6 +68,8 @@ export default function PantryPage() {
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -181,11 +183,16 @@ export default function PantryPage() {
     }
   };
 
-  const handleDelete = async (itemId: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+  const handleDeleteClick = (itemId: string) => {
+    setItemToDelete(itemId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
 
     try {
-      const response = await fetch(`/api/pantry/${itemId}`, {
+      const response = await fetch(`/api/pantry/${itemToDelete}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -202,7 +209,15 @@ export default function PantryPage() {
     } catch (error) {
       console.error('Error deleting item:', error);
       setSnackbar({ open: true, message: 'Failed to delete item', severity: 'error' });
+    } finally {
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
   };
 
   // Get all unique categories from items (both predefined and custom)
@@ -273,10 +288,27 @@ export default function PantryPage() {
 
         {/* Items by Category */}
         {loading ? (
-          <Box>
-            <LoadingWithProgress color="primary" inline />
-            <Typography sx={{ textAlign: 'center', mt: 2 }}>Loading your pantry...</Typography>
-          </Box>
+          <Grid container spacing={2}>
+            {[1, 2, 3, 4].map((item) => (
+              <Grid item xs={12} md={6} key={item}>
+                <Card>
+                  <CardContent>
+                    <Skeleton variant="text" width="40%" height={32} sx={{ mb: 2 }} />
+                    <List dense>
+                      {[1, 2, 3].map((i) => (
+                        <ListItem key={i}>
+                          <ListItemText
+                            primary={<Skeleton variant="text" width="60%" />}
+                            secondary={<Skeleton variant="text" width="40%" />}
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
         ) : filteredItems.length === 0 ? (
           <Card sx={{ p: 6, textAlign: 'center' }}>
             <Kitchen sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
@@ -330,7 +362,7 @@ export default function PantryPage() {
                                 <IconButton
                                   edge="end"
                                   size="small"
-                                  onClick={() => handleDelete(item.id)}
+                                  onClick={() => handleDeleteClick(item.id)}
                                   color="error"
                                 >
                                   <Delete fontSize="small" />
@@ -427,6 +459,29 @@ export default function PantryPage() {
             <Button onClick={handleCloseDialog}>Cancel</Button>
             <Button onClick={handleSubmit} variant="contained">
               {editingItem ? 'Update' : 'Add'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={handleDeleteCancel}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Delete Pantry Item?</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete this item from your pantry? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDeleteCancel} color="inherit">
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+              Delete
             </Button>
           </DialogActions>
         </Dialog>

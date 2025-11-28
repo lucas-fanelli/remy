@@ -11,7 +11,6 @@ import {
   Avatar,
   Card,
   CardContent,
-  CircularProgress,
   Alert,
   Paper,
   Dialog,
@@ -37,7 +36,6 @@ import {
   Share,
   BookmarkBorder,
   Bookmark,
-  ShoppingCart,
 } from '@mui/icons-material';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -45,7 +43,6 @@ import { Recipe } from '@/domain/types/recipe';
 import { useAuth } from '@/contexts/AuthContext';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import CommentsSection from '@/components/recipe/CommentsSection';
-import LoadingWithProgress from '@/components/common/LoadingWithProgress';
 
 const MotionBox = motion.create(Box);
 const MotionCard = motion.create(Card);
@@ -69,7 +66,7 @@ export default function RecipeDetailPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [likeLoading, setLikeLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
-  const [shoppingListLoading, setShoppingListLoading] = useState(false);
+  const [cookedLoading, setCookedLoading] = useState(false);
 
   const recipeId = params.id as string;
   const isOwner = user && recipe && user.id === recipe.userId;
@@ -274,54 +271,44 @@ export default function RecipeDetailPage() {
     }
   };
 
-  const handleCreateShoppingList = async () => {
+  const handleMarkAsCooked = async () => {
     if (!token) {
-      setSnackbar({ open: true, message: 'Please login to create shopping lists', severity: 'error' });
+      setSnackbar({ open: true, message: 'Please login to mark recipes as cooked', severity: 'error' });
       return;
     }
 
     try {
-      setShoppingListLoading(true);
-      const response = await fetch('/api/shopping-list', {
+      setCookedLoading(true);
+      const response = await fetch('/api/cooked-recipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          recipeId: recipeId,
-          recipeName: recipe?.title,
+          postId: recipeId,
         }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data.missingCount === 0) {
-          setSnackbar({
-            open: true,
-            message: 'You have all ingredients for this recipe!',
-            severity: 'success',
-          });
-        } else {
-          setSnackbar({
-            open: true,
-            message: data.message || 'Shopping list created!',
-            severity: 'success',
-          });
-        }
+        setSnackbar({
+          open: true,
+          message: 'Recipe marked as cooked!',
+          severity: 'success',
+        });
       } else {
         const error = await response.json();
         setSnackbar({
           open: true,
-          message: error.error || 'Failed to create shopping list',
+          message: error.error || 'Failed to mark recipe as cooked',
           severity: 'error',
         });
       }
     } catch (error) {
-      console.error('Error creating shopping list:', error);
-      setSnackbar({ open: true, message: 'Failed to create shopping list', severity: 'error' });
+      console.error('Error marking recipe as cooked:', error);
+      setSnackbar({ open: true, message: 'Failed to mark recipe as cooked', severity: 'error' });
     } finally {
-      setShoppingListLoading(false);
+      setCookedLoading(false);
     }
   };
 
@@ -343,8 +330,6 @@ export default function RecipeDetailPage() {
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         <Toolbar />
         <Container maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, pb: { xs: 6, md: 8 }, px: { xs: 2, md: 3 } }}>
-          <LoadingWithProgress color="primary" inline />
-
           {/* Recipe Image Skeleton */}
           <Skeleton variant="rectangular" width="100%" height={{ xs: 250, sm: 350, md: 400 }} sx={{ borderRadius: 2, mb: { xs: 2, md: 3 } }} />
 
@@ -460,13 +445,6 @@ export default function RecipeDetailPage() {
                 }}
               />
               <Chip
-                icon={<Restaurant sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
-                label={recipe.cuisine}
-                variant="outlined"
-                size={isMobile ? 'small' : 'medium'}
-                sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-              />
-              <Chip
                 icon={<Person sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
                 label={`${recipe.servings} servings`}
                 variant="outlined"
@@ -553,14 +531,54 @@ export default function RecipeDetailPage() {
             )}
             <Button
               variant="outlined"
-              startIcon={<ShoppingCart />}
-              onClick={handleCreateShoppingList}
-              disabled={shoppingListLoading}
+              startIcon={<Restaurant />}
+              onClick={handleMarkAsCooked}
+              disabled={cookedLoading}
               size={isMobile ? 'medium' : 'large'}
               fullWidth={isMobile}
             >
-              {shoppingListLoading ? 'Creating...' : 'Shopping List'}
+              {cookedLoading ? 'Marking...' : 'Mark as Cooked'}
             </Button>
+            {isOwner && (
+              <>
+                <IconButton
+                  onClick={handleEdit}
+                  color="primary"
+                  size={isMobile ? 'medium' : 'large'}
+                  sx={{
+                    border: 1,
+                    borderColor: 'primary.main',
+                    '&:hover': {
+                      backgroundColor: 'primary.main',
+                      color: 'white',
+                      '& .MuiSvgIcon-root': {
+                        color: 'white',
+                      },
+                    },
+                  }}
+                >
+                  <Edit />
+                </IconButton>
+                <IconButton
+                  onClick={handleDelete}
+                  color="error"
+                  size={isMobile ? 'medium' : 'large'}
+                  sx={{
+                    border: 1,
+                    borderColor: 'error.main',
+                    '&:hover': {
+                      backgroundColor: 'error.main',
+                      color: 'white',
+                      '& .MuiSvgIcon-root': {
+                        color: 'white',
+                      },
+                    },
+                  }}
+                >
+                  <Delete />
+                </IconButton>
+              </>
+            )}
           </Box>
 
           <Divider sx={{ my: { xs: 2, md: 3 } }} />

@@ -294,5 +294,21 @@ Built with:
 
 **Built with ❤️ - Share • Discover • Create Amazing Recipes** 🍽️
 
+---
 
-*v1.0.1 - Production Ready*
+## 📝 Changelog
+
+### v1.0.2 - UX & UI Improvements (Latest)
+- ✅ **Search System**: Fixed search bar visibility on desktop/mobile
+- ✅ **Recipe Forms**: Improved instruction text fields with auto-expand (4-10 rows)
+- ✅ **Recipe Details**: Added Edit/Delete buttons for recipe owners
+- ✅ **Dark Mode**: Fixed image upload component for dark mode compatibility
+- ✅ **Pantry**: Replaced browser confirm with Material UI dialog for delete actions
+- ✅ **Better UX**: Cleaner layouts and improved form usability
+
+### v1.0.1 - Production Ready
+- Initial production release with 98.68% test coverage
+
+---
+
+*v1.0.2 - Enhanced User Experience*

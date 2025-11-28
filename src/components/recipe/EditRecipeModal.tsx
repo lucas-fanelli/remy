@@ -49,11 +49,6 @@ interface EditRecipeModalProps {
 
 const steps = ['Recipe Info', 'Ingredients', 'Instructions', 'Review'];
 
-const cuisines = [
-  'Italian', 'Mexican', 'Japanese', 'Chinese', 'Indian', 'French',
-  'Thai', 'Mediterranean', 'American', 'Korean', 'Vietnamese', 'Other'
-];
-
 const commonUnits = [
   'cups', 'tbsp', 'tsp', 'g', 'kg', 'oz', 'lb',
   'ml', 'L', 'pieces', 'pinch', 'to taste', 'whole'
@@ -76,7 +71,6 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
   const [prepTime, setPrepTime] = useState(15);
   const [servings, setServings] = useState(4);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
-  const [cuisine, setCuisine] = useState('Italian');
   const [caption, setCaption] = useState('');
   const [ingredients, setIngredients] = useState<Ingredient[]>([
     { name: '', amount: '', unit: '' },
@@ -95,7 +89,6 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
       setPrepTime(recipe.prepTime);
       setServings(recipe.servings);
       setDifficulty(recipe.difficulty);
-      setCuisine(recipe.cuisine);
       setCaption(recipe.caption || '');
       setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : [{ name: '', amount: '', unit: '' }]);
       setInstructions(recipe.instructions.length > 0 ? recipe.instructions : [{ step: 1, description: '', image: '' }]);
@@ -189,7 +182,6 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         prepTime,
         servings,
         difficulty,
-        cuisine,
         ingredients,
         instructions,
         caption: caption || undefined,
@@ -309,20 +301,6 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <FormControl fullWidth required>
-                  <InputLabel>Cuisine</InputLabel>
-                  <Select
-                    value={cuisine}
-                    label="Cuisine"
-                    onChange={(e) => setCuisine(e.target.value)}
-                  >
-                    {cuisines.map((c) => (
-                      <MenuItem key={c} value={c}>{c}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
             </Grid>
 
             <TextField
@@ -419,14 +397,13 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
 
             {instructions.map((instruction, index) => (
               <Card key={index} variant="outlined">
-                <CardContent sx={{ p: { xs: 1.5, md: 2 }, '&:last-child': { pb: { xs: 1.5, md: 2 } } }}>
+                <CardContent sx={{ p: { xs: 2, md: 2.5 }, '&:last-child': { pb: { xs: 2, md: 2.5 } } }}>
                   <Box sx={{
                     display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    gap: { xs: 1.5, md: 2 },
-                    alignItems: { xs: 'flex-start', sm: 'flex-start' }
+                    flexDirection: 'column',
+                    gap: 2
                   }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Chip
                         label={`Step ${instruction.step}`}
                         color="primary"
@@ -436,24 +413,22 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                         onClick={() => handleRemoveInstruction(index)}
                         color="error"
                         disabled={instructions.length === 1}
-                        size="small"
-                        sx={{ display: { sm: 'none' } }}
+                        size={isMobile ? 'small' : 'medium'}
                       >
                         <DeleteIcon />
                       </IconButton>
                     </Box>
-                    <Box sx={{ flex: 1, width: '100%' }}>
-                      <TextField
-                        label="Instruction"
-                        value={instruction.description}
-                        onChange={(e) => handleInstructionChange(index, 'description', e.target.value)}
-                        fullWidth
-                        required
-                        multiline
-                        rows={2}
-                        placeholder="Describe this step..."
-                        size="small"
-                      />
+                    <TextField
+                      label="Instruction"
+                      value={instruction.description}
+                      onChange={(e) => handleInstructionChange(index, 'description', e.target.value)}
+                      fullWidth
+                      required
+                      multiline
+                      minRows={4}
+                      maxRows={10}
+                      placeholder="Describe this step in detail..."
+                    />
                       <TextField
                         label="Image URL (optional)"
                         value={instruction.image || ''}
@@ -504,7 +479,6 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               <Typography><strong>Time:</strong> {prepTime}min prep + {cookingTime}min cook</Typography>
               <Typography><strong>Servings:</strong> {servings}</Typography>
               <Typography><strong>Difficulty:</strong> {difficulty}</Typography>
-              <Typography><strong>Cuisine:</strong> {cuisine}</Typography>
             </Box>
 
             <Box>

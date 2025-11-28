@@ -155,14 +155,14 @@ export default function ImageUpload({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'grey.100',
+            backgroundColor: 'action.hover',
             border: 2,
-            borderColor: required && !value ? 'error.main' : 'grey.300',
+            borderColor: required && !value ? 'error.main' : 'divider',
             borderStyle: 'dashed',
             cursor: 'pointer',
             transition: 'all 0.3s',
             '&:hover': {
-              backgroundColor: 'grey.200',
+              backgroundColor: 'action.selected',
               borderColor: 'primary.main',
             },
           }}
@@ -178,8 +178,8 @@ export default function ImageUpload({
               </>
             ) : (
               <>
-                <ImageIcon sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
-                <Typography variant="body1" gutterBottom>
+                <ImageIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="body1" gutterBottom color="text.primary">
                   Click to upload an image
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
