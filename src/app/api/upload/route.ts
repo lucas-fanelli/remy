@@ -4,6 +4,9 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+// Disable body parsing for file uploads in Next.js 15
+export const runtime = 'nodejs';
+
 /**
  * POST /api/upload - Upload an image file
  *

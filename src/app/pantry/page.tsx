@@ -422,15 +422,14 @@ export default function PantryPage() {
                 options={allCategories}
                 value={formData.category}
                 onChange={(event, newValue) => {
-                  if (newValue) {
-                    const value = typeof newValue === 'string' ? newValue.toLowerCase().trim() : newValue;
-                    setFormData({ ...formData, category: value });
-                  }
+                  // Allow null/empty values
+                  const value = newValue ? (typeof newValue === 'string' ? newValue.toLowerCase().trim() : newValue) : '';
+                  setFormData({ ...formData, category: value });
                 }}
                 onInputChange={(event, newInputValue, reason) => {
                   // When user types, pastes, or clears, update the category
                   if (reason === 'input' || reason === 'clear') {
-                    const value = newInputValue ? newInputValue.toLowerCase().trim() : 'other';
+                    const value = newInputValue.toLowerCase().trim();
                     setFormData({ ...formData, category: value });
                   }
                 }}
@@ -473,7 +472,7 @@ export default function PantryPage() {
           <DialogTitle>Delete Pantry Item?</DialogTitle>
           <DialogContent>
             <Typography>
-              Are you sure you want to delete this item from your pantry? This action cannot be undone.
+              Ingredient will be permanently removed from your account and all synced devices
             </Typography>
           </DialogContent>
           <DialogActions>
