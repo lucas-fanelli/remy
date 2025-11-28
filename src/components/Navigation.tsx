@@ -246,10 +246,14 @@ export default function Navigation() {
           const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
           if (response.ok) {
             const data = await response.json();
-            setSearchResults(data);
+            setSearchResults(data || { users: [], recipes: [] });
+          } else {
+            // If search fails, show empty results instead of keeping old results
+            setSearchResults({ users: [], recipes: [] });
           }
         } catch (error) {
           console.error('Search error:', error);
+          setSearchResults({ users: [], recipes: [] });
         } finally {
           setSearchLoading(false);
         }

@@ -14,12 +14,26 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Upload] Request received');
     const formData = await request.formData();
+    console.log('[Upload] FormData parsed');
     const file = formData.get('file') as File;
 
+    console.log('[Upload] File from formData:', file ? `${file.name} (${file.type}, ${file.size} bytes)` : 'null');
+
     if (!file) {
+      console.error('[Upload] No file in formData');
       return NextResponse.json(
         { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    // Check if file is actually a File instance
+    if (!(file instanceof File)) {
+      console.error('[Upload] File is not a File instance:', typeof file);
+      return NextResponse.json(
+        { error: 'Invalid file object' },
         { status: 400 }
       );
     }
@@ -27,6 +41,7 @@ export async function POST(request: NextRequest) {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
+      console.error('[Upload] Invalid file type:', file.type);
       return NextResponse.json(
         { error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' },
         { status: 400 }
@@ -44,22 +59,33 @@ export async function POST(request: NextRequest) {
 
     // Create uploads directory if it doesn't exist
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    console.log('[Upload] Uploads directory:', uploadsDir);
+
     if (!existsSync(uploadsDir)) {
+      console.log('[Upload] Creating uploads directory...');
       await mkdir(uploadsDir, { recursive: true });
+      console.log('[Upload] Directory created');
     }
 
     // Generate unique filename
     const fileExtension = path.extname(file.name);
     const fileName = `${uuidv4()}${fileExtension}`;
     const filePath = path.join(uploadsDir, fileName);
+    console.log('[Upload] File path:', filePath);
 
     // Convert file to buffer and save
+    console.log('[Upload] Converting file to buffer...');
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    console.log('[Upload] Buffer size:', buffer.length);
+
+    console.log('[Upload] Writing file...');
     await writeFile(filePath, buffer);
+    console.log('[Upload] File written successfully');
 
     // Return the URL to access the uploaded file
     const fileUrl = `/uploads/${fileName}`;
+    console.log('[Upload] File URL:', fileUrl);
 
     return NextResponse.json({
       success: true,
@@ -69,9 +95,10 @@ export async function POST(request: NextRequest) {
       type: file.type,
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('[Upload] Error uploading file:', error);
+    console.error('[Upload] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to upload file' },
+      { error: error instanceof Error ? error.message : 'Failed to upload file' },
       { status: 500 }
     );
   }

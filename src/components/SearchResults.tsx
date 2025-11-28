@@ -11,7 +11,7 @@ import {
   Avatar,
   Typography,
   Divider,
-  CircularProgress,
+  Skeleton,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -30,7 +30,6 @@ interface Recipe {
   title: string;
   description: string;
   imageUrl: string;
-  cuisine: string;
 }
 
 interface SearchResultsProps {
@@ -62,7 +61,8 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
     onClose();
   };
 
-  if (!query) return null;
+  // Don't show anything if query is empty or only whitespace
+  if (!query || query.trim().length === 0) return null;
 
   const hasResults = users.length > 0 || recipes.length > 0;
 
@@ -86,9 +86,22 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
       }}
     >
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-          <CircularProgress size={24} />
-        </Box>
+        <List sx={{ py: 0 }}>
+          {[...Array(3)].map((_, index) => (
+            <React.Fragment key={`skeleton-${index}`}>
+              {index > 0 && <Divider />}
+              <ListItem>
+                <ListItemAvatar>
+                  <Skeleton variant="circular" width={40} height={40} />
+                </ListItemAvatar>
+                <ListItemText
+                  primary={<Skeleton variant="text" width="60%" />}
+                  secondary={<Skeleton variant="text" width="40%" />}
+                />
+              </ListItem>
+            </React.Fragment>
+          ))}
+        </List>
       ) : !hasResults ? (
         <Box sx={{ py: { xs: 2, md: 3 }, px: { xs: 1.5, md: 2 }, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
@@ -204,8 +217,8 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                 <ListItemText
                   primary={recipe.title}
                   secondary={isMobile
-                    ? recipe.cuisine
-                    : `${recipe.cuisine} • ${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
+                    ? null
+                    : `${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
                   }
                   primaryTypographyProps={{
                     fontWeight: 600,
