@@ -37,6 +37,7 @@ import {
   Kitchen,
   FilterList,
   ArrowBack,
+  Search,
 } from '@mui/icons-material';
 import { Autocomplete } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,6 +71,9 @@ export default function PantryPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [existingItem, setExistingItem] = useState<PantryItem | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -138,13 +142,31 @@ export default function PantryPage() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.quantity || parseFloat(formData.quantity) <= 0) {
-      setSnackbar({ open: true, message: 'Please fill in all required fields', severity: 'error' });
+    if (!formData.name.trim()) {
+      setSnackbar({ open: true, message: 'Please enter ingredient name', severity: 'error' });
       return;
+    }
+
+    // Check if ingredient already exists (case-insensitive)
+    if (!editingItem) {
+      const existingIngredient = items.find(
+        item => item.name.toLowerCase() === formData.name.trim().toLowerCase()
+      );
+
+      if (existingIngredient) {
+        setExistingItem(existingIngredient);
+        setModifyDialogOpen(true);
+        return;
+      }
     }
 
     // Use the category from formData, trim it, and default to 'other' only if empty
     const categoryToSave = formData.category.trim() || 'other';
+
+    // Support "to taste" - use 0 for quantity if not provided
+    const quantity = formData.quantity && parseFloat(formData.quantity) > 0
+      ? parseFloat(formData.quantity)
+      : 0;
 
     try {
       const url = editingItem ? `/api/pantry/${editingItem.id}` : '/api/pantry';
@@ -158,7 +180,7 @@ export default function PantryPage() {
         },
         body: JSON.stringify({
           name: formData.name.trim(),
-          quantity: parseFloat(formData.quantity),
+          quantity: quantity,
           unit: formData.unit,
           category: categoryToSave,
           notes: formData.notes.trim() || null,
@@ -181,6 +203,19 @@ export default function PantryPage() {
       console.error('Error saving item:', error);
       setSnackbar({ open: true, message: 'Failed to save item', severity: 'error' });
     }
+  };
+
+  const handleModifyExisting = () => {
+    if (existingItem) {
+      handleOpenDialog(existingItem);
+      setModifyDialogOpen(false);
+      setExistingItem(null);
+    }
+  };
+
+  const handleCancelModify = () => {
+    setModifyDialogOpen(false);
+    setExistingItem(null);
   };
 
   const handleDeleteClick = (itemId: string) => {
@@ -227,9 +262,13 @@ export default function PantryPage() {
     return Array.from(combined).sort();
   }, [items]);
 
-  const filteredItems = items.filter(item =>
-    categoryFilter === 'all' || item.category === categoryFilter
-  );
+  const filteredItems = items.filter(item => {
+    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+    const matchesSearch = !searchQuery ||
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.notes && item.notes.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
 
   const groupedItems = filteredItems.reduce((acc, item) => {
     const category = item.category || 'other';
@@ -263,26 +302,39 @@ export default function PantryPage() {
           </Button>
         </Box>
 
-        {/* Filter */}
+        {/* Search and Filter */}
         <Card sx={{ mb: 3, p: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <FilterList />
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Filter by Category</InputLabel>
-              <Select
-                value={categoryFilter}
-                label="Filter by Category"
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <MenuItem value="all">All Categories</MenuItem>
-                {allCategories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Chip label={`${filteredItems.length} items`} color="primary" />
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+            <TextField
+              placeholder="Search ingredients..."
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoComplete="off"
+              InputProps={{
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+              sx={{ flex: 1 }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FilterList />
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>Filter by Category</InputLabel>
+                <Select
+                  value={categoryFilter}
+                  label="Filter by Category"
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <MenuItem value="all">All Categories</MenuItem>
+                  {allCategories.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Chip label={`${filteredItems.length} items`} color="primary" />
+            </Box>
           </Box>
         </Card>
 
@@ -348,7 +400,7 @@ export default function PantryPage() {
                             <ListItem>
                               <ListItemText
                                 primary={item.name}
-                                secondary={`${item.quantity} ${item.unit}${item.notes ? ` • ${item.notes}` : ''}`}
+                                secondary={`${item.quantity === 0 ? 'to taste' : `${item.quantity} ${item.unit}`}${item.notes ? ` • ${item.notes}` : ''}`}
                               />
                               <ListItemSecondaryAction>
                                 <IconButton
@@ -392,15 +444,17 @@ export default function PantryPage() {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                autoComplete="off"
               />
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
-                  label="Quantity"
+                  label="Quantity (optional)"
                   type="number"
-                  required
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  helperText="Leave empty for 'to taste'"
                   sx={{ flex: 1 }}
+                  autoComplete="off"
                 />
                 <FormControl sx={{ flex: 1 }}>
                   <InputLabel>Unit</InputLabel>
@@ -451,6 +505,7 @@ export default function PantryPage() {
                 rows={2}
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                autoComplete="off"
               />
             </Box>
           </DialogContent>
@@ -481,6 +536,32 @@ export default function PantryPage() {
             </Button>
             <Button onClick={handleDeleteConfirm} color="error" variant="contained">
               Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Modify Existing Ingredient Dialog */}
+        <Dialog
+          open={modifyDialogOpen}
+          onClose={handleCancelModify}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Ingredient Already Exists</DialogTitle>
+          <DialogContent>
+            <Typography>
+              {existingItem?.name} already exists in your pantry with {existingItem?.quantity === 0 ? 'to taste' : `${existingItem?.quantity} ${existingItem?.unit}`}.
+            </Typography>
+            <Typography sx={{ mt: 2 }}>
+              Would you like to modify the existing ingredient?
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCancelModify} color="inherit">
+              Cancel
+            </Button>
+            <Button onClick={handleModifyExisting} color="primary" variant="contained">
+              Modify Existing
             </Button>
           </DialogActions>
         </Dialog>

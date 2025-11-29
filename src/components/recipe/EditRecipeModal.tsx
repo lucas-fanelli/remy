@@ -230,6 +230,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               fullWidth
               required
               placeholder="e.g., Classic Spaghetti Carbonara"
+              autoComplete="off"
             />
 
             <TextField
@@ -241,6 +242,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               multiline
               rows={3}
               placeholder="Brief description of your recipe"
+              autoComplete="off"
             />
 
             <ImageUpload
@@ -260,6 +262,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   fullWidth
                   required
                   inputProps={{ min: 1, max: 720 }}
+                  autoComplete="off"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -271,6 +274,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   fullWidth
                   required
                   inputProps={{ min: 0, max: 480 }}
+                  autoComplete="off"
                 />
               </Grid>
             </Grid>
@@ -285,6 +289,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   fullWidth
                   required
                   inputProps={{ min: 1, max: 100 }}
+                  autoComplete="off"
                 />
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -311,6 +316,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               multiline
               rows={2}
               placeholder="A personal note about your recipe"
+              autoComplete="off"
             />
           </Box>
         );
@@ -339,6 +345,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       required
                       placeholder="e.g., Tomatoes"
                       size="small"
+                      autoComplete="off"
                     />
                     <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
                       <TextField
@@ -349,6 +356,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                         placeholder="2"
                         size="small"
                         sx={{ width: { xs: '100px', sm: '100px' } }}
+                        autoComplete="off"
                       />
                       <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 120 } }} required>
                         <InputLabel>Unit</InputLabel>
@@ -428,14 +436,12 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       minRows={4}
                       maxRows={10}
                       placeholder="Describe this step in detail..."
+                      autoComplete="off"
                     />
-                    <TextField
-                      label="Image URL (optional)"
+                    <ImageUpload
                       value={instruction.image || ''}
-                      onChange={(e) => handleInstructionChange(index, 'image', e.target.value)}
-                      fullWidth
-                      placeholder="https://example.com/step-image.jpg"
-                      size="small"
+                      onChange={(url) => handleInstructionChange(index, 'image', url)}
+                      label={`Step ${instruction.step} Image (optional)`}
                     />
                   </Box>
                 </CardContent>

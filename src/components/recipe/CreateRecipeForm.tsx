@@ -190,6 +190,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   onChange={(e) => setTitle(e.target.value)}
                   required
                   placeholder="e.g., Grandma's Chocolate Chip Cookies"
+                  autoComplete="off"
                 />
               </Grid>
 
@@ -207,6 +208,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   helperText={`${description.length}/500 characters`}
                   error={description.length > 500}
                   inputProps={{ maxLength: 500 }}
+                  autoComplete="off"
                 />
               </Grid>
 
@@ -243,6 +245,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   value={prepTime}
                   onChange={(e) => setPrepTime(Number(e.target.value))}
                   required
+                  autoComplete="off"
                 />
               </Grid>
 
@@ -255,6 +258,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   value={cookingTime}
                   onChange={(e) => setCookingTime(Number(e.target.value))}
                   required
+                  autoComplete="off"
                 />
               </Grid>
 
@@ -267,6 +271,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   value={servings}
                   onChange={(e) => setServings(Number(e.target.value))}
                   required
+                  autoComplete="off"
                 />
               </Grid>
 
@@ -278,6 +283,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   placeholder="Share your thoughts about this recipe..."
+                  autoComplete="off"
                 />
               </Grid>
             </Grid>
@@ -314,6 +320,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       value={ingredient.name}
                       onChange={(e) => updateIngredient(index, 'name', e.target.value)}
                       placeholder="e.g., All-purpose flour"
+                      autoComplete="off"
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>
@@ -324,6 +331,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       value={ingredient.amount}
                       onChange={(e) => updateIngredient(index, 'amount', e.target.value)}
                       placeholder="2"
+                      autoComplete="off"
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>
@@ -411,6 +419,12 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                     value={instruction.description}
                     onChange={(e) => updateInstruction(index, 'description', e.target.value)}
                     placeholder="Describe this step in detail..."
+                    autoComplete="off"
+                  />
+                  <ImageUpload
+                    value={instruction.image || ''}
+                    onChange={(url) => updateInstruction(index, 'image', url)}
+                    label={`Step ${instruction.step} Image (optional)`}
                   />
                 </Box>
               </Card>
