@@ -107,8 +107,8 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
       case 1:
         return ingredients.length > 0 && ingredients.every(ing =>
           ing.name.trim() !== '' &&
-          ing.amount.trim() !== '' &&
-          ing.unit.trim() !== ''
+          ing.unit.trim() !== '' &&
+          (ing.unit === 'to taste' || ing.amount.trim() !== '')
         );
       case 2:
         return instructions.every(inst => inst.description.trim() !== '');
@@ -142,6 +142,12 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
   const handleIngredientChange = (index: number, field: keyof Ingredient, value: string) => {
     const newIngredients = [...ingredients];
     newIngredients[index] = { ...newIngredients[index], [field]: value };
+
+    // Clear amount when "to taste" is selected
+    if (field === 'unit' && value === 'to taste') {
+      newIngredients[index].amount = '';
+    }
+
     setIngredients(newIngredients);
   };
 
@@ -183,7 +189,8 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         servings: typeof servings === 'number' ? servings : 4,
         difficulty,
         ingredients: ingredients.filter(i =>
-          i.name.trim() !== '' && i.amount.trim() !== '' && i.unit.trim() !== ''
+          i.name.trim() !== '' && i.unit.trim() !== '' &&
+          (i.unit === 'to taste' || i.amount.trim() !== '')
         ),
         instructions: instructions.filter(i => i.description.trim() !== ''),
         caption: caption || undefined,
@@ -327,7 +334,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Each ingredient needs name, amount, and unit. Remove empty rows if not needed.
+              Select "to taste" for ingredients without specific amounts. Amount is optional for "to taste" ingredients.
             </Typography>
 
             {ingredients.map((ingredient, index) => (
@@ -352,15 +359,16 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                     />
                     <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
                       <TextField
-                        label="Amount"
+                        label={ingredient.unit === 'to taste' ? 'Amount' : 'Amount'}
                         value={ingredient.amount}
                         onChange={(e) => handleIngredientChange(index, 'amount', e.target.value)}
-                        required
+                        required={ingredient.unit !== 'to taste'}
                         placeholder="2"
                         size="small"
                         sx={{ width: { xs: '100px', sm: '100px' } }}
                         autoComplete="off"
-                        error={ingredient.amount === '' && ingredient.name !== ''}
+                        error={ingredient.amount === '' && ingredient.name !== '' && ingredient.unit !== 'to taste'}
+                        disabled={ingredient.unit === 'to taste'}
                       />
                       <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 120 } }} required error={!ingredient.unit && ingredient.name !== ''}>
                         <InputLabel>Unit</InputLabel>

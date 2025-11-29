@@ -87,7 +87,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
       case 1: // Ingredients
         return ingredients.some(i => i.name.trim() !== '') &&
                ingredients.filter(i => i.name.trim()).every(i =>
-                 i.amount.trim() !== '' && i.unit.trim() !== ''
+                 i.unit.trim() !== '' && (i.unit === 'to taste' || i.amount.trim() !== '')
                );
       case 2: // Instructions
         return instructions.some(i => i.description.trim() !== '');
@@ -126,6 +126,12 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
   const updateIngredient = (index: number, field: keyof Ingredient, value: string) => {
     const updated = [...ingredients];
     updated[index] = { ...updated[index], [field]: value };
+
+    // Clear amount when "to taste" is selected
+    if (field === 'unit' && value === 'to taste') {
+      updated[index].amount = '';
+    }
+
     setIngredients(updated);
   };
 
@@ -164,7 +170,8 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         difficulty,
         caption,
         ingredients: ingredients.filter(i =>
-          i.name.trim() !== '' && i.amount.trim() !== '' && i.unit.trim() !== ''
+          i.name.trim() !== '' && i.unit.trim() !== '' &&
+          (i.unit === 'to taste' || i.amount.trim() !== '')
         ),
         instructions: instructions.filter(i => i.description.trim()),
         userId: '', // Will be set by the API from session
@@ -312,7 +319,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                 Add all ingredients with amounts and units (e.g., &ldquo;2 cups flour&rdquo;, &ldquo;1 tsp salt&rdquo;)
               </Typography>
               <Alert severity="info" sx={{ mt: 1, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                💡 Tip: Each ingredient needs name, amount, and unit. Remove empty ingredient rows if not needed.
+                💡 Tip: Select "to taste" as unit for ingredients without specific amounts (like salt, pepper). Amount field is optional for "to taste" ingredients.
               </Alert>
             </Box>
 
@@ -335,12 +342,13 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                     <TextField
                       fullWidth
                       size="small"
-                      label="Amount *"
+                      label={ingredient.unit === 'to taste' ? 'Amount' : 'Amount *'}
                       value={ingredient.amount}
                       onChange={(e) => updateIngredient(index, 'amount', e.target.value)}
                       placeholder="2"
                       autoComplete="off"
-                      error={ingredient.amount === '' && ingredient.name !== ''}
+                      error={ingredient.amount === '' && ingredient.name !== '' && ingredient.unit !== 'to taste'}
+                      disabled={ingredient.unit === 'to taste'}
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>
