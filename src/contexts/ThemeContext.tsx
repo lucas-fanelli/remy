@@ -20,16 +20,43 @@ export function useThemeMode() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Initialize mode from localStorage or default to 'light'
-  // Using a function to only run once on mount
-  const [mode, setMode] = useState<'light' | 'dark'>(() => {
-    // Only access localStorage on client
-    if (typeof window !== 'undefined') {
+  // Initialize with light mode for SSR, then sync with localStorage
+  const [mode, setMode] = useState<'light' | 'dark'>('light');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const hasMounted = React.useRef(false);
+
+  // Sync theme from localStorage after hydration is complete
+  React.useEffect(() => {
+    // Wait longer to ensure hydration has fully completed on all devices
+    const hydrationTimer = setTimeout(() => {
+      hasMounted.current = true;
       const savedMode = localStorage.getItem('themeMode') as 'light' | 'dark' | null;
-      return savedMode || 'light';
-    }
-    return 'light';
-  });
+      if (savedMode && savedMode !== mode) {
+        setMode(savedMode);
+      }
+    }, 50);
+
+    return () => clearTimeout(hydrationTimer);
+  }, []);
+
+  // Show content only after mode has been set and rendered
+  React.useEffect(() => {
+    if (!hasMounted.current) return;
+
+    // Wait for React to finish rendering with the correct theme
+    const showTimer = setTimeout(() => {
+      document.documentElement.classList.remove('loading');
+      document.documentElement.classList.add('theme-ready');
+    }, 150);
+
+    // Enable transitions
+    const transitionTimer = setTimeout(() => setIsInitialLoad(false), 400);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(transitionTimer);
+    };
+  }, [mode]);
 
   const toggleTheme = () => {
     setMode((prevMode) => {
@@ -45,17 +72,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         palette: {
           mode,
           // Light mode: Rich, saturated colors
-          // Dark mode: Softer, more muted colors for comfort
+          // Dark mode: Modern neutral with teal accents
           primary: mode === 'light' ? {
             main: BRANDING.colors.primary,    // #673AB7 - Rich purple
             light: '#9575CD',                  // Medium purple
             dark: BRANDING.colors.secondary,   // #512DA8 - Deep purple
             contrastText: '#FFFFFF',
           } : {
-            main: '#B39DDB',                   // Softer purple for dark mode
-            light: '#D1C4E9',                  // Light purple
-            dark: '#9575CD',                   // Medium purple
-            contrastText: '#000000',
+            main: '#26A69A',                   // Modern teal for dark mode
+            light: '#4DB6AC',                  // Light teal
+            dark: '#00897B',                   // Deep teal
+            contrastText: '#FFFFFF',
           },
           secondary: mode === 'light' ? {
             main: BRANDING.colors.accent,      // #FFC107 - Golden yellow
@@ -63,9 +90,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             dark: '#FFA000',                   // Dark amber
             contrastText: '#000000',
           } : {
-            main: '#FFD54F',                   // Softer yellow for dark mode
-            light: '#FFE082',                  // Light yellow
-            dark: '#FFCA28',                   // Medium yellow
+            main: '#80CBC4',                   // Soft teal accent for dark mode
+            light: '#B2DFDB',                  // Very light teal
+            dark: '#4DB6AC',                   // Medium teal
             contrastText: '#000000',
           },
           error: mode === 'light' ? {
@@ -108,17 +135,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             default: '#FAFAFA',                // Light gray (clean background)
             paper: '#FFFFFF',                  // White surfaces
           } : {
-            default: '#0A0A0A',                // True dark background
-            paper: '#1A1A1A',                  // Slightly lighter dark surfaces
+            default: '#1E1E1E',                // Lighter dark background
+            paper: '#2C2C2C',                  // Lighter elevated surfaces
           },
           text: mode === 'light' ? {
             primary: '#212121',                // Almost black (high contrast)
             secondary: '#616161',              // Medium gray
             disabled: '#9E9E9E',               // Light gray
           } : {
-            primary: '#E0E0E0',                // Soft white (easier on eyes)
-            secondary: '#A0A0A0',              // Medium gray
-            disabled: '#707070',               // Darker gray
+            primary: '#E8E8E8',                // High contrast white for dark mode
+            secondary: '#B0B0B0',              // Medium gray
+            disabled: '#757575',               // Darker gray
           },
           divider: mode === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)',
         },
@@ -144,11 +171,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             styleOverrides: {
               body: {
                 // Material Design smooth transitions for theme changes
-                transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+                // Disable transitions during initial load to prevent flash
+                transition: isInitialLoad ? 'none' : 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
               },
               '*': {
                 // Apply transitions to all elements
-                transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+                // Disable transitions during initial load to prevent flash
+                transition: isInitialLoad ? 'none' : 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
               },
             },
           },
@@ -184,7 +213,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           },
         },
       }),
-    [mode]
+    [mode, isInitialLoad]
   );
 
   return (

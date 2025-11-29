@@ -120,11 +120,6 @@ export class RecipeService implements IRecipeService {
       errors.push('Difficulty must be easy, medium, or hard');
     }
 
-    // Validate cuisine
-    if (!data.cuisine || data.cuisine.trim().length === 0) {
-      errors.push('Cuisine is required');
-    }
-
     // Validate ingredients
     if (!data.ingredients || data.ingredients.length === 0) {
       errors.push('At least one ingredient is required');

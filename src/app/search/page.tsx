@@ -15,8 +15,9 @@ import {
   Paper,
   useTheme,
   useMediaQuery,
+  Chip,
 } from '@mui/material';
-import { Person, Restaurant } from '@mui/icons-material';
+import { Person, Restaurant, AccessTime } from '@mui/icons-material';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 interface User {
@@ -33,7 +34,7 @@ interface Recipe {
   imageUrl: string;
   difficulty: string;
   prepTime: number;
-  cookTime: number;
+  cookingTime: number;
   author: {
     username: string;
     avatar?: string;
@@ -58,6 +59,19 @@ function TabPanel({ children, value, index }: TabPanelProps) {
     </div>
   );
 }
+
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty.toLowerCase()) {
+    case 'easy':
+      return 'success';
+    case 'medium':
+      return 'warning';
+    case 'hard':
+      return 'error';
+    default:
+      return 'default';
+  }
+};
 
 export default function SearchPage() {
   const router = useRouter();
@@ -113,8 +127,9 @@ export default function SearchPage() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ pt: { xs: 9, sm: 10, md: 12 }, pb: { xs: 12, sm: 13, md: 4 } }}>
-      <Box sx={{ mb: 3 }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 9, sm: 10, md: 12 }, pb: { xs: 12, sm: 13, md: 4 } }}>
+        <Box sx={{ mb: 3 }}>
         <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
           Search Results
         </Typography>
@@ -174,6 +189,7 @@ export default function SearchPage() {
                   <Grid item xs={12} sm={6} md={4} key={recipe.id}>
                     <Card
                       sx={{
+                        backgroundColor: (theme) => theme.palette.background.paper,
                         cursor: 'pointer',
                         height: '100%',
                         display: 'flex',
@@ -186,13 +202,55 @@ export default function SearchPage() {
                       }}
                       onClick={() => handleRecipeClick(recipe.id)}
                     >
-                      <CardMedia
-                        component="img"
-                        height="200"
-                        image={recipe.imageUrl}
-                        alt={recipe.title}
-                        sx={{ objectFit: 'cover' }}
-                      />
+                      <Box sx={{ position: 'relative' }}>
+                        <CardMedia
+                          component="img"
+                          height="200"
+                          image={recipe.imageUrl}
+                          alt={recipe.title}
+                          sx={{ objectFit: 'cover' }}
+                        />
+
+                        {/* Difficulty Badge */}
+                        <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
+                          <Chip
+                            label={recipe.difficulty}
+                            size="small"
+                            color={getDifficultyColor(recipe.difficulty) as any}
+                            sx={{
+                              fontWeight: 600,
+                              textTransform: 'capitalize',
+                              backdropFilter: 'blur(10px)',
+                              color: 'white',
+                              '& .MuiChip-label': {
+                                color: 'white',
+                              },
+                            }}
+                          />
+                        </Box>
+
+                        {/* Time Badge */}
+                        <Box sx={{ position: 'absolute', bottom: 12, left: 12 }}>
+                          <Chip
+                            icon={<AccessTime sx={{ fontSize: 14 }} />}
+                            label={`${recipe.prepTime + recipe.cookingTime} min`}
+                            size="small"
+                            sx={{
+                              backdropFilter: 'blur(10px)',
+                              backgroundColor: (theme) =>
+                                theme.palette.mode === 'dark'
+                                  ? 'rgba(255,255,255,0.9)'
+                                  : 'rgba(0,0,0,0.7)',
+                              color: (theme) =>
+                                theme.palette.mode === 'dark' ? 'black' : 'white',
+                              '& .MuiChip-icon': {
+                                color: (theme) =>
+                                  theme.palette.mode === 'dark' ? 'black' : 'white',
+                              },
+                            }}
+                          />
+                        </Box>
+                      </Box>
                       <CardContent sx={{ flexGrow: 1 }}>
                         <Typography variant="h6" gutterBottom noWrap>
                           {recipe.title}
@@ -211,7 +269,7 @@ export default function SearchPage() {
                         >
                           {recipe.description}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Avatar
                             src={recipe.author.avatar}
                             sx={{ width: 24, height: 24 }}
@@ -222,9 +280,6 @@ export default function SearchPage() {
                             by {recipe.author.username}
                           </Typography>
                         </Box>
-                        <Typography variant="caption" color="text.secondary">
-                          {recipe.difficulty} • {recipe.prepTime + recipe.cookTime} min
-                        </Typography>
                       </CardContent>
                     </Card>
                   </Grid>
@@ -251,6 +306,7 @@ export default function SearchPage() {
                   <Grid item xs={12} sm={6} md={4} key={user.id}>
                     <Card
                       sx={{
+                        backgroundColor: (theme) => theme.palette.background.paper,
                         cursor: 'pointer',
                         transition: 'transform 0.2s, box-shadow 0.2s',
                         '&:hover': {
@@ -286,6 +342,7 @@ export default function SearchPage() {
           </TabPanel>
         </>
       )}
-    </Container>
+      </Container>
+    </Box>
   );
 }

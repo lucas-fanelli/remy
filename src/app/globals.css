@@ -12,19 +12,34 @@ body {
 
 /* Prevent white flash in dark mode */
 html.dark-mode {
-  background-color: #121212;
+  background-color: #1E1E1E;
   color-scheme: dark;
 }
 
 html.dark-mode body {
-  background-color: #121212;
-  color: #ffffff;
+  background-color: #1E1E1E;
+  color: #E8E8E8;
+}
+
+/* Hide content until theme is ready to prevent flash */
+body {
+  opacity: 1;
+}
+
+html.loading body {
+  opacity: 0;
+  transition: none;
+}
+
+html.theme-ready body {
+  opacity: 1;
+  transition: opacity 0.1s ease-in;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #FAFAFA;
+  color: #212121;
   /* Responsive base font size */
   font-size: 16px;
   line-height: 1.6;
@@ -91,8 +106,8 @@ a {
   background: #555;
 }
 
-/* Smooth transitions */
-* {
+/* Smooth transitions - only after initial load to prevent flash */
+:root:not(.initial-load) * {
   transition: background-color 0.2s ease-in-out;
 }
 

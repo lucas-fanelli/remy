@@ -39,7 +39,6 @@ export async function GET(
       title: recipe.title || 'Untitled Recipe',
       description: recipe.description,
       imageUrl: recipe.imageUrl,
-      cuisine: recipe.cuisine || 'Other',
       difficulty: recipe.difficulty || 'medium',
       cookingTime: recipe.cookingTime,
       prepTime: recipe.prepTime,

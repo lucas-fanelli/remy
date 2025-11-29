@@ -71,7 +71,6 @@ export async function GET(
       title: post.title || 'Untitled Recipe',
       description: post.description,
       imageUrl: post.imageUrl,
-      cuisine: post.cuisine || 'Other',
       difficulty: post.difficulty || 'medium',
       cookingTime: post.cookingTime,
       prepTime: post.prepTime,

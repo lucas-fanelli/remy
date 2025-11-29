@@ -67,11 +67,26 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
+                  // Add initial-load class to prevent transitions during initial render
+                  document.documentElement.classList.add('initial-load');
+                  document.documentElement.classList.add('loading');
+
                   var mode = localStorage.getItem('themeMode');
                   if (mode === 'dark') {
                     document.documentElement.classList.add('dark-mode');
                     document.documentElement.style.colorScheme = 'dark';
+                    document.documentElement.style.backgroundColor = '#1E1E1E';
+                  } else {
+                    document.documentElement.style.backgroundColor = '#FAFAFA';
+                    // Light mode doesn't need loading class
+                    document.documentElement.classList.remove('loading');
+                    document.documentElement.classList.add('theme-ready');
                   }
+
+                  // Remove initial-load class after a brief delay to enable transitions
+                  setTimeout(function() {
+                    document.documentElement.classList.remove('initial-load');
+                  }, 100);
                 } catch (e) {}
               })();
             `,

@@ -52,7 +52,6 @@ interface Recipe {
   id: string;
   title: string;
   imageUrl: string;
-  cuisine: string;
   difficulty: string;
   likesCount: number;
   commentsCount: number;
@@ -500,7 +499,11 @@ export default function ProfilePage() {
                       <MotionCard
                         whileHover={{ scale: 1.02 }}
                         onClick={() => handleRecipeClick(recipe.id)}
-                        sx={{ cursor: 'pointer', height: '100%' }}
+                        sx={{
+                          backgroundColor: (theme) => theme.palette.background.paper,
+                          cursor: 'pointer',
+                          height: '100%'
+                        }}
                       >
                         <CardMedia
                           component="img"
@@ -514,8 +517,18 @@ export default function ProfilePage() {
                             {recipe.title}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Chip label={recipe.cuisine} size="small" variant="outlined" />
-                            <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ textTransform: 'capitalize' }} />
+                            <Chip
+                              label={recipe.difficulty}
+                              size="small"
+                              color={getDifficultyColor(recipe.difficulty) as any}
+                              sx={{
+                                textTransform: 'capitalize',
+                                color: 'white',
+                                '& .MuiChip-label': {
+                                  color: 'white',
+                                },
+                              }}
+                            />
                           </Box>
                         </CardContent>
                       </MotionCard>
@@ -550,7 +563,11 @@ export default function ProfilePage() {
                       <MotionCard
                         whileHover={{ scale: 1.02 }}
                         onClick={() => handleRecipeClick(recipe.id)}
-                        sx={{ cursor: 'pointer', height: '100%' }}
+                        sx={{
+                          backgroundColor: (theme) => theme.palette.background.paper,
+                          cursor: 'pointer',
+                          height: '100%'
+                        }}
                       >
                         <CardMedia
                           component="img"
@@ -564,8 +581,18 @@ export default function ProfilePage() {
                             {recipe.title}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Chip label={recipe.cuisine} size="small" variant="outlined" />
-                            <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ textTransform: 'capitalize' }} />
+                            <Chip
+                              label={recipe.difficulty}
+                              size="small"
+                              color={getDifficultyColor(recipe.difficulty) as any}
+                              sx={{
+                                textTransform: 'capitalize',
+                                color: 'white',
+                                '& .MuiChip-label': {
+                                  color: 'white',
+                                },
+                              }}
+                            />
                           </Box>
                         </CardContent>
                       </MotionCard>

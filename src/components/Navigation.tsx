@@ -412,28 +412,11 @@ export default function Navigation() {
   };
 
   const renderDesktopNav = () => {
-    const breadcrumbs = generateBreadcrumbs();
-
-    // Determine if we're on a detail page (e.g., /recipe/[id])
-    const isDetailPage = pathname.match(/^\/(recipe)\/[^/]+$/);
-    const isRecipePage = pathname.startsWith('/recipe/');
-
-    // Pages that need an Up button (profile pages excluded)
-    const needsUpButton = pathname === '/pantry' || pathname === '/settings' || isDetailPage;
-
-    // Navigate up to home
-    const handleBackClick = () => {
-      router.push('/');
-    };
-
-    // Show breadcrumbs on detail pages to make hierarchy tangible
-    const showBreadcrumbs = needsUpButton;
-
     return (
       <AppBar
         position="fixed"
         sx={{
-          backgroundColor: 'background.paper',
+          backgroundColor: (theme) => theme.palette.background.paper,
           color: 'text.primary',
           borderBottom: 1,
           borderColor: 'divider',
@@ -447,19 +430,8 @@ export default function Navigation() {
           margin: '0 auto',
           px: { xs: 1, sm: 2, md: 3 }
         }}>
-          {/* Left Side - Logo (always visible) with optional Up button */}
+          {/* Left Side - Logo */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
-            {needsUpButton && (
-              <IconButton
-                onClick={handleBackClick}
-                edge="start"
-                sx={{ mr: 0.5 }}
-                aria-label="Navigate up"
-                size={isSmallDesktop ? 'small' : 'medium'}
-              >
-                <ArrowBack />
-              </IconButton>
-            )}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -482,7 +454,7 @@ export default function Navigation() {
                     fontFamily: BRANDING.font,
                     fontSize: { xs: '18px', sm: '20px', md: '24px' },
                     fontWeight: 600,
-                    color: BRANDING.colors.primary,
+                    color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : BRANDING.colors.primary,
                     cursor: 'pointer',
                     display: { xs: isSmallDesktop ? 'none' : 'block', lg: 'block' }
                   }}
@@ -767,7 +739,7 @@ export default function Navigation() {
       <AppBar
         position="fixed"
         sx={{
-          backgroundColor: 'background.paper',
+          backgroundColor: (theme) => theme.palette.background.paper,
           color: 'text.primary',
           borderBottom: 1,
           borderColor: 'divider',
@@ -790,7 +762,7 @@ export default function Navigation() {
                 fontFamily: BRANDING.font,
                 fontSize: { xs: '16px', sm: '20px' },
                 fontWeight: 600,
-                color: BRANDING.colors.primary,
+                color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : BRANDING.colors.primary,
               }}
             >
               {BRANDING.name}
@@ -852,7 +824,16 @@ export default function Navigation() {
         </Toolbar>
       </AppBar>
 
-      <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+      <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: (theme) => theme.palette.background.paper,
+          }
+        }}
+      >
         <Box sx={{ width: { xs: 280, sm: 320 } }} role="presentation">
           <List>
             <ListItem sx={{ py: 2 }}>

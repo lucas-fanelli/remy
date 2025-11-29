@@ -109,6 +109,7 @@ export default function RecipeCard({
   return (
     <MotionCard
       sx={{
+        backgroundColor: (theme) => theme.palette.background.paper,
         cursor: onClick ? 'pointer' : 'default',
         height: '100%',
         display: 'flex',
@@ -143,7 +144,11 @@ export default function RecipeCard({
                 fontWeight: 600,
                 textTransform: 'capitalize',
                 backdropFilter: 'blur(10px)',
-                fontSize: { xs: '0.75rem', md: '0.8125rem' }
+                fontSize: { xs: '0.75rem', md: '0.8125rem' },
+                color: 'white',
+                '& .MuiChip-label': {
+                  color: 'white',
+                },
               }}
             />
           </Box>

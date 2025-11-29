@@ -835,14 +835,25 @@ export default function RecipeDetailPage() {
         onClose={handleImageViewerClose}
         maxWidth={false}
         fullWidth
-        PaperProps={{
-          sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-            boxShadow: 'none',
-            margin: 0,
-            maxWidth: '100vw',
-            maxHeight: '100vh',
-            height: '100vh',
+        onClick={handleImageViewerClose}
+        slotProps={{
+          backdrop: {
+            sx: {
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              backdropFilter: 'blur(8px)',
+              cursor: 'pointer',
+            },
+          },
+          paper: {
+            sx: {
+              backgroundColor: 'transparent',
+              boxShadow: 'none',
+              margin: 0,
+              maxWidth: '100vw',
+              maxHeight: '100vh',
+              height: '100vh',
+              pointerEvents: 'none',
+            },
           },
         }}
       >
@@ -850,8 +861,8 @@ export default function RecipeDetailPage() {
           onClick={handleImageViewerClose}
           sx={{
             position: 'absolute',
-            top: 16,
-            right: 16,
+            top: { xs: 72, sm: 16 },
+            right: { xs: 16, sm: 16 },
             color: 'white',
             backgroundColor: 'rgba(255, 255, 255, 0.1)',
             '&:hover': {

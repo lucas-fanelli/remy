@@ -16,11 +16,13 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
+  IconButton,
 } from '@mui/material';
 import {
   Security,
   Palette,
   VpnKey,
+  ArrowBack,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -65,21 +67,25 @@ export default function SettingsPage() {
       <Container maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, px: { xs: 2, md: 3 } }}>
         {/* Header */}
         <Box sx={{ mb: { xs: 3, md: 4 } }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            gutterBottom
-            sx={{
-              color: 'text.primary',
-              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' }
-            }}
-          >
-            Settings
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+            <IconButton onClick={() => router.back()} edge="start">
+              <ArrowBack />
+            </IconButton>
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{
+                color: 'text.primary',
+                fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' }
+              }}
+            >
+              Settings
+            </Typography>
+          </Box>
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+            sx={{ fontSize: { xs: '0.875rem', md: '1rem' }, ml: 7 }}
           >
             Manage your account preferences and settings
           </Typography>

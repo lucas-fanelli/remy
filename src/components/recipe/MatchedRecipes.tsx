@@ -212,6 +212,7 @@ export default function MatchedRecipes() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                     sx={{
+                      backgroundColor: (theme) => theme.palette.background.paper,
                       cursor: 'pointer',
                       height: '100%',
                       transition: 'all 0.2s',
@@ -247,7 +248,19 @@ export default function MatchedRecipes() {
                         {recipe.description}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
-                        <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' }, textTransform: 'capitalize' }} />
+                        <Chip
+                          label={recipe.difficulty}
+                          size="small"
+                          color={getDifficultyColor(recipe.difficulty) as any}
+                          sx={{
+                            fontSize: { xs: '0.7rem', md: '0.8125rem' },
+                            textTransform: 'capitalize',
+                            color: 'white',
+                            '& .MuiChip-label': {
+                              color: 'white',
+                            },
+                          }}
+                        />
                       </Box>
                     </CardContent>
                   </MotionCard>
@@ -274,6 +287,7 @@ export default function MatchedRecipes() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                     sx={{
+                      backgroundColor: (theme) => theme.palette.background.paper,
                       cursor: 'pointer',
                       height: '100%',
                       transition: 'all 0.2s',
@@ -329,7 +343,19 @@ export default function MatchedRecipes() {
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
-                        <Chip label={recipe.difficulty} size="small" color={getDifficultyColor(recipe.difficulty) as any} sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' }, textTransform: 'capitalize' }} />
+                        <Chip
+                          label={recipe.difficulty}
+                          size="small"
+                          color={getDifficultyColor(recipe.difficulty) as any}
+                          sx={{
+                            fontSize: { xs: '0.7rem', md: '0.8125rem' },
+                            textTransform: 'capitalize',
+                            color: 'white',
+                            '& .MuiChip-label': {
+                              color: 'white',
+                            },
+                          }}
+                        />
                       </Box>
                     </CardContent>
                   </MotionCard>

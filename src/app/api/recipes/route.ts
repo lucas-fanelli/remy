@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
-    const cuisine = searchParams.get('cuisine');
     const difficulty = searchParams.get('difficulty');
     const maxTime = searchParams.get('maxTime');
     const userId = searchParams.get('userId');
@@ -33,10 +32,9 @@ export async function GET(request: NextRequest) {
       searchOptions.query = query;
     }
 
-    if (cuisine || difficulty || maxTime || userId) {
+    if (difficulty || maxTime || userId) {
       searchOptions.filters = {};
 
-      if (cuisine) searchOptions.filters.cuisine = cuisine;
       if (difficulty) searchOptions.filters.difficulty = difficulty as any;
       if (maxTime) searchOptions.filters.maxCookingTime = parseInt(maxTime);
       if (userId) searchOptions.filters.userId = userId;
