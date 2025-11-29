@@ -60,9 +60,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [cookingTime, setCookingTime] = useState(30);
-  const [prepTime, setPrepTime] = useState(15);
-  const [servings, setServings] = useState(4);
+  const [cookingTime, setCookingTime] = useState<number | ''>('');
+  const [prepTime, setPrepTime] = useState<number | ''>('');
+  const [servings, setServings] = useState<number | ''>('');
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
   const [caption, setCaption] = useState('');
 
@@ -80,7 +80,10 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         return title.trim() !== '' &&
                description.trim() !== '' &&
                description.length <= 500 &&
-               imageUrl.trim() !== '';
+               imageUrl.trim() !== '' &&
+               typeof cookingTime === 'number' && cookingTime > 0 &&
+               typeof prepTime === 'number' && prepTime >= 0 &&
+               typeof servings === 'number' && servings > 0;
       case 1: // Ingredients
         return ingredients.some(i => i.name.trim() !== '') &&
                ingredients.filter(i => i.name.trim()).every(i => i.unit.trim() !== '');
@@ -153,9 +156,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         title,
         description,
         imageUrl,
-        cookingTime,
-        prepTime,
-        servings,
+        cookingTime: typeof cookingTime === 'number' ? cookingTime : 30,
+        prepTime: typeof prepTime === 'number' ? prepTime : 15,
+        servings: typeof servings === 'number' ? servings : 4,
         difficulty,
         caption,
         ingredients: ingredients.filter(i => i.name.trim()),
@@ -243,7 +246,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   type="number"
                   label="Prep Time (min)"
                   value={prepTime}
-                  onChange={(e) => setPrepTime(Number(e.target.value))}
+                  onChange={(e) => setPrepTime(e.target.value === '' ? '' : Number(e.target.value))}
                   required
                   autoComplete="off"
                 />
@@ -256,7 +259,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   type="number"
                   label="Cooking Time (min)"
                   value={cookingTime}
-                  onChange={(e) => setCookingTime(Number(e.target.value))}
+                  onChange={(e) => setCookingTime(e.target.value === '' ? '' : Number(e.target.value))}
                   required
                   autoComplete="off"
                 />
@@ -269,7 +272,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   type="number"
                   label="Servings"
                   value={servings}
-                  onChange={(e) => setServings(Number(e.target.value))}
+                  onChange={(e) => setServings(e.target.value === '' ? '' : Number(e.target.value))}
                   required
                   autoComplete="off"
                 />

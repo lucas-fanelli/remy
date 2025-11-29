@@ -67,9 +67,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [cookingTime, setCookingTime] = useState(30);
-  const [prepTime, setPrepTime] = useState(15);
-  const [servings, setServings] = useState(4);
+  const [cookingTime, setCookingTime] = useState<number | ''>(30);
+  const [prepTime, setPrepTime] = useState<number | ''>(15);
+  const [servings, setServings] = useState<number | ''>(4);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
   const [caption, setCaption] = useState('');
   const [ingredients, setIngredients] = useState<Ingredient[]>([
@@ -101,9 +101,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         return title.trim() !== '' &&
                description.trim() !== '' &&
                imageUrl.trim() !== '' &&
-               cookingTime > 0 &&
-               prepTime >= 0 &&
-               servings > 0;
+               typeof cookingTime === 'number' && cookingTime > 0 &&
+               typeof prepTime === 'number' && prepTime >= 0 &&
+               typeof servings === 'number' && servings > 0;
       case 1:
         return ingredients.every(ing =>
           ing.name.trim() !== '' &&
@@ -178,9 +178,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         title,
         description,
         imageUrl,
-        cookingTime,
-        prepTime,
-        servings,
+        cookingTime: typeof cookingTime === 'number' ? cookingTime : 30,
+        prepTime: typeof prepTime === 'number' ? prepTime : 15,
+        servings: typeof servings === 'number' ? servings : 4,
         difficulty,
         ingredients,
         instructions,
@@ -258,7 +258,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   label="Cooking Time (minutes)"
                   type="number"
                   value={cookingTime}
-                  onChange={(e) => setCookingTime(Number(e.target.value))}
+                  onChange={(e) => setCookingTime(e.target.value === '' ? '' : Number(e.target.value))}
                   fullWidth
                   required
                   inputProps={{ min: 1, max: 720 }}
@@ -270,7 +270,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   label="Prep Time (minutes)"
                   type="number"
                   value={prepTime}
-                  onChange={(e) => setPrepTime(Number(e.target.value))}
+                  onChange={(e) => setPrepTime(e.target.value === '' ? '' : Number(e.target.value))}
                   fullWidth
                   required
                   inputProps={{ min: 0, max: 480 }}
@@ -285,7 +285,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   label="Servings"
                   type="number"
                   value={servings}
-                  onChange={(e) => setServings(Number(e.target.value))}
+                  onChange={(e) => setServings(e.target.value === '' ? '' : Number(e.target.value))}
                   fullWidth
                   required
                   inputProps={{ min: 1, max: 100 }}
