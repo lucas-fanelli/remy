@@ -261,7 +261,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   onChange={(e) => setCookingTime(Number(e.target.value))}
                   fullWidth
                   required
-                  inputProps={{ min: 1, max: 720, autocomplete: 'off' }}
+                  inputProps={{ min: 1, max: 720 }}
                   autoComplete="off"
                 />
               </Grid>
@@ -273,7 +273,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   onChange={(e) => setPrepTime(Number(e.target.value))}
                   fullWidth
                   required
-                  inputProps={{ min: 0, max: 480, autocomplete: 'off' }}
+                  inputProps={{ min: 0, max: 480 }}
                   autoComplete="off"
                 />
               </Grid>
@@ -288,7 +288,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   onChange={(e) => setServings(Number(e.target.value))}
                   fullWidth
                   required
-                  inputProps={{ min: 1, max: 100, autocomplete: 'off' }}
+                  inputProps={{ min: 1, max: 100 }}
                   autoComplete="off"
                 />
               </Grid>

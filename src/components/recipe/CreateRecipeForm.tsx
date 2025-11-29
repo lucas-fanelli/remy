@@ -246,7 +246,6 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   onChange={(e) => setPrepTime(Number(e.target.value))}
                   required
                   autoComplete="off"
-                  inputProps={{ autocomplete: 'off' }}
                 />
               </Grid>
 
@@ -260,7 +259,6 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   onChange={(e) => setCookingTime(Number(e.target.value))}
                   required
                   autoComplete="off"
-                  inputProps={{ autocomplete: 'off' }}
                 />
               </Grid>
 
@@ -274,7 +272,6 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   onChange={(e) => setServings(Number(e.target.value))}
                   required
                   autoComplete="off"
-                  inputProps={{ autocomplete: 'off' }}
                 />
               </Grid>
 
