@@ -24,6 +24,7 @@ interface ImageUploadProps {
   label?: string;
   required?: boolean;
   aspectRatio?: number;
+  compact?: boolean;
 }
 
 export default function ImageUpload({
@@ -32,6 +33,7 @@ export default function ImageUpload({
   label = 'Recipe Image',
   required = true,
   aspectRatio = 16 / 9,
+  compact = false,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -119,7 +121,8 @@ export default function ImageUpload({
             alt="Recipe preview"
             sx={{
               width: '100%',
-              aspectRatio: aspectRatio,
+              aspectRatio: compact ? 'auto' : aspectRatio,
+              height: compact ? 120 : 'auto',
               objectFit: 'cover',
             }}
           />
@@ -151,7 +154,8 @@ export default function ImageUpload({
       ) : (
         <Card
           sx={{
-            aspectRatio: aspectRatio,
+            aspectRatio: compact ? 'auto' : aspectRatio,
+            height: compact ? 120 : 'auto',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -168,23 +172,25 @@ export default function ImageUpload({
           }}
           onClick={handleUploadClick}
         >
-          <Box sx={{ textAlign: 'center', p: 3 }}>
+          <Box sx={{ textAlign: 'center', p: compact ? 1.5 : 3 }}>
             {uploading ? (
               <>
-                <CircularProgress size={48} sx={{ mb: 2 }} />
-                <Typography variant="body2" color="text.secondary">
+                <CircularProgress size={compact ? 32 : 48} sx={{ mb: compact ? 1 : 2 }} />
+                <Typography variant={compact ? 'caption' : 'body2'} color="text.secondary">
                   Uploading...
                 </Typography>
               </>
             ) : (
               <>
-                <ImageIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-                <Typography variant="body1" gutterBottom color="text.primary">
+                <ImageIcon sx={{ fontSize: compact ? 40 : 64, color: 'text.disabled', mb: compact ? 1 : 2 }} />
+                <Typography variant={compact ? 'body2' : 'body1'} gutterBottom color="text.primary">
                   Click to upload an image
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  JPEG, PNG, WebP, or GIF (max 5MB)
-                </Typography>
+                {!compact && (
+                  <Typography variant="caption" color="text.secondary">
+                    JPEG, PNG, WebP, or GIF (max 5MB)
+                  </Typography>
+                )}
               </>
             )}
           </Box>

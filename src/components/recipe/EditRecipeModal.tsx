@@ -261,7 +261,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   onChange={(e) => setCookingTime(Number(e.target.value))}
                   fullWidth
                   required
-                  inputProps={{ min: 1, max: 720 }}
+                  inputProps={{ min: 1, max: 720, autocomplete: 'off' }}
                   autoComplete="off"
                 />
               </Grid>
@@ -273,7 +273,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   onChange={(e) => setPrepTime(Number(e.target.value))}
                   fullWidth
                   required
-                  inputProps={{ min: 0, max: 480 }}
+                  inputProps={{ min: 0, max: 480, autocomplete: 'off' }}
                   autoComplete="off"
                 />
               </Grid>
@@ -288,7 +288,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   onChange={(e) => setServings(Number(e.target.value))}
                   fullWidth
                   required
-                  inputProps={{ min: 1, max: 100 }}
+                  inputProps={{ min: 1, max: 100, autocomplete: 'off' }}
                   autoComplete="off"
                 />
               </Grid>
@@ -442,6 +442,8 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       value={instruction.image || ''}
                       onChange={(url) => handleInstructionChange(index, 'image', url)}
                       label={`Step ${instruction.step} Image (optional)`}
+                      required={false}
+                      compact
                     />
                   </Box>
                 </CardContent>
