@@ -1,4 +1,4 @@
-# 🍽️ Remy's - AI-Powered Recipe Sharing Platform
+# 🍽️ Remy's - Recipe Sharing Platform
 
 [![Test Coverage](https://img.shields.io/badge/coverage-98.68%25-brightgreen)](./coverage)
 [![Tests](https://img.shields.io/badge/tests-944%20passing-success)](./coverage)
@@ -6,7 +6,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black)](https://nextjs.org/)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-success)](./docs/V1_LAUNCH_COMPLETE.md)
 
-> **A modern, AI-powered recipe sharing platform where users can discover, create, and share amazing recipes with a vibrant community.**
+> **A modern recipe sharing platform where users can discover, create, and share amazing recipes with a vibrant community.**
 
 **✅ Production Ready** - v1.0 is fully tested and ready to deploy!
 
@@ -14,12 +14,12 @@
 
 ## ✨ Key Features
 
-- 🤖 **AI Recipe Generation** - Create custom recipes with smart AI assistance
 - 🔍 **Smart Recipe Discovery** - Browse, search, and filter recipes
-- 🥘 **Pantry Management** - Track ingredients and get personalized suggestions
+- 🥘 **Pantry Management** - Track ingredients and get personalized recipe matches
 - 💬 **Social Interaction** - Follow users, like and comment on recipes
 - 📊 **User Profiles** - Personal stats, followers, and recipe collections
 - 📱 **Responsive Design** - Beautiful UI that works on any device
+- 🌙 **Modern Dark Mode** - Eye-friendly theme with teal accents
 - 🔒 **Enterprise Security** - Rate limiting, JWT auth, security headers
 - 📈 **98.68% Test Coverage** - 944 tests, production-grade reliability
 
@@ -75,7 +75,6 @@ Open **http://localhost:3000** 🎉
 
 **Frontend:** Next.js 15 • TypeScript • Material-UI • Framer Motion
 **Backend:** Next.js API Routes • Prisma • PostgreSQL
-**AI:** Advanced Recipe Generation
 **Auth:** JWT • bcrypt • NextAuth
 **Testing:** Jest • React Testing Library • Playwright
 **DevOps:** Docker • Vercel-ready
@@ -130,35 +129,89 @@ NODE_ENV="production"
 NEXT_PUBLIC_APP_URL="https://yourdomain.com"
 ```
 
-Optional:
-```env
-AI_API_KEY="your-api-key"  # For AI recipe generation features
-```
-
 ---
 
 ## 🏛️ Architecture
 
+### Clean Architecture with SOLID Principles
+
 ```
 src/
-├── app/                    # Next.js 15 App Router
-│   ├── api/               # API endpoints (28+)
-│   ├── error.tsx          # Global error boundary
-│   ├── loading.tsx        # Loading states
-│   └── not-found.tsx      # 404 page
-├── components/            # React components
-│   ├── recipe/           # Recipe components
-│   └── auth/             # Auth components
-├── contexts/             # React Context (Auth, Toast, Theme)
-├── infrastructure/       # Services & repositories
-│   ├── ai/              # AI recipe providers
-│   ├── services/        # Business logic
-│   └── repositories/    # Data access
-├── lib/                  # Utilities & validation
-└── middleware.ts         # Security & rate limiting
+├── app/                          # Next.js 15 App Router (Presentation Layer)
+│   ├── api/                     # API endpoints (28+ routes)
+│   │   ├── auth/               # Authentication endpoints
+│   │   ├── recipes/            # Recipe CRUD operations
+│   │   ├── users/              # User management
+│   │   ├── pantry/             # Pantry management
+│   │   └── search/             # Search functionality
+│   ├── recipe/[id]/            # Dynamic recipe pages
+│   ├── profile/[username]/     # User profiles
+│   ├── error.tsx               # Global error boundary
+│   ├── loading.tsx             # Loading states
+│   └── not-found.tsx           # 404 page
+│
+├── components/                   # React Components (View Layer)
+│   ├── recipe/                 # Recipe-related components
+│   │   ├── RecipeCard.tsx     # Reusable recipe cards
+│   │   ├── RecipeFeed.tsx     # Recipe feed with infinite scroll
+│   │   ├── MatchedRecipes.tsx # Pantry-based recipe matching
+│   │   └── CreateRecipeForm.tsx
+│   ├── auth/                   # Authentication UI
+│   ├── settings/               # Settings components
+│   └── Navigation.tsx          # Main navigation system
+│
+├── contexts/                     # React Context (State Management)
+│   ├── AuthContext.tsx         # Authentication state
+│   ├── ThemeContext.tsx        # Dark/light mode theme
+│   └── ToastContext.tsx        # Global notifications
+│
+├── domain/                       # Domain Layer (Business Entities)
+│   └── types/                  # TypeScript domain models
+│       ├── recipe.ts           # Recipe entity definitions
+│       ├── user.ts             # User entity definitions
+│       └── pantry.ts           # Pantry entity definitions
+│
+├── infrastructure/               # Infrastructure Layer (External Services)
+│   ├── services/               # Business Logic Services
+│   │   ├── RecipeService.ts   # Recipe business logic
+│   │   ├── UserService.ts     # User management logic
+│   │   ├── PantryService.ts   # Pantry operations
+│   │   ├── AuthService.ts     # Authentication logic
+│   │   ├── NotificationService.ts
+│   │   └── TokenService.ts    # JWT token management
+│   │
+│   └── repositories/           # Data Access Layer (Repository Pattern)
+│       ├── RecipeRepository.ts # Recipe data access
+│       ├── UserRepository.ts  # User data access
+│       ├── PantryRepository.ts
+│       └── NotificationRepository.ts
+│
+├── lib/                          # Shared Utilities
+│   ├── validation/             # Input validation schemas
+│   ├── utils.ts                # Helper functions
+│   └── prisma.ts               # Database client singleton
+│
+├── middleware.ts                 # Security & Rate Limiting
+└── prisma/
+    ├── schema.prisma            # Database schema
+    └── migrations/              # Database migrations
 ```
 
-**Design Patterns:** Repository • Dependency Injection • Factory • Provider
+### Design Patterns
+
+- **Repository Pattern**: Separates data access logic from business logic
+- **Dependency Injection**: Services receive dependencies through constructors
+- **Factory Pattern**: Used for creating service instances
+- **Provider Pattern**: React Context for global state management
+- **Singleton Pattern**: Database client and service instances
+
+### Key Architectural Decisions
+
+1. **Clean Architecture**: Clear separation between presentation, domain, and infrastructure layers
+2. **SOLID Principles**: Single responsibility, dependency inversion, and interface segregation
+3. **Type Safety**: Full TypeScript coverage with strict mode enabled
+4. **Error Handling**: Centralized error boundaries and validation
+5. **Security**: JWT authentication, rate limiting, and security headers at middleware level
 
 ---
 
@@ -218,11 +271,11 @@ npm start
 ### v1.0 - Current ✅
 - [x] Recipe CRUD operations
 - [x] User authentication & profiles
-- [x] AI recipe generation
 - [x] Social features (likes, comments, follows)
 - [x] Pantry management
 - [x] Production-ready security
 - [x] Comprehensive testing
+- [x] Modern dark mode theme
 
 ### v1.1 - Planned
 - [ ] Email notifications
@@ -240,38 +293,13 @@ npm start
 
 ---
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing`)
-3. Add tests for new features
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing`)
-6. Open Pull Request
-
----
-
-## 📝 License
-
-MIT License - see [LICENSE](./LICENSE) for details
-
----
-
 ## 🙏 Acknowledgments
 
 Built with:
 - [Next.js](https://nextjs.org/) - React Framework
 - [Prisma](https://www.prisma.io/) - Database ORM
 - [Material-UI](https://mui.com/) - Component Library
-- Advanced AI Technology - Recipe Generation
-
----
-
-## 📞 Support
-
-- 📖 **Docs:** [`/docs`](./docs) folder
-- 🐛 **Issues:** [GitHub Issues](https://github.com/yourusername/remys/issues)
-- 💚 **Health:** `https://yourdomain.com/api/health`
+- [Framer Motion](https://www.framer.com/motion/) - Animation Library
 
 ---
 
@@ -299,15 +327,17 @@ Built with:
 ## 📝 Changelog
 
 ### v1.0.2 - UX & UI Improvements (Latest)
+- ✅ **Modern Dark Mode**: Implemented "Modern Neutral" theme with teal accents (#26A69A)
+- ✅ **Theme Consistency**: Fixed navigation bar colors to match across all pages
+- ✅ **Hydration Fixes**: Eliminated flash on page reload and hydration errors on mobile
+- ✅ **Navigation**: Fixed settings page back button to return to previous page
 - ✅ **Search System**: Fixed search bar visibility on desktop/mobile
 - ✅ **Recipe Forms**: Improved instruction text fields with auto-expand (4-10 rows)
 - ✅ **Recipe Details**: Added Edit/Delete buttons for recipe owners
-- ✅ **Dark Mode**: Fixed image upload component for dark mode compatibility
 - ✅ **Pantry**: Replaced browser confirm with Material UI dialog for delete actions
 - ✅ **Image Viewer**: Added fullscreen image viewer for recipe and instruction images
-- ✅ **Settings**: Simplified settings page - removed placeholders for language, notifications, and cookie preferences
-- ✅ **Login**: Removed non-functional "Forgot password?" link (feature not yet implemented)
-- ✅ **Theme**: Improved dark mode color palette - softer colors for better eye comfort
+- ✅ **Settings**: Simplified settings page - removed placeholders for unimplemented features
+- ✅ **Login**: Removed non-functional "Forgot password?" link
 - ✅ **Better UX**: Cleaner layouts and improved form usability
 
 ### v1.0.1 - Production Ready
