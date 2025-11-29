@@ -312,7 +312,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                 Add all ingredients with amounts and units (e.g., &ldquo;2 cups flour&rdquo;, &ldquo;1 tsp salt&rdquo;)
               </Typography>
               <Alert severity="info" sx={{ mt: 1, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                💡 Tip: Make sure to select a unit for each ingredient to avoid validation errors
+                💡 Tip: Each ingredient needs name, amount, and unit. Remove empty ingredient rows if not needed.
               </Alert>
             </Box>
 
@@ -323,22 +323,24 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                     <TextField
                       fullWidth
                       size="small"
-                      label="Ingredient"
+                      label="Ingredient *"
                       value={ingredient.name}
                       onChange={(e) => updateIngredient(index, 'name', e.target.value)}
                       placeholder="e.g., All-purpose flour"
                       autoComplete="off"
+                      error={ingredient.name === '' && (ingredient.amount !== '' || ingredient.unit !== '')}
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>
                     <TextField
                       fullWidth
                       size="small"
-                      label="Amount"
+                      label="Amount *"
                       value={ingredient.amount}
                       onChange={(e) => updateIngredient(index, 'amount', e.target.value)}
                       placeholder="2"
                       autoComplete="off"
+                      error={ingredient.amount === '' && ingredient.name !== ''}
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>

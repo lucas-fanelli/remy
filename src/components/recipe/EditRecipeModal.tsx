@@ -327,7 +327,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Add all ingredients needed for this recipe
+              Each ingredient needs name, amount, and unit. Remove empty rows if not needed.
             </Typography>
 
             {ingredients.map((ingredient, index) => (
@@ -348,6 +348,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       placeholder="e.g., Tomatoes"
                       size="small"
                       autoComplete="off"
+                      error={ingredient.name === '' && (ingredient.amount !== '' || ingredient.unit !== '')}
                     />
                     <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
                       <TextField
@@ -359,8 +360,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                         size="small"
                         sx={{ width: { xs: '100px', sm: '100px' } }}
                         autoComplete="off"
+                        error={ingredient.amount === '' && ingredient.name !== ''}
                       />
-                      <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 120 } }} required>
+                      <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 120 } }} required error={!ingredient.unit && ingredient.name !== ''}>
                         <InputLabel>Unit</InputLabel>
                         <Select
                           value={ingredient.unit}
