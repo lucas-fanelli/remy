@@ -105,7 +105,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                typeof prepTime === 'number' && prepTime >= 0 &&
                typeof servings === 'number' && servings > 0;
       case 1:
-        return ingredients.every(ing =>
+        return ingredients.length > 0 && ingredients.every(ing =>
           ing.name.trim() !== '' &&
           ing.amount.trim() !== '' &&
           ing.unit.trim() !== ''
@@ -182,8 +182,10 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         prepTime: typeof prepTime === 'number' ? prepTime : 15,
         servings: typeof servings === 'number' ? servings : 4,
         difficulty,
-        ingredients,
-        instructions,
+        ingredients: ingredients.filter(i =>
+          i.name.trim() !== '' && i.amount.trim() !== '' && i.unit.trim() !== ''
+        ),
+        instructions: instructions.filter(i => i.description.trim() !== ''),
         caption: caption || undefined,
       };
 

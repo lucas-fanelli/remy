@@ -86,7 +86,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                typeof servings === 'number' && servings > 0;
       case 1: // Ingredients
         return ingredients.some(i => i.name.trim() !== '') &&
-               ingredients.filter(i => i.name.trim()).every(i => i.unit.trim() !== '');
+               ingredients.filter(i => i.name.trim()).every(i =>
+                 i.amount.trim() !== '' && i.unit.trim() !== ''
+               );
       case 2: // Instructions
         return instructions.some(i => i.description.trim() !== '');
       default:
@@ -100,9 +102,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
       setError('');
     } else {
       if (activeStep === 0) {
-        setError('Please fill in all required fields: title, description (max 500 chars), and image URL');
+        setError('Please fill in all required fields: title, description (max 500 chars), image, and time/servings');
       } else if (activeStep === 1) {
-        setError('Please add at least one ingredient with a unit (e.g., cups, tbsp, g)');
+        setError('Please add at least one ingredient with name, amount, and unit');
       } else if (activeStep === 2) {
         setError('Please add at least one instruction step');
       }
@@ -161,7 +163,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         servings: typeof servings === 'number' ? servings : 4,
         difficulty,
         caption,
-        ingredients: ingredients.filter(i => i.name.trim()),
+        ingredients: ingredients.filter(i =>
+          i.name.trim() !== '' && i.amount.trim() !== '' && i.unit.trim() !== ''
+        ),
         instructions: instructions.filter(i => i.description.trim()),
         userId: '', // Will be set by the API from session
       };
