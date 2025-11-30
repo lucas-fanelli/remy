@@ -128,7 +128,8 @@ export class RecipeService implements IRecipeService {
         if (!ingredient.name || ingredient.name.trim().length === 0) {
           errors.push(`Ingredient ${index + 1}: name is required`);
         }
-        if (!ingredient.amount || ingredient.amount.trim().length === 0) {
+        // Allow empty amount for "to taste" ingredients
+        if (ingredient.unit !== 'to taste' && (!ingredient.amount || ingredient.amount.trim().length === 0)) {
           errors.push(`Ingredient ${index + 1}: amount is required`);
         }
         if (!ingredient.unit || ingredient.unit.trim().length === 0) {
