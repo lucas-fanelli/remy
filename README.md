@@ -4,11 +4,14 @@
 [![Tests](https://img.shields.io/badge/tests-909%20passing-success)](./coverage)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black)](https://nextjs.org/)
+[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://remy-s.vercel.app/)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-success)](./docs/V1_LAUNCH_COMPLETE.md)
 
 > **A modern recipe sharing platform where users can discover, create, and share amazing recipes with a vibrant community.**
 
-**✅ Production Ready** - v1.0 is fully tested and ready to deploy!
+**🚀 LIVE NOW** - [Try the live demo at remy-s.vercel.app](https://remy-s.vercel.app/)
+
+**✅ v1.0 Production** - Fully tested, deployed, and ready to use!
 
 ---
 
