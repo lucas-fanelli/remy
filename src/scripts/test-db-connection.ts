@@ -16,7 +16,6 @@ async function testConnection() {
     const commentCount = await prisma.comment.count();
     const likeCount = await prisma.like.count();
     const followCount = await prisma.follow.count();
-    const storyCount = await prisma.story.count();
 
     console.log('📊 Database Statistics:');
     console.log('------------------------');
@@ -25,7 +24,6 @@ async function testConnection() {
     console.log(`Comments: ${commentCount}`);
     console.log(`Likes:    ${likeCount}`);
     console.log(`Follows:  ${followCount}`);
-    console.log(`Stories:  ${storyCount}`);
     console.log('------------------------\n');
 
     if (userCount > 0) {

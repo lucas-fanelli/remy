@@ -37,7 +37,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }, 50);
 
     return () => clearTimeout(hydrationTimer);
-  }, []);
+  }, [mode]);
 
   // Show content only after mode has been set and rendered
   React.useEffect(() => {

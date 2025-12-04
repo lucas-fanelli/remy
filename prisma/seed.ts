@@ -20,7 +20,6 @@ async function main() {
       password: hashedPassword,
       isVerified: true,
       isPrivate: false,
-      subscriptionTier: 'pro',
     },
   });
 
@@ -59,13 +58,12 @@ async function main() {
           prepTime: recipe.prepTime,
           servings: recipe.servings,
           difficulty: recipe.difficulty,
-          cuisine: recipe.cuisine,
           ingredients: recipe.ingredients as any,
           instructions: recipe.instructions as any,
         },
       });
 
-      console.log(`✅ Created: "${recipe.title}" (${recipe.cuisine}, ${recipe.difficulty})`);
+      console.log(`✅ Created: "${recipe.title}" (${recipe.difficulty})`);
       successCount++;
     } catch (error) {
       console.error(`❌ Error creating "${recipe.title}":`, error);

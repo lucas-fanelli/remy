@@ -43,7 +43,6 @@ export interface RecipeMatch {
 }
 
 export interface IngredientMatchFilters {
-  cuisine?: string;
   difficulty?: string;
   maxCookingTime?: number;
   minMatchPercentage?: number; // Only show recipes with at least X% match

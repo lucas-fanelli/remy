@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, useThemeMode } from '../ThemeContext';
 
@@ -32,7 +32,7 @@ describe('ThemeContext', () => {
     expect(screen.getByTestId('current-mode')).toHaveTextContent('light');
   });
 
-  it('should use stored preference from localStorage', () => {
+  it('should use stored preference from localStorage', async () => {
     localStorage.setItem('themeMode', 'dark');
 
     render(
@@ -41,7 +41,10 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId('current-mode')).toHaveTextContent('dark');
+    // Wait for the theme to load from localStorage (50ms delay in useEffect)
+    await waitFor(() => {
+      expect(screen.getByTestId('current-mode')).toHaveTextContent('dark');
+    });
   });
 
   it('should toggle theme from light to dark', () => {
@@ -58,7 +61,7 @@ describe('ThemeContext', () => {
     expect(screen.getByTestId('current-mode')).toHaveTextContent('dark');
   });
 
-  it('should toggle theme from dark to light', () => {
+  it('should toggle theme from dark to light', async () => {
     localStorage.setItem('themeMode', 'dark');
 
     render(
@@ -67,7 +70,10 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId('current-mode')).toHaveTextContent('dark');
+    // Wait for the theme to load from localStorage (50ms delay in useEffect)
+    await waitFor(() => {
+      expect(screen.getByTestId('current-mode')).toHaveTextContent('dark');
+    });
 
     fireEvent.click(screen.getByText('Toggle Theme'));
 

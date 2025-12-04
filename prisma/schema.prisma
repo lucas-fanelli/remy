@@ -140,6 +140,7 @@ model Follow {
 model UserPantry {
   id          String   @id @default(uuid())
   userId      String   @unique
+  ingredients Json?    // Array of {name, category, addedAt}
   updatedAt   DateTime @updatedAt
 
   // Relations

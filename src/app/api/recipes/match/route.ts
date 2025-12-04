@@ -121,7 +121,6 @@ export async function GET(request: NextRequest) {
         title: recipe.title || 'Untitled Recipe',
         description: recipe.description,
         imageUrl: recipe.imageUrl,
-        cuisine: recipe.cuisine,
         difficulty: recipe.difficulty,
         cookingTime: recipe.cookingTime,
         prepTime: recipe.prepTime,

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -68,13 +68,7 @@ export default function MatchedRecipes() {
   const [almostThere, setAlmostThere] = useState<MatchedRecipe[]>([]);
   const [pantryItemsCount, setPantryItemsCount] = useState(0);
 
-  useEffect(() => {
-    if (token) {
-      loadMatchedRecipes();
-    }
-  }, [token]);
-
-  const loadMatchedRecipes = async () => {
+  const loadMatchedRecipes = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/recipes/match', {
@@ -94,7 +88,13 @@ export default function MatchedRecipes() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      loadMatchedRecipes();
+    }
+  }, [token, loadMatchedRecipes]);
 
   const handleRecipeClick = (recipeId: string) => {
     router.push(`/recipe/${recipeId}`);

@@ -64,6 +64,10 @@ describe('SettingsPage', () => {
     fullName: 'Test User',
     bio: 'Test bio',
     avatar: '/avatar.jpg',
+    isVerified: false,
+    isPrivate: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(() => {

@@ -178,7 +178,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
   useEffect(() => {
     loadRecipes(true);
-  }, [difficultyFilter, maxTimeFilter]);
+  }, [difficultyFilter, maxTimeFilter, loadRecipes]);
 
   const handleScroll = useCallback(() => {
     if (

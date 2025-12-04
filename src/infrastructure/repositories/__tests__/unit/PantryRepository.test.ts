@@ -1,6 +1,7 @@
 import { PantryRepository } from '../../PantryRepository';
 import { PrismaClient } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { IngredientCategory } from '@/domain/types/pantry';
 
 describe('PantryRepository', () => {
   let repository: PantryRepository;
@@ -19,7 +20,7 @@ describe('PantryRepository', () => {
         id: 'pantry-1',
         userId,
         ingredients: [
-          { name: 'tomato', category: 'vegetable', addedAt: new Date() },
+          { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
         ],
         updatedAt: new Date(),
       };
@@ -78,7 +79,7 @@ describe('PantryRepository', () => {
   describe('create', () => {
     it('should create new pantry', async () => {
       const ingredients = [
-        { name: 'tomato', category: 'vegetable', addedAt: new Date() },
+        { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
       ];
 
       const mockCreated = {
@@ -122,8 +123,8 @@ describe('PantryRepository', () => {
   describe('update', () => {
     it('should update pantry', async () => {
       const ingredients = [
-        { name: 'tomato', category: 'vegetable', addedAt: new Date() },
-        { name: 'chicken', category: 'meat', addedAt: new Date() },
+        { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
+        { name: 'chicken', category: IngredientCategory.PROTEIN, addedAt: new Date() },
       ];
 
       const mockUpdated = {
@@ -167,12 +168,12 @@ describe('PantryRepository', () => {
       const existingPantry = {
         id: 'pantry-1',
         userId,
-        ingredients: [{ name: 'tomato', category: 'vegetable', addedAt: new Date() }],
+        ingredients: [{ name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() }],
         updatedAt: new Date(),
       };
 
       const newIngredients = [
-        { name: 'chicken', category: 'meat', addedAt: new Date() },
+        { name: 'chicken', category: IngredientCategory.PROTEIN, addedAt: new Date() },
       ];
 
       const updatedPantry = {
@@ -192,12 +193,12 @@ describe('PantryRepository', () => {
       const existingPantry = {
         id: 'pantry-1',
         userId,
-        ingredients: [{ name: 'tomato', category: 'vegetable', addedAt: new Date() }],
+        ingredients: [{ name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() }],
         updatedAt: new Date(),
       };
 
       const duplicateIngredients = [
-        { name: 'Tomato', category: 'vegetable', addedAt: new Date() }, // Different case
+        { name: 'Tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() }, // Different case
       ];
 
       (mockPrisma.userPantry.findUnique as jest.Mock).mockResolvedValue(existingPantry);
@@ -210,7 +211,7 @@ describe('PantryRepository', () => {
 
     it('should create pantry if does not exist', async () => {
       const newIngredients = [
-        { name: 'tomato', category: 'vegetable', addedAt: new Date() },
+        { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
       ];
 
       const newPantry = {
@@ -236,8 +237,8 @@ describe('PantryRepository', () => {
         id: 'pantry-1',
         userId,
         ingredients: [
-          { name: 'tomato', category: 'vegetable', addedAt: new Date() },
-          { name: 'chicken', category: 'meat', addedAt: new Date() },
+          { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
+          { name: 'chicken', category: IngredientCategory.PROTEIN, addedAt: new Date() },
         ],
         updatedAt: new Date(),
       };
@@ -260,7 +261,7 @@ describe('PantryRepository', () => {
       const existingPantry = {
         id: 'pantry-1',
         userId,
-        ingredients: [{ name: 'tomato', category: 'vegetable', addedAt: new Date() }],
+        ingredients: [{ name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() }],
         updatedAt: new Date(),
       };
 

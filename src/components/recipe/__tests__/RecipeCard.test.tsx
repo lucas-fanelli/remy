@@ -40,7 +40,6 @@ const mockRecipe: Recipe = {
   cookingTime: 30,
   servings: 4,
   difficulty: 'easy',
-  cuisine: 'Italian',
   ingredients: [
     { name: 'ingredient1', amount: '2', unit: 'cups' },
     { name: 'ingredient2', amount: '1', unit: 'tbsp' },
@@ -213,14 +212,14 @@ describe('RecipeCard Component', () => {
   });
 
   it('should show medium difficulty with warning color', () => {
-    const mediumRecipe = { ...mockRecipe, difficulty: 'medium' };
+    const mediumRecipe = { ...mockRecipe, difficulty: 'medium' as const };
     renderWithTheme(<RecipeCard recipe={mediumRecipe} currentUserId="different-user" />);
 
     expect(screen.getByText('medium')).toBeInTheDocument();
   });
 
   it('should show hard difficulty with error color', () => {
-    const hardRecipe = { ...mockRecipe, difficulty: 'hard' };
+    const hardRecipe = { ...mockRecipe, difficulty: 'hard' as const };
     renderWithTheme(<RecipeCard recipe={hardRecipe} currentUserId="different-user" />);
 
     expect(screen.getByText('hard')).toBeInTheDocument();

@@ -1,5 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -40,16 +44,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [markingAsRead, setMarkingAsRead] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/auth');
-      return;
-    }
-
-    fetchNotifications();
-  }, [user, token, router]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!token) return;
 
     try {
@@ -68,7 +63,16 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/auth');
+      return;
+    }
+
+    fetchNotifications();
+  }, [user, token, router, fetchNotifications]);
 
   const markAllAsRead = async () => {
     if (!token || markingAsRead) return;

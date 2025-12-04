@@ -1,5 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -75,15 +79,7 @@ export default function RecipeDetailPage() {
   const recipeId = params.id as string;
   const isOwner = user && recipe && user.id === recipe.userId;
 
-  useEffect(() => {
-    loadRecipe();
-    if (token) {
-      loadLikeStatus();
-      loadSaveStatus();
-    }
-  }, [recipeId, token]);
-
-  const loadRecipe = async () => {
+  const loadRecipe = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -105,7 +101,54 @@ export default function RecipeDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [recipeId]);
+
+  const loadLikeStatus = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch(`/api/recipes/${recipeId}/like`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLiked(data.liked);
+        setLikesCount(data.likesCount);
+      }
+    } catch (error) {
+      console.error('Error loading like status:', error);
+    }
+  }, [recipeId, token]);
+
+  const loadSaveStatus = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      const response = await fetch(`/api/recipes/${recipeId}/save`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSaved(data.saved);
+      }
+    } catch (error) {
+      console.error('Error loading save status:', error);
+    }
+  }, [recipeId, token]);
+
+  useEffect(() => {
+    loadRecipe();
+    if (token) {
+      loadLikeStatus();
+      loadSaveStatus();
+    }
+  }, [recipeId, token, loadRecipe, loadLikeStatus, loadSaveStatus]);
 
   const handleBack = () => {
     router.back();
@@ -157,45 +200,6 @@ export default function RecipeDetailPage() {
       setDeleteDialogOpen(false);
     } finally {
       setDeleting(false);
-    }
-  };
-
-  const loadLikeStatus = async () => {
-    if (!token) return;
-
-    try {
-      const response = await fetch(`/api/recipes/${recipeId}/like`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setLiked(data.liked);
-        setLikesCount(data.likesCount);
-      }
-    } catch (error) {
-      console.error('Error loading like status:', error);
-    }
-  };
-
-  const loadSaveStatus = async () => {
-    if (!token) return;
-
-    try {
-      const response = await fetch(`/api/recipes/${recipeId}/save`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSaved(data.saved);
-      }
-    } catch (error) {
-      console.error('Error loading save status:', error);
     }
   };
 

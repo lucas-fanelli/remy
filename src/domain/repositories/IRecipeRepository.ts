@@ -41,11 +41,6 @@ export interface IRecipeRepository {
   getRecent(limit?: number, offset?: number): Promise<Recipe[]>;
 
   /**
-   * Get recipes by cuisine type
-   */
-  getByCuisine(cuisine: string, limit?: number, offset?: number): Promise<Recipe[]>;
-
-  /**
    * Get recipes by difficulty
    */
   getByDifficulty(difficulty: string, limit?: number, offset?: number): Promise<Recipe[]>;

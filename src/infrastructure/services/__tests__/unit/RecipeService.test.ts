@@ -17,7 +17,6 @@ describe('RecipeService - Unit Tests', () => {
     prepTime: 15,
     servings: 4,
     difficulty: 'easy',
-    cuisine: 'Italian',
     ingredients: [
       { name: 'Tomato', amount: '2', unit: 'pieces' },
       { name: 'Pasta', amount: '200', unit: 'grams' }
@@ -40,7 +39,6 @@ describe('RecipeService - Unit Tests', () => {
     prepTime: 15,
     servings: 4,
     difficulty: 'easy',
-    cuisine: 'Italian',
     ingredients: [
       { name: 'Tomato', amount: '2', unit: 'pieces' },
       { name: 'Pasta', amount: '200', unit: 'grams' }
@@ -173,14 +171,6 @@ describe('RecipeService - Unit Tests', () => {
       );
     });
 
-    it('should throw error for missing cuisine', async () => {
-      const invalidDTO = { ...validCreateDTO, cuisine: '' };
-
-      await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
-        'Cuisine is required'
-      );
-    });
-
     it('should throw error for empty ingredients array', async () => {
       const invalidDTO = { ...validCreateDTO, ingredients: [] };
 
@@ -200,7 +190,7 @@ describe('RecipeService - Unit Tests', () => {
       );
     });
 
-    it('should throw error for ingredient missing amount', async () => {
+    it('should throw error for ingredient missing amount when unit is not "to taste"', async () => {
       const invalidDTO = {
         ...validCreateDTO,
         ingredients: [{ name: 'Tomato', amount: '', unit: 'pieces' }]
@@ -209,6 +199,26 @@ describe('RecipeService - Unit Tests', () => {
       await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
         'Ingredient 1: amount is required'
       );
+    });
+
+    it('should allow ingredient with empty amount when unit is "to taste"', async () => {
+      const validDTO = {
+        ...validCreateDTO,
+        ingredients: [
+          { name: 'Salt', amount: '', unit: 'to taste' },
+          { name: 'Tomato', amount: '2', unit: 'pieces' }
+        ]
+      };
+
+      mockRecipeRepository.create = jest.fn().mockResolvedValue({
+        ...mockRecipe,
+        ingredients: validDTO.ingredients
+      });
+
+      const result = await recipeService.createRecipe(validDTO);
+
+      expect(result).toBeDefined();
+      expect(mockRecipeRepository.create).toHaveBeenCalledWith(validDTO);
     });
 
     it('should throw error for ingredient missing unit', async () => {
@@ -304,7 +314,7 @@ describe('RecipeService - Unit Tests', () => {
       const recipes = [mockRecipe];
       const searchOptions: RecipeSearchOptions = {
         query: 'pasta',
-        filters: { cuisine: 'Italian', difficulty: 'easy' },
+        filters: { difficulty: 'easy' },
         limit: 20,
         offset: 0,
         sortBy: 'createdAt',
@@ -401,18 +411,6 @@ describe('RecipeService - Unit Tests', () => {
 
       expect(result).toEqual(recipes);
       expect(mockRecipeRepository.getRecent).toHaveBeenCalledWith(10, 20);
-    });
-  });
-
-  describe('getRecipesByCuisine', () => {
-    it('should return recipes by cuisine', async () => {
-      const recipes = [mockRecipe];
-      mockRecipeRepository.getByCuisine = jest.fn().mockResolvedValue(recipes);
-
-      const result = await recipeService.getRecipesByCuisine('Italian', 10, 0);
-
-      expect(result).toEqual(recipes);
-      expect(mockRecipeRepository.getByCuisine).toHaveBeenCalledWith('Italian', 10, 0);
     });
   });
 

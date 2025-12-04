@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import {
@@ -184,7 +184,7 @@ export default function Navigation() {
   }, [pathname]);
 
   // Fetch notification count and notifications
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!token) {
       return;
     }
@@ -203,7 +203,7 @@ export default function Navigation() {
         const notificationsArray = data.notifications || [];
         const uniqueNotifications = Array.from(
           new Map(notificationsArray.map((n: Notification) => [n.id, n])).values()
-        );
+        ) as Notification[];
 
         setNotifications(uniqueNotifications);
         setUnreadNotifications(data.unreadCount || 0);
@@ -213,7 +213,7 @@ export default function Navigation() {
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchNotifications();
@@ -222,7 +222,7 @@ export default function Navigation() {
     const interval = setInterval(fetchNotifications, 30000);
 
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, fetchNotifications]);
 
   // Search functionality
   useEffect(() => {

@@ -17,7 +17,6 @@ describe('IngredientMatchService', () => {
     prepTime: 15,
     servings: 4,
     difficulty: 'medium',
-    cuisine: 'Italian',
     ingredients: [
       { name: 'chicken breast', amount: '2', unit: 'pieces' },
       { name: 'pasta', amount: '500', unit: 'g' },
@@ -288,21 +287,6 @@ describe('IngredientMatchService', () => {
       const matches = await service.findRecipesByIngredients(userIngredients);
 
       expect(matches[0].matchPercentage).toBeGreaterThan(matches[1].matchPercentage);
-    });
-
-    it('should apply cuisine filter', async () => {
-      mockRecipeRepository.search.mockResolvedValue([mockRecipe]);
-
-      const userIngredients = ['chicken', 'pasta'];
-      await service.findRecipesByIngredients(userIngredients, {
-        cuisine: 'Italian',
-      });
-
-      expect(mockRecipeRepository.search).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filters: expect.objectContaining({ cuisine: 'Italian' }),
-        })
-      );
     });
 
     it('should apply difficulty filter', async () => {

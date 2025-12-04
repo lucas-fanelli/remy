@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -69,11 +69,7 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    loadComments();
-  }, [recipeId]);
-
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/comments`);
@@ -87,7 +83,11 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
     } finally {
       setLoading(false);
     }
-  };
+  }, [recipeId]);
+
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
 
   const handleSubmitComment = async () => {
     if (!token || !commentText.trim()) return;
@@ -252,7 +252,7 @@ export default function CommentsSection({ recipeId, recipeAuthorId }: CommentsSe
           <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1.5, md: 2 }, mb: { xs: 1.5, md: 2 } }}>
               <Avatar
-                src={user.avatar}
+                src={user.avatar || undefined}
                 sx={{
                   width: { xs: 36, md: 40 },
                   height: { xs: 36, md: 40 },

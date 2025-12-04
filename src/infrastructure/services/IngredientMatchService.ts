@@ -22,7 +22,6 @@ export class IngredientMatchService implements IIngredientMatchService {
     // Fetch all recipes (with filters if provided)
     const recipes = await this.recipeRepository.search({
       filters: filters ? {
-        cuisine: filters.cuisine,
         difficulty: filters.difficulty as any,
         maxCookingTime: filters.maxCookingTime,
       } : undefined,

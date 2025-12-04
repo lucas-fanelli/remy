@@ -1,4 +1,8 @@
 'use client';
+
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
 import React, { useEffect, useState } from 'react';
 import { Box, Container, useTheme, useMediaQuery, Dialog, DialogTitle, DialogContent, Toolbar, Skeleton, Card, CardContent, Grid } from '@mui/material';
 import { useRouter } from 'next/navigation';

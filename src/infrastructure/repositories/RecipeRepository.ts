@@ -28,7 +28,6 @@ export class RecipeRepository implements IRecipeRepository {
         prepTime: data.prepTime,
         servings: data.servings,
         difficulty: data.difficulty,
-        cuisine: data.cuisine,
         ingredients: data.ingredients as any,
         instructions: data.instructions as any,
       },
@@ -133,7 +132,6 @@ export class RecipeRepository implements IRecipeRepository {
         prepTime: data.prepTime,
         servings: data.servings,
         difficulty: data.difficulty,
-        cuisine: data.cuisine,
         ingredients: data.ingredients as any,
         instructions: data.instructions as any,
       },
@@ -158,16 +156,6 @@ export class RecipeRepository implements IRecipeRepository {
     return posts.map(this.mapToRecipe);
   }
 
-  async getByCuisine(cuisine: string, limit = 20, offset = 0): Promise<Recipe[]> {
-    const posts = await this.prisma.post.findMany({
-      where: { cuisine },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
-    });
-
-    return posts.map(this.mapToRecipe);
-  }
 
   async getByDifficulty(difficulty: string, limit = 20, offset = 0): Promise<Recipe[]> {
     const posts = await this.prisma.post.findMany({
@@ -211,7 +199,6 @@ export class RecipeRepository implements IRecipeRepository {
       prepTime: post.prepTime || 0,
       servings: post.servings || 0,
       difficulty: post.difficulty || 'medium',
-      cuisine: post.cuisine || '',
       ingredients: (post.ingredients as Ingredient[]) || [],
       instructions: (post.instructions as Instruction[]) || [],
       caption: post.caption || undefined,

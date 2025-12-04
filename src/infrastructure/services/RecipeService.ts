@@ -62,10 +62,6 @@ export class RecipeService implements IRecipeService {
     return this.recipeRepository.getRecent(limit, offset);
   }
 
-  async getRecipesByCuisine(cuisine: string, limit?: number, offset?: number): Promise<Recipe[]> {
-    return this.recipeRepository.getByCuisine(cuisine, limit, offset);
-  }
-
   async getRecipesByDifficulty(difficulty: string, limit?: number, offset?: number): Promise<Recipe[]> {
     return this.recipeRepository.getByDifficulty(difficulty, limit, offset);
   }

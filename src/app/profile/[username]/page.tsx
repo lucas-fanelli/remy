@@ -1,5 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -97,11 +101,7 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.username === username;
   const bioPreviewLength = 100;
 
-  useEffect(() => {
-    loadProfile();
-  }, [username]);
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -182,7 +182,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [username, currentUser, isOwnProfile, token]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const handleFollow = async () => {
     if (!token || isOwnProfile) return;

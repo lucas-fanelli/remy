@@ -334,4 +334,60 @@ describe('ImageUpload Component', () => {
     // Should show error border color
     expect(screen.getByText('Click to upload an image')).toBeInTheDocument();
   });
+
+  it('should render compact mode with image preview - lines 124-125', () => {
+    renderWithTheme(
+      <ImageUpload
+        value="https://example.com/image.jpg"
+        onChange={mockOnChange}
+        compact={true}
+      />
+    );
+
+    const image = screen.getByAltText('Recipe preview');
+    expect(image).toBeInTheDocument();
+    expect(image).toHaveAttribute('src', 'https://example.com/image.jpg');
+  });
+
+  it('should render compact mode upload placeholder - lines 175,185-186', () => {
+    renderWithTheme(
+      <ImageUpload
+        value=""
+        onChange={mockOnChange}
+        compact={true}
+      />
+    );
+
+    expect(screen.getByText('Click to upload an image')).toBeInTheDocument();
+    // In compact mode, the helper text is not shown
+    expect(screen.queryByText('JPEG, PNG, WebP, or GIF (max 5MB)')).not.toBeInTheDocument();
+  });
+
+  it('should show compact uploading state - lines 175,178-179', async () => {
+    mockFetch.mockImplementation(() => new Promise(resolve => {
+      // Never resolve to keep uploading state active
+    }));
+
+    renderWithTheme(
+      <ImageUpload
+        value=""
+        onChange={mockOnChange}
+        compact={true}
+      />
+    );
+
+    const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    Object.defineProperty(input, 'files', {
+      value: [file],
+    });
+
+    fireEvent.change(input);
+
+    // Wait for uploading state
+    await waitFor(() => {
+      expect(screen.getByText(/Uploading.../i)).toBeInTheDocument();
+    });
+  });
 });

@@ -334,7 +334,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Select "to taste" for ingredients without specific amounts. Amount is optional for "to taste" ingredients.
+              Select &quot;to taste&quot; for ingredients without specific amounts. Amount is optional for &quot;to taste&quot; ingredients.
             </Typography>
 
             {ingredients.map((ingredient, index) => (

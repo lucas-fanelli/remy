@@ -1,5 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+
+// Force dynamic rendering for this page since it uses useRouter
+export const dynamic = 'force-dynamic';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Box,
@@ -58,7 +62,7 @@ interface PantryItem {
 }
 
 const categories = ['vegetable', 'protein', 'dairy', 'grain', 'spice', 'fruit', 'other'];
-const units = ['g', 'kg', 'ml', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'];
+const units = ['g', 'kg', 'mL', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'];
 
 export default function PantryPage() {
   const { user, token } = useAuth();
@@ -84,15 +88,7 @@ export default function PantryPage() {
     notes: '',
   });
 
-  useEffect(() => {
-    if (!token) {
-      router.push('/auth');
-      return;
-    }
-    loadPantry();
-  }, [token]);
-
-  const loadPantry = async () => {
+  const loadPantry = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/pantry', {
@@ -111,7 +107,15 @@ export default function PantryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/auth');
+      return;
+    }
+    loadPantry();
+  }, [token, router, loadPantry]);
 
   const handleOpenDialog = (item?: PantryItem) => {
     if (item) {
@@ -326,7 +330,7 @@ export default function PantryPage() {
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 >
                   <MenuItem value="all">All Categories</MenuItem>
-                  {allCategories.map((cat) => (
+                  {allCategories.map((cat) => cat && (
                     <MenuItem key={cat} value={cat}>
                       {cat.charAt(0).toUpperCase() + cat.slice(1)}
                     </MenuItem>
@@ -487,7 +491,7 @@ export default function PantryPage() {
                     setFormData({ ...formData, category: value });
                   }
                 }}
-                getOptionLabel={(option) => option.charAt(0).toUpperCase() + option.slice(1)}
+                getOptionLabel={(option) => option ? option.charAt(0).toUpperCase() + option.slice(1) : ''}
                 renderInput={(params) => (
                   <TextField
                     {...params}

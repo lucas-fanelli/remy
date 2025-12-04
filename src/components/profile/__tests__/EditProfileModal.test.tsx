@@ -33,6 +33,9 @@ describe('EditProfileModal', () => {
     website: 'https://example.com',
     avatar: '/avatar.jpg',
     isPrivate: false,
+    isVerified: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(() => {
@@ -227,7 +230,7 @@ describe('EditProfileModal', () => {
     it('should show error when not authenticated', async () => {
       const user = userEvent.setup();
       mockUseAuth.mockReturnValue({
-        user: mockUser,
+        user: { ...mockUser },
         token: null,
         isLoading: false,
         isAuthenticated: false,
@@ -494,9 +497,9 @@ describe('EditProfileModal', () => {
         website: null,
         avatar: null,
         isPrivate: false,
-        createdAt: new Date().toISOString(),
-        followersCount: 0,
-        followingCount: 0,
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
 
       mockUseAuth.mockReturnValue({
@@ -712,6 +715,9 @@ describe('EditProfileModal', () => {
       const userWithNoName = {
         ...mockUser,
         fullName: '',
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoName,
@@ -733,6 +739,9 @@ describe('EditProfileModal', () => {
       const userWithNoBio = {
         ...mockUser,
         bio: '',
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoBio,
@@ -755,6 +764,9 @@ describe('EditProfileModal', () => {
       const userWithNoWebsite = {
         ...mockUser,
         website: '',
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoWebsite,
@@ -806,6 +818,9 @@ describe('EditProfileModal', () => {
       const userWithNoAvatar = {
         ...mockUser,
         avatar: null,
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoAvatar,

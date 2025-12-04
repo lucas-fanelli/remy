@@ -45,7 +45,7 @@ const steps = ['Recipe Info', 'Ingredients', 'Instructions', 'Review'];
 
 const commonUnits = [
   'cups', 'tbsp', 'tsp', 'g', 'kg', 'oz', 'lb',
-  'ml', 'L', 'pieces', 'pinch', 'to taste', 'whole'
+  'mL', 'L', 'pieces', 'pinch', 'to taste', 'whole'
 ];
 
 export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFormProps) {
@@ -319,7 +319,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                 Add all ingredients with amounts and units (e.g., &ldquo;2 cups flour&rdquo;, &ldquo;1 tsp salt&rdquo;)
               </Typography>
               <Alert severity="info" sx={{ mt: 1, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                💡 Tip: Select "to taste" as unit for ingredients without specific amounts (like salt, pepper). Amount field is optional for "to taste" ingredients.
+                💡 Tip: Select &quot;to taste&quot; as unit for ingredients without specific amounts (like salt, pepper). Amount field is optional for &quot;to taste&quot; ingredients.
               </Alert>
             </Box>
 
@@ -488,7 +488,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
 
                 <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mb: { xs: 1.5, md: 2 }, flexWrap: 'wrap' }}>
                   <Chip label={difficulty} size="small" color="primary" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
-                  <Chip label={`${prepTime + cookingTime} min total`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
+                  <Chip label={`${Number(prepTime) + Number(cookingTime)} min total`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                   <Chip label={`${servings} servings`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
                 </Box>
 

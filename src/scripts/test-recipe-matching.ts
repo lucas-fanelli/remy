@@ -43,7 +43,9 @@ async function findMatches(pantryItems: string[]) {
   // Get all recipes
   const recipes = await prisma.post.findMany({
     where: {
-      ingredients: { not: null },
+      ingredients: {
+        not: null as any
+      }
     },
     select: {
       id: true,
@@ -51,7 +53,6 @@ async function findMatches(pantryItems: string[]) {
       ingredients: true,
       difficulty: true,
       cookingTime: true,
-      cuisine: true,
     },
   });
 
@@ -60,7 +61,6 @@ async function findMatches(pantryItems: string[]) {
   // Calculate matches
   const matches: Array<{
     title: string;
-    cuisine: string;
     difficulty: string;
     cookingTime: number;
     matchPercentage: number;
@@ -97,7 +97,6 @@ async function findMatches(pantryItems: string[]) {
 
     matches.push({
       title: recipe.title || 'Untitled',
-      cuisine: recipe.cuisine || 'Unknown',
       difficulty: recipe.difficulty || 'unknown',
       cookingTime: recipe.cookingTime || 0,
       matchPercentage,
@@ -119,7 +118,7 @@ async function findMatches(pantryItems: string[]) {
   console.log(`🟢 Ready to Cook (100% match): ${readyToCook.length} recipes`);
   readyToCook.forEach((recipe) => {
     console.log(
-      `   ✓ ${recipe.title} (${recipe.cuisine}, ${recipe.difficulty}, ${recipe.cookingTime}min)`
+      `   ✓ ${recipe.title} (${recipe.difficulty}, ${recipe.cookingTime}min)`
     );
   });
 
@@ -128,7 +127,7 @@ async function findMatches(pantryItems: string[]) {
   );
   almostThere.slice(0, 5).forEach((recipe) => {
     console.log(
-      `   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.cuisine}, ${recipe.difficulty})`
+      `   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.difficulty})`
     );
     console.log(`     Missing: ${recipe.missingIngredients.slice(0, 3).join(', ')}${recipe.missingIngredients.length > 3 ? '...' : ''}`);
   });
@@ -136,7 +135,7 @@ async function findMatches(pantryItems: string[]) {
   console.log(`\n🔴 Need More Ingredients (<70% match): ${needMore.length} recipes`);
   needMore.slice(0, 3).forEach((recipe) => {
     console.log(
-      `   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.cuisine})`
+      `   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.difficulty})`
     );
   });
 }

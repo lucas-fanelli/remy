@@ -55,6 +55,62 @@ describe('CreateRecipeForm Component', () => {
     jest.clearAllMocks();
   });
 
+  // Helper function to fill in all required step 1 fields
+  const fillStep1Fields = () => {
+    const titleInput = screen.getByLabelText(/recipe title/i);
+    fireEvent.change(titleInput, { target: { value: 'Test Recipe' } });
+
+    const descriptionInput = screen.getByLabelText(/description/i);
+    fireEvent.change(descriptionInput, { target: { value: 'Test Description' } });
+
+    // Upload image
+    const uploadButton = screen.getByText(/upload image/i);
+    fireEvent.click(uploadButton);
+
+    // Fill in time and servings fields
+    const prepTimeInput = screen.getByLabelText(/prep time/i);
+    fireEvent.change(prepTimeInput, { target: { value: '15' } });
+
+    const cookingTimeInput = screen.getByLabelText(/cooking time/i);
+    fireEvent.change(cookingTimeInput, { target: { value: '30' } });
+
+    const servingsInput = screen.getByLabelText(/servings/i);
+    fireEvent.change(servingsInput, { target: { value: '4' } });
+  };
+
+  // Helper function to navigate to step 2 (ingredients)
+  const navigateToStep2 = () => {
+    fillStep1Fields();
+    const nextButton = screen.getByRole('button', { name: /next/i });
+    fireEvent.click(nextButton);
+  };
+
+  // Helper function to navigate to step 3 (instructions)
+  const navigateToStep3 = () => {
+    navigateToStep2();
+    // Fill in at least one ingredient to proceed
+    const nameInputs = screen.getAllByLabelText(/^ingredient \*$/i);
+    fireEvent.change(nameInputs[0], { target: { value: 'Test Ingredient' } });
+    const unitSelects = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(unitSelects[0]);
+    const unitOption = screen.getByRole('option', { name: /cups/i });
+    fireEvent.click(unitOption);
+    const amountInputs = screen.getAllByLabelText(/^amount \*$/i);
+    fireEvent.change(amountInputs[0], { target: { value: '1' } });
+    const nextButton = screen.getByRole('button', { name: /next/i });
+    fireEvent.click(nextButton);
+  };
+
+  // Helper function to navigate to step 4 (review)
+  const navigateToStep4 = () => {
+    navigateToStep3();
+    // Fill in at least one instruction
+    const instructionInputs = screen.getAllByLabelText(/step 1/i);
+    fireEvent.change(instructionInputs[0], { target: { value: 'Test instruction' } });
+    const nextButton = screen.getByRole('button', { name: /next/i });
+    fireEvent.click(nextButton);
+  };
+
   it('should render form fields on step 1', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
@@ -105,20 +161,8 @@ describe('CreateRecipeForm Component', () => {
   it('should navigate to ingredients step when clicking next', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill in required fields
-    const titleInput = screen.getByLabelText(/recipe title/i);
-    fireEvent.change(titleInput, { target: { value: 'Test Recipe' } });
-
-    const descriptionInput = screen.getByLabelText(/description/i);
-    fireEvent.change(descriptionInput, { target: { value: 'Test Description' } });
-
-    // Upload image
-    const uploadButton = screen.getByText(/upload image/i);
-    fireEvent.click(uploadButton);
-
-    // Click next
-    const nextButton = screen.getByRole('button', { name: /next/i });
-    fireEvent.click(nextButton);
+    // Navigate to step 2
+    navigateToStep2();
 
     // Should show add ingredient button
     expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
@@ -127,45 +171,23 @@ describe('CreateRecipeForm Component', () => {
   it('should add ingredients on step 2', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Go to ingredients step
-    const titleInput = screen.getByLabelText(/recipe title/i);
-    fireEvent.change(titleInput, { target: { value: 'Test Recipe' } });
-
-    const descriptionInput = screen.getByLabelText(/description/i);
-    fireEvent.change(descriptionInput, { target: { value: 'Test Description' } });
-
-    // Upload image
-    const uploadButton = screen.getByText(/upload image/i);
-    fireEvent.click(uploadButton);
-
-    const nextButton = screen.getByRole('button', { name: /next/i });
-    fireEvent.click(nextButton);
+    // Navigate to step 2
+    navigateToStep2();
 
     // Add ingredient
     const addIngredientButton = screen.getByText(/add ingredient/i);
     fireEvent.click(addIngredientButton);
 
     // Should show ingredient inputs
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+    const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
     expect(ingredientInputs.length).toBeGreaterThan(1);
   });
 
   it('should navigate back from ingredients step', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Go to ingredients step
-    const titleInput = screen.getByLabelText(/recipe title/i);
-    fireEvent.change(titleInput, { target: { value: 'Test Recipe' } });
-
-    const descriptionInput = screen.getByLabelText(/description/i);
-    fireEvent.change(descriptionInput, { target: { value: 'Test Description' } });
-
-    // Upload image
-    const uploadButton = screen.getByText(/upload image/i);
-    fireEvent.click(uploadButton);
-
-    let nextButton = screen.getByRole('button', { name: /next/i });
-    fireEvent.click(nextButton);
+    // Navigate to step 2
+    navigateToStep2();
 
     // Click back
     const backButton = screen.getByRole('button', { name: /back/i });
@@ -251,13 +273,8 @@ describe('CreateRecipeForm Component', () => {
   it('should show ingredients section when navigating to step 2', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill required fields
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-
-    // Navigate to ingredients
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 2
+    navigateToStep2();
 
     expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
   });
@@ -279,37 +296,31 @@ describe('CreateRecipeForm Component', () => {
     const prepTimeInput = screen.getByLabelText(/prep time/i) as HTMLInputElement;
 
     expect(titleInput.value).toBe('');
-    // Servings and prepTime have default values
-    expect(servingsInput.value).toBe('4');
-    expect(prepTimeInput.value).toBe('15');
+    // Number fields start empty
+    expect(servingsInput.value).toBe('');
+    expect(prepTimeInput.value).toBe('');
   });
 
   it('should add multiple ingredients', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
     // Navigate to ingredients step
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    navigateToStep2();
 
     // Add first ingredient
     fireEvent.click(screen.getByText(/add ingredient/i));
-    expect(screen.getAllByLabelText(/^ingredient$/i).length).toBeGreaterThan(1);
+    expect(screen.getAllByLabelText(/^ingredient \*$/i).length).toBeGreaterThan(1);
 
     // Add second ingredient
     fireEvent.click(screen.getByText(/add ingredient/i));
-    expect(screen.getAllByLabelText(/^ingredient$/i).length).toBeGreaterThan(2);
+    expect(screen.getAllByLabelText(/^ingredient \*$/i).length).toBeGreaterThan(2);
   });
 
   it('should navigate through all steps', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Step 1
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 2
+    navigateToStep2();
 
     // Step 2 - Should be on ingredients
     expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
@@ -319,31 +330,8 @@ describe('CreateRecipeForm Component', () => {
   it('should navigate to instructions step', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Step 1 - Recipe Info
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test Recipe' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test Description' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Step 2 - Ingredients - wait for ingredients step to render
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 3
+    navigateToStep3();
 
     // Step 3 - Instructions
     expect(screen.getByText(/add step/i)).toBeInTheDocument();
@@ -352,32 +340,8 @@ describe('CreateRecipeForm Component', () => {
   it('should add instructions', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Navigate to instructions step
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 3
+    navigateToStep3();
 
     // Add instruction
     const addInstructionButton = screen.getByText(/add step/i);
@@ -390,32 +354,8 @@ describe('CreateRecipeForm Component', () => {
   it('should add multiple instructions', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Navigate to instructions step
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 3
+    navigateToStep3();
 
     // Add first instruction
     fireEvent.click(screen.getByText(/add step/i));
@@ -429,32 +369,8 @@ describe('CreateRecipeForm Component', () => {
   it('should update instruction text', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Navigate to instructions step
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 3
+    navigateToStep3();
 
     // Get the first instruction input
     const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
@@ -467,32 +383,8 @@ describe('CreateRecipeForm Component', () => {
   it('should navigate back from instructions step', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Navigate to instructions step
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 3
+    navigateToStep3();
 
     // Click back
     const backButton = screen.getByRole('button', { name: /back/i });
@@ -506,38 +398,8 @@ describe('CreateRecipeForm Component', () => {
   it('should navigate to review step', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Navigate through all steps
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test Recipe' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test Description' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed to instructions
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Add instruction to proceed to review
-    const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
-    fireEvent.change(instructionInputs[0], { target: { value: 'Mix well' } });
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to step 4
+    navigateToStep4();
 
     // Should show recipe details on review step
     expect(screen.getByText('Test Recipe')).toBeInTheDocument();
@@ -549,10 +411,13 @@ describe('CreateRecipeForm Component', () => {
 
     const testTitle = 'Delicious Pasta';
 
-    // Fill form and navigate to review
+    // Fill form with custom title
     fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: testTitle } });
     fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
     fireEvent.click(screen.getByText(/upload image/i));
+    fireEvent.change(screen.getByLabelText(/prep time/i), { target: { value: '15' } });
+    fireEvent.change(screen.getByLabelText(/cooking time/i), { target: { value: '30' } });
+    fireEvent.change(screen.getByLabelText(/servings/i), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
     // Wait for ingredients step
@@ -560,23 +425,29 @@ describe('CreateRecipeForm Component', () => {
       expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
     });
 
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+    // Add ingredient with unit and amount to proceed
+    const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
     fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
 
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
+    // Wait for MUI Select components to render
     await waitFor(() => {
       const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
+      expect(selects.length).toBeGreaterThan(0);
     });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
+    const unitSelects = screen.getAllByRole('combobox');
     fireEvent.mouseDown(unitSelects[0]);
     const cupsOption = await screen.findByText('cups');
     fireEvent.click(cupsOption);
 
+    const amountInputs = screen.getAllByLabelText(/^amount \*$/i);
+    fireEvent.change(amountInputs[0], { target: { value: '2' } });
+
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-    // Add instruction to proceed
+    // Wait for instructions step and add instruction to proceed
+    await waitFor(() => {
+      expect(screen.getByText(/add step/i)).toBeInTheDocument();
+    });
     const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
     fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
 
@@ -590,10 +461,13 @@ describe('CreateRecipeForm Component', () => {
 
     const testDescription = 'A wonderful pasta dish';
 
-    // Fill form and navigate to review
+    // Fill form with custom description
     fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
     fireEvent.change(screen.getByLabelText(/description/i), { target: { value: testDescription } });
     fireEvent.click(screen.getByText(/upload image/i));
+    fireEvent.change(screen.getByLabelText(/prep time/i), { target: { value: '15' } });
+    fireEvent.change(screen.getByLabelText(/cooking time/i), { target: { value: '30' } });
+    fireEvent.change(screen.getByLabelText(/servings/i), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
     // Wait for ingredients step
@@ -601,23 +475,29 @@ describe('CreateRecipeForm Component', () => {
       expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
     });
 
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+    // Add ingredient with unit and amount to proceed
+    const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
     fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
 
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
+    // Wait for MUI Select components to render
     await waitFor(() => {
       const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
+      expect(selects.length).toBeGreaterThan(0);
     });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
+    const unitSelects = screen.getAllByRole('combobox');
     fireEvent.mouseDown(unitSelects[0]);
     const cupsOption = await screen.findByText('cups');
     fireEvent.click(cupsOption);
 
+    const amountInputs = screen.getAllByLabelText(/^amount \*$/i);
+    fireEvent.change(amountInputs[0], { target: { value: '2' } });
+
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-    // Add instruction to proceed
+    // Wait for instructions step and add instruction to proceed
+    await waitFor(() => {
+      expect(screen.getByText(/add step/i)).toBeInTheDocument();
+    });
     const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
     fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
 
@@ -630,37 +510,7 @@ describe('CreateRecipeForm Component', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
     // Navigate to review step
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Add instruction to proceed
-    const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
-    fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    navigateToStep4();
 
     expect(screen.getByRole('button', { name: /create recipe/i })).toBeInTheDocument();
   });
@@ -669,37 +519,7 @@ describe('CreateRecipeForm Component', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
     // Navigate to review step
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Add instruction to proceed
-    const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
-    fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    navigateToStep4();
 
     // Click back
     const backButton = screen.getByRole('button', { name: /back/i });
@@ -713,38 +533,8 @@ describe('CreateRecipeForm Component', () => {
   it('should call onSubmit when submit button is clicked', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill form and navigate to review
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test Recipe' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test Description' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Add instruction to proceed
-    const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
-    fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to review step
+    navigateToStep4();
 
     // Click submit
     const submitButton = screen.getByRole('button', { name: /create recipe/i });
@@ -763,43 +553,10 @@ describe('CreateRecipeForm Component', () => {
   it('should submit form with all filled data', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill all fields
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test Recipe' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test Description' } });
-    fireEvent.change(screen.getByLabelText(/servings/i), { target: { value: '4' } });
-    fireEvent.change(screen.getByLabelText(/prep time/i), { target: { value: '15' } });
-    fireEvent.change(screen.getByLabelText(/cooking time/i), { target: { value: '30' } });
-    fireEvent.click(screen.getByText(/upload image/i));
+    // Navigate to review step
+    navigateToStep4();
 
-    // Navigate to review and submit
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with unit to proceed
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-    fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
-    await waitFor(() => {
-      const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
-    });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
-    fireEvent.mouseDown(unitSelects[0]);
-    const cupsOption = await screen.findByText('cups');
-    fireEvent.click(cupsOption);
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-    // Add instruction to proceed
-    const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
-    fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
-
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Submit
     fireEvent.click(screen.getByRole('button', { name: /create recipe/i }));
 
     await waitFor(() => {
@@ -822,10 +579,8 @@ describe('CreateRecipeForm Component', () => {
   it('should include ingredients in submitted data', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill basic info
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
+    // Fill basic info and navigate to ingredients
+    fillStep1Fields();
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
     // Wait for ingredients step
@@ -835,31 +590,39 @@ describe('CreateRecipeForm Component', () => {
 
     // Add ingredient with name
     fireEvent.click(screen.getByText(/add ingredient/i));
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+    const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
     fireEvent.change(ingredientInputs[1], { target: { value: 'Flour' } });
 
     // Wait for MUI Select components to render (2 unit selects for 2 ingredients)
     await waitFor(() => {
       const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(1); // 2 Unit selects
+      expect(selects.length).toBeGreaterThan(1);
     });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
+    const unitSelects = screen.getAllByRole('combobox');
 
     // Set unit for the new ingredient (second one)
     fireEvent.mouseDown(unitSelects[1]);
     const cupsOption = await screen.findByText('cups');
     fireEvent.click(cupsOption);
 
-    // Also need to set unit for first ingredient
+    // Also need to set unit and amount for first ingredient
     fireEvent.change(ingredientInputs[0], { target: { value: 'Sugar' } });
     fireEvent.mouseDown(unitSelects[0]);
     const tbspOption = await screen.findByText('tbsp');
     fireEvent.click(tbspOption);
 
+    // Set amounts for both ingredients
+    const amountInputs = screen.getAllByLabelText(/^amount \*$/i);
+    fireEvent.change(amountInputs[0], { target: { value: '2' } });
+    fireEvent.change(amountInputs[1], { target: { value: '1' } });
+
     // Navigate to instructions step
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-    // Add an instruction to pass validation
+    // Wait for instructions step and add an instruction to pass validation
+    await waitFor(() => {
+      expect(screen.getByText(/add step/i)).toBeInTheDocument();
+    });
     const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
     fireEvent.change(instructionInputs[0], { target: { value: 'Mix ingredients together' } });
 
@@ -884,35 +647,33 @@ describe('CreateRecipeForm Component', () => {
   it('should include instructions in submitted data', async () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-    // Fill basic info and navigate to ingredients
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    // Navigate to ingredients step
+    navigateToStep2();
 
-    // Wait for ingredients step
-    await waitFor(() => {
-      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-    });
-
-    // Add ingredient with name and unit to pass validation
-    const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+    // Add ingredient with name, unit, and amount to pass validation
+    const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
     fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
 
-    // Wait for MUI Select components to render (only Unit selects on ingredients step)
+    // Wait for MUI Select components to render
     await waitFor(() => {
       const selects = screen.queryAllByRole('combobox');
-      expect(selects.length).toBeGreaterThan(0); // At least one Unit select
+      expect(selects.length).toBeGreaterThan(0);
     });
-    const unitSelects = screen.getAllByRole('combobox'); // On ingredients step, these are all unit selects
+    const unitSelects = screen.getAllByRole('combobox');
     fireEvent.mouseDown(unitSelects[0]);
     const cupsOption = await screen.findByText('cups');
     fireEvent.click(cupsOption);
 
+    const amountInputs = screen.getAllByLabelText(/^amount \*$/i);
+    fireEvent.change(amountInputs[0], { target: { value: '2' } });
+
     // Now navigate to instructions
     fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-    // Add instruction
+    // Wait for instructions step and add instruction
+    await waitFor(() => {
+      expect(screen.getByText(/add step/i)).toBeInTheDocument();
+    });
     fireEvent.click(screen.getByText(/add step/i));
     const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
     fireEvent.change(instructionInputs[1], { target: { value: 'Mix well' } });
@@ -939,10 +700,7 @@ describe('CreateRecipeForm Component', () => {
     renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
     // Navigate to ingredients
-    fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-    fireEvent.click(screen.getByText(/upload image/i));
-    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    navigateToStep2();
 
     // Add ingredient and update amount
     fireEvent.click(screen.getByText(/add ingredient/i));
@@ -960,59 +718,30 @@ describe('CreateRecipeForm Component', () => {
       // Click next without filling required fields (tests line 99-100 branch)
       fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-      expect(screen.getByText(/please fill in all required fields: title, description \(max 500 chars\), and image url/i)).toBeInTheDocument();
+      expect(screen.getByText(/please fill in all required fields: title, description \(max 500 chars\), image, and time\/servings/i)).toBeInTheDocument();
     });
 
     it('should show error when clicking next on step 1 without ingredient unit - branch coverage', async () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Navigate to step 1 (ingredients)
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
+      navigateToStep2();
 
       // Add ingredient name but no unit (tests line 101-102 branch)
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+      const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
       fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
 
       // Click next without setting unit
       fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-      expect(screen.getByText(/please add at least one ingredient with a unit \(e\.g\., cups, tbsp, g\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/please add at least one ingredient with name, amount, and unit/i)).toBeInTheDocument();
     });
 
     it('should show error when clicking next on step 2 without instructions - branch coverage', async () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-      // Navigate to step 2 (instructions)
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
-
-      // Add ingredient with unit to proceed
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-      fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-      await waitFor(() => {
-        const selects = screen.queryAllByRole('combobox');
-        expect(selects.length).toBeGreaterThan(0);
-      });
-      const unitSelects = screen.getAllByRole('combobox');
-      fireEvent.mouseDown(unitSelects[0]);
-      const cupsOption = await screen.findByText('cups');
-      fireEvent.click(cupsOption);
-
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      // Navigate to step 2 (instructions) via helper
+      navigateToStep3();
 
       // Now on instructions step - click next without adding instruction (tests line 103-104 branch)
       fireEvent.click(screen.getByRole('button', { name: /next/i }));
@@ -1027,29 +756,7 @@ describe('CreateRecipeForm Component', () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Navigate to instructions step
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
-
-      // Add ingredient with unit
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-      fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-      await waitFor(() => {
-        const selects = screen.queryAllByRole('combobox');
-        expect(selects.length).toBeGreaterThan(0);
-      });
-      const unitSelects = screen.getAllByRole('combobox');
-      fireEvent.mouseDown(unitSelects[0]);
-      const cupsOption = await screen.findByText('cups');
-      fireEvent.click(cupsOption);
-
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      navigateToStep3();
 
       // Start with 1 instruction by default, add 2 more to get 3 total
       fireEvent.click(screen.getByText(/add step/i));
@@ -1086,34 +793,8 @@ describe('CreateRecipeForm Component', () => {
 
       renderWithProviders(<CreateRecipeForm onSubmit={errorSubmit} onCancel={mockOnCancel} />);
 
-      // Navigate to review and submit
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
-
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-      fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-      await waitFor(() => {
-        const selects = screen.queryAllByRole('combobox');
-        expect(selects.length).toBeGreaterThan(0);
-      });
-      const unitSelects = screen.getAllByRole('combobox');
-      fireEvent.mouseDown(unitSelects[0]);
-      const cupsOption = await screen.findByText('cups');
-      fireEvent.click(cupsOption);
-
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
-      fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
-
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      // Navigate to review
+      navigateToStep4();
 
       // Submit and expect error (tests line 169 - error.message branch)
       fireEvent.click(screen.getByRole('button', { name: /create recipe/i }));
@@ -1133,34 +814,8 @@ describe('CreateRecipeForm Component', () => {
 
       renderWithProviders(<CreateRecipeForm onSubmit={errorSubmit} onCancel={mockOnCancel} />);
 
-      // Navigate to review and submit
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
-
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-      fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-      await waitFor(() => {
-        const selects = screen.queryAllByRole('combobox');
-        expect(selects.length).toBeGreaterThan(0);
-      });
-      const unitSelects = screen.getAllByRole('combobox');
-      fireEvent.mouseDown(unitSelects[0]);
-      const cupsOption = await screen.findByText('cups');
-      fireEvent.click(cupsOption);
-
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
-      fireEvent.change(instructionInputs[0], { target: { value: 'Cook' } });
-
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      // Navigate to review
+      navigateToStep4();
 
       // Submit and expect fallback error (tests line 169 - fallback 'Failed to create recipe' branch)
       fireEvent.click(screen.getByRole('button', { name: /create recipe/i }));
@@ -1193,19 +848,12 @@ describe('CreateRecipeForm Component', () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Navigate to ingredients
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
+      navigateToStep2();
 
       // Add a second ingredient
       fireEvent.click(screen.getByText(/add ingredient/i));
 
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+      const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
       expect(ingredientInputs.length).toBe(2);
 
       // Find delete buttons (testing line 118 - removeIngredient)
@@ -1218,7 +866,7 @@ describe('CreateRecipeForm Component', () => {
 
       // Should have one less ingredient
       await waitFor(() => {
-        const remainingInputs = screen.getAllByLabelText(/^ingredient$/i);
+        const remainingInputs = screen.getAllByLabelText(/^ingredient \*$/i);
         expect(remainingInputs.length).toBe(1);
       });
     });
@@ -1276,21 +924,14 @@ describe('CreateRecipeForm Component', () => {
     it('should filter out empty ingredients and instructions on submit - line 162-163', async () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
-      // Fill form and add empty ingredients/instructions
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test Recipe' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
+      // Navigate to ingredients
+      navigateToStep2();
 
       // Add multiple ingredients, but only fill one
       fireEvent.click(screen.getByText(/add ingredient/i));
       fireEvent.click(screen.getByText(/add ingredient/i));
 
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+      const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
       fireEvent.change(ingredientInputs[1], { target: { value: 'Flour' } });
 
       await waitFor(() => {
@@ -1302,9 +943,16 @@ describe('CreateRecipeForm Component', () => {
       const cupsOption = await screen.findByText('cups');
       fireEvent.click(cupsOption);
 
+      // Add amount for the filled ingredient
+      const amountInputs = screen.getAllByLabelText(/^amount \*$/i);
+      fireEvent.change(amountInputs[1], { target: { value: '2' } });
+
       fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-      // Add multiple instructions, but only fill one
+      // Wait for instructions step and add multiple instructions, but only fill one
+      await waitFor(() => {
+        expect(screen.getByText(/add step/i)).toBeInTheDocument();
+      });
       fireEvent.click(screen.getByText(/add step/i));
       const instructionInputs = screen.getAllByLabelText(/^step \d+$/i);
       fireEvent.change(instructionInputs[0], { target: { value: 'Mix ingredients' } });
@@ -1339,14 +987,7 @@ describe('CreateRecipeForm Component', () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Navigate to ingredients
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
+      navigateToStep2();
 
       // Don't fill ingredient name, but select a unit
       await waitFor(() => {
@@ -1363,7 +1004,7 @@ describe('CreateRecipeForm Component', () => {
 
       // Should show error because no ingredient has a name
       await waitFor(() => {
-        expect(screen.getByText(/please add at least one ingredient with a unit/i)).toBeInTheDocument();
+        expect(screen.getByText(/please add at least one ingredient with name, amount, and unit/i)).toBeInTheDocument();
       });
     });
 
@@ -1371,17 +1012,10 @@ describe('CreateRecipeForm Component', () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Navigate to ingredients
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
+      navigateToStep2();
 
       // Fill ingredient name but don't select unit (line 336 - error prop on FormControl)
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
+      const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
       fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
 
       // The FormControl should show error state when name is filled but unit is empty
@@ -1393,7 +1027,7 @@ describe('CreateRecipeForm Component', () => {
 
       // Should show validation error
       await waitFor(() => {
-        expect(screen.getByText(/please add at least one ingredient with a unit/i)).toBeInTheDocument();
+        expect(screen.getByText(/please add at least one ingredient with name, amount, and unit/i)).toBeInTheDocument();
       });
     });
 
@@ -1454,30 +1088,7 @@ describe('CreateRecipeForm Component', () => {
       renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
 
       // Navigate to instructions step
-      fireEvent.change(screen.getByLabelText(/recipe title/i), { target: { value: 'Test' } });
-      fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Test' } });
-      fireEvent.click(screen.getByText(/upload image/i));
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
-
-      // Wait for ingredients step
-      await waitFor(() => {
-        expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
-      });
-
-      // Add ingredient to proceed to instructions
-      const ingredientInputs = screen.getAllByLabelText(/^ingredient$/i);
-      fireEvent.change(ingredientInputs[0], { target: { value: 'Flour' } });
-
-      await waitFor(() => {
-        const selects = screen.queryAllByRole('combobox');
-        expect(selects.length).toBeGreaterThan(0);
-      });
-      const unitSelects = screen.getAllByRole('combobox');
-      fireEvent.mouseDown(unitSelects[0]);
-      const cupsOption = await screen.findByText('cups');
-      fireEvent.click(cupsOption);
-
-      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+      navigateToStep3();
 
       // Now on instructions step - add multiple instructions
       await waitFor(() => {

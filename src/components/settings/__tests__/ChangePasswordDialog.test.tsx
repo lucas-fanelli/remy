@@ -27,7 +27,15 @@ describe('ChangePasswordDialog', () => {
     mockOnClose = jest.fn();
 
     mockUseAuth.mockReturnValue({
-      user: { id: '1', username: 'testuser', email: 'test@example.com' },
+      user: {
+        id: '1',
+        username: 'testuser',
+        email: 'test@example.com',
+        isVerified: false,
+        isPrivate: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
@@ -738,7 +746,7 @@ describe('ChangePasswordDialog', () => {
     it('should render current password field with correct size and InputProps - lines 210-217', () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const currentPasswordInput = screen.getByLabelText(/current password/i) as HTMLInputElement;
       expect(currentPasswordInput).toBeInTheDocument();
       expect(currentPasswordInput.type).toBe('password');
 
@@ -752,7 +760,7 @@ describe('ChangePasswordDialog', () => {
     it('should render new password field with correct size and InputProps - lines 240-247', () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i) as HTMLInputElement;
       expect(newPasswordInput).toBeInTheDocument();
       expect(newPasswordInput.type).toBe('password');
 
@@ -766,7 +774,7 @@ describe('ChangePasswordDialog', () => {
     it('should render confirm password field with correct size and InputProps - lines 270-277', () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i) as HTMLInputElement;
       expect(confirmPasswordInput).toBeInTheDocument();
       expect(confirmPasswordInput.type).toBe('password');
 

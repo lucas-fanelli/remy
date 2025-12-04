@@ -1,5 +1,8 @@
 'use client';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import { SearchOff as NotFoundIcon, Home as HomeIcon, ArrowBack as BackIcon } from '@mui/icons-material';

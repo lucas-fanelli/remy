@@ -18,7 +18,6 @@ describe('RecipeRepository - Unit Tests', () => {
     prepTime: 15,
     servings: 4,
     difficulty: 'easy',
-    cuisine: 'Italian',
     ingredients: [
       { name: 'Tomato', amount: '2', unit: 'pieces' },
       { name: 'Pasta', amount: '200', unit: 'grams' }
@@ -27,12 +26,11 @@ describe('RecipeRepository - Unit Tests', () => {
       { step: 1, description: 'Boil water' },
       { step: 2, description: 'Cook pasta' }
     ] as any,
-    isAIGenerated: false,
-    aiProvider: null,
-    aiModel: null,
-    generatedBy: null,
-    sourceIngredients: null,
-    matchPercentage: null,
+    dietaryTags: [],
+    calories: null,
+    protein: null,
+    carbs: null,
+    fat: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   };
@@ -69,7 +67,6 @@ describe('RecipeRepository - Unit Tests', () => {
         prepTime: 15,
         servings: 4,
         difficulty: 'easy',
-        cuisine: 'Italian',
         ingredients: [
           { name: 'Tomato', amount: '2', unit: 'pieces' },
           { name: 'Pasta', amount: '200', unit: 'grams' }
@@ -100,7 +97,6 @@ describe('RecipeRepository - Unit Tests', () => {
           prepTime: createData.prepTime,
           servings: createData.servings,
           difficulty: createData.difficulty,
-          cuisine: createData.cuisine,
           ingredients: createData.ingredients,
           instructions: createData.instructions,
         },
@@ -357,7 +353,7 @@ describe('RecipeRepository - Unit Tests', () => {
         description: 'Updated description',
       };
 
-      const updatedPost = { ...mockPost, ...updateData };
+      const updatedPost = { ...mockPost, ...updateData } as any;
       prismaMock.post.update.mockResolvedValue(updatedPost);
 
       const result = await recipeRepository.update('recipe-123', updateData);
@@ -375,7 +371,6 @@ describe('RecipeRepository - Unit Tests', () => {
           prepTime: undefined,
           servings: undefined,
           difficulty: undefined,
-          cuisine: undefined,
           ingredients: undefined,
           instructions: undefined,
         },
@@ -416,36 +411,6 @@ describe('RecipeRepository - Unit Tests', () => {
 
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-        skip: 5,
-      });
-    });
-  });
-
-  describe('getByCuisine', () => {
-    it('should get recipes by cuisine with default pagination', async () => {
-      prismaMock.post.findMany.mockResolvedValue([mockPost]);
-
-      const result = await recipeRepository.getByCuisine('Italian');
-
-      expect(result).toHaveLength(1);
-      expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: { cuisine: 'Italian' },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-        skip: 0,
-      });
-    });
-
-    it('should get recipes by cuisine with custom pagination', async () => {
-      prismaMock.post.findMany.mockResolvedValue([mockPost]);
-
-      const result = await recipeRepository.getByCuisine('Italian', 10, 5);
-
-      expect(result).toHaveLength(1);
-      expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: { cuisine: 'Italian' },
         orderBy: { createdAt: 'desc' },
         take: 10,
         skip: 5,
@@ -539,7 +504,6 @@ describe('RecipeRepository - Unit Tests', () => {
         prepTime: null as any,
         servings: null as any,
         difficulty: null as any,
-        cuisine: null as any,
         ingredients: null as any,
         instructions: null as any,
       };
@@ -555,7 +519,6 @@ describe('RecipeRepository - Unit Tests', () => {
       expect(result?.prepTime).toBe(0);
       expect(result?.servings).toBe(0);
       expect(result?.difficulty).toBe('medium');
-      expect(result?.cuisine).toBe('');
       expect(result?.ingredients).toEqual([]);
       expect(result?.instructions).toEqual([]);
       expect(result?.caption).toBeUndefined();

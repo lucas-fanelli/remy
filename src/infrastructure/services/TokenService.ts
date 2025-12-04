@@ -12,9 +12,9 @@ export class TokenService implements ITokenService {
   }
 
   generate(payload: TokenPayload): string {
-    return jwt.sign(payload, this.secret, {
+    return jwt.sign(payload as string | object | Buffer, this.secret, {
       expiresIn: this.expiresIn,
-    });
+    } as jwt.SignOptions);
   }
 
   verify(token: string): TokenPayload | null {

@@ -45,7 +45,8 @@ beforeAll(() => {
        message.includes('TouchRipple') ||
        message.includes('Error changing password:') ||
        message.includes('Error updating recipe:') ||
-       message.includes('Search error:'))
+       message.includes('Search error:') ||
+       message.includes('Failed to fetch notifications'))
     ) {
       return
     }
