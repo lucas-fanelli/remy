@@ -178,7 +178,8 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
   useEffect(() => {
     loadRecipes(true);
-  }, [difficultyFilter, maxTimeFilter, loadRecipes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [difficultyFilter, maxTimeFilter]);
 
   const handleScroll = useCallback(() => {
     if (
