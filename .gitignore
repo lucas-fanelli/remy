@@ -43,3 +43,6 @@ next-env.d.ts
 public/uploads/*
 !public/uploads/README.md
 my_backup.sql
+
+# Claude Code local settings
+.claude/settings.local.json
