@@ -3,8 +3,7 @@ import { container } from '@/lib/container/container';
 import { IRecipeService } from '@/domain/services/IRecipeService';
 import { ITokenService } from '@/domain/services/ITokenService';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
-import { unlink } from 'fs/promises';
-import { join } from 'path';
+import { deleteFromCloudinary } from '@/lib/cloudinary';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -168,15 +167,23 @@ export async function DELETE(
       );
     }
 
-    // Delete the image file if it exists and is stored locally
-    if (recipe.imageUrl && recipe.imageUrl.startsWith('/uploads/')) {
+    // Delete the image from Cloudinary if it exists
+    if (recipe.imageUrl && recipe.imageUrl.includes('cloudinary.com')) {
       try {
-        const imagePath = join(process.cwd(), 'public', recipe.imageUrl);
-        await unlink(imagePath);
-        console.log(`Deleted image file: ${imagePath}`);
+        // Extract public_id from Cloudinary URL
+        // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
+        const urlParts = recipe.imageUrl.split('/');
+        const uploadIndex = urlParts.indexOf('upload');
+        if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
+          // Get everything after 'upload/v{version}/' and remove file extension
+          const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
+          const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
+          await deleteFromCloudinary(publicId);
+          console.log(`Deleted image from Cloudinary: ${publicId}`);
+        }
       } catch (fileError) {
         // Log the error but don't fail the recipe deletion
-        console.warn(`Failed to delete image file: ${fileError}`);
+        console.warn(`Failed to delete image from Cloudinary: ${fileError}`);
       }
     }
 

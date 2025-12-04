@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // Disable body parsing for file uploads in Next.js 15
 export const runtime = 'nodejs';
 
 /**
- * POST /api/upload - Upload an image file
- *
- * For production, consider using:
- * - Cloudinary: https://cloudinary.com/
- * - AWS S3: https://aws.amazon.com/s3/
- * - Vercel Blob: https://vercel.com/docs/storage/vercel-blob
+ * POST /api/upload - Upload an image file to Cloudinary
  */
 export async function POST(request: NextRequest) {
   try {
@@ -60,40 +52,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    console.log('[Upload] Uploads directory:', uploadsDir);
-
-    if (!existsSync(uploadsDir)) {
-      console.log('[Upload] Creating uploads directory...');
-      await mkdir(uploadsDir, { recursive: true });
-      console.log('[Upload] Directory created');
-    }
-
-    // Generate unique filename
-    const fileExtension = path.extname(file.name);
-    const fileName = `${uuidv4()}${fileExtension}`;
-    const filePath = path.join(uploadsDir, fileName);
-    console.log('[Upload] File path:', filePath);
-
-    // Convert file to buffer and save
+    // Convert file to buffer
     console.log('[Upload] Converting file to buffer...');
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     console.log('[Upload] Buffer size:', buffer.length);
 
-    console.log('[Upload] Writing file...');
-    await writeFile(filePath, buffer);
-    console.log('[Upload] File written successfully');
-
-    // Return the URL to access the uploaded file
-    const fileUrl = `/uploads/${fileName}`;
-    console.log('[Upload] File URL:', fileUrl);
+    // Upload to Cloudinary
+    console.log('[Upload] Uploading to Cloudinary...');
+    const { url: fileUrl, publicId } = await uploadToCloudinary(buffer, 'recipes');
+    console.log('[Upload] File uploaded successfully:', fileUrl);
 
     return NextResponse.json({
       success: true,
       url: fileUrl,
-      fileName,
+      publicId,
       size: file.size,
       type: file.type,
     });

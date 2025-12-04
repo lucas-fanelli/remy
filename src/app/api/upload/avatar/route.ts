@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
-// Configure route to use Node.js runtime for file operations
+// Configure route to use Node.js runtime
 export const runtime = 'nodejs';
 // Disable body parsing to handle FormData properly
 export const dynamic = 'force-dynamic';
@@ -69,25 +67,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create unique filename
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExtension}`;
-
-    // Ensure upload directory exists
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'avatars');
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch (error) {
-      // Directory might already exist, that's fine
-    }
-
-    // Save file
+    // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
-    const filePath = join(uploadDir, fileName);
-    await writeFile(filePath, buffer);
+
+    // Upload to Cloudinary
+    const { url: avatarUrl } = await uploadToCloudinary(buffer, 'avatars');
 
     // Update user's avatar in database
-    const avatarUrl = `/uploads/avatars/${fileName}`;
     await prisma.user.update({
       where: { id: payload.userId },
       data: { avatar: avatarUrl },

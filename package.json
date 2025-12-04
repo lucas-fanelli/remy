@@ -43,6 +43,7 @@
     "@mui/material-nextjs": "^6.1.0",
     "@prisma/client": "^6.1.0",
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.8.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^11.5.0",
     "jsonwebtoken": "^9.0.2",

@@ -234,13 +234,22 @@ describe('Validation Schemas - Unit Tests', () => {
       expect(() => updateProfileSchema.parse(invalidData)).toThrow();
     });
 
-    it('should accept avatar as relative path', () => {
+    it('should accept avatar as relative path (legacy)', () => {
       const validData = {
         avatar: '/uploads/avatars/image.jpg',
       };
 
       const result = updateProfileSchema.parse(validData);
       expect(result.avatar).toBe('/uploads/avatars/image.jpg');
+    });
+
+    it('should accept avatar as Cloudinary URL', () => {
+      const validData = {
+        avatar: 'https://res.cloudinary.com/demo/image/upload/v1234567890/avatars/abc123.jpg',
+      };
+
+      const result = updateProfileSchema.parse(validData);
+      expect(result.avatar).toBe('https://res.cloudinary.com/demo/image/upload/v1234567890/avatars/abc123.jpg');
     });
 
     it('should accept avatar as absolute URL', () => {
