@@ -122,68 +122,7 @@ export default function RecipeCard({
         },
       }}
     >
-      {/* Card Header with Author Info and Edit/Delete Menu */}
-      {recipe.author && (
-        <CardHeader
-          avatar={
-            <Avatar
-              src={recipe.author.avatar}
-              alt={recipe.author.username}
-              sx={{
-                width: { xs: 32, md: 36 },
-                height: { xs: 32, md: 36 },
-                cursor: 'pointer'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/profile/${recipe.author?.username}`);
-              }}
-            >
-              {recipe.author.username.charAt(0).toUpperCase()}
-            </Avatar>
-          }
-          action={
-            showActions && isOwner ? (
-              <Tooltip title="More options">
-                <IconButton
-                  onClick={handleMenuOpen}
-                  size={isMobile ? 'small' : 'medium'}
-                  aria-label="recipe options"
-                >
-                  <MoreVert />
-                </IconButton>
-              </Tooltip>
-            ) : null
-          }
-          title={
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 600,
-                color: 'text.primary',
-                fontSize: { xs: '0.8125rem', md: '0.875rem' },
-                cursor: 'pointer'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/profile/${recipe.author?.username}`);
-              }}
-            >
-              {recipe.author.fullName || recipe.author.username}
-            </Typography>
-          }
-          sx={{
-            pb: 0,
-            '& .MuiCardHeader-action': {
-              alignSelf: 'center',
-              marginTop: 0,
-              marginRight: 0,
-            }
-          }}
-        />
-      )}
-
-      {/* Recipe Image */}
+      {/* Recipe Image - TOP CONTAINER */}
       <Box sx={{ position: 'relative' }} onClick={onClick}>
         <CardMedia
           component="img"
@@ -238,8 +177,70 @@ export default function RecipeCard({
         </Box>
       </Box>
 
-      {/* Recipe Info */}
-      <CardContent sx={{ flexGrow: 1, pb: { xs: 0.5, md: 1 }, px: { xs: 1.5, md: 2 }, pt: { xs: 1.5, md: 2 } }}>
+      {/* Header - BELOW IMAGE with Author Info and Edit/Delete Menu */}
+      {recipe.author && (
+        <CardHeader
+          avatar={
+            <Avatar
+              src={recipe.author.avatar}
+              alt={recipe.author.username}
+              sx={{
+                width: { xs: 32, md: 36 },
+                height: { xs: 32, md: 36 },
+                cursor: 'pointer'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/profile/${recipe.author?.username}`);
+              }}
+            >
+              {recipe.author.username.charAt(0).toUpperCase()}
+            </Avatar>
+          }
+          action={
+            showActions && isOwner ? (
+              <Tooltip title="More options">
+                <IconButton
+                  onClick={handleMenuOpen}
+                  size={isMobile ? 'small' : 'medium'}
+                  aria-label="recipe options"
+                >
+                  <MoreVert />
+                </IconButton>
+              </Tooltip>
+            ) : null
+          }
+          title={
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: 'text.primary',
+                fontSize: { xs: '0.8125rem', md: '0.875rem' },
+                cursor: 'pointer'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/profile/${recipe.author?.username}`);
+              }}
+            >
+              {recipe.author.fullName || recipe.author.username}
+            </Typography>
+          }
+          sx={{
+            pb: 1,
+            pt: 1.5,
+            '& .MuiCardHeader-action': {
+              alignSelf: 'center',
+              marginTop: 0,
+              marginRight: 0,
+            }
+          }}
+        />
+      )}
+
+      {/* Content Body - Recipe Details */}
+      <CardContent sx={{ flexGrow: 1, pb: { xs: 0.5, md: 1 }, px: { xs: 1.5, md: 2 }, pt: { xs: 1, md: 1.5 } }}>
         <Box onClick={onClick}>
 
         <Typography
