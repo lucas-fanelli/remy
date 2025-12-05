@@ -1,7 +1,7 @@
 # 🍽️ Remy's - Recipe Sharing Platform
 
-[![Test Coverage](https://img.shields.io/badge/coverage-97.28%25-brightgreen)](./coverage)
-[![Tests](https://img.shields.io/badge/tests-909%20passing-success)](./coverage)
+[![Test Coverage](https://img.shields.io/badge/coverage-97.28%25-brightgreen)](./COVERAGE_ACHIEVED.md)
+[![Tests](https://img.shields.io/badge/tests-909%20passing-success)](./TEST_SUMMARY.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black)](https://nextjs.org/)
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://remy-s.vercel.app/)

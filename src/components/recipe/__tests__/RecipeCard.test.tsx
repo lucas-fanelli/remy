@@ -77,12 +77,13 @@ describe('RecipeCard Component', () => {
     expect(screen.getByText('easy')).toBeInTheDocument();
   });
 
-  it('should not display difficulty badge for owners', () => {
+  it('should display difficulty badge for all users including owners', () => {
     renderWithTheme(
       <RecipeCard recipe={mockRecipe} currentUserId="user-1" showActions={false} />
     );
 
-    expect(screen.queryByText('easy')).not.toBeInTheDocument();
+    // Difficulty badge is now always shown
+    expect(screen.getByText('easy')).toBeInTheDocument();
   });
 
   it('should call onClick when card is clicked', () => {
@@ -143,28 +144,28 @@ describe('RecipeCard Component', () => {
 
   it('should show menu button for owner when showActions is true', () => {
     renderWithTheme(
-      <RecipeCard recipe={mockRecipe} currentUserId="user-1" showActions={true} />
+      <RecipeCard recipe={mockRecipeWithAuthor} currentUserId="user-1" showActions={true} />
     );
 
-    const menuButton = screen.getByRole('button', { name: /more options/i });
+    const menuButton = screen.getByRole('button', { name: /recipe options/i });
     expect(menuButton).toBeInTheDocument();
   });
 
   it('should not show menu button for non-owner', () => {
     renderWithTheme(
-      <RecipeCard recipe={mockRecipe} currentUserId="different-user" showActions={true} />
+      <RecipeCard recipe={mockRecipeWithAuthor} currentUserId="different-user" showActions={true} />
     );
 
-    const menuButton = screen.queryByRole('button', { name: /more options/i });
+    const menuButton = screen.queryByRole('button', { name: /recipe options/i });
     expect(menuButton).not.toBeInTheDocument();
   });
 
   it('should open menu when menu button is clicked', () => {
     renderWithTheme(
-      <RecipeCard recipe={mockRecipe} currentUserId="user-1" showActions={true} />
+      <RecipeCard recipe={mockRecipeWithAuthor} currentUserId="user-1" showActions={true} />
     );
 
-    const menuButton = screen.getByRole('button', { name: /more options/i });
+    const menuButton = screen.getByRole('button', { name: /recipe options/i });
     fireEvent.click(menuButton);
 
     expect(screen.getByText('Edit Recipe')).toBeInTheDocument();
@@ -175,14 +176,14 @@ describe('RecipeCard Component', () => {
     const handleEdit = jest.fn();
     renderWithTheme(
       <RecipeCard
-        recipe={mockRecipe}
+        recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
         showActions={true}
         onEdit={handleEdit}
       />
     );
 
-    const menuButton = screen.getByRole('button', { name: /more options/i });
+    const menuButton = screen.getByRole('button', { name: /recipe options/i });
     fireEvent.click(menuButton);
 
     const editMenuItem = screen.getByText('Edit Recipe');
@@ -195,14 +196,14 @@ describe('RecipeCard Component', () => {
     const handleDelete = jest.fn();
     renderWithTheme(
       <RecipeCard
-        recipe={mockRecipe}
+        recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
         showActions={true}
         onDelete={handleDelete}
       />
     );
 
-    const menuButton = screen.getByRole('button', { name: /more options/i });
+    const menuButton = screen.getByRole('button', { name: /recipe options/i });
     fireEvent.click(menuButton);
 
     const deleteMenuItem = screen.getByText('Delete Recipe');
