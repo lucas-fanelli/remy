@@ -183,6 +183,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           Have an account?{' '}
           <Typography
             component="span"
+            className="notranslate"
             sx={{
               color: 'primary.main',
               fontWeight: 600,

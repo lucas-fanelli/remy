@@ -140,6 +140,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           Don&apos;t have an account?{' '}
           <Typography
             component="span"
+            className="notranslate"
             sx={{
               color: 'primary.main',
               fontWeight: 600,
