@@ -176,24 +176,32 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           borderRadius: 1,
           border: 1,
           borderColor: 'divider',
-          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.5,
         }}
       >
-        <Typography variant="body2">
-          Have an account?{' '}
+        <Typography variant="body2" component="span">
+          Have an account?
+        </Typography>
+        <Box component="span" translate="no">
           <Typography
+            variant="body2"
             component="span"
-            translate="no"
             sx={{
               color: 'primary.main',
               fontWeight: 600,
               cursor: 'pointer',
+              '&:hover': {
+                textDecoration: 'underline',
+              },
             }}
             onClick={onSwitchToLogin}
           >
             Log in
           </Typography>
-        </Typography>
+        </Box>
       </Box>
     </MotionBox>
   );

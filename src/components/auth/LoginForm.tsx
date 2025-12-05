@@ -133,24 +133,32 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           borderRadius: 1,
           border: 1,
           borderColor: 'divider',
-          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.5,
         }}
       >
-        <Typography variant="body2">
-          Don&apos;t have an account?{' '}
+        <Typography variant="body2" component="span">
+          Don&apos;t have an account?
+        </Typography>
+        <Box component="span" translate="no">
           <Typography
+            variant="body2"
             component="span"
-            translate="no"
             sx={{
               color: 'primary.main',
               fontWeight: 600,
               cursor: 'pointer',
+              '&:hover': {
+                textDecoration: 'underline',
+              },
             }}
             onClick={onSwitchToRegister}
           >
             Sign up
           </Typography>
-        </Typography>
+        </Box>
       </Box>
     </MotionBox>
   );
