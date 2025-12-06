@@ -74,7 +74,7 @@ export interface UpdateRecipeDTO {
   ingredients?: Ingredient[];
   instructions?: Instruction[];
 
-  caption?: string;
+  caption?: string | null;
 }
 
 export interface RecipeFilters {

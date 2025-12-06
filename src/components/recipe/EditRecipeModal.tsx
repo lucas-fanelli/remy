@@ -193,7 +193,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
           (i.unit === 'to taste' || i.amount.trim() !== '')
         ),
         instructions: instructions.filter(i => i.description.trim() !== ''),
-        caption: caption || undefined,
+        caption: caption.trim() === '' ? null : caption,
       };
 
       const response = await fetch(`/api/recipes/${recipe.id}`, {
