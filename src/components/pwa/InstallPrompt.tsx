@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import {
     Drawer,
     Box,
@@ -14,131 +13,30 @@ import CloseIcon from '@mui/icons-material/Close';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import IosShareIcon from '@mui/icons-material/IosShare';
 import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined';
-
-// Type for the beforeinstallprompt event
-interface BeforeInstallPromptEvent extends Event {
-    prompt: () => Promise<void>;
-    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
-// Constants
-const DISMISS_KEY = 'pwa-install-dismissed';
-const DISMISS_DURATION_DAYS = 7;
-
-/**
- * Detects if the user is on iOS Safari (not in standalone mode)
- */
-function isIOSSafari(): boolean {
-    if (typeof window === 'undefined') return false;
-
-    const ua = window.navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua);
-    const isStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|OPiOS|mercury/.test(ua);
-
-    return isIOS && isSafari && !isStandalone;
-}
-
-/**
- * Checks if the app is already installed (running in standalone mode)
- */
-function isAppInstalled(): boolean {
-    if (typeof window === 'undefined') return false;
-
-    return (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-    );
-}
-
-/**
- * Checks if the user dismissed the prompt within the last N days
- */
-function isDismissedRecently(): boolean {
-    if (typeof window === 'undefined') return true;
-
-    const dismissed = localStorage.getItem(DISMISS_KEY);
-    if (!dismissed) return false;
-
-    const dismissedTime = parseInt(dismissed, 10);
-    const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24);
-
-    return daysSinceDismissed < DISMISS_DURATION_DAYS;
-}
+import { usePwa } from '@/contexts/PwaContext';
 
 /**
  * InstallPrompt Component
  * 
  * Shows a bottom drawer prompting users to install the PWA.
- * Handles both standard beforeinstallprompt and iOS Safari instructions.
+ * Consumes the PwaContext for state management.
  */
 export default function InstallPrompt() {
     const theme = useTheme();
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-    const [showPrompt, setShowPrompt] = useState(false);
-    const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+    const {
+        showInstallPrompt,
+        isIOSSafari,
+        triggerInstall,
+        dismissInstallPrompt
+    } = usePwa();
 
-    // Handle the beforeinstallprompt event
-    useEffect(() => {
-        // Don't show if already installed or recently dismissed
-        if (isAppInstalled() || isDismissedRecently()) {
-            return;
-        }
-
-        // Check for iOS Safari
-        if (isIOSSafari()) {
-            setShowIOSInstructions(true);
-            setShowPrompt(true);
-            return;
-        }
-
-        const handleBeforeInstallPrompt = (e: Event) => {
-            // Prevent the mini-infobar from appearing
-            e.preventDefault();
-            // Stash the event for later use
-            setDeferredPrompt(e as BeforeInstallPromptEvent);
-            // Show our custom UI
-            setShowPrompt(true);
-        };
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        };
-    }, []);
-
-    // Handle install button click
-    const handleInstall = useCallback(async () => {
-        if (!deferredPrompt) return;
-
-        // Show the install prompt
-        await deferredPrompt.prompt();
-
-        // Wait for the user's choice
-        const { outcome } = await deferredPrompt.userChoice;
-
-        if (outcome === 'accepted') {
-            setShowPrompt(false);
-        }
-
-        // Clear the deferred prompt
-        setDeferredPrompt(null);
-    }, [deferredPrompt]);
-
-    // Handle dismiss
-    const handleDismiss = useCallback(() => {
-        localStorage.setItem(DISMISS_KEY, Date.now().toString());
-        setShowPrompt(false);
-    }, []);
-
-    if (!showPrompt) return null;
+    if (!showInstallPrompt) return null;
 
     return (
         <Drawer
             anchor="bottom"
-            open={showPrompt}
-            onClose={handleDismiss}
+            open={showInstallPrompt}
+            onClose={dismissInstallPrompt}
             PaperProps={{
                 sx: {
                     borderTopLeftRadius: 16,
@@ -157,7 +55,7 @@ export default function InstallPrompt() {
             <Box sx={{ p: 3, position: 'relative' }}>
                 {/* Close button */}
                 <IconButton
-                    onClick={handleDismiss}
+                    onClick={dismissInstallPrompt}
                     sx={{
                         position: 'absolute',
                         top: 8,
@@ -213,7 +111,7 @@ export default function InstallPrompt() {
                     Install Remy&apos;s App for faster access, offline browsing, and a native app experience.
                 </Typography>
 
-                {showIOSInstructions ? (
+                {isIOSSafari ? (
                     // iOS Instructions
                     <Box sx={{ mb: 2 }}>
                         <Typography
@@ -250,7 +148,7 @@ export default function InstallPrompt() {
                         <Button
                             fullWidth
                             variant="outlined"
-                            onClick={handleDismiss}
+                            onClick={dismissInstallPrompt}
                             sx={{ mt: 2 }}
                         >
                             Got it
@@ -263,7 +161,7 @@ export default function InstallPrompt() {
                         variant="contained"
                         size="large"
                         startIcon={<GetAppIcon />}
-                        onClick={handleInstall}
+                        onClick={triggerInstall}
                         sx={{
                             py: 1.5,
                             borderRadius: 2,
@@ -276,11 +174,11 @@ export default function InstallPrompt() {
                 )}
 
                 {/* Dismiss link */}
-                {!showIOSInstructions && (
+                {!isIOSSafari && (
                     <Button
                         fullWidth
                         variant="text"
-                        onClick={handleDismiss}
+                        onClick={dismissInstallPrompt}
                         sx={{
                             mt: 1,
                             color: 'text.secondary',

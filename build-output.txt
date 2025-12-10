@@ -1,0 +1,136 @@
+﻿
+> recipe-sharing-app@0.1.0 build
+> next build
+
+node.exe : [@serwist/next] 
+WARNING: You are using 
+'@serwist/next' with `next dev 
+--turbopack`, but Serwist doesn't 
+support Turbopack at the moment. 
+It is recommended that you set 
+`disable` to `process.env.NODE_ENV 
+!== "production"`. Follow https://g
+ithub.com/serwist/serwist/issues/54
+ for progress on Serwist + 
+Turbopack. You can also suppress 
+this warning by setting SERWIST_SUP
+PRESS_TURBOPACK_WARNING=1.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~
+    + CategoryInfo          :     
+NotSpecified: ([@serwist/n    
+ext]...PACK_WARNING=1.:Str    ing) 
+[], RemoteException
+    + FullyQualifiedErrorId :     
+NativeCommandError
+ 
+ ⚠ Warning: Next.js inferred your 
+workspace root, but it may not be 
+correct.
+ We detected multiple lockfiles 
+and selected the directory of 
+C:\Users\lucas\package-lock.json 
+as the root directory.
+ To silence this warning, set 
+`turbopack.root` in your Next.js 
+config, or consider removing one 
+of the lockfiles if it's not 
+needed.
+   See https://nextjs.org/docs/app/
+api-reference/config/next-config-js
+/turbopack#root-directory for more 
+information.
+ Detected additional lockfiles: 
+   * C:\Users\lucas\Desktop\remy-s-
+master\package-lock.json
+
+   ▲ Next.js 16.0.7 (Turbopack)
+   - Environments: .env
+
+ ⚠ The "middleware" file 
+convention is deprecated. Please 
+use "proxy" instead. Learn more: ht
+tps://nextjs.org/docs/messages/midd
+leware-to-proxy
+   Creating an optimized production build ...
+[@serwist/next] WARNING: You are 
+using '@serwist/next' with `next 
+dev --turbopack`, but Serwist 
+doesn't support Turbopack at the 
+moment. It is recommended that you 
+set `disable` to 
+`process.env.NODE_ENV !== 
+"production"`. Follow https://githu
+b.com/serwist/serwist/issues/54 
+for progress on Serwist + 
+Turbopack. You can also suppress 
+this warning by setting SERWIST_SUP
+PRESS_TURBOPACK_WARNING=1.
+ ✓ Compiled successfully in 2.9s
+   Running TypeScript ...
+   Collecting page data using 23 workers ...
+   Generating static pages using 23 workers (0/26) ...
+   Generating static pages using 23 workers (6/26) 
+   Generating static pages using 23 workers (12/26) 
+   Generating static pages using 23 workers (19/26) 
+ ✓ Generating static pages using 23 workers (26/26) in 888.1ms
+   Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auth/change-password
+├ ƒ /api/auth/login
+├ ƒ /api/auth/me
+├ ƒ /api/auth/register
+├ ƒ /api/cooked-recipes
+├ ƒ /api/health
+├ ƒ /api/notifications
+├ ƒ /api/pantry
+├ ƒ /api/pantry/[id]
+├ ƒ /api/ready
+├ ƒ /api/recipes
+├ ƒ /api/recipes/[id]
+├ ƒ /api/recipes/[id]/comments
+├ ƒ /api/recipes/[id]/comments/[commentId]
+├ ƒ /api/recipes/[id]/like
+├ ƒ /api/recipes/[id]/save
+├ ƒ /api/recipes/match
+├ ƒ /api/recipes/suggest
+├ ƒ /api/search
+├ ƒ /api/upload
+├ ƒ /api/upload/avatar
+├ ƒ /api/users/[username]
+├ ƒ /api/users/[username]/follow
+├ ƒ /api/users/[username]/followers
+├ ƒ /api/users/[username]/following
+├ ƒ /api/users/[username]/is-following
+├ ƒ /api/users/[username]/recipes
+├ ƒ /api/users/[username]/saved
+├ ƒ /api/users/[username]/stats
+├ ƒ /api/users/[username]/unfollow
+├ ƒ /api/users/profile
+├ ƒ /api/users/search
+├ ○ /auth
+├ ○ /notifications
+├ ○ /offline
+├ ○ /pantry
+├ ƒ /profile/[username]
+├ ƒ /profile/[username]/followers
+├ ƒ /profile/[username]/following
+├ ƒ /recipe/[id]
+├ ○ /search
+├ ○ /settings
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

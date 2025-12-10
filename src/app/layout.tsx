@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
+import { PwaProvider } from '@/contexts/PwaContext';
 import { BRANDING } from '@/config/branding';
 import './globals.css';
 
@@ -75,7 +76,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#673AB7" />
+        <meta name="theme-color" content="#121212" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <script
           dangerouslySetInnerHTML={{
@@ -178,10 +179,12 @@ export default function RootLayout({
           <ThemeProvider>
             <ToastProvider>
               <AuthProvider>
-                <LayoutWrapper>
-                  {children}
-                </LayoutWrapper>
-                <InstallPrompt />
+                <PwaProvider>
+                  <LayoutWrapper>
+                    {children}
+                  </LayoutWrapper>
+                  <InstallPrompt />
+                </PwaProvider>
               </AuthProvider>
             </ToastProvider>
           </ThemeProvider>

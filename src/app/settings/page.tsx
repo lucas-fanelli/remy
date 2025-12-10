@@ -18,6 +18,7 @@ import {
   ListItemIcon,
   ListItemText,
   Alert,
+  Button,
   useTheme,
   useMediaQuery,
   IconButton,
@@ -27,12 +28,15 @@ import {
   Palette,
   VpnKey,
   ArrowBack,
+  GetApp,
+  PhoneIphone,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
+import { usePwa } from '@/contexts/PwaContext';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 
 const MotionPaper = motion.create(Paper);
@@ -47,6 +51,7 @@ export default function SettingsPage() {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const { canInstall, isInstalled, isIOSSafari, triggerInstall } = usePwa();
 
   useEffect(() => {
     if (!user) {
@@ -192,6 +197,53 @@ export default function SettingsPage() {
             </ListItem>
           </List>
         </MotionPaper>
+
+        {/* App Installation */}
+        {!isInstalled && (
+          <MotionPaper
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            elevation={2}
+            sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
+              <PhoneIphone sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+              <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+                Install App
+              </Typography>
+            </Box>
+            <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
+
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
+            >
+              Install Remy&apos;s on your device for a faster, native app experience with offline access.
+            </Typography>
+
+            {isIOSSafari ? (
+              <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                To install on iOS: Tap the <strong>Share</strong> button in Safari, then select <strong>&quot;Add to Home Screen&quot;</strong>.
+              </Alert>
+            ) : canInstall ? (
+              <Button
+                variant="contained"
+                startIcon={<GetApp />}
+                onClick={triggerInstall}
+                fullWidth={isMobile}
+                sx={{ textTransform: 'none' }}
+              >
+                Install App
+              </Button>
+            ) : (
+              <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                App installation is not available in this browser. Try opening in Chrome or Safari.
+              </Alert>
+            )}
+          </MotionPaper>
+        )}
 
         {/* Info Alert */}
         <Alert severity="info" sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>

@@ -5,8 +5,8 @@
     "start_url": "/",
     "display": "standalone",
     "orientation": "portrait-primary",
-    "theme_color": "#673AB7",
-    "background_color": "#1E1E1E",
+    "theme_color": "#121212",
+    "background_color": "#121212",
     "icons": [
         {
             "src": "/chef-logo.png",
