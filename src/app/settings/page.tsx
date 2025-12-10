@@ -19,6 +19,7 @@ import {
   ListItemText,
   Alert,
   Button,
+  CircularProgress,
   useTheme,
   useMediaQuery,
   IconButton,
@@ -31,6 +32,7 @@ import {
   GetApp,
   PhoneIphone,
   CheckCircle,
+  OpenInNew,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -44,7 +46,7 @@ const MotionPaper = motion.create(Paper);
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const { showSuccess, showInfo } = useToast();
   const theme = useTheme();
@@ -55,16 +57,24 @@ export default function SettingsPage() {
   const { canInstall, isInstalled, isIOSSafari, isDesktopChrome, promptAvailable, triggerInstall } = usePwa();
 
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.push('/auth');
       return;
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
 
   const handleThemeToggle = () => {
     toggleTheme();
     showSuccess(`Switched to ${mode === 'dark' ? 'light' : 'dark'} mode`);
   };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!user) {
     return null;
@@ -216,14 +226,15 @@ export default function SettingsPage() {
           <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
 
           {isInstalled ? (
-            // App is already installed
+            // State A: Running in PWA/Standalone mode
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <CheckCircle sx={{ color: 'success.main', fontSize: '1.5rem' }} />
               <Typography variant="body1" sx={{ color: 'success.main', fontWeight: 500 }}>
-                App Installed
+                Running Native App
               </Typography>
             </Box>
-          ) : (
+          ) : promptAvailable ? (
+            // State B: Install prompt available
             <>
               <Typography
                 variant="body2"
@@ -232,30 +243,63 @@ export default function SettingsPage() {
               >
                 Install Remy&apos;s on your home screen for a faster, native-like experience.
               </Typography>
-
-              {isIOSSafari ? (
-                <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                  Tap the <strong>Share</strong> button in Safari, then select <strong>&quot;Add to Home Screen&quot;</strong>.
-                </Alert>
-              ) : promptAvailable ? (
-                <Button
-                  variant="contained"
-                  startIcon={<GetApp />}
-                  onClick={triggerInstall}
-                  fullWidth={isMobile}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Install App
-                </Button>
-              ) : isDesktopChrome ? (
-                <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                  Click the <strong>install icon</strong> in your browser&apos;s address bar to install.
-                </Alert>
-              ) : (
-                <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                  Open in Chrome or Safari on mobile for the best experience.
-                </Alert>
-              )}
+              <Button
+                variant="contained"
+                startIcon={<GetApp />}
+                onClick={triggerInstall}
+                fullWidth={isMobile}
+                sx={{ textTransform: 'none' }}
+              >
+                Install App
+              </Button>
+            </>
+          ) : isIOSSafari ? (
+            // iOS Safari instructions
+            <>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
+              >
+                Install Remy&apos;s on your home screen for a faster, native-like experience.
+              </Typography>
+              <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                Tap the <strong>Share</strong> button in Safari, then select <strong>&quot;Add to Home Screen&quot;</strong>.
+              </Alert>
+            </>
+          ) : isDesktopChrome ? (
+            // Desktop Chrome - address bar install
+            <>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
+              >
+                Install Remy&apos;s on your home screen for a faster, native-like experience.
+              </Typography>
+              <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                Click the <strong>install icon</strong> in your browser&apos;s address bar to install.
+              </Alert>
+            </>
+          ) : (
+            // State C: App may be installed, show Open App button
+            <>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
+              >
+                If Remy&apos;s is installed, tap below to open it.
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<OpenInNew />}
+                onClick={() => window.location.href = '/'}
+                fullWidth={isMobile}
+                sx={{ textTransform: 'none' }}
+              >
+                Open App
+              </Button>
             </>
           )}
         </MotionPaper>

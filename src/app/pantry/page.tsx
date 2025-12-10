@@ -65,7 +65,7 @@ const categories = ['vegetable', 'protein', 'dairy', 'grain', 'spice', 'fruit', 
 const units = ['g', 'kg', 'mL', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'];
 
 export default function PantryPage() {
-  const { user, token } = useAuth();
+  const { user, token, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,12 +110,14 @@ export default function PantryPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!token) {
+    if (!authLoading && !token) {
       router.push('/auth');
       return;
     }
-    loadPantry();
-  }, [token, router, loadPantry]);
+    if (token) {
+      loadPantry();
+    }
+  }, [token, authLoading, router, loadPantry]);
 
   const handleOpenDialog = (item?: PantryItem) => {
     if (item) {

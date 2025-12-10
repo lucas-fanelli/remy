@@ -38,7 +38,7 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
-  const { token, user } = useAuth();
+  const { token, user, isLoading } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,13 +66,15 @@ export default function NotificationsPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.push('/auth');
       return;
     }
 
-    fetchNotifications();
-  }, [user, token, router, fetchNotifications]);
+    if (token) {
+      fetchNotifications();
+    }
+  }, [user, isLoading, token, router, fetchNotifications]);
 
   const markAllAsRead = async () => {
     if (!token || markingAsRead) return;
@@ -137,6 +139,14 @@ export default function NotificationsPage() {
       router.push(`/recipe/${notification.postId}`);
     }
   };
+
+  if (isLoading) {
+    return (
+      <Container maxWidth="md" sx={{ mt: 10, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   if (!user) {
     return null;
