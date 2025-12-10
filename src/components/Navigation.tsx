@@ -339,8 +339,35 @@ export default function Navigation() {
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     handleNotificationsClose();
+
+    // Mark notification as read if not already read
+    if (!notification.isRead && token) {
+      try {
+        const response = await fetch(`/api/notifications/${notification.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          // Update local state to mark as read
+          setNotifications((prev) =>
+            prev.map((n) =>
+              n.id === notification.id ? { ...n, isRead: true } : n
+            )
+          );
+          setUnreadNotifications((prev) => Math.max(0, prev - 1));
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+        // Continue with navigation even if marking as read fails
+      }
+    }
+
+    // Navigate to destination
     if (notification.type === 'follow') {
       router.push(`/profile/${notification.sender.username}`);
     } else if (notification.postId) {
@@ -612,125 +639,125 @@ export default function Navigation() {
 
       {/* Notifications Dropdown Menu */}
       <Menu
-      anchorEl={notificationsAnchorEl}
-      open={Boolean(notificationsAnchorEl)}
-      onClose={handleNotificationsClose}
-      anchorOrigin={{
-        vertical: 'bottom',
-        horizontal: 'right',
-      }}
-      transformOrigin={{
-        vertical: 'top',
-        horizontal: 'right',
-      }}
-      slotProps={{
-        paper: {
-          sx: {
-            mt: 1.5,
-            maxHeight: { xs: '70vh', sm: 500, md: 400 },
-            width: { xs: 'calc(100vw - 32px)', sm: 400, md: 360 },
-            maxWidth: { xs: 'calc(100vw - 32px)', sm: 400 },
-            overflow: 'auto',
+        anchorEl={notificationsAnchorEl}
+        open={Boolean(notificationsAnchorEl)}
+        onClose={handleNotificationsClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              mt: 1.5,
+              maxHeight: { xs: '70vh', sm: 500, md: 400 },
+              width: { xs: 'calc(100vw - 32px)', sm: 400, md: 360 },
+              maxWidth: { xs: 'calc(100vw - 32px)', sm: 400 },
+              overflow: 'auto',
+            },
           },
-        },
-      }}
-    >
-      <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Notifications
-        </Typography>
-        {unreadNotifications > 0 && (
-          <Button
-            size="small"
-            onClick={markAllAsRead}
-            disabled={markingAsRead}
-            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
-          >
-            {markingAsRead ? 'Marking...' : 'Mark all read'}
-          </Button>
+        }}
+      >
+        <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Notifications
+          </Typography>
+          {unreadNotifications > 0 && (
+            <Button
+              size="small"
+              onClick={markAllAsRead}
+              disabled={markingAsRead}
+              sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+            >
+              {markingAsRead ? 'Marking...' : 'Mark all read'}
+            </Button>
+          )}
+        </Box>
+
+        {notifications.length === 0 ? (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              No notifications yet
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              When someone follows you or interacts with your recipes, you&apos;ll see it here
+            </Typography>
+          </Box>
+        ) : (
+          <List sx={{ p: 0 }}>
+            {notifications.slice(0, 10).map((notification, index) => (
+              <React.Fragment key={notification.id}>
+                <ListItemButton
+                  onClick={() => handleNotificationClick(notification)}
+                  sx={{
+                    bgcolor: notification.isRead ? 'transparent' : 'action.hover',
+                    '&:hover': {
+                      bgcolor: 'action.selected',
+                    },
+                    transition: 'background-color 0.2s',
+                    alignItems: 'flex-start',
+                    py: 1.5,
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Avatar
+                      src={notification.sender.avatar || undefined}
+                      alt={notification.sender.username}
+                      sx={{ width: 40, height: 40 }}
+                    >
+                      {notification.sender.username.charAt(0).toUpperCase()}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {getNotificationIcon(notification.type)}
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {getNotificationText(notification)}
+                        </Typography>
+                      </Box>
+                    }
+                    secondary={
+                      mounted ? (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          {formatDistanceToNow(new Date(notification.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </Typography>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          {new Date(notification.createdAt).toLocaleDateString()}
+                        </Typography>
+                      )
+                    }
+                  />
+                </ListItemButton>
+                {index < notifications.length - 1 && <Divider variant="inset" component="li" />}
+              </React.Fragment>
+            ))}
+          </List>
         )}
-      </Box>
 
-      {notifications.length === 0 ? (
-        <Box sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            No notifications yet
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            When someone follows you or interacts with your recipes, you&apos;ll see it here
-          </Typography>
-        </Box>
-      ) : (
-        <List sx={{ p: 0 }}>
-          {notifications.slice(0, 10).map((notification, index) => (
-            <React.Fragment key={notification.id}>
-              <ListItemButton
-                onClick={() => handleNotificationClick(notification)}
-                sx={{
-                  bgcolor: notification.isRead ? 'transparent' : 'action.hover',
-                  '&:hover': {
-                    bgcolor: 'action.selected',
-                  },
-                  transition: 'background-color 0.2s',
-                  alignItems: 'flex-start',
-                  py: 1.5,
-                }}
-              >
-                <ListItemAvatar>
-                  <Avatar
-                    src={notification.sender.avatar || undefined}
-                    alt={notification.sender.username}
-                    sx={{ width: 40, height: 40 }}
-                  >
-                    {notification.sender.username.charAt(0).toUpperCase()}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {getNotificationIcon(notification.type)}
-                      <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                        {getNotificationText(notification)}
-                      </Typography>
-                    </Box>
-                  }
-                  secondary={
-                    mounted ? (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        {formatDistanceToNow(new Date(notification.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </Typography>
-                    ) : (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        {new Date(notification.createdAt).toLocaleDateString()}
-                      </Typography>
-                    )
-                  }
-                />
-              </ListItemButton>
-              {index < notifications.length - 1 && <Divider variant="inset" component="li" />}
-            </React.Fragment>
-          ))}
-        </List>
-      )}
-
-      {notifications.length > 10 && (
-        <Box sx={{ borderTop: '1px solid', borderColor: 'divider', p: 1, textAlign: 'center' }}>
-          <Button
-            fullWidth
-            size="small"
-            onClick={() => {
-              handleNotificationsClose();
-              router.push('/notifications');
-            }}
-            sx={{ textTransform: 'none' }}
-          >
-            View all notifications
-          </Button>
-        </Box>
-      )}
-    </Menu>
+        {notifications.length > 10 && (
+          <Box sx={{ borderTop: '1px solid', borderColor: 'divider', p: 1, textAlign: 'center' }}>
+            <Button
+              fullWidth
+              size="small"
+              onClick={() => {
+                handleNotificationsClose();
+                router.push('/notifications');
+              }}
+              sx={{ textTransform: 'none' }}
+            >
+              View all notifications
+            </Button>
+          </Box>
+        )}
+      </Menu>
     </>
   );
 
