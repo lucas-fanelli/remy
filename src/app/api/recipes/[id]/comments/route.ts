@@ -81,7 +81,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { text, rating } = body;
+    const { text, rating, imageUrl } = body;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json(
@@ -114,6 +114,7 @@ export async function POST(
     const comment = await prisma.comment.create({
       data: {
         text: text.trim(),
+        imageUrl: imageUrl || null,
         postId: recipeId,
         userId: payload.userId,
       },

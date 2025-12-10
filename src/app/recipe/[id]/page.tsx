@@ -789,7 +789,7 @@ export default function RecipeDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
         >
-          <CommentsSection recipeId={recipeId} recipeAuthorId={recipe.userId} />
+          <CommentsSection recipeId={recipeId} recipeAuthorId={recipe.userId} onImageClick={handleImageClick} />
         </MotionBox>
       </Container>
 

@@ -90,6 +90,7 @@ model Post {
 model Comment {
   id        String   @id @default(uuid())
   text      String
+  imageUrl  String?  // Optional image attachment URL
   postId    String
   userId    String
   rating    Int?     // Optional 1-5 star rating with comment
