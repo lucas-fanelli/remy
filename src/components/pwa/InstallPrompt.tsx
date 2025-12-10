@@ -108,7 +108,7 @@ export default function InstallPrompt() {
                     align="center"
                     sx={{ mb: 3 }}
                 >
-                    Install Remy&apos;s App for faster access, offline browsing, and a native app experience.
+                    Install Remy&apos;s on your home screen for a faster, native-like experience.
                 </Typography>
 
                 {isIOSSafari ? (
