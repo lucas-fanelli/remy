@@ -8,6 +8,11 @@ interface BeforeInstallPromptEvent extends Event {
     userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+// Type for navigator with getInstalledRelatedApps
+interface NavigatorWithRelatedApps extends Navigator {
+    getInstalledRelatedApps?: () => Promise<Array<{ platform: string; url: string }>>;
+}
+
 // Constants
 const DISMISS_KEY = 'pwa-install-dismissed';
 const PROMPT_SHOWN_KEY = 'pwa-install-prompt-shown-session';
@@ -16,7 +21,8 @@ const DISMISS_DURATION_DAYS = 7;
 interface PwaContextType {
     // State
     canInstall: boolean;
-    isInstalled: boolean;
+    isInstalled: boolean;           // App is installed (detected via related apps API or running in standalone)
+    isRunningStandalone: boolean;   // Currently running in standalone/PWA mode
     isIOSSafari: boolean;
     isDesktopChrome: boolean;
     showInstallPrompt: boolean;
@@ -25,6 +31,7 @@ interface PwaContextType {
     // Actions
     triggerInstall: () => Promise<boolean>;
     dismissInstallPrompt: () => void;
+    openApp: () => void;
     resetDismissal: () => void;
 }
 
@@ -58,9 +65,9 @@ function detectDesktopChrome(): boolean {
 }
 
 /**
- * Checks if the app is already installed (running in standalone mode)
+ * Checks if the app is running in standalone mode (PWA mode)
  */
-function detectAppInstalled(): boolean {
+function detectRunningStandalone(): boolean {
     if (typeof window === 'undefined') return false;
 
     // Check display-mode media query
@@ -103,6 +110,24 @@ function markPromptShownThisSession(): void {
     sessionStorage.setItem(PROMPT_SHOWN_KEY, 'true');
 }
 
+/**
+ * Checks if the app is installed using getInstalledRelatedApps API (Desktop Chrome)
+ */
+async function checkInstalledRelatedApps(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+
+    const nav = navigator as NavigatorWithRelatedApps;
+    if (!nav.getInstalledRelatedApps) return false;
+
+    try {
+        const relatedApps = await nav.getInstalledRelatedApps();
+        return relatedApps.length > 0;
+    } catch (error) {
+        console.warn('getInstalledRelatedApps failed:', error);
+        return false;
+    }
+}
+
 interface PwaProviderProps {
     children: ReactNode;
 }
@@ -110,6 +135,7 @@ interface PwaProviderProps {
 export function PwaProvider({ children }: PwaProviderProps) {
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [isInstalled, setIsInstalled] = useState(false);
+    const [isRunningStandalone, setIsRunningStandalone] = useState(false);
     const [isIOSSafari, setIsIOSSafari] = useState(false);
     const [isDesktopChrome, setIsDesktopChrome] = useState(false);
     const [showInstallPrompt, setShowInstallPrompt] = useState(false);
@@ -124,30 +150,43 @@ export function PwaProvider({ children }: PwaProviderProps) {
         if (hasInitialized.current) return;
         hasInitialized.current = true;
 
-        const installed = detectAppInstalled();
-        setIsInstalled(installed);
+        const runningStandalone = detectRunningStandalone();
+        setIsRunningStandalone(runningStandalone);
         setIsIOSSafari(detectIOSSafari());
         setIsDesktopChrome(detectDesktopChrome());
 
-        // If already installed, don't show anything
-        if (installed) return;
-
-        // Check if dismissed recently or already shown this session
-        if (isDismissedRecently() || wasPromptShownThisSession()) {
+        // If running in standalone, mark as installed and don't show anything
+        if (runningStandalone) {
+            setIsInstalled(true);
             return;
         }
 
-        // For iOS Safari, show instructions immediately (once per session)
-        if (detectIOSSafari() && !hasShownPrompt.current) {
-            hasShownPrompt.current = true;
-            markPromptShownThisSession();
-            setShowInstallPrompt(true);
-        }
+        // Check for installed related apps (async)
+        checkInstalledRelatedApps().then((installed) => {
+            if (installed) {
+                setIsInstalled(true);
+                // Don't show install prompt if already installed
+                return;
+            }
+
+            // Check if dismissed recently or already shown this session
+            if (isDismissedRecently() || wasPromptShownThisSession()) {
+                return;
+            }
+
+            // For iOS Safari, show instructions immediately (once per session)
+            if (detectIOSSafari() && !hasShownPrompt.current) {
+                hasShownPrompt.current = true;
+                markPromptShownThisSession();
+                setShowInstallPrompt(true);
+            }
+        });
     }, []);
 
     // Handle the beforeinstallprompt event (only capture, don't auto-show)
     useEffect(() => {
-        if (isInstalled) return;
+        // Don't listen if already installed or running in standalone
+        if (isInstalled || isRunningStandalone) return;
 
         const handleBeforeInstallPrompt = (e: Event) => {
             // Prevent the mini-infobar from appearing
@@ -179,7 +218,7 @@ export function PwaProvider({ children }: PwaProviderProps) {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
             window.removeEventListener('appinstalled', handleAppInstalled);
         };
-    }, [isInstalled]);
+    }, [isInstalled, isRunningStandalone]);
 
     // Trigger the install prompt
     const triggerInstall = useCallback(async (): Promise<boolean> => {
@@ -213,6 +252,12 @@ export function PwaProvider({ children }: PwaProviderProps) {
         setShowInstallPrompt(false);
     }, []);
 
+    // Open App - uses hard navigation to trigger OS intent
+    const openApp = useCallback(() => {
+        // Force hard navigation to give OS a chance to intercept with installed PWA
+        window.location.href = '/?source=pwa-open';
+    }, []);
+
     // Reset dismissal (for testing or if user wants to see prompt again)
     const resetDismissal = useCallback(() => {
         localStorage.removeItem(DISMISS_KEY);
@@ -226,12 +271,14 @@ export function PwaProvider({ children }: PwaProviderProps) {
     const value: PwaContextType = {
         canInstall: !!deferredPrompt || isIOSSafari,
         isInstalled,
+        isRunningStandalone,
         isIOSSafari,
         isDesktopChrome,
         showInstallPrompt,
         promptAvailable: !!deferredPrompt,
         triggerInstall,
         dismissInstallPrompt,
+        openApp,
         resetDismissal,
     };
 

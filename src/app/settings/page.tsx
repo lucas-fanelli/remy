@@ -54,7 +54,7 @@ export default function SettingsPage() {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const { canInstall, isInstalled, isIOSSafari, isDesktopChrome, promptAvailable, triggerInstall } = usePwa();
+  const { isInstalled, isRunningStandalone, isIOSSafari, isDesktopChrome, promptAvailable, triggerInstall, openApp } = usePwa();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -225,7 +225,7 @@ export default function SettingsPage() {
           </Box>
           <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
 
-          {isInstalled ? (
+          {isRunningStandalone ? (
             // State A: Running in PWA/Standalone mode
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <CheckCircle sx={{ color: 'success.main', fontSize: '1.5rem' }} />
@@ -233,8 +233,28 @@ export default function SettingsPage() {
                 Running Native App
               </Typography>
             </Box>
+          ) : isInstalled ? (
+            // State B: App is installed but viewing in browser - show Open App
+            <>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
+              >
+                Remy&apos;s is installed. Tap below to open the app.
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<OpenInNew />}
+                onClick={openApp}
+                fullWidth={isMobile}
+                sx={{ textTransform: 'none' }}
+              >
+                Open App
+              </Button>
+            </>
           ) : promptAvailable ? (
-            // State B: Install prompt available
+            // State C: Install prompt available
             <>
               <Typography
                 variant="body2"
@@ -282,7 +302,7 @@ export default function SettingsPage() {
               </Alert>
             </>
           ) : (
-            // State C: App may be installed, show Open App button
+            // Fallback: Show Open App button (may trigger OS to switch)
             <>
               <Typography
                 variant="body2"
@@ -294,7 +314,7 @@ export default function SettingsPage() {
               <Button
                 variant="outlined"
                 startIcon={<OpenInNew />}
-                onClick={() => window.location.href = '/'}
+                onClick={openApp}
                 fullWidth={isMobile}
                 sx={{ textTransform: 'none' }}
               >

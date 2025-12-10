@@ -27,6 +27,13 @@
         "lifestyle"
     ],
     "screenshots": [],
+    "related_applications": [
+        {
+            "platform": "webapp",
+            "url": "https://remy-s.vercel.app/manifest.json"
+        }
+    ],
+    "prefer_related_applications": false,
     "shortcuts": [
         {
             "name": "Home Feed",
