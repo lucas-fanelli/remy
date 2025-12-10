@@ -1,0 +1,42 @@
+{
+    "name": "Remy's - Anyone can cook",
+    "short_name": "Remy's",
+    "description": "A social network for chefs and cooking enthusiasts with AI-powered cooking tools",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "theme_color": "#673AB7",
+    "background_color": "#1E1E1E",
+    "icons": [
+        {
+            "src": "/chef-logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/chef-logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "food",
+        "social",
+        "lifestyle"
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Home Feed",
+            "url": "/",
+            "description": "View your recipe feed"
+        },
+        {
+            "name": "Create Recipe",
+            "url": "/recipes/create",
+            "description": "Create a new recipe"
+        }
+    ]
+}

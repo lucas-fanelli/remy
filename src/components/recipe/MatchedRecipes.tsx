@@ -129,7 +129,7 @@ export default function MatchedRecipes() {
     );
   }
 
-  if (pantryItemsCount === 0) {
+  if (!pantryItemsCount || pantryItemsCount === 0) {
     return (
       <Card sx={{ p: { xs: 3, sm: 4, md: 6 }, textAlign: 'center', mb: { xs: 3, md: 4 } }}>
         <Kitchen sx={{ fontSize: { xs: 60, md: 80 }, color: 'text.secondary', mb: { xs: 1.5, md: 2 } }} />

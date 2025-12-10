@@ -23,8 +23,8 @@ function ingredientMatches(pantryItem: { name: string }, recipeIngredient: { nam
   const normalizedRecipe = normalizeIngredientName(recipeIngredient.name);
 
   return normalizedPantry === normalizedRecipe ||
-         normalizedPantry.includes(normalizedRecipe) ||
-         normalizedRecipe.includes(normalizedPantry);
+    normalizedPantry.includes(normalizedRecipe) ||
+    normalizedRecipe.includes(normalizedPantry);
 }
 
 // GET - Match recipes with user's pantry
@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
         readyToCook: [],
         almostThere: [],
         needMore: [],
+        pantryItemsCount: 0,
       });
     }
 

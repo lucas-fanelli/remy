@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import LayoutWrapper from '@/components/LayoutWrapper';
+import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { BRANDING } from '@/config/branding';
 import './globals.css';
 
@@ -52,6 +53,18 @@ export const metadata: Metadata = {
     icon: BRANDING.icon,
     apple: BRANDING.icon,
   },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: BRANDING.name,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export default function RootLayout({
@@ -62,6 +75,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="theme-color" content="#673AB7" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -166,6 +181,7 @@ export default function RootLayout({
                 <LayoutWrapper>
                   {children}
                 </LayoutWrapper>
+                <InstallPrompt />
               </AuthProvider>
             </ToastProvider>
           </ThemeProvider>
