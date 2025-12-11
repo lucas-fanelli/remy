@@ -9,13 +9,13 @@
     "background_color": "#000000",
     "icons": [
         {
-            "src": "/chef-logo.png",
+            "src": "/icon.png?v=2",
             "sizes": "any",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/chef-logo.png",
+            "src": "/icon.png?v=2",
             "sizes": "any",
             "type": "image/png",
             "purpose": "maskable"
