@@ -11,7 +11,6 @@ import prisma from '@/lib/database/prisma';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const recipeService = container.getRecipeService();
 
     // Parse query parameters
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -20,52 +19,87 @@ export async function GET(request: NextRequest) {
     const maxTime = searchParams.get('maxTime');
     const userId = searchParams.get('userId');
     const query = searchParams.get('q');
+    const minRating = searchParams.get('minRating');
 
-    // Build search options
-    const searchOptions: RecipeSearchOptions = {
-      limit,
-      offset,
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
-    };
+    // Build Prisma where clause
+    const where: any = {};
 
     if (query) {
-      searchOptions.query = query;
+      where.OR = [
+        { title: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+      ];
     }
 
-    if (difficulty || maxTime || userId) {
-      searchOptions.filters = {};
-
-      if (difficulty) searchOptions.filters.difficulty = difficulty as any;
-      if (maxTime) searchOptions.filters.maxCookingTime = parseInt(maxTime);
-      if (userId) searchOptions.filters.userId = userId;
+    if (difficulty) {
+      where.difficulty = difficulty;
     }
 
-    // Fetch recipes
-    const recipes = await recipeService.searchRecipes(searchOptions);
+    if (maxTime) {
+      where.cookingTime = { lte: parseInt(maxTime) };
+    }
 
-    // Batch fetch rating aggregations for all recipes
-    const recipeIds = recipes.map((r: any) => r.id);
-    const ratingsData = await prisma.rating.groupBy({
-      by: ['postId'],
-      where: { postId: { in: recipeIds } },
-      _avg: { rating: true },
-      _count: { rating: true },
+    if (userId) {
+      where.userId = userId;
+    }
+
+    // Add minRating filter - only show recipes with ratings >= minRating
+    if (minRating) {
+      const minRatingValue = parseFloat(minRating);
+      if (!isNaN(minRatingValue) && minRatingValue > 0) {
+        where.averageRating = { gte: minRatingValue };
+      }
+    }
+
+    // Fetch recipes with cached ratings from database
+    const recipes = await prisma.post.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
     });
 
-    // Create a map for quick lookup
-    const ratingsMap = new Map(
-      ratingsData.map((r) => [r.postId, {
-        averageRating: Math.round((r._avg.rating || 0) * 10) / 10,
-        totalRatings: r._count.rating || 0,
-      }])
-    );
-
-    // Enhance recipes with ratings
-    const recipesWithRatings = recipes.map((recipe: any) => ({
-      ...recipe,
-      averageRating: ratingsMap.get(recipe.id)?.averageRating || 0,
-      totalRatings: ratingsMap.get(recipe.id)?.totalRatings || 0,
+    // Transform to expected format with author and ratings
+    const recipesWithRatings = recipes.map((recipe) => ({
+      id: recipe.id,
+      title: recipe.title,
+      description: recipe.description,
+      imageUrl: recipe.imageUrl,
+      userId: recipe.userId,
+      cookingTime: recipe.cookingTime || 0,
+      prepTime: recipe.prepTime || 0,
+      servings: recipe.servings || 1,
+      difficulty: recipe.difficulty || 'easy',
+      ingredients: recipe.ingredients || [],
+      instructions: recipe.instructions || [],
+      caption: recipe.caption,
+      createdAt: recipe.createdAt,
+      updatedAt: recipe.updatedAt,
+      author: recipe.user ? {
+        username: recipe.user.username,
+        fullName: recipe.user.fullName,
+        avatar: recipe.user.avatar,
+      } : undefined,
+      averageRating: recipe.averageRating,
+      totalRatings: recipe.reviewCount,
+      likeCount: recipe._count.likes,
+      commentCount: recipe._count.comments,
     }));
 
     return NextResponse.json({

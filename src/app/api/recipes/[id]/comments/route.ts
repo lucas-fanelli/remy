@@ -148,6 +148,21 @@ export async function POST(
         },
       });
 
+      // Recalculate and cache the recipe's average rating
+      const ratingAggregation = await prisma.rating.aggregate({
+        where: { postId: recipeId },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+
+      await prisma.post.update({
+        where: { id: recipeId },
+        data: {
+          averageRating: Math.round((ratingAggregation._avg.rating || 0) * 10) / 10,
+          reviewCount: ratingAggregation._count.rating || 0,
+        },
+      });
+
       // Create rating notification
       const notificationService = container.getNotificationService();
       await notificationService.createRatingNotification(payload.userId, recipeId, recipe.userId);

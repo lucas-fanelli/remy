@@ -29,6 +29,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import RecipeCard from './RecipeCard';
 import EditRecipeModal from './EditRecipeModal';
+import RatingFilter from './RatingFilter';
 import { Recipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -53,6 +54,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
   // Filters
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [maxTimeFilter, setMaxTimeFilter] = useState<number>(0);
+  const [minRatingFilter, setMinRatingFilter] = useState<number | null>(null);
 
   // Like and comment states
   const [recipeLikes, setRecipeLikes] = useState<Record<string, { liked: boolean; count: number }>>({});
@@ -145,6 +147,9 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       if (maxTimeFilter > 0) {
         queryParams.append('maxTime', String(maxTimeFilter));
       }
+      if (minRatingFilter !== null && minRatingFilter > 0) {
+        queryParams.append('minRating', String(minRatingFilter));
+      }
 
       const response = await fetch(`/api/recipes?${queryParams}`);
       if (!response.ok) throw new Error('Failed to load recipes');
@@ -174,12 +179,12 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     } finally {
       setLoading(false);
     }
-  }, [loading, page, difficultyFilter, maxTimeFilter, fetchRecipeEngagement]);
+  }, [loading, page, difficultyFilter, maxTimeFilter, minRatingFilter, fetchRecipeEngagement]);
 
   useEffect(() => {
     loadRecipes(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyFilter, maxTimeFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [difficultyFilter, maxTimeFilter, minRatingFilter]);
 
   const handleScroll = useCallback(() => {
     if (
@@ -199,9 +204,10 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
   const clearFilters = () => {
     setDifficultyFilter('all');
     setMaxTimeFilter(0);
+    setMinRatingFilter(null);
   };
 
-  const hasActiveFilters = difficultyFilter !== 'all' || maxTimeFilter > 0;
+  const hasActiveFilters = difficultyFilter !== 'all' || maxTimeFilter > 0 || minRatingFilter !== null;
 
   const handleDeleteClick = (recipe: Recipe) => {
     setRecipeToDelete(recipe);
@@ -409,7 +415,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
           )}
         </Box>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, md: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, md: 2 }} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
             <InputLabel>Difficulty</InputLabel>
             <Select
@@ -437,6 +443,12 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
               <MenuItem value={120}>Under 2 hours</MenuItem>
             </Select>
           </FormControl>
+
+          {/* Rating Filter */}
+          <RatingFilter
+            value={minRatingFilter}
+            onChange={setMinRatingFilter}
+          />
         </Stack>
       </Box>
 
