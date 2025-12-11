@@ -18,6 +18,7 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
+  Rating,
 } from '@mui/material';
 import {
   Favorite,
@@ -37,7 +38,7 @@ import { useRouter } from 'next/navigation';
 const MotionCard = motion.create(Card);
 
 interface RecipeCardProps {
-  recipe: Recipe;
+  recipe: Recipe & { averageRating?: number; totalRatings?: number };
   onLike?: () => void;
   onComment?: () => void;
   onClick?: () => void;
@@ -243,49 +244,78 @@ export default function RecipeCard({
       <CardContent sx={{ flexGrow: 1, pb: { xs: 0.5, md: 1 }, px: { xs: 1.5, md: 2 }, pt: { xs: 1, md: 1.5 } }}>
         <Box onClick={onClick}>
 
-        <Typography
-          variant="h6"
-          component="h2"
-          gutterBottom
-          sx={{
-            fontWeight: 600,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            mb: { xs: 0.75, md: 1 },
-            fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' }
-          }}
-        >
-          {recipe.title}
-        </Typography>
+          <Typography
+            variant="h6"
+            component="h2"
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              mb: { xs: 0.5, md: 0.75 },
+              fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' }
+            }}
+          >
+            {recipe.title}
+          </Typography>
 
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            mb: { xs: 1, md: 2 },
-            fontSize: { xs: '0.8125rem', md: '0.875rem' }
-          }}
-        >
-          {recipe.description}
-        </Typography>
+          {/* Rating Display */}
+          {(recipe.averageRating !== undefined && recipe.averageRating > 0) ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: { xs: 0.75, md: 1 } }}>
+              <Rating
+                value={recipe.averageRating}
+                precision={0.1}
+                size="small"
+                readOnly
+              />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+              >
+                ({recipe.totalRatings || 0})
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ mb: { xs: 0.75, md: 1 } }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' }, fontStyle: 'italic' }}
+              >
+                No ratings yet
+              </Typography>
+            </Box>
+          )}
 
-        <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 0.5, md: 1 } }}>
-          <Chip
-            icon={<Person sx={{ fontSize: { xs: 14, md: 16 } }} />}
-            label={`${recipe.servings} servings`}
-            size="small"
-            variant="outlined"
-            sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
-          />
-        </Box>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              mb: { xs: 1, md: 2 },
+              fontSize: { xs: '0.8125rem', md: '0.875rem' }
+            }}
+          >
+            {recipe.description}
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 0.5, md: 1 } }}>
+            <Chip
+              icon={<Person sx={{ fontSize: { xs: 14, md: 16 } }} />}
+              label={`${recipe.servings} servings`}
+              size="small"
+              variant="outlined"
+              sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
+            />
+          </Box>
         </Box>
       </CardContent>
 

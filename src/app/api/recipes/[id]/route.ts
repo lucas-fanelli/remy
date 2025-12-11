@@ -4,6 +4,7 @@ import { IRecipeService } from '@/domain/services/IRecipeService';
 import { ITokenService } from '@/domain/services/ITokenService';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
+import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -24,7 +25,23 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ recipe });
+    // Aggregate ratings for this recipe
+    const ratingAggregation = await prisma.rating.aggregate({
+      where: { postId: id },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    const averageRating = ratingAggregation._avg.rating || 0;
+    const totalRatings = ratingAggregation._count.rating || 0;
+
+    return NextResponse.json({
+      recipe: {
+        ...recipe,
+        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+        totalRatings,
+      },
+    });
   } catch (error) {
     console.error('Error fetching recipe:', error);
     return NextResponse.json(

@@ -27,6 +27,7 @@ import {
   Skeleton,
   useTheme,
   useMediaQuery,
+  Rating,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -473,6 +474,36 @@ export default function RecipeDetailPage() {
             >
               {recipe.title}
             </Typography>
+
+            {/* Rating Display */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 1.5, md: 2 } }}>
+              {(recipe.averageRating !== undefined && recipe.averageRating > 0) ? (
+                <>
+                  <Rating
+                    value={recipe.averageRating}
+                    precision={0.1}
+                    size={isMobile ? 'medium' : 'large'}
+                    readOnly
+                  />
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+                  >
+                    {recipe.averageRating.toFixed(1)} ({recipe.totalRatings} {recipe.totalRatings === 1 ? 'review' : 'reviews'})
+                  </Typography>
+                </>
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontStyle: 'italic' }}
+                >
+                  No ratings yet
+                </Typography>
+              )}
+            </Box>
+
             <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 1.5, md: 2 } }}>
               <Chip
                 label={recipe.difficulty}

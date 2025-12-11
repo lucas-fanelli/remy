@@ -41,6 +41,10 @@ export interface Recipe {
     avatar?: string;
   };
 
+  // Rating information (optional, populated by API)
+  averageRating?: number;
+  totalRatings?: number;
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;

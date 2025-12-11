@@ -3,6 +3,7 @@ import { container } from '@/lib/container/container';
 import { IRecipeService } from '@/domain/services/IRecipeService';
 import { ITokenService } from '@/domain/services/ITokenService';
 import { RecipeSearchOptions, CreateRecipeDTO } from '@/domain/types/recipe';
+import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/recipes - Fetch recipes with optional filters
@@ -43,9 +44,33 @@ export async function GET(request: NextRequest) {
     // Fetch recipes
     const recipes = await recipeService.searchRecipes(searchOptions);
 
+    // Batch fetch rating aggregations for all recipes
+    const recipeIds = recipes.map((r: any) => r.id);
+    const ratingsData = await prisma.rating.groupBy({
+      by: ['postId'],
+      where: { postId: { in: recipeIds } },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    // Create a map for quick lookup
+    const ratingsMap = new Map(
+      ratingsData.map((r) => [r.postId, {
+        averageRating: Math.round((r._avg.rating || 0) * 10) / 10,
+        totalRatings: r._count.rating || 0,
+      }])
+    );
+
+    // Enhance recipes with ratings
+    const recipesWithRatings = recipes.map((recipe: any) => ({
+      ...recipe,
+      averageRating: ratingsMap.get(recipe.id)?.averageRating || 0,
+      totalRatings: ratingsMap.get(recipe.id)?.totalRatings || 0,
+    }));
+
     return NextResponse.json({
-      recipes,
-      count: recipes.length,
+      recipes: recipesWithRatings,
+      count: recipesWithRatings.length,
       hasMore: recipes.length === limit,
     });
   } catch (error) {
