@@ -30,7 +30,7 @@
     "related_applications": [
         {
             "platform": "webapp",
-            "url": "https://remy-s.vercel.app/manifest.json"
+            "url": "https://remy-s.vercel.app/site.webmanifest"
         }
     ],
     "prefer_related_applications": false,

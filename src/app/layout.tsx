@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
     apple: '/rat-apple-icon-v3.png',
   },
-  manifest: '/manifest.json',
+  manifest: '/site.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
