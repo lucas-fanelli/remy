@@ -573,7 +573,7 @@ export default function Navigation() {
                 onClick={handleMenuOpen}
                 size={isSmallDesktop ? 'small' : 'medium'}
               >
-                <Avatar sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }} src={user?.avatar || '/avatar.jpg'}>
+                <Avatar sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }} src={user?.avatar || undefined}>
                   {user?.username?.charAt(0).toUpperCase()}
                 </Avatar>
               </IconButton>
@@ -843,7 +843,7 @@ export default function Navigation() {
               sx={{ p: { xs: 0.5, sm: 1 } }}
               onClick={handleProfileClick}
             >
-              <Avatar sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }} src={user?.avatar || '/avatar.jpg'}>
+              <Avatar sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }} src={user?.avatar || undefined}>
                 {user?.username?.charAt(0).toUpperCase()}
               </Avatar>
             </IconButton>
@@ -866,7 +866,7 @@ export default function Navigation() {
             <ListItem sx={{ py: 2 }}>
               <ListItemIcon>
                 <Avatar
-                  src={user?.avatar || '/avatar.jpg'}
+                  src={user?.avatar || undefined}
                   sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }}
                 >
                   {user?.username?.charAt(0).toUpperCase()}

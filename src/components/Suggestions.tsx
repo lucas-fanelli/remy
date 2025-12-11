@@ -75,7 +75,7 @@ export default function Suggestions() {
         transition={{ duration: 0.5 }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Avatar src="/avatar.jpg" sx={{ width: 56, height: 56, mr: 2 }} />
+          <Avatar sx={{ width: 56, height: 56, mr: 2 }} />
           <Box sx={{ flex: 1 }}>
             <Typography variant="subtitle2" fontWeight={600}>
               your_username
