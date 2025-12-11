@@ -3,7 +3,7 @@
 [![Test Coverage](https://img.shields.io/badge/coverage-97.28%25-brightgreen)](./COVERAGE_ACHIEVED.md)
 [![Tests](https://img.shields.io/badge/tests-910%20passing-success)](./TEST_SUMMARY.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15.0-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0-black)](https://nextjs.org/)
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://remy-s.vercel.app/)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-success)](./docs/V1_LAUNCH_COMPLETE.md)
 
@@ -11,15 +11,18 @@
 
 **🚀 LIVE NOW** - [Try the live demo at remy-s.vercel.app](https://remy-s.vercel.app/)
 
-**✅ v1.0.0 Production Release** - Live in production with 910/910 tests passing!
+**✅ v1.1.0 Production Release** - PWA support, image comments, and enhanced UX!
 
 ---
 
 ## ✨ Key Features
 
+- 📱 **Progressive Web App (PWA)** - Install on iOS, Android, or Desktop with offline support
 - 🔍 **Smart Recipe Discovery** - Browse, search, and filter recipes
 - 🥘 **Pantry Management** - Track ingredients and get personalized recipe matches
+- 📷 **Rich Media Comments** - Attach photos to comments to show off cooking results
 - 💬 **Social Interaction** - Follow users, like and comment on recipes
+- 🔔 **Smart Notifications** - Mark as read on click, real-time updates
 - 📊 **User Profiles** - Personal stats, followers, and recipe collections
 - 📱 **Responsive Design** - Beautiful UI that works on any device
 - 🌙 **Modern Dark Mode** - Eye-friendly theme with teal accents
@@ -76,8 +79,10 @@ Open **http://localhost:3000** 🎉
 
 ## 🏗️ Tech Stack
 
-**Frontend:** Next.js 15 • TypeScript • Material-UI • Framer Motion
+**Frontend:** Next.js 16 • TypeScript • Material-UI v6 • Framer Motion
 **Backend:** Next.js API Routes • Prisma • PostgreSQL
+**PWA:** Serwist • Service Worker • Web App Manifest
+**Media:** Cloudinary CDN • Image optimization
 **Auth:** JWT • bcrypt • NextAuth
 **Testing:** Jest • React Testing Library • Playwright
 **DevOps:** Docker • Vercel-ready
@@ -283,14 +288,22 @@ npm start
 - [x] Internationalization compatibility
 - [x] Deployed to Vercel
 
-### v1.1 - Planned
+### v1.1.0 - PWA & Media Features ✅
+- [x] Progressive Web App (PWA) with Serwist
+- [x] Install prompts (iOS, Android, Desktop)
+- [x] Offline fallback page
+- [x] Image attachments in comments
+- [x] Mark notification as read on click
+- [x] Enhanced mobile UX (safe areas, touch handling)
+- [x] Next.js 16 upgrade
+
+### v1.2 - Planned
 - [ ] Email notifications
 - [ ] Password reset flow
 - [ ] Recipe collections
-- [ ] Advanced search
-- [ ] PWA support
+- [ ] Advanced search filters
 
-### v1.2 - Future
+### v1.3 - Future
 - [ ] Mobile apps
 - [ ] Meal planning
 - [ ] Shopping lists
@@ -311,7 +324,7 @@ Built with:
 
 ## 🎉 Status
 
-**✅ v1.0.0 - LIVE IN PRODUCTION**
+**✅ v1.1.0 - LIVE IN PRODUCTION**
 
 **Live URL:** [remy-s.vercel.app](https://remy-s.vercel.app/)
 
@@ -321,6 +334,7 @@ Built with:
 - 0 failing tests
 - Security hardened
 - Performance optimized
+- PWA enabled (installable)
 - Fully documented
 - Deployed to Vercel
 - Production database (Vercel Postgres/Neon)
@@ -335,6 +349,29 @@ Built with:
 ---
 
 ## 📝 Changelog
+
+### v1.1.0 - PWA & Media Features (2025-12-11) 📱
+
+**New Features:**
+- ✅ **Progressive Web App (PWA)**: Full PWA support with Serwist service worker
+- ✅ **Install Prompts**: Custom install UI for iOS (Share → Add to Home Screen), Android, and Desktop
+- ✅ **Offline Support**: Graceful offline fallback page with retry functionality
+- ✅ **Image Comments**: Users can attach photos to recipe comments with camera integration
+- ✅ **Smart Notifications**: Click to mark as read and navigate to content
+- ✅ **Open App**: Deep linking to open installed PWA from browser
+
+**Technical Upgrades:**
+- ✅ **Next.js 16**: Upgraded from Next.js 15 to 16.0
+- ✅ **Serwist Integration**: Modern PWA toolkit replacing next-pwa
+- ✅ **Database Schema**: Added `imageUrl` field to Comment model
+- ✅ **API Endpoints**: Added PATCH /api/notifications/[id] for single notification updates
+
+**UX Improvements:**
+- ✅ **Mobile Safe Areas**: Proper handling of iOS notches and home indicators
+- ✅ **Theme Color**: Pure black (#000000) status bar for dark mode
+- ✅ **Auth Loading States**: Fixed protected page redirects during auth loading
+
+---
 
 ### v1.0.0 - Production Release (2025-12-05) 🚀
 
