@@ -50,7 +50,11 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  // Icons are auto-generated from src/app/icon.png and src/app/apple-icon.png
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/rat-apple-icon-v3.png',
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
