@@ -9,13 +9,13 @@
     "background_color": "#000000",
     "icons": [
         {
-            "src": "/icon.png?v=2",
+            "src": "/rat-icon-v3.png",
             "sizes": "any",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/icon.png?v=2",
+            "src": "/rat-icon-v3.png",
             "sizes": "any",
             "type": "image/png",
             "purpose": "maskable"

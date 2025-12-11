@@ -52,11 +52,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/icon.png?v=2', type: 'image/png' },
-      { url: '/chef-logo.png?v=2', type: 'image/png' },
+      { url: '/rat-icon-v3.png', type: 'image/png' },
     ],
-    shortcut: '/icon.png?v=2',
-    apple: '/apple-icon.png?v=2',
+    shortcut: '/rat-icon-v3.png',
+    apple: '/rat-apple-icon-v3.png',
   },
   manifest: '/manifest.json',
   appleWebApp: {
