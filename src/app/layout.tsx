@@ -51,8 +51,12 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: BRANDING.icon,
-    apple: BRANDING.icon,
+    icon: [
+      { url: '/icon.png', type: 'image/png' },
+      { url: '/chef-logo.png', type: 'image/png' },
+    ],
+    shortcut: '/icon.png',
+    apple: '/apple-icon.png',
   },
   manifest: '/manifest.json',
   appleWebApp: {
