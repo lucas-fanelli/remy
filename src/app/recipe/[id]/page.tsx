@@ -513,6 +513,10 @@ export default function RecipeDetailPage() {
                   textTransform: 'capitalize',
                   fontWeight: 600,
                   fontSize: { xs: '0.75rem', md: '0.8125rem' },
+                  color: 'common.white',
+                  '& .MuiChip-label': {
+                    color: 'common.white',
+                  },
                 }}
               />
               <Chip
