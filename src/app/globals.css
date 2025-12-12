@@ -1,3 +1,8 @@
+/* Nunito font fallback - ensures font loads even if CSS variable fails */
+:root {
+  --font-nunito-fallback: 'Nunito', sans-serif;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
