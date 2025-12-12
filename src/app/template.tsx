@@ -48,60 +48,68 @@ export default function Template({ children }: TemplateProps) {
         previousTierRef.current = currentTier;
     }, [pathname, currentTier]);
 
-    // Animation variants - increased for visibility
+    // Animation variants - with zIndex for proper stacking
     const variants = {
         // Entering page
         enter: (dir: number) => ({
             opacity: 0,
-            scale: dir >= 0 ? 0.85 : 1.15,
-            filter: dir >= 0 ? 'brightness(1)' : 'brightness(1)',
+            scale: dir >= 0 ? 0.85 : 1.1,
+            zIndex: 2, // Entering page floats on top
         }),
         // Page in view
         center: {
             opacity: 1,
             scale: 1,
-            filter: 'brightness(1)',
+            zIndex: 1,
             transition: {
-                duration: 0.7,
+                duration: 0.5,
                 ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
             },
         },
         // Exiting page
         exit: (dir: number) => ({
-            opacity: dir >= 0 ? 0.4 : 0,
-            scale: dir >= 0 ? 1.15 : 0.85,
-            filter: dir >= 0 ? 'brightness(0.5)' : 'brightness(1)',
+            opacity: 0,
+            scale: dir >= 0 ? 1.1 : 0.85,
+            zIndex: 0, // Exiting page goes behind
             transition: {
-                duration: 0.5,
+                duration: 0.4,
                 ease: [0.25, 0.46, 0.45, 0.94],
             },
         }),
     };
 
     return (
-        <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-                key={pathname}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                style={{
-                    // CSS Grid trick for perfect overlapping without layout shift
-                    display: 'grid',
-                    gridArea: '1 / 1',
-                    width: '100%',
-                    minHeight: '100%',
-                    willChange: 'transform, opacity',
-                    // Solid background prevents transparency blending during transitions
-                    backgroundColor: 'var(--mui-palette-background-default, #121212)',
-                    // Entering page floats on top
-                    zIndex: 1,
-                }}
-            >
-                {children}
-            </motion.div>
-        </AnimatePresence>
+        // Grid wrapper establishes proper stacking context for overlapping pages
+        <div style={{
+            display: 'grid',
+            minHeight: '100vh',
+            position: 'relative',
+            overflow: 'hidden', // Prevent scale transition from causing scrollbars
+            backgroundColor: '#121212', // Fallback solid background
+        }}>
+            <AnimatePresence mode="popLayout" initial={false}>
+                <motion.div
+                    key={pathname}
+                    custom={direction}
+                    variants={variants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    style={{
+                        // Both pages occupy same grid cell for overlap
+                        gridArea: '1 / 1',
+                        // Establish stacking context for z-index
+                        position: 'relative',
+                        // Solid background prevents transparency blending
+                        backgroundColor: 'var(--mui-palette-background-default, #121212)',
+                        // Hint browser for smooth animation
+                        willChange: 'transform, opacity',
+                        transformOrigin: 'center center',
+                    }}
+                >
+                    {children}
+                </motion.div>
+            </AnimatePresence>
+        </div>
     );
 }

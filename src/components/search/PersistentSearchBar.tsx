@@ -203,37 +203,43 @@ export default function PersistentSearchBar({
     return (
         <ClickAwayListener onClickAway={handleClickAway}>
             <Box sx={{ position: 'relative', width: '100%', maxWidth: 600 }}>
-                {/* Search Bar */}
-                <MotionPaper
-                    layoutId="search-bar-container"
+                {/* Search Bar - Background/Content Separation Architecture */}
+                <Box
                     component="form"
                     onSubmit={handleSubmit}
-                    elevation={0}
-                    variants={containerVariants}
-                    initial="rest"
-                    animate={isFocused ? 'focused' : 'rest'}
-                    transition={{ duration: 0.2 }}
                     sx={{
+                        position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
                         borderRadius: '24px',
-                        backgroundColor: isFocused ? focusedBackgroundColor : backgroundColor,
                         px: 2.5,
                         py: 1,
-                        transition: 'background-color 0.2s ease',
-                        border: `1px solid ${isFocused
-                            ? alpha(theme.palette.primary.main, 0.3)
-                            : 'transparent'}`,
                     }}
                 >
-                    {/* Inner content wrapper - key forces snap re-render on route change */}
-                    <Box
-                        key={pathname}
-                        component={motion.div}
-                        //@ts-ignore - layout prop for framer-motion
-                        layout={false}
-                        sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
-                    >
+                    {/* Animated Background - this morphs, content does NOT */}
+                    <motion.div
+                        layoutId="search-bar-bg"
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            borderRadius: '24px',
+                            backgroundColor: isFocused ? focusedBackgroundColor : backgroundColor,
+                            border: `1px solid ${isFocused
+                                ? alpha(theme.palette.primary.main, 0.3)
+                                : 'transparent'}`,
+                            zIndex: 0,
+                        }}
+                        animate={{
+                            scale: isFocused ? 1.02 : 1,
+                            boxShadow: isFocused
+                                ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.15)}`
+                                : '0 0 0 rgba(0,0,0,0)',
+                        }}
+                        transition={{ duration: 0.2 }}
+                    />
+
+                    {/* Static Content - NEVER part of layout projection */}
+                    <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', width: '100%' }}>
                         <SearchIcon
                             sx={{
                                 color: isFocused
@@ -299,7 +305,7 @@ export default function PersistentSearchBar({
                             )}
                         </AnimatePresence>
                     </Box>
-                </MotionPaper>
+                </Box>
 
                 {/* Suggestions Dropdown */}
                 <AnimatePresence>
