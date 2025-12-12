@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const maxTime = searchParams.get('maxTime');
     const userId = searchParams.get('userId');
     const query = searchParams.get('q');
-    const minRating = searchParams.get('minRating');
+    const sort = searchParams.get('sort') || 'newest';
 
     // Build Prisma where clause
     const where: any = {};
@@ -43,12 +43,22 @@ export async function GET(request: NextRequest) {
       where.userId = userId;
     }
 
-    // Add minRating filter - only show recipes with ratings >= minRating
-    if (minRating) {
-      const minRatingValue = parseFloat(minRating);
-      if (!isNaN(minRatingValue) && minRatingValue > 0) {
-        where.averageRating = { gte: minRatingValue };
-      }
+    // Determine sort order based on sort parameter
+    let orderBy: any = { createdAt: 'desc' }; // Default: Newest
+    switch (sort) {
+      case 'rating_desc':
+        orderBy = { averageRating: 'desc' };
+        break;
+      case 'rating_asc':
+        orderBy = { averageRating: 'asc' };
+        break;
+      case 'most_reviewed':
+        orderBy = { reviewCount: 'desc' };
+        break;
+      case 'newest':
+      default:
+        orderBy = { createdAt: 'desc' };
+        break;
     }
 
     // Fetch recipes with cached ratings from database
@@ -70,7 +80,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       take: limit,
       skip: offset,
     });
