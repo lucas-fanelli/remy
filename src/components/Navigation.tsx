@@ -63,6 +63,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { BRANDING } from '@/config/branding';
 import SearchResults from './SearchResults';
+import PersistentSearchBar from './search/PersistentSearchBar';
 import CreateRecipeForm from './recipe/CreateRecipeForm';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { formatDistanceToNow } from 'date-fns';
@@ -493,51 +494,19 @@ export default function Navigation() {
             </motion.div>
           </Box>
 
-          {/* Search Bar */}
-          <ClickAwayListener onClickAway={handleCloseSearch}>
-            <Box sx={{
-              position: 'relative',
-              minWidth: { xs: 0, sm: 150, md: 200, lg: 300 },
-              maxWidth: { xs: 'none', md: 400 },
-              flex: { xs: 0, sm: '0 1 auto', md: 1 },
-              mx: { xs: 0, sm: 1, md: 2 },
-              display: { xs: 'none', md: 'block' }
-            }}>
-              <Box
-                sx={{
-                  backgroundColor: 'background.default',
-                  borderRadius: 2,
-                  px: { xs: 1, sm: 1.5, md: 2 },
-                  py: { xs: 0.5, sm: 0.75, md: 1 },
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <Search sx={{ color: 'text.secondary', mr: { xs: 0.5, md: 1 }, fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-                <InputBase
-                  placeholder={isSmallDesktop ? "Search..." : "Search recipes or users..."}
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  sx={{
-                    flex: 1,
-                    fontSize: { xs: '0.875rem', md: '1rem' },
-                    '& input::placeholder': {
-                      fontSize: { xs: '0.875rem', md: '1rem' }
-                    }
-                  }}
-                />
-              </Box>
-              {showSearchResults && (
-                <SearchResults
-                  query={searchQuery}
-                  users={searchResults.users}
-                  recipes={searchResults.recipes}
-                  loading={searchLoading}
-                  onClose={handleCloseSearch}
-                />
-              )}
-            </Box>
-          </ClickAwayListener>
+          {/* Animated Search Bar */}
+          <Box sx={{
+            position: 'relative',
+            flex: { xs: 0, sm: '0 1 auto', md: 1 },
+            mx: { xs: 0, sm: 1, md: 2 },
+            maxWidth: 500,
+            display: { xs: 'none', md: 'block' }
+          }}>
+            <PersistentSearchBar
+              placeholder={isSmallDesktop ? "Search..." : "Search recipes, ingredients..."}
+              showSuggestions={false}
+            />
+          </Box>
 
           {/* Right Icons */}
           <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1, md: 2 }, alignItems: 'center' }}>
