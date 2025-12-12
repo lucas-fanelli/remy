@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const difficulty = searchParams.get('difficulty');
     const maxTime = searchParams.get('maxTime');
+    const minTime = searchParams.get('minTime');
     const userId = searchParams.get('userId');
     const query = searchParams.get('q');
     const sort = searchParams.get('sort') || 'newest';
@@ -35,8 +36,11 @@ export async function GET(request: NextRequest) {
       where.difficulty = difficulty;
     }
 
+    // Time filtering (uses cookingTime as primary, can add prepTime if needed)
     if (maxTime) {
       where.cookingTime = { lte: parseInt(maxTime) };
+    } else if (minTime) {
+      where.cookingTime = { gte: parseInt(minTime) };
     }
 
     if (userId) {

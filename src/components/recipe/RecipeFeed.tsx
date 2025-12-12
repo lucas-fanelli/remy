@@ -52,7 +52,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
   // Filters
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
-  const [maxTimeFilter, setMaxTimeFilter] = useState<number>(0);
+  const [timeFilter, setTimeFilter] = useState<string>('any'); // 'any', 'under30', 'under60', 'over60'
   const [sortOrder, setSortOrder] = useState<string>('newest');
 
   // Like and comment states
@@ -143,8 +143,13 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       if (difficultyFilter !== 'all') {
         queryParams.append('difficulty', difficultyFilter);
       }
-      if (maxTimeFilter > 0) {
-        queryParams.append('maxTime', String(maxTimeFilter));
+      // Handle time filter - can be maxTime or minTime
+      if (timeFilter === 'under30') {
+        queryParams.append('maxTime', '30');
+      } else if (timeFilter === 'under60') {
+        queryParams.append('maxTime', '60');
+      } else if (timeFilter === 'over60') {
+        queryParams.append('minTime', '60');
       }
       if (sortOrder !== 'newest') {
         queryParams.append('sort', sortOrder);
@@ -178,12 +183,12 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     } finally {
       setLoading(false);
     }
-  }, [loading, page, difficultyFilter, maxTimeFilter, sortOrder, fetchRecipeEngagement]);
+  }, [loading, page, difficultyFilter, timeFilter, sortOrder, fetchRecipeEngagement]);
 
   useEffect(() => {
     loadRecipes(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyFilter, maxTimeFilter, sortOrder]);
+  }, [difficultyFilter, timeFilter, sortOrder]);
 
   const handleScroll = useCallback(() => {
     if (
@@ -202,11 +207,11 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
   const clearFilters = () => {
     setDifficultyFilter('all');
-    setMaxTimeFilter(0);
+    setTimeFilter('any');
     setSortOrder('newest');
   };
 
-  const hasActiveFilters = difficultyFilter !== 'all' || maxTimeFilter > 0 || sortOrder !== 'newest';
+  const hasActiveFilters = difficultyFilter !== 'all' || timeFilter !== 'any' || sortOrder !== 'newest';
 
   const handleDeleteClick = (recipe: Recipe) => {
     setRecipeToDelete(recipe);
@@ -430,16 +435,16 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
           </FormControl>
 
           <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
-            <InputLabel>Max Time</InputLabel>
+            <InputLabel>Duration</InputLabel>
             <Select
-              value={maxTimeFilter}
-              label="Max Time"
-              onChange={(e) => setMaxTimeFilter(Number(e.target.value))}
+              value={timeFilter}
+              label="Duration"
+              onChange={(e) => setTimeFilter(e.target.value)}
             >
-              <MenuItem value={0}>Any Duration</MenuItem>
-              <MenuItem value={30}>Under 30 min</MenuItem>
-              <MenuItem value={60}>Under 1 hour</MenuItem>
-              <MenuItem value={120}>Under 2 hours</MenuItem>
+              <MenuItem value="any">Any Duration</MenuItem>
+              <MenuItem value="under30">Under 30 min</MenuItem>
+              <MenuItem value="under60">Under 1 hour</MenuItem>
+              <MenuItem value="over60">Over 1 hour</MenuItem>
             </Select>
           </FormControl>
 
