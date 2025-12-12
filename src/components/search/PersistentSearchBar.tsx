@@ -225,70 +225,78 @@ export default function PersistentSearchBar({
                             : 'transparent'}`,
                     }}
                 >
-                    <SearchIcon
-                        sx={{
-                            color: isFocused
-                                ? theme.palette.primary.main
-                                : theme.palette.text.secondary,
-                            mr: 1.5,
-                            fontSize: 22,
-                            transition: 'color 0.2s ease',
-                        }}
-                    />
+                    {/* Inner content wrapper - isolated from layout animation to prevent floating */}
+                    <Box
+                        component={motion.div}
+                        //@ts-ignore - layout prop for framer-motion
+                        layout={false}
+                        sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
+                    >
+                        <SearchIcon
+                            sx={{
+                                color: isFocused
+                                    ? theme.palette.primary.main
+                                    : theme.palette.text.secondary,
+                                mr: 1.5,
+                                fontSize: 22,
+                                transition: 'color 0.2s ease',
+                            }}
+                        />
 
-                    <InputBase
-                        inputRef={inputRef}
-                        value={query}
-                        onChange={(e) => {
-                            const newQuery = e.target.value;
-                            setQuery(newQuery);
-                            onQueryChange?.(newQuery);
-                        }}
-                        onFocus={handleFocus}
-                        onBlur={handleBlur}
-                        placeholder={placeholder}
-                        fullWidth
-                        sx={{
-                            fontSize: '0.95rem',
-                            '& input': {
-                                py: 0.5,
-                            },
-                            '& input::placeholder': {
-                                color: theme.palette.text.secondary,
-                                opacity: 0.8,
-                            },
-                        }}
-                        inputProps={{
-                            'aria-label': 'Search recipes',
-                        }}
-                    />
+                        <InputBase
+                            inputRef={inputRef}
+                            value={query}
+                            onChange={(e) => {
+                                const newQuery = e.target.value;
+                                setQuery(newQuery);
+                                onQueryChange?.(newQuery);
+                            }}
+                            onFocus={handleFocus}
+                            onBlur={handleBlur}
+                            placeholder={placeholder}
+                            fullWidth
+                            sx={{
+                                fontSize: '0.95rem',
+                                '& input': {
+                                    py: 0.5,
+                                },
+                                '& input::placeholder': {
+                                    color: theme.palette.text.secondary,
+                                    opacity: 0.8,
+                                },
+                            }}
+                            inputProps={{
+                                'aria-label': 'Search recipes',
+                            }}
+                        />
 
-                    {/* Clear button */}
-                    <AnimatePresence>
-                        {query && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                transition={{ duration: 0.15 }}
-                            >
-                                <IconButton
-                                    size="small"
-                                    onClick={handleClear}
-                                    sx={{
-                                        ml: 0.5,
-                                        color: theme.palette.text.secondary,
-                                        '&:hover': {
-                                            color: theme.palette.text.primary,
-                                        },
-                                    }}
-                                    aria-label="Clear search"
+                        {/* Clear button */}
+                        <AnimatePresence>
+                            {query && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.15 }}
                                 >
-                                    <ClearIcon sx={{ fontSize: 18 }} />
-                                </IconButton>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleClear}
+                                        sx={{
+                                            ml: 0.5,
+                                            color: theme.palette.text.secondary,
+                                            '&:hover': {
+                                                color: theme.palette.text.primary,
+                                            },
+                                        }}
+                                        aria-label="Clear search"
+                                    >
+                                        <ClearIcon sx={{ fontSize: 18 }} />
+                                    </IconButton>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </Box>
                 </MotionPaper>
 
                 {/* Suggestions Dropdown */}
