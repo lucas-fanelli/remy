@@ -94,6 +94,10 @@ export default function Template({ children }: TemplateProps) {
                     width: '100%',
                     minHeight: '100%',
                     willChange: 'transform, opacity',
+                    // Solid background prevents transparency blending during transitions
+                    backgroundColor: 'var(--mui-palette-background-default, #121212)',
+                    // Entering page floats on top
+                    zIndex: 1,
                 }}
             >
                 {children}

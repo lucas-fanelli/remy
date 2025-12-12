@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
     Box,
     Paper,
@@ -85,6 +85,7 @@ export default function PersistentSearchBar({
 }: PersistentSearchBarProps) {
     const theme = useTheme();
     const router = useRouter();
+    const pathname = usePathname(); // Used to force snap re-render on route change
     const inputRef = useRef<HTMLInputElement>(null);
 
     const [query, setQuery] = useState(initialValue);
@@ -225,8 +226,9 @@ export default function PersistentSearchBar({
                             : 'transparent'}`,
                     }}
                 >
-                    {/* Inner content wrapper - isolated from layout animation to prevent floating */}
+                    {/* Inner content wrapper - key forces snap re-render on route change */}
                     <Box
+                        key={pathname}
                         component={motion.div}
                         //@ts-ignore - layout prop for framer-motion
                         layout={false}
