@@ -127,7 +127,7 @@ describe('EditProfileModal', () => {
 
   describe('Form Input', () => {
     it('should update full name field', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const fullNameInput = screen.getByLabelText(/full name/i);
@@ -138,7 +138,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should update bio field', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const bioInput = screen.getByLabelText(/bio/i);
@@ -149,7 +149,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should update website field', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const websiteInput = screen.getByLabelText(/website/i);
@@ -160,7 +160,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should toggle private account switch', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const switchElement = screen.getByRole('checkbox');
@@ -177,7 +177,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should limit bio to 300 characters', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const bioInput = screen.getByLabelText(/bio/i) as HTMLTextAreaElement;
@@ -194,7 +194,7 @@ describe('EditProfileModal', () => {
 
   describe('Form Submission', () => {
     it('should successfully update profile', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true, data: { ...mockUser, fullName: 'New Name' } }),
@@ -228,7 +228,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should show error when not authenticated', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       mockUseAuth.mockReturnValue({
         user: { ...mockUser },
         token: null,
@@ -249,8 +249,8 @@ describe('EditProfileModal', () => {
     });
 
     it('should show error when API request fails', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Update failed' }),
@@ -269,7 +269,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should disable buttons while saving', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockImplementation(
         () =>
           new Promise((resolve) =>
@@ -300,7 +300,7 @@ describe('EditProfileModal', () => {
 
   describe('Dialog Close', () => {
     it('should call onClose when cancel button is clicked', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const cancelButton = screen.getByRole('button', { name: /cancel/i });
@@ -310,7 +310,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should call onClose when close icon is clicked', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const closeButtons = screen.getAllByRole('button');
@@ -327,7 +327,7 @@ describe('EditProfileModal', () => {
 
   describe('Avatar Upload', () => {
     it('should handle avatar file selection', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
@@ -345,8 +345,8 @@ describe('EditProfileModal', () => {
     });
 
     it('should handle avatar upload error - non-ok response', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
@@ -379,8 +379,8 @@ describe('EditProfileModal', () => {
     });
 
     it('should handle avatar upload error - without specific error message', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
@@ -407,7 +407,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should successfully upload avatar and update profile', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
       const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
@@ -528,7 +528,7 @@ describe('EditProfileModal', () => {
 
   describe('Whitespace Handling - Lines 139-141', () => {
     it('should trim whitespace from fullName and send null if empty - line 139', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -551,7 +551,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should trim whitespace from bio and send null if empty - line 140', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -574,7 +574,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should trim whitespace from website and send null if empty - line 141', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -597,7 +597,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should preserve trimmed non-empty values', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -622,8 +622,8 @@ describe('EditProfileModal', () => {
 
   describe('Error Handling - Lines 150-161', () => {
     it('should throw Error with custom message when response not ok - line 150', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Custom error message' }),
@@ -643,8 +643,8 @@ describe('EditProfileModal', () => {
     });
 
     it('should throw Error with fallback message when error field missing - line 150', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({}),
@@ -663,8 +663,8 @@ describe('EditProfileModal', () => {
     });
 
     it('should handle non-Error exceptions - line 161', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const user = userEvent.setup({ delay: null });
       mockFetch.mockRejectedValueOnce('String error');  // Non-Error exception
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
@@ -680,8 +680,8 @@ describe('EditProfileModal', () => {
     });
 
     it('should log error to console on update failure - line 160', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const user = userEvent.setup();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const user = userEvent.setup({ delay: null });
       const testError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(testError);
 
@@ -814,7 +814,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should use null when user has no avatar - line 107', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ delay: null });
       const userWithNoAvatar = {
         ...mockUser,
         avatar: null,
