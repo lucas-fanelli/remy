@@ -15,6 +15,7 @@ import {
     ListItemIcon,
     Typography,
     Divider,
+    CircularProgress,
     alpha,
     useTheme,
     ClickAwayListener,
@@ -36,7 +37,7 @@ type MotionPaperProps = PaperProps & MotionProps & {
 const MotionPaper = motion.create(Paper) as React.FC<MotionPaperProps>;
 const MotionBox = motion.create(Box);
 
-// Mock trending searches - replace with real data as needed
+// Mock trending searches - shown when no query
 const mockTrendingSuggestions = [
     'Pasta Carbonara',
     'Chocolate Cake',
@@ -45,9 +46,30 @@ const mockTrendingSuggestions = [
     'Healthy Breakfast',
 ];
 
+// Types for live search results
+interface SearchResultUser {
+    id: string;
+    username: string;
+    fullName?: string | null;
+    avatar?: string | null;
+}
+
+interface SearchResultRecipe {
+    id: string;
+    title: string;
+    imageUrl?: string;
+}
+
+interface SearchResults {
+    users: SearchResultUser[];
+    recipes: SearchResultRecipe[];
+}
+
 interface PersistentSearchBarProps {
     /** Callback when search is submitted */
     onSearch?: (query: string) => void;
+    /** Callback when query changes (for live search) */
+    onQueryChange?: (query: string) => void;
     /** Initial search value */
     initialValue?: string;
     /** Placeholder text */
@@ -56,14 +78,21 @@ interface PersistentSearchBarProps {
     showSuggestions?: boolean;
     /** Recent searches from history */
     recentSearches?: string[];
+    /** Live search results from parent */
+    results?: SearchResults;
+    /** Loading state for live search */
+    loading?: boolean;
 }
 
 export default function PersistentSearchBar({
     onSearch,
+    onQueryChange,
     initialValue = '',
     placeholder = 'Search recipes, ingredients...',
     showSuggestions = true,
     recentSearches = [],
+    results,
+    loading = false,
 }: PersistentSearchBarProps) {
     const theme = useTheme();
     const router = useRouter();
@@ -72,6 +101,10 @@ export default function PersistentSearchBar({
     const [query, setQuery] = useState(initialValue);
     const [isFocused, setIsFocused] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+
+    // Track if we have live results
+    const hasLiveResults = results && (results.users.length > 0 || results.recipes.length > 0);
+    const hasQuery = query.trim().length > 0;
 
     // Handle focus
     const handleFocus = useCallback(() => {
@@ -217,7 +250,11 @@ export default function PersistentSearchBar({
                     <InputBase
                         inputRef={inputRef}
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => {
+                            const newQuery = e.target.value;
+                            setQuery(newQuery);
+                            onQueryChange?.(newQuery);
+                        }}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
                         placeholder={placeholder}
@@ -290,8 +327,142 @@ export default function PersistentSearchBar({
                                     overflowY: 'auto',
                                 }}
                             >
-                                {/* Recent Searches */}
-                                {recentSearches.length > 0 && (
+                                {/* "Search for [query]" option when user is typing */}
+                                {hasQuery && (
+                                    <List dense disablePadding>
+                                        <ListItem disablePadding>
+                                            <ListItemButton
+                                                onClick={() => handleSuggestionClick(query.trim())}
+                                                sx={{ py: 1.25, px: 2, backgroundColor: alpha(theme.palette.primary.main, 0.08) }}
+                                            >
+                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                    <SearchIcon
+                                                        sx={{
+                                                            fontSize: 18,
+                                                            color: theme.palette.primary.main
+                                                        }}
+                                                    />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={`Search for "${query.trim()}"`}
+                                                    primaryTypographyProps={{
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: 500,
+                                                    }}
+                                                />
+                                            </ListItemButton>
+                                        </ListItem>
+                                    </List>
+                                )}
+
+                                {/* Loading indicator */}
+                                {loading && hasQuery && (
+                                    <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <CircularProgress size={16} />
+                                        <Typography variant="caption" color="text.secondary">
+                                            Searching...
+                                        </Typography>
+                                    </Box>
+                                )}
+
+                                {/* Live Results: Top 3 Recipes */}
+                                {hasLiveResults && results && (
+                                    <>
+                                        {results.recipes.length > 0 && (
+                                            <>
+                                                <Divider sx={{ mx: 2, my: 0.5 }} />
+                                                <List dense disablePadding>
+                                                    {results.recipes.slice(0, 3).map((recipe) => (
+                                                        <ListItem key={`recipe-${recipe.id}`} disablePadding>
+                                                            <ListItemButton
+                                                                onClick={() => {
+                                                                    setShowDropdown(false);
+                                                                    router.push(`/recipe/${recipe.id}`);
+                                                                }}
+                                                                sx={{ py: 1.25, px: 2 }}
+                                                            >
+                                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                                    <Box
+                                                                        component="span"
+                                                                        sx={{
+                                                                            width: 24,
+                                                                            height: 24,
+                                                                            borderRadius: '4px',
+                                                                            backgroundColor: alpha(theme.palette.warning.main, 0.2),
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontSize: 12,
+                                                                        }}
+                                                                    >
+                                                                        🍳
+                                                                    </Box>
+                                                                </ListItemIcon>
+                                                                <ListItemText
+                                                                    primary={recipe.title}
+                                                                    primaryTypographyProps={{
+                                                                        fontSize: '0.9rem',
+                                                                    }}
+                                                                />
+                                                            </ListItemButton>
+                                                        </ListItem>
+                                                    ))}
+                                                </List>
+                                            </>
+                                        )}
+
+                                        {/* Live Results: Users */}
+                                        {results.users.length > 0 && (
+                                            <>
+                                                <Divider sx={{ mx: 2, my: 0.5 }} />
+                                                <List dense disablePadding>
+                                                    {results.users.slice(0, 2).map((user) => (
+                                                        <ListItem key={`user-${user.id}`} disablePadding>
+                                                            <ListItemButton
+                                                                onClick={() => {
+                                                                    setShowDropdown(false);
+                                                                    router.push(`/profile/${user.username}`);
+                                                                }}
+                                                                sx={{ py: 1.25, px: 2 }}
+                                                            >
+                                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                                    <Box
+                                                                        component="span"
+                                                                        sx={{
+                                                                            width: 24,
+                                                                            height: 24,
+                                                                            borderRadius: '50%',
+                                                                            backgroundColor: alpha(theme.palette.info.main, 0.2),
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontSize: 12,
+                                                                        }}
+                                                                    >
+                                                                        👤
+                                                                    </Box>
+                                                                </ListItemIcon>
+                                                                <ListItemText
+                                                                    primary={user.fullName || user.username}
+                                                                    secondary={user.fullName ? `@${user.username}` : undefined}
+                                                                    primaryTypographyProps={{
+                                                                        fontSize: '0.9rem',
+                                                                    }}
+                                                                    secondaryTypographyProps={{
+                                                                        fontSize: '0.75rem',
+                                                                    }}
+                                                                />
+                                                            </ListItemButton>
+                                                        </ListItem>
+                                                    ))}
+                                                </List>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* Trending Searches - only when no query */}
+                                {!hasQuery && (
                                     <>
                                         <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
                                             <Typography
@@ -299,26 +470,26 @@ export default function PersistentSearchBar({
                                                 color="text.secondary"
                                                 sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}
                                             >
-                                                Recent
+                                                Trending
                                             </Typography>
                                         </Box>
                                         <List dense disablePadding>
-                                            {recentSearches.slice(0, 3).map((search, index) => (
-                                                <ListItem key={`recent-${index}`} disablePadding>
+                                            {mockTrendingSuggestions.map((suggestion, index) => (
+                                                <ListItem key={`trending-${index}`} disablePadding>
                                                     <ListItemButton
-                                                        onClick={() => handleSuggestionClick(search)}
+                                                        onClick={() => handleSuggestionClick(suggestion)}
                                                         sx={{ py: 1.25, px: 2 }}
                                                     >
                                                         <ListItemIcon sx={{ minWidth: 36 }}>
-                                                            <HistoryIcon
+                                                            <TrendingIcon
                                                                 sx={{
                                                                     fontSize: 18,
-                                                                    color: theme.palette.text.secondary
+                                                                    color: theme.palette.primary.main
                                                                 }}
                                                             />
                                                         </ListItemIcon>
                                                         <ListItemText
-                                                            primary={search}
+                                                            primary={suggestion}
                                                             primaryTypographyProps={{
                                                                 fontSize: '0.9rem',
                                                             }}
@@ -327,45 +498,8 @@ export default function PersistentSearchBar({
                                                 </ListItem>
                                             ))}
                                         </List>
-                                        <Divider sx={{ mx: 2, my: 0.5 }} />
                                     </>
                                 )}
-
-                                {/* Trending Searches */}
-                                <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                        sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}
-                                    >
-                                        Trending
-                                    </Typography>
-                                </Box>
-                                <List dense disablePadding>
-                                    {mockTrendingSuggestions.map((suggestion, index) => (
-                                        <ListItem key={`trending-${index}`} disablePadding>
-                                            <ListItemButton
-                                                onClick={() => handleSuggestionClick(suggestion)}
-                                                sx={{ py: 1.25, px: 2 }}
-                                            >
-                                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                                    <TrendingIcon
-                                                        sx={{
-                                                            fontSize: 18,
-                                                            color: theme.palette.primary.main
-                                                        }}
-                                                    />
-                                                </ListItemIcon>
-                                                <ListItemText
-                                                    primary={suggestion}
-                                                    primaryTypographyProps={{
-                                                        fontSize: '0.9rem',
-                                                    }}
-                                                />
-                                            </ListItemButton>
-                                        </ListItem>
-                                    ))}
-                                </List>
                             </Paper>
                         </MotionBox>
                     )}

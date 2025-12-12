@@ -269,6 +269,11 @@ export default function Navigation() {
     setSearchQuery(event.target.value);
   };
 
+  // Handler for PersistentSearchBar - takes string directly
+  const handleQueryChange = (query: string) => {
+    setSearchQuery(query);
+  };
+
   const handleCloseSearch = () => {
     setShowSearchResults(false);
     setSearchQuery('');
@@ -504,7 +509,10 @@ export default function Navigation() {
           }}>
             <PersistentSearchBar
               placeholder={isSmallDesktop ? "Search..." : "Search recipes, ingredients..."}
-              showSuggestions={false}
+              showSuggestions={true}
+              onQueryChange={handleQueryChange}
+              results={searchResults}
+              loading={searchLoading}
             />
           </Box>
 
