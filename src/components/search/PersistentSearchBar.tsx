@@ -23,8 +23,6 @@ import {
 import {
     Search as SearchIcon,
     Clear as ClearIcon,
-    TrendingUp as TrendingIcon,
-    History as HistoryIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence, MotionProps } from 'framer-motion';
 
@@ -36,15 +34,6 @@ type MotionPaperProps = PaperProps & MotionProps & {
 
 const MotionPaper = motion.create(Paper) as React.FC<MotionPaperProps>;
 const MotionBox = motion.create(Box);
-
-// Mock trending searches - shown when no query
-const mockTrendingSuggestions = [
-    'Pasta Carbonara',
-    'Chocolate Cake',
-    'Vegan Recipes',
-    'Quick Dinner Ideas',
-    'Healthy Breakfast',
-];
 
 // Types for live search results
 interface SearchResultUser {
@@ -461,44 +450,13 @@ export default function PersistentSearchBar({
                                     </>
                                 )}
 
-                                {/* Trending Searches - only when no query */}
-                                {!hasQuery && (
-                                    <>
-                                        <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.secondary"
-                                                sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}
-                                            >
-                                                Trending
-                                            </Typography>
-                                        </Box>
-                                        <List dense disablePadding>
-                                            {mockTrendingSuggestions.map((suggestion, index) => (
-                                                <ListItem key={`trending-${index}`} disablePadding>
-                                                    <ListItemButton
-                                                        onClick={() => handleSuggestionClick(suggestion)}
-                                                        sx={{ py: 1.25, px: 2 }}
-                                                    >
-                                                        <ListItemIcon sx={{ minWidth: 36 }}>
-                                                            <TrendingIcon
-                                                                sx={{
-                                                                    fontSize: 18,
-                                                                    color: theme.palette.primary.main
-                                                                }}
-                                                            />
-                                                        </ListItemIcon>
-                                                        <ListItemText
-                                                            primary={suggestion}
-                                                            primaryTypographyProps={{
-                                                                fontSize: '0.9rem',
-                                                            }}
-                                                        />
-                                                    </ListItemButton>
-                                                </ListItem>
-                                            ))}
-                                        </List>
-                                    </>
+                                {/* Show empty state when no query and no live results */}
+                                {!hasQuery && !hasLiveResults && (
+                                    <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Start typing to search recipes...
+                                        </Typography>
+                                    </Box>
                                 )}
                             </Paper>
                         </MotionBox>

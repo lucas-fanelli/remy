@@ -48,12 +48,12 @@ export default function Template({ children }: TemplateProps) {
         previousTierRef.current = currentTier;
     }, [pathname, currentTier]);
 
-    // Animation variants
+    // Animation variants - increased for visibility
     const variants = {
         // Entering page
         enter: (dir: number) => ({
             opacity: 0,
-            scale: dir >= 0 ? 0.92 : 1,
+            scale: dir >= 0 ? 0.85 : 1.15,
             filter: dir >= 0 ? 'brightness(1)' : 'brightness(1)',
         }),
         // Page in view
@@ -62,17 +62,17 @@ export default function Template({ children }: TemplateProps) {
             scale: 1,
             filter: 'brightness(1)',
             transition: {
-                duration: 0.35,
+                duration: 0.7,
                 ease: [0.25, 0.46, 0.45, 0.94], // ease-out-quad
             },
         },
         // Exiting page
         exit: (dir: number) => ({
-            opacity: dir >= 0 ? 0.6 : 0,
-            scale: dir >= 0 ? 1 : 0.92,
-            filter: dir >= 0 ? 'brightness(0.6)' : 'brightness(1)',
+            opacity: dir >= 0 ? 0.4 : 0,
+            scale: dir >= 0 ? 1.15 : 0.85,
+            filter: dir >= 0 ? 'brightness(0.5)' : 'brightness(1)',
             transition: {
-                duration: 0.3,
+                duration: 0.5,
                 ease: [0.25, 0.46, 0.45, 0.94],
             },
         }),
