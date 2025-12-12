@@ -3,10 +3,12 @@ import { render, screen, fireEvent, waitFor, within, act, configure } from '@tes
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CreateRecipeForm from '../CreateRecipeForm';
-import { AuthProvider } from '@/contexts/AuthContext';
 
 // Speed up waitFor operations
 configure({ asyncUtilTimeout: 100 });
+
+// Mock MUI useMediaQuery for consistent, fast rendering
+jest.mock('@mui/material/useMediaQuery', () => jest.fn(() => false));
 
 // Mock framer-motion - comprehensive mock supporting all patterns
 jest.mock('framer-motion', () => {
@@ -21,7 +23,7 @@ jest.mock('framer-motion', () => {
   };
 });
 
-// Mock ImageUpload component
+// Mock ImageUpload component - heavy component with file handling
 jest.mock('../../common/ImageUpload', () => {
   return function MockImageUpload({ onChange, value }: any) {
     return (
@@ -37,12 +39,11 @@ jest.mock('../../common/ImageUpload', () => {
 
 const mockTheme = createTheme();
 
+// Simplified renderWithProviders - CreateRecipeForm doesn't need AuthProvider
 const renderWithProviders = (component: React.ReactElement) => {
   return render(
     <ThemeProvider theme={mockTheme}>
-      <AuthProvider>
-        {component}
-      </AuthProvider>
+      {component}
     </ThemeProvider>
   );
 };
