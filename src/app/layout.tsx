@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Nunito } from 'next/font/google';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -9,6 +10,14 @@ import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { PwaProvider } from '@/contexts/PwaContext';
 import { BRANDING } from '@/config/branding';
 import './globals.css';
+
+// Nunito - Rounded, friendly typography
+const nunito = Nunito({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-nunito',
+});
 
 export const metadata: Metadata = {
   title: `${BRANDING.name} - ${BRANDING.tagline}`,
@@ -76,7 +85,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={nunito.variable}>
       <head>
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
