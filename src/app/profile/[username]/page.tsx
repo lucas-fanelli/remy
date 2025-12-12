@@ -10,8 +10,6 @@ import {
   Typography,
   Avatar,
   Button,
-  Tabs,
-  Tab,
   Grid,
   Card,
   CardMedia,
@@ -38,6 +36,8 @@ import {
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import AnimatedTabs from '@/components/ui/AnimatedTabs';
+import TabPanelTransition from '@/components/ui/TabPanelTransition';
 
 const MotionCard = motion.create(Card);
 const MotionBox = motion.create(Box);
@@ -465,148 +465,145 @@ export default function ProfilePage() {
           </Box>
         </MotionBox>
 
-        {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(e, newValue) => setActiveTab(newValue)}
-            centered
-            aria-label="profile tabs"
-          >
-            <Tab icon={<GridOn />} label="RECIPES" iconPosition="start" />
-            {isOwnProfile && <Tab icon={<BookmarkBorder />} label="SAVED" iconPosition="start" />}
-          </Tabs>
+        {/* Tabs with Sliding Indicator */}
+        <AnimatedTabs
+          tabs={[
+            { key: 0, label: 'Recipes', icon: <GridOn /> },
+            ...(isOwnProfile ? [{ key: 1, label: 'Saved', icon: <BookmarkBorder /> }] : []),
+          ]}
+          activeKey={activeTab}
+          onChange={(key) => setActiveTab(key as number)}
+        />
+        {/* Tab Content with X-Axis Transition */}
+        <Box sx={{ mt: 3 }}>
+          <TabPanelTransition activeKey={activeTab}>
+            {/* Recipe Grid */}
+            {activeTab === 0 && (
+              <Grid container spacing={2}>
+                {recipes.length === 0 ? (
+                  <Grid item xs={12}>
+                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                      <Restaurant sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                      <Typography variant="h6" color="text.secondary">
+                        No recipes yet
+                      </Typography>
+                      {isOwnProfile && (
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          Share your first recipe to get started!
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                ) : (
+                  recipes.map((recipe, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={recipe.id}>
+                      <Grow in={true} timeout={(index + 1) * 200}>
+                        <div>
+                          <MotionCard
+                            whileHover={{ scale: 1.02 }}
+                            onClick={() => handleRecipeClick(recipe.id)}
+                            sx={{
+                              backgroundColor: (theme) => theme.palette.background.paper,
+                              cursor: 'pointer',
+                              height: '100%'
+                            }}
+                          >
+                            <CardMedia
+                              component="img"
+                              height="200"
+                              image={recipe.imageUrl}
+                              alt={recipe.title}
+                              sx={{ objectFit: 'cover' }}
+                            />
+                            <CardContent>
+                              <Typography variant="h6" gutterBottom noWrap>
+                                {recipe.title}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                <Chip
+                                  label={recipe.difficulty}
+                                  size="small"
+                                  color={getDifficultyColor(recipe.difficulty) as any}
+                                  sx={{
+                                    textTransform: 'capitalize',
+                                    color: 'white',
+                                    '& .MuiChip-label': { color: 'white' },
+                                  }}
+                                />
+                              </Box>
+                            </CardContent>
+                          </MotionCard>
+                        </div>
+                      </Grow>
+                    </Grid>
+                  ))
+                )}
+              </Grid>
+            )}
+
+            {/* Saved Recipes Tab */}
+            {activeTab === 1 && isOwnProfile && (
+              <Grid container spacing={2}>
+                {savedRecipes.length === 0 ? (
+                  <Grid item xs={12}>
+                    <Box sx={{ textAlign: 'center', py: 8 }}>
+                      <BookmarkBorder sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                      <Typography variant="h6" color="text.secondary">
+                        No saved recipes yet
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        Bookmark recipes you&apos;d like to try later!
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ) : (
+                  savedRecipes.map((recipe, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={recipe.id}>
+                      <Grow in={true} timeout={(index + 1) * 200}>
+                        <div>
+                          <MotionCard
+                            whileHover={{ scale: 1.02 }}
+                            onClick={() => handleRecipeClick(recipe.id)}
+                            sx={{
+                              backgroundColor: (theme) => theme.palette.background.paper,
+                              cursor: 'pointer',
+                              height: '100%'
+                            }}
+                          >
+                            <CardMedia
+                              component="img"
+                              height="200"
+                              image={recipe.imageUrl}
+                              alt={recipe.title}
+                              sx={{ objectFit: 'cover' }}
+                            />
+                            <CardContent>
+                              <Typography variant="h6" gutterBottom noWrap>
+                                {recipe.title}
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                <Chip
+                                  label={recipe.difficulty}
+                                  size="small"
+                                  color={getDifficultyColor(recipe.difficulty) as any}
+                                  sx={{
+                                    textTransform: 'capitalize',
+                                    color: 'white',
+                                    '& .MuiChip-label': { color: 'white' },
+                                  }}
+                                />
+                              </Box>
+                            </CardContent>
+                          </MotionCard>
+                        </div>
+                      </Grow>
+                    </Grid>
+                  ))
+                )}
+              </Grid>
+            )}
+          </TabPanelTransition>
         </Box>
-
-        {/* Recipe Grid */}
-        {activeTab === 0 && (
-          <Grid container spacing={2}>
-            {recipes.length === 0 ? (
-              <Grid item xs={12}>
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <Restaurant sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No recipes yet
-                  </Typography>
-                  {isOwnProfile && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Share your first recipe to get started!
-                    </Typography>
-                  )}
-                </Box>
-              </Grid>
-            ) : (
-              recipes.map((recipe, index) => (
-                <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-                  <Grow in={true} timeout={(index + 1) * 200}>
-                    <div>
-                      <MotionCard
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleRecipeClick(recipe.id)}
-                        sx={{
-                          backgroundColor: (theme) => theme.palette.background.paper,
-                          cursor: 'pointer',
-                          height: '100%'
-                        }}
-                      >
-                        <CardMedia
-                          component="img"
-                          height="200"
-                          image={recipe.imageUrl}
-                          alt={recipe.title}
-                          sx={{ objectFit: 'cover' }}
-                        />
-                        <CardContent>
-                          <Typography variant="h6" gutterBottom noWrap>
-                            {recipe.title}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Chip
-                              label={recipe.difficulty}
-                              size="small"
-                              color={getDifficultyColor(recipe.difficulty) as any}
-                              sx={{
-                                textTransform: 'capitalize',
-                                color: 'white',
-                                '& .MuiChip-label': {
-                                  color: 'white',
-                                },
-                              }}
-                            />
-                          </Box>
-                        </CardContent>
-                      </MotionCard>
-                    </div>
-                  </Grow>
-                </Grid>
-              ))
-            )}
-          </Grid>
-        )}
-
-        {/* Saved Recipes Tab */}
-        {activeTab === 1 && isOwnProfile && (
-          <Grid container spacing={2}>
-            {savedRecipes.length === 0 ? (
-              <Grid item xs={12}>
-                <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <BookmarkBorder sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary">
-                    No saved recipes yet
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Bookmark recipes you&apos;d like to try later!
-                  </Typography>
-                </Box>
-              </Grid>
-            ) : (
-              savedRecipes.map((recipe, index) => (
-                <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-                  <Grow in={true} timeout={(index + 1) * 200}>
-                    <div>
-                      <MotionCard
-                        whileHover={{ scale: 1.02 }}
-                        onClick={() => handleRecipeClick(recipe.id)}
-                        sx={{
-                          backgroundColor: (theme) => theme.palette.background.paper,
-                          cursor: 'pointer',
-                          height: '100%'
-                        }}
-                      >
-                        <CardMedia
-                          component="img"
-                          height="200"
-                          image={recipe.imageUrl}
-                          alt={recipe.title}
-                          sx={{ objectFit: 'cover' }}
-                        />
-                        <CardContent>
-                          <Typography variant="h6" gutterBottom noWrap>
-                            {recipe.title}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            <Chip
-                              label={recipe.difficulty}
-                              size="small"
-                              color={getDifficultyColor(recipe.difficulty) as any}
-                              sx={{
-                                textTransform: 'capitalize',
-                                color: 'white',
-                                '& .MuiChip-label': {
-                                  color: 'white',
-                                },
-                              }}
-                            />
-                          </Box>
-                        </CardContent>
-                      </MotionCard>
-                    </div>
-                  </Grow>
-                </Grid>
-              ))
-            )}
-          </Grid>
-        )}
       </Container>
 
       {/* Edit Profile Modal */}
