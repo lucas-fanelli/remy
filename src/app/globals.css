@@ -1,8 +1,4 @@
-/* Nunito font fallback - ensures font loads even if CSS variable fails */
-:root {
-  --font-nunito-fallback: 'Nunito', sans-serif;
-}
-
+/* Custom global styles */
 * {
   box-sizing: border-box;
   padding: 0;
@@ -41,45 +37,33 @@ html.theme-ready body {
   transition: opacity 0.1s ease-in;
 }
 
+/* Global Nunito font - with !important override for MUI inline styles */
 body {
-  font-family: var(--font-nunito), 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-nunito), 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif !important;
   background-color: #FAFAFA;
   color: #212121;
-  /* Responsive base font size */
   font-size: 16px;
   line-height: 1.6;
 }
 
-/* FORCE Nunito font on ALL elements - override MUI inline styles */
-* {
+/* FORCE Nunito font on ALL elements */
+*,
+*::before,
+*::after {
   font-family: inherit !important;
 }
 
-/* Explicitly set Nunito on common text elements */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-span,
-a,
-button,
-input,
-textarea,
-label,
-li {
-  font-family: var(--font-nunito), 'Nunito', sans-serif !important;
-}
-
-/* Force on MUI components */
+/* Force on MUI Typography and components */
 .MuiTypography-root,
 .MuiButton-root,
 .MuiTab-root,
 .MuiChip-root,
 .MuiInputBase-root,
-.MuiFormLabel-root {
+.MuiFormLabel-root,
+.MuiListItemText-primary,
+.MuiListItemText-secondary,
+.MuiMenuItem-root,
+.MuiCardContent-root {
   font-family: var(--font-nunito), 'Nunito', sans-serif !important;
 }
 
