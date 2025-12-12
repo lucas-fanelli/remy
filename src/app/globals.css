@@ -50,6 +50,39 @@ body {
   line-height: 1.6;
 }
 
+/* FORCE Nunito font on ALL elements - override MUI inline styles */
+* {
+  font-family: inherit !important;
+}
+
+/* Explicitly set Nunito on common text elements */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+a,
+button,
+input,
+textarea,
+label,
+li {
+  font-family: var(--font-nunito), 'Nunito', sans-serif !important;
+}
+
+/* Force on MUI components */
+.MuiTypography-root,
+.MuiButton-root,
+.MuiTab-root,
+.MuiChip-root,
+.MuiInputBase-root,
+.MuiFormLabel-root {
+  font-family: var(--font-nunito), 'Nunito', sans-serif !important;
+}
+
 /* Responsive typography */
 @media (max-width: 600px) {
   body {
