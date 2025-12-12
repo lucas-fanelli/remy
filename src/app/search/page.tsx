@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   Container,
   Box,
@@ -63,7 +63,27 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-export default function SearchPage() {
+// Fallback loading component for Suspense
+function SearchPageFallback() {
+  return (
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pt: 4 }}>
+      <Container maxWidth="lg">
+        <Skeleton variant="text" width={200} height={40} sx={{ mb: 2 }} />
+        <Skeleton variant="rectangular" height={48} sx={{ mb: 3, borderRadius: 1 }} />
+        <Grid container spacing={2}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
+            </Grid>
+          ))}
+        </Grid>
+      </Container>
+    </Box>
+  );
+}
+
+// Main search page content that uses useSearchParams
+function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -331,5 +351,14 @@ export default function SearchPage() {
         )}
       </Container>
     </Box>
+  );
+}
+
+// Wrapper component with Suspense boundary for useSearchParams
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<SearchPageFallback />}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
