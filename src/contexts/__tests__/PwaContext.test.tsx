@@ -402,4 +402,142 @@ describe('PwaContext', () => {
             });
         });
     });
+
+    describe('triggerInstall error handling - lines 241-244', () => {
+        it('should handle error when prompt() throws', async () => {
+            const consoleError = jest.spyOn(console, 'error').mockImplementation(() => { });
+
+            render(
+                <PwaProvider>
+                    <TestConsumer />
+                </PwaProvider>
+            );
+
+            // Setup mock prompt that throws
+            const mockPrompt = jest.fn().mockRejectedValue(new Error('Prompt failed'));
+            const mockUserChoice = Promise.resolve({ outcome: 'dismissed' as const });
+
+            const event = new Event('beforeinstallprompt');
+            Object.defineProperty(event, 'prompt', { value: mockPrompt });
+            Object.defineProperty(event, 'userChoice', { value: mockUserChoice });
+            Object.defineProperty(event, 'preventDefault', { value: jest.fn() });
+
+            await act(async () => {
+                window.dispatchEvent(event);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('prompt-available')).toHaveTextContent('true');
+            });
+
+            // Click install button - should handle error gracefully
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('trigger-install'));
+            });
+
+            await waitFor(() => {
+                expect(consoleError).toHaveBeenCalledWith('Error triggering install prompt:', expect.any(Error));
+            });
+
+            consoleError.mockRestore();
+        });
+    });
+
+    describe('iOS Safari Detection - lines 43-52', () => {
+        it('should detect iOS Safari and set canInstall true', () => {
+            // Mock iOS Safari user agent
+            Object.defineProperty(window.navigator, 'userAgent', {
+                value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1',
+                configurable: true,
+            });
+            Object.defineProperty(window.navigator, 'standalone', {
+                value: false,
+                configurable: true,
+            });
+
+            render(
+                <PwaProvider>
+                    <TestConsumer />
+                </PwaProvider>
+            );
+
+            expect(screen.getByTestId('is-ios-safari')).toHaveTextContent('true');
+            expect(screen.getByTestId('can-install')).toHaveTextContent('true');
+        });
+    });
+
+    describe('Desktop Chrome Detection - lines 57-65', () => {
+        it('should detect desktop Chrome', () => {
+            Object.defineProperty(window.navigator, 'userAgent', {
+                value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                configurable: true,
+            });
+
+            render(
+                <PwaProvider>
+                    <TestConsumer />
+                </PwaProvider>
+            );
+
+            expect(screen.getByTestId('is-desktop-chrome')).toHaveTextContent('true');
+        });
+    });
+
+    describe('getInstalledRelatedApps - lines 122-127', () => {
+        it('should handle error from getInstalledRelatedApps API', async () => {
+            const consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => { });
+
+            // Mock navigator with failing getInstalledRelatedApps
+            Object.defineProperty(window.navigator, 'getInstalledRelatedApps', {
+                value: jest.fn().mockRejectedValue(new Error('API not available')),
+                configurable: true,
+            });
+
+            render(
+                <PwaProvider>
+                    <TestConsumer />
+                </PwaProvider>
+            );
+
+            // Component should still render and work normally despite API error
+            expect(screen.getByTestId('is-installed')).toHaveTextContent('false');
+            expect(screen.getByTestId('can-install')).toBeInTheDocument();
+
+            consoleWarn.mockRestore();
+        });
+
+        it('should detect installed app when getInstalledRelatedApps returns apps', async () => {
+            // Mock navigator with successful getInstalledRelatedApps
+            Object.defineProperty(window.navigator, 'getInstalledRelatedApps', {
+                value: jest.fn().mockResolvedValue([{ platform: 'webapp', url: 'https://example.com' }]),
+                configurable: true,
+            });
+
+            render(
+                <PwaProvider>
+                    <TestConsumer />
+                </PwaProvider>
+            );
+
+            await waitFor(() => {
+                expect(screen.getByTestId('is-installed')).toHaveTextContent('true');
+            });
+        });
+    });
+
+    describe('Dismissed Recently Logic - lines 85-95', () => {
+        it('should not show prompt when dismissed recently', () => {
+            // Set dismissal time to 1 day ago (within 7 day window)
+            const oneDayAgo = Date.now() - (1 * 24 * 60 * 60 * 1000);
+            mockLocalStorage['pwa-install-dismissed'] = oneDayAgo.toString();
+
+            render(
+                <PwaProvider>
+                    <TestConsumer />
+                </PwaProvider>
+            );
+
+            expect(screen.getByTestId('show-install-prompt')).toHaveTextContent('false');
+        });
+    });
 });
