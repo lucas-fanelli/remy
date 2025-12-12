@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
     Box,
     Paper,
+    PaperProps,
     InputBase,
     IconButton,
     List,
@@ -24,9 +25,15 @@ import {
     TrendingUp as TrendingIcon,
     History as HistoryIcon,
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionProps } from 'framer-motion';
 
-const MotionPaper = motion.create(Paper);
+// Strict Type: Paper + Motion + Polymorphic 'component' prop + form attributes
+type MotionPaperProps = PaperProps & MotionProps & {
+    component?: React.ElementType;
+    onSubmit?: React.FormEventHandler<HTMLFormElement>;
+};
+
+const MotionPaper = motion.create(Paper) as React.FC<MotionPaperProps>;
 const MotionBox = motion.create(Box);
 
 // Mock trending searches - replace with real data as needed
