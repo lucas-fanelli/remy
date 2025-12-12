@@ -12,6 +12,18 @@ import { useRouter } from 'next/navigation';
 jest.mock('@/contexts/AuthContext');
 jest.mock('@/contexts/ToastContext');
 jest.mock('@/contexts/ThemeContext');
+jest.mock('@/contexts/PwaContext', () => ({
+  usePwa: () => ({
+    isInstalled: false,
+    isStandalone: false,
+    canInstall: false,
+    isIOS: false,
+    showIOSInstructions: false,
+    promptInstall: jest.fn(),
+    setShowIOSInstructions: jest.fn(),
+    platform: 'unknown',
+  }),
+}));
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));

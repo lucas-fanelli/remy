@@ -97,7 +97,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should handle API error when fetching comments', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
     renderWithProviders(<CommentsSection recipeId="recipe1" />);
@@ -110,7 +110,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should show loading state while fetching comments', () => {
-    mockFetch.mockImplementation(() => new Promise(() => {}));
+    mockFetch.mockImplementation(() => new Promise(() => { }));
 
     const { container } = renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -439,7 +439,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle comment submission error', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
 
@@ -519,7 +519,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle network error during submission gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
 
@@ -772,9 +772,13 @@ describe('CommentsSection Component', () => {
         expect(screen.getByText('Great recipe!')).toBeInTheDocument();
       });
 
-      // Should show more options button
-      const moreButton = screen.getByRole('button', { name: '' });
-      expect(moreButton).toBeInTheDocument();
+      // Should show more options button (MoreVertIcon)
+      const allButtons = screen.getAllByRole('button');
+      const moreButton = allButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreButton).toBeDefined();
     });
 
     it('should not show action menu button for other users comments', async () => {
@@ -797,8 +801,13 @@ describe('CommentsSection Component', () => {
       });
 
       // Should not show more options button for other users' comments
-      const moreButtons = screen.queryAllByRole('button', { name: '' });
-      expect(moreButtons.length).toBe(0);
+      // Check specifically for the MoreVertIcon button which is the edit/delete action button
+      const allButtons = screen.getAllByRole('button');
+      const moreVertButton = allButtons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      });
+      expect(moreVertButton).toBeUndefined();
     });
 
     it('should open menu and show edit and delete options when clicking more button', async () => {
@@ -1206,7 +1215,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle edit comment exception - lines 187-189', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
         token: 'test-token',
@@ -1339,7 +1348,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle delete comment exception - lines 226-228', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
         token: 'test-token',

@@ -542,7 +542,7 @@ describe('Navigation Component', () => {
   });
 
   it('should handle search error and log it', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
     renderWithProviders(<Navigation />);
@@ -1035,7 +1035,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle failed notification fetch - line 209-211', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -1056,7 +1056,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle notification fetch error - line 212-213', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const fetchError = new Error('Network error');
 
       mockFetch.mockRejectedValueOnce(fetchError);
@@ -1171,13 +1171,19 @@ describe('Navigation Component', () => {
     });
 
     it('should navigate to profile when clicking follow notification - line 338-342', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          notifications: mockNotifications,
-          unreadCount: 3,
-        }),
-      });
+      // Mock both the notification list fetch AND the mark-as-read PATCH request
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            notifications: mockNotifications,
+            unreadCount: 3,
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        });
 
       renderWithProviders(<Navigation />);
 
@@ -1202,17 +1208,26 @@ describe('Navigation Component', () => {
       expect(followNotificationButton).not.toBeNull();
       fireEvent.click(followNotificationButton!);
 
-      expect(mockPush).toHaveBeenCalledWith('/profile/follower1');
+      // Wait for async handleNotificationClick to complete
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/profile/follower1');
+      });
     });
 
     it('should navigate to recipe when clicking like notification - line 338-342', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          notifications: mockNotifications,
-          unreadCount: 3,
-        }),
-      });
+      // Mock both the notification list fetch AND the mark-as-read PATCH request
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            notifications: mockNotifications,
+            unreadCount: 3,
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        });
 
       renderWithProviders(<Navigation />);
 
@@ -1237,7 +1252,10 @@ describe('Navigation Component', () => {
       expect(likeNotificationButton).not.toBeNull();
       fireEvent.click(likeNotificationButton!);
 
-      expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-123');
+      // Wait for async handleNotificationClick to complete
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-123');
+      });
     });
 
     it('should mark all notifications as read - line 281-301', async () => {
@@ -1289,7 +1307,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle mark as read error - line 298-301', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const markReadError = new Error('Failed to mark as read');
 
       mockFetch
@@ -1599,7 +1617,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle recipe creation error - lines 365-377', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
       mockFetch
         .mockResolvedValueOnce({
@@ -2049,7 +2067,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle recipe creation failure - lines 363-376', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
       // Mock failed recipe creation FIRST
       mockFetch.mockImplementation((url: string, options?: any) => {
