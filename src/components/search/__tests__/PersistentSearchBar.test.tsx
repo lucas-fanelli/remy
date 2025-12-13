@@ -488,4 +488,89 @@ describe('PersistentSearchBar', () => {
             expect(input).toBeInTheDocument();
         });
     });
+
+    // ==================== THEME TESTS ====================
+    describe('Dark Theme', () => {
+        const darkTheme = createTheme({ palette: { mode: 'dark' } });
+
+        const renderWithDarkTheme = (ui: React.ReactElement) => {
+            return render(
+                <ThemeProvider theme={darkTheme}>
+                    {ui}
+                </ThemeProvider>
+            );
+        };
+
+        it('should render correctly in dark mode', () => {
+            renderWithDarkTheme(<PersistentSearchBar />);
+
+            const input = screen.getByRole('textbox');
+            expect(input).toBeInTheDocument();
+        });
+
+        it('should show dropdown in dark mode', async () => {
+            const user = userEvent.setup();
+            renderWithDarkTheme(<PersistentSearchBar showSuggestions={true} />);
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'test');
+
+            await waitFor(() => {
+                expect(screen.getByText(/Search for/i)).toBeInTheDocument();
+            });
+        });
+    });
+
+    // ==================== USER WITHOUT FULLNAME TEST ====================
+    describe('User Display Variants', () => {
+        it('should display username when user has no fullName', async () => {
+            const user = userEvent.setup();
+            const mockResults = {
+                users: [{ id: 'user-789', username: 'chef_anonymous', fullName: null }],
+                recipes: [],
+            };
+
+            renderWithTheme(
+                <PersistentSearchBar
+                    showSuggestions={true}
+                    results={mockResults}
+                />
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'ch');
+
+            // Should display username as primary since fullName is null
+            await waitFor(() => {
+                expect(screen.getByText('chef_anonymous')).toBeInTheDocument();
+            });
+        });
+
+        it('should not show secondary text when user has no fullName', async () => {
+            const user = userEvent.setup();
+            const mockResults = {
+                users: [{ id: 'user-999', username: 'solo_username' }],
+                recipes: [],
+            };
+
+            renderWithTheme(
+                <PersistentSearchBar
+                    showSuggestions={true}
+                    results={mockResults}
+                />
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'so');
+
+            await waitFor(() => {
+                expect(screen.getByText('solo_username')).toBeInTheDocument();
+                // No @username secondary text should appear
+                expect(screen.queryByText('@solo_username')).not.toBeInTheDocument();
+            });
+        });
+    });
 });
