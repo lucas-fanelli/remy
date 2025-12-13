@@ -428,6 +428,7 @@ export default function PersistentSearchBar({
                                                         <ListItem key={`recipe-${recipe.id}`} disablePadding>
                                                             <ListItemButton
                                                                 onClick={() => {
+                                                                    setQuery(''); // Clear search input
                                                                     setShowDropdown(false);
                                                                     setSource('search', recipe.id); // Set source for fade animation
                                                                     router.push(`/recipe/${recipe.id}`);
@@ -473,6 +474,7 @@ export default function PersistentSearchBar({
                                                         <ListItem key={`user-${user.id}`} disablePadding>
                                                             <ListItemButton
                                                                 onClick={() => {
+                                                                    setQuery(''); // Clear search input
                                                                     setShowDropdown(false);
                                                                     router.push(`/profile/${user.username}`);
                                                                 }}
