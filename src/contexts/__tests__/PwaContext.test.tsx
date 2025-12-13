@@ -92,6 +92,13 @@ describe('PwaContext', () => {
             dispatchEvent: jest.fn(),
         }));
 
+        // Mock getInstalledRelatedApps to silence console warnings
+        Object.defineProperty(navigator, 'getInstalledRelatedApps', {
+            value: jest.fn().mockResolvedValue([]),
+            writable: true,
+            configurable: true,
+        });
+
         // Mock location
         const mockLocation = {
             href: 'https://example.com',

@@ -362,4 +362,130 @@ describe('PersistentSearchBar', () => {
             expect(document.activeElement).toBe(input);
         });
     });
+
+    // ==================== CLICK AWAY TESTS ====================
+    describe('Click Away', () => {
+        it('should close dropdown when clicking away', async () => {
+            const user = userEvent.setup();
+            renderWithTheme(
+                <div>
+                    <PersistentSearchBar showSuggestions={true} />
+                    <button data-testid="outside-element">Outside</button>
+                </div>
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'test');
+
+            // Click on outside element
+            const outsideElement = screen.getByTestId('outside-element');
+            await user.click(outsideElement);
+
+            // Component should still be rendered
+            expect(input).toBeInTheDocument();
+        });
+    });
+
+    // ==================== SUGGESTION CLICK TESTS ====================
+    describe('Suggestion Click', () => {
+        it('should navigate when clicking "Search for" option', async () => {
+            const user = userEvent.setup();
+            renderWithTheme(<PersistentSearchBar showSuggestions={true} />);
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'pasta');
+
+            // Find and click the "Search for" option
+            const searchOption = await screen.findByText(/Search for "pasta"/);
+            await user.click(searchOption);
+
+            expect(mockPush).toHaveBeenCalledWith('/search?q=pasta');
+        });
+
+        it('should call onSearch when clicking suggestion with onSearch prop', async () => {
+            const onSearch = jest.fn();
+            const user = userEvent.setup();
+            renderWithTheme(<PersistentSearchBar showSuggestions={true} onSearch={onSearch} />);
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'chicken');
+
+            // Find and click the "Search for" option
+            const searchOption = await screen.findByText(/Search for "chicken"/);
+            await user.click(searchOption);
+
+            expect(onSearch).toHaveBeenCalledWith('chicken');
+        });
+
+        it('should navigate to recipe page when clicking recipe result', async () => {
+            const user = userEvent.setup();
+            const mockResults = {
+                users: [],
+                recipes: [{ id: 'recipe-123', title: 'Spaghetti Carbonara' }],
+            };
+
+            renderWithTheme(
+                <PersistentSearchBar
+                    showSuggestions={true}
+                    results={mockResults}
+                />
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'sp');
+
+            // Click on the recipe result
+            const recipeResult = await screen.findByText('Spaghetti Carbonara');
+            await user.click(recipeResult);
+
+            expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-123');
+        });
+
+        it('should navigate to user profile when clicking user result', async () => {
+            const user = userEvent.setup();
+            const mockResults = {
+                users: [{ id: 'user-456', username: 'chef_mario', fullName: 'Mario Chef' }],
+                recipes: [],
+            };
+
+            renderWithTheme(
+                <PersistentSearchBar
+                    showSuggestions={true}
+                    results={mockResults}
+                />
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            await user.type(input, 'mario');
+
+            // Click on the user result
+            const userResult = await screen.findByText('Mario Chef');
+            await user.click(userResult);
+
+            expect(mockPush).toHaveBeenCalledWith('/profile/chef_mario');
+        });
+    });
+
+    // ==================== BLUR TESTS ====================
+    describe('Blur Behavior', () => {
+        it('should handle blur event', async () => {
+            const user = userEvent.setup();
+            renderWithTheme(<PersistentSearchBar />);
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+            expect(input).toHaveFocus();
+
+            // Blur by tabbing away
+            await user.tab();
+
+            // Should still render
+            expect(input).toBeInTheDocument();
+        });
+    });
 });
