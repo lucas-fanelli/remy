@@ -1615,6 +1615,9 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle image upload failure (lines 121-132)', async () => {
+      // Spy on console.error to verify it's called and prevent console output leak
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+
       mockFetch
         .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
         .mockResolvedValueOnce({ ok: false, status: 500 }); // Upload fails
@@ -1643,6 +1646,14 @@ describe('CommentsSection Component', () => {
       await waitFor(() => {
         expect(screen.getByText(/failed to upload image/i)).toBeInTheDocument();
       });
+
+      // Verify console.error was called (this is the expected behavior)
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error uploading image:',
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
     });
 
     it('should trigger file input when camera button is clicked (line 420)', async () => {
