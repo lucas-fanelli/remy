@@ -238,8 +238,8 @@ export default function PersistentSearchBar({
                         transition={{ duration: 0.2 }}
                     />
 
-                    {/* Static Content - NEVER part of layout projection */}
-                    <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', width: '100%' }}>
+                    {/* Static Content - FORCED RESET via key={pathname} */}
+                    <Box key={pathname} sx={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', width: '100%' }}>
                         <SearchIcon
                             sx={{
                                 color: isFocused
