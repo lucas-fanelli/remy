@@ -930,6 +930,7 @@ export default function Navigation() {
             <PersistentSearchBar
               placeholder="Search recipes, ingredients..."
               showSuggestions={true}
+              onResultClick={() => setMobileSearchOpen(false)}
             />
           </Box>
         </Box>

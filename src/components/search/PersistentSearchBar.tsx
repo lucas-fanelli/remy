@@ -60,6 +60,8 @@ interface PersistentSearchBarProps {
     onSearch?: (query: string) => void;
     /** Callback when query changes (for live search) */
     onQueryChange?: (query: string) => void;
+    /** Callback when a result is clicked (for closing parent dialogs) */
+    onResultClick?: () => void;
     /** Initial search value */
     initialValue?: string;
     /** Placeholder text */
@@ -77,6 +79,7 @@ interface PersistentSearchBarProps {
 export default function PersistentSearchBar({
     onSearch,
     onQueryChange,
+    onResultClick,
     initialValue = '',
     placeholder = 'Search recipes, ingredients...',
     showSuggestions = true,
@@ -430,6 +433,7 @@ export default function PersistentSearchBar({
                                                                 onClick={() => {
                                                                     setQuery(''); // Clear search input
                                                                     setShowDropdown(false);
+                                                                    onResultClick?.(); // Notify parent (e.g., close mobile dialog)
                                                                     setSource('search', recipe.id); // Set source for fade animation
                                                                     router.push(`/recipe/${recipe.id}`);
                                                                 }}
@@ -476,6 +480,7 @@ export default function PersistentSearchBar({
                                                                 onClick={() => {
                                                                     setQuery(''); // Clear search input
                                                                     setShowDropdown(false);
+                                                                    onResultClick?.(); // Notify parent (e.g., close mobile dialog)
                                                                     router.push(`/profile/${user.username}`);
                                                                 }}
                                                                 sx={{ py: 1.25, px: 2 }}
