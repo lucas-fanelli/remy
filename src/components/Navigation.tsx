@@ -97,12 +97,7 @@ export default function Navigation() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mounted, setMounted] = useState(false);
 
-  // Search states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any>({ users: [], recipes: [] });
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   // Notification states
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -225,59 +220,10 @@ export default function Navigation() {
     return () => clearInterval(interval);
   }, [token, fetchNotifications]);
 
-  // Search functionality
-  useEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      setShowSearchResults(true);
-      setSearchLoading(true);
 
-      // Debounce search
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
 
-      searchTimeoutRef.current = setTimeout(async () => {
-        try {
-          const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-          if (response.ok) {
-            const data = await response.json();
-            setSearchResults(data || { users: [], recipes: [] });
-          } else {
-            // If search fails, show empty results instead of keeping old results
-            setSearchResults({ users: [], recipes: [] });
-          }
-        } catch (error) {
-          console.error('Search error:', error);
-          setSearchResults({ users: [], recipes: [] });
-        } finally {
-          setSearchLoading(false);
-        }
-      }, 300);
-    } else {
-      setShowSearchResults(false);
-      setSearchResults({ users: [], recipes: [] });
-    }
 
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery]);
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
-  };
-
-  // Handler for PersistentSearchBar - takes string directly
-  const handleQueryChange = (query: string) => {
-    setSearchQuery(query);
-  };
-
-  const handleCloseSearch = () => {
-    setShowSearchResults(false);
-    setSearchQuery('');
-  };
 
   // Notification handlers
   const handleNotificationsOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -510,9 +456,6 @@ export default function Navigation() {
             <PersistentSearchBar
               placeholder={isSmallDesktop ? "Search..." : "Search recipes, ingredients..."}
               showSuggestions={true}
-              onQueryChange={handleQueryChange}
-              results={searchResults}
-              loading={searchLoading}
             />
           </Box>
 
@@ -984,29 +927,11 @@ export default function Navigation() {
               mb: 2,
             }}
           >
-            <Search sx={{ color: 'text.secondary', mr: 1 }} />
-            <InputBase
-              placeholder="Search recipes or users..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              autoFocus
-              sx={{ flex: 1 }}
+            <PersistentSearchBar
+              placeholder="Search recipes, ingredients..."
+              showSuggestions={true}
             />
           </Box>
-          {showSearchResults && (
-            <Box sx={{ position: 'relative' }}>
-              <SearchResults
-                query={searchQuery}
-                users={searchResults.users}
-                recipes={searchResults.recipes}
-                loading={searchLoading}
-                onClose={() => {
-                  setMobileSearchOpen(false);
-                  handleCloseSearch();
-                }}
-              />
-            </Box>
-          )}
         </Box>
       </Dialog>
 

@@ -1624,49 +1624,8 @@ describe('Navigation Component', () => {
       }
     });
 
-    it('should handle search in mobile dialog and show results - lines 1003-1025', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          users: [{ id: '1', username: 'testuser', fullName: 'Test User' }],
-          recipes: [{ id: 'recipe-1', title: 'Test Recipe' }],
-        }),
-      });
 
-      renderWithProviders(<Navigation />);
-
-      const buttons = screen.getAllByRole('button');
-      const searchButton = buttons.find(btn =>
-        btn.querySelector('[data-testid="SearchIcon"]')
-      );
-
-      if (searchButton) {
-        fireEvent.click(searchButton);
-
-        await waitFor(() => {
-          const searchTitles = screen.queryAllByText('Search');
-          expect(searchTitles.length).toBeGreaterThan(0);
-        });
-
-        // Type in mobile search dialog
-        const searchInputs = screen.getAllByPlaceholderText(/search/i);
-        const mobileSearchInput = searchInputs[searchInputs.length - 1]; // Last one is in dialog
-        fireEvent.change(mobileSearchInput, { target: { value: 'test query' } });
-
-        // Wait for search results
-        await waitFor(() => {
-          expect(mockFetch).toHaveBeenCalledWith(
-            expect.stringContaining('/api/search?q=test%20query')
-          );
-        }, { timeout: 500 });
-
-        // Should show search results in dialog
-        await waitFor(() => {
-          const searchResults = screen.queryAllByTestId('search-results');
-          expect(searchResults.length).toBeGreaterThan(0);
-        }, { timeout: 500 });
-      }
-    });
+    // NOTE: Mobile search dialog test removed - Navigation now uses PersistentSearchBar which handles search internally
   });
 
   // Mobile drawer interaction tests - lines 845-899
