@@ -203,58 +203,39 @@ export default function PersistentSearchBar({
     return (
         <ClickAwayListener onClickAway={handleClickAway}>
             <Box sx={{ position: 'relative', width: '100%', maxWidth: 600 }}>
-                {/* Search Bar - Background/Content Separation Architecture */}
+                {/* SIMPLIFIED Search Bar - No layout magic, just CSS transitions */}
                 <Box
                     component="form"
                     onSubmit={handleSubmit}
                     sx={{
-                        position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
                         borderRadius: '24px',
+                        backgroundColor: isFocused ? focusedBackgroundColor : backgroundColor,
+                        border: `1px solid ${isFocused
+                            ? alpha(theme.palette.primary.main, 0.3)
+                            : 'transparent'}`,
                         px: 2.5,
                         py: 1,
+                        transition: 'all 0.2s ease', // CSS handles the container animation
+                        transform: isFocused ? 'scale(1.02)' : 'scale(1)',
+                        boxShadow: isFocused
+                            ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.15)}`
+                            : 'none',
                     }}
                 >
-                    {/* Animated Background - this morphs, content does NOT */}
-                    <motion.div
-                        layoutId="search-bar-bg"
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            borderRadius: '24px',
-                            backgroundColor: isFocused ? focusedBackgroundColor : backgroundColor,
-                            border: `1px solid ${isFocused
-                                ? alpha(theme.palette.primary.main, 0.3)
-                                : 'transparent'}`,
-                            zIndex: 0,
-                        }}
-                        animate={{
-                            scale: isFocused ? 1.02 : 1,
-                            boxShadow: isFocused
-                                ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.15)}`
-                                : '0 0 0 rgba(0,0,0,0)',
-                        }}
-                        transition={{ duration: 0.2 }}
-                    />
-
-                    {/* Content Cross-Fade: Disappear → Morph → Reappear */}
+                    {/* Content: Simple Fade Out/In on route change */}
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={pathname}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            transition={{
-                                duration: 0.15,
-                                delay: 0.2, // Wait for container morph
-                            }}
+                            transition={{ duration: 0.2 }}
                             style={{
-                                position: 'relative',
-                                zIndex: 1,
                                 display: 'flex',
                                 alignItems: 'center',
-                                width: '100%'
+                                width: '100%',
                             }}
                         >
                             <SearchIcon
