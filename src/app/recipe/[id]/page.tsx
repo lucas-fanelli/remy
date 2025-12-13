@@ -48,7 +48,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Recipe } from '@/domain/types/recipe';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMotionContext } from '@/contexts/MotionContext';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import CommentsSection from '@/components/recipe/CommentsSection';
 
@@ -59,7 +58,6 @@ export default function RecipeDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user, token } = useAuth();
-  const { sourceType, clearSource } = useMotionContext(); // Track animation source
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -81,22 +79,6 @@ export default function RecipeDetailPage() {
 
   const recipeId = params.id as string;
   const isOwner = user && recipe && user.id === recipe.userId;
-
-  // Clear motion source after animation completes (on component mount)
-  // This ensures that subsequent navigations start fresh
-  useEffect(() => {
-    // Give time for the entry animation to complete, then clear source
-    const timeout = setTimeout(() => {
-      clearSource();
-    }, 500); // After animation completes + buffer
-
-    return () => clearTimeout(timeout);
-  }, [clearSource]);
-
-  // Hero transition layout ID - must match RecipeCard's layoutId
-  const heroId = `recipe-hero-${recipeId}`;
-
-  // Determine if we should use shared element animation (from feed) or fade (from search/direct)
 
   const loadRecipe = useCallback(async () => {
     try {
@@ -429,40 +411,31 @@ export default function RecipeDetailPage() {
       <Toolbar />
 
       <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 } }}>
-        {/* Recipe Image - Hero Animation from Feed */}
-        <Box
-          sx={{ position: 'relative', cursor: 'pointer', '&:hover .zoom-icon': { opacity: 1 } }}
+        {/* Recipe Image */}
+        <MotionBox
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          sx={{
+            position: 'relative',
+            cursor: 'pointer',
+            '&:hover .zoom-icon': { opacity: 1 },
+            borderRadius: 2,
+            overflow: 'hidden',
+          }}
           onClick={() => handleImageClick(recipe.imageUrl, recipe.title)}
         >
-          {/* Conditional Hero Animation: layoutId when from feed, fade otherwise */}
-          <motion.div
-            layoutId={sourceType === 'feed' ? heroId : undefined}
-            initial={sourceType !== 'feed' ? { opacity: 0, y: 20 } : undefined}
-            animate={sourceType !== 'feed' ? { opacity: 1, y: 0 } : undefined}
-            transition={{
-              type: 'spring',
-              stiffness: 300,
-              damping: 30,
-              duration: 0.4,
+          <Box
+            component="img"
+            src={recipe.imageUrl}
+            alt={recipe.title}
+            sx={{
+              width: '100%',
+              maxHeight: { xs: '300px', sm: '400px', md: '500px' },
+              objectFit: 'cover',
+              display: 'block',
             }}
-            style={{
-              borderRadius: 8,
-              overflow: 'hidden',
-              zIndex: sourceType === 'feed' ? 50 : undefined, // Float above content during animation
-            }}
-          >
-            <Box
-              component="img"
-              src={recipe.imageUrl}
-              alt={recipe.title}
-              sx={{
-                width: '100%',
-                maxHeight: { xs: '300px', sm: '400px', md: '500px' },
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-          </motion.div>
+          />
           <Box
             className="zoom-icon"
             sx={{
@@ -483,7 +456,7 @@ export default function RecipeDetailPage() {
           >
             <ZoomIn />
           </Box>
-        </Box>
+        </MotionBox>
 
         {/* Recipe Header */}
         <MotionBox

@@ -34,7 +34,6 @@ import {
 import { motion } from 'framer-motion';
 import { Recipe } from '@/domain/types/recipe';
 import { useRouter } from 'next/navigation';
-import { useMotionContext } from '@/contexts/MotionContext';
 
 const MotionCard = motion.create(Card);
 
@@ -66,7 +65,6 @@ export default function RecipeCard({
   currentUserId,
 }: RecipeCardProps) {
   const router = useRouter();
-  const { setSource } = useMotionContext(); // For hero transition
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
@@ -76,14 +74,8 @@ export default function RecipeCard({
 
   const isOwner = currentUserId && currentUserId === recipe.userId;
 
-  // Hero transition layout ID for shared element animation
-  const heroId = `recipe-hero-${recipe.id}`;
-
-  // Handle card click with motion context
+  // Simple click handler - just navigate
   const handleCardClick = () => {
-    // Set source to 'feed' with layoutId for hero animation
-    setSource('feed', recipe.id, heroId);
-    // Call original onClick if provided, otherwise navigate
     if (onClick) {
       onClick();
     } else {
@@ -140,30 +132,17 @@ export default function RecipeCard({
         },
       }}
     >
-      {/* Recipe Image - TOP CONTAINER with Hero Animation */}
+      {/* Recipe Image */}
       <Box sx={{ position: 'relative' }} onClick={handleCardClick}>
-        <motion.div
-          layoutId={heroId}
-          style={{
-            borderRadius: 0,
-            overflow: 'hidden',
+        <CardMedia
+          component="img"
+          sx={{
+            height: { xs: 180, sm: 200, md: 240 },
+            objectFit: 'cover'
           }}
-          transition={{
-            type: 'spring',
-            stiffness: 300,
-            damping: 30,
-          }}
-        >
-          <CardMedia
-            component="img"
-            sx={{
-              height: { xs: 180, sm: 200, md: 240 },
-              objectFit: 'cover'
-            }}
-            image={recipe.imageUrl}
-            alt={recipe.title}
-          />
-        </motion.div>
+          image={recipe.imageUrl}
+          alt={recipe.title}
+        />
 
         {/* Difficulty Badge - Always shown in top-right */}
         <Box sx={{ position: 'absolute', top: { xs: 8, md: 12 }, right: { xs: 8, md: 12 } }}>
