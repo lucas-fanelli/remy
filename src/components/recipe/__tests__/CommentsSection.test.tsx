@@ -1530,4 +1530,119 @@ describe('CommentsSection Component', () => {
       });
     });
   });
+
+  // ==================== IMAGE HANDLING TESTS ====================
+  describe('Image Handling - Lines 111-134, 179-206', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: { id: 'user1', username: 'testuser' },
+      });
+    });
+
+    it('should reject invalid file type (line 184-186)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/share your thoughts/i)).toBeInTheDocument();
+      });
+
+      // Try to upload invalid file type
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        const invalidFile = new File(['content'], 'test.pdf', { type: 'application/pdf' });
+        fireEvent.change(fileInput, { target: { files: [invalidFile] } });
+
+        await waitFor(() => {
+          expect(screen.getByText(/invalid file type/i)).toBeInTheDocument();
+        });
+      }
+    });
+
+    it('should reject file that is too large (line 190-192)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/share your thoughts/i)).toBeInTheDocument();
+      });
+
+      // Create 6MB file (exceeds 5MB limit)
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        const largeContent = new Array(6 * 1024 * 1024).fill('a').join('');
+        const largeFile = new File([largeContent], 'large.jpg', { type: 'image/jpeg' });
+        fireEvent.change(fileInput, { target: { files: [largeFile] } });
+
+        await waitFor(() => {
+          expect(screen.getByText(/image too large/i)).toBeInTheDocument();
+        });
+      }
+    });
+
+    it('should accept valid image file (lines 195-199)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/share your thoughts/i)).toBeInTheDocument();
+      });
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        const validFile = new File(['image content'], 'photo.jpg', { type: 'image/jpeg' });
+        fireEvent.change(fileInput, { target: { files: [validFile] } });
+
+        // Should not show error
+        await waitFor(() => {
+          expect(screen.queryByText(/invalid file type/i)).not.toBeInTheDocument();
+          expect(screen.queryByText(/image too large/i)).not.toBeInTheDocument();
+        });
+      }
+    });
+
+    it('should handle image upload failure (lines 121-132)', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
+        .mockResolvedValueOnce({ ok: false, status: 500 }); // Upload fails
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/share your thoughts/i)).toBeInTheDocument();
+      });
+
+      // Select an image
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        const validFile = new File(['image'], 'photo.jpg', { type: 'image/jpeg' });
+        fireEvent.change(fileInput, { target: { files: [validFile] } });
+      }
+
+      // Type a comment
+      const textarea = screen.getByPlaceholderText(/share your thoughts/i);
+      fireEvent.change(textarea, { target: { value: 'Test comment with image' } });
+
+      // Submit by clicking the Post button
+      const postButton = screen.getByRole('button', { name: /post/i });
+      fireEvent.click(postButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/failed to upload image/i)).toBeInTheDocument();
+      });
+    });
+  });
 });
