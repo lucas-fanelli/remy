@@ -6,8 +6,8 @@ import EditRecipeModal from '../EditRecipeModal';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Recipe } from '@/domain/types/recipe';
 
-// Speed up waitFor operations
-configure({ asyncUtilTimeout: 100 });
+// Speed up waitFor - aggressive timeout
+configure({ asyncUtilTimeout: 50 });
 
 // Mock framer-motion - comprehensive mock supporting all patterns
 jest.mock('framer-motion', () => {

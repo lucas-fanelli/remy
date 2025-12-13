@@ -4,8 +4,8 @@ import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CreateRecipeForm from '../CreateRecipeForm';
 
-// Speed up waitFor operations
-configure({ asyncUtilTimeout: 100 });
+// Speed up waitFor operations - aggressive timeout for faster tests
+configure({ asyncUtilTimeout: 50 });
 
 // Mock MUI useMediaQuery for consistent, fast rendering
 jest.mock('@mui/material/useMediaQuery', () => jest.fn(() => false));

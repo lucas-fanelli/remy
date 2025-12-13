@@ -6,8 +6,8 @@ import Navigation from '../Navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider } from '@/contexts/ThemeContext';
 
-// Speed up waitFor operations
-configure({ asyncUtilTimeout: 100 });
+// Speed up waitFor - aggressive timeout
+configure({ asyncUtilTimeout: 50 });
 
 // Mock useAuth hook
 const mockUseAuth = jest.fn();

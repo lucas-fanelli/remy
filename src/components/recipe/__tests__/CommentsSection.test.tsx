@@ -4,8 +4,8 @@ import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CommentsSection from '../CommentsSection';
 
-// Speed up waitFor operations
-configure({ asyncUtilTimeout: 100 });
+// Speed up waitFor - aggressive timeout
+configure({ asyncUtilTimeout: 50 });
 
 // Mock AuthContext
 const mockUseAuth = jest.fn();

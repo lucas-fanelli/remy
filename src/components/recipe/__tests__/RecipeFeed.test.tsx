@@ -5,7 +5,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import RecipeFeed from '../RecipeFeed';
 import { AuthProvider } from '@/contexts/AuthContext';
 
-// Speed up waitFor operations (500ms instead of default 1000ms)
+// Speed up waitFor - needs longer timeout for multiple sequential async operations
 configure({ asyncUtilTimeout: 250 });
 
 // Mock framer-motion - comprehensive mock supporting all patterns
