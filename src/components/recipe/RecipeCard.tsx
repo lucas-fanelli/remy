@@ -2,8 +2,6 @@
 import React from 'react';
 import {
   Card,
-  CardHeader,
-  CardMedia,
   CardContent,
   CardActions,
   Typography,
@@ -16,8 +14,6 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  useTheme,
-  useMediaQuery,
   Rating,
 } from '@mui/material';
 import {
@@ -25,7 +21,6 @@ import {
   FavoriteBorder,
   ChatBubbleOutline,
   AccessTime,
-  Restaurant,
   Person,
   Edit,
   Delete,
@@ -47,8 +42,8 @@ interface RecipeCardProps {
   liked?: boolean;
   likeCount?: number;
   commentCount?: number;
-  showActions?: boolean; // Show edit/delete buttons only for owner
-  currentUserId?: string; // To check ownership
+  showActions?: boolean;
+  currentUserId?: string;
 }
 
 export default function RecipeCard({
@@ -65,16 +60,11 @@ export default function RecipeCard({
   currentUserId,
 }: RecipeCardProps) {
   const router = useRouter();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
   const totalTime = recipe.prepTime + recipe.cookingTime;
-
   const isOwner = currentUserId && currentUserId === recipe.userId;
 
-  // Simple click handler - just navigate
   const handleCardClick = () => {
     if (onClick) {
       onClick();
@@ -104,7 +94,7 @@ export default function RecipeCard({
     onDelete?.();
   };
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyColor = (difficulty: string): 'success' | 'warning' | 'error' | 'default' => {
     switch (difficulty) {
       case 'easy':
         return 'success';
@@ -119,218 +109,203 @@ export default function RecipeCard({
 
   return (
     <MotionCard
+      whileHover={{ y: -4 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       sx={{
-        backgroundColor: (theme) => theme.palette.background.paper,
-        cursor: onClick ? 'pointer' : 'default',
+        backgroundColor: 'background.paper',
+        borderRadius: 3,
+        overflow: 'hidden',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'all 0.2s',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        cursor: 'pointer',
         '&:hover': {
-          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-          transform: 'translateY(-4px)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
         },
       }}
     >
-      {/* Recipe Image */}
-      <Box sx={{ position: 'relative' }} onClick={handleCardClick}>
-        <CardMedia
+      {/* Hero Image Container */}
+      <Box
+        sx={{ position: 'relative', overflow: 'hidden' }}
+        onClick={handleCardClick}
+      >
+        <Box
           component="img"
-          sx={{
-            height: { xs: 180, sm: 200, md: 240 },
-            objectFit: 'cover'
-          }}
-          image={recipe.imageUrl}
+          src={recipe.imageUrl}
           alt={recipe.title}
+          sx={{
+            width: '100%',
+            aspectRatio: '4/3',
+            objectFit: 'cover',
+            display: 'block',
+          }}
         />
 
-        {/* Difficulty Badge - Always shown in top-right */}
-        <Box sx={{ position: 'absolute', top: { xs: 8, md: 12 }, right: { xs: 8, md: 12 } }}>
-          <Chip
-            label={recipe.difficulty}
-            size={isMobile ? 'small' : 'medium'}
-            color={getDifficultyColor(recipe.difficulty) as any}
-            sx={{
-              fontWeight: 600,
-              textTransform: 'capitalize',
-              backdropFilter: 'blur(10px)',
-              fontSize: { xs: '0.75rem', md: '0.8125rem' },
-              color: 'white',
-              '& .MuiChip-label': {
-                color: 'white',
-              },
-            }}
-          />
-        </Box>
+        {/* Difficulty Badge - Top Right */}
+        <Chip
+          label={recipe.difficulty}
+          size="small"
+          color={getDifficultyColor(recipe.difficulty)}
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            fontWeight: 600,
+            textTransform: 'capitalize',
+            fontSize: '0.75rem',
+            height: 28,
+            borderRadius: 14,
+            color: 'white',
+            '& .MuiChip-label': { px: 1.5 },
+          }}
+        />
 
-        {/* Time Badge */}
-        <Box sx={{ position: 'absolute', bottom: { xs: 8, md: 12 }, left: { xs: 8, md: 12 } }}>
-          <Chip
-            icon={<AccessTime sx={{ fontSize: { xs: 14, md: 16 } }} />}
-            label={`${totalTime} min`}
-            size={isMobile ? 'small' : 'medium'}
-            sx={{
-              backdropFilter: 'blur(10px)',
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? 'rgba(255,255,255,0.9)'
-                  : 'rgba(0,0,0,0.7)',
-              color: (theme) =>
-                theme.palette.mode === 'dark' ? 'black' : 'white',
-              '& .MuiChip-icon': {
-                color: (theme) =>
-                  theme.palette.mode === 'dark' ? 'black' : 'white',
-              },
-              fontSize: { xs: '0.75rem', md: '0.8125rem' }
-            }}
-          />
-        </Box>
+        {/* Time Badge - Bottom Left */}
+        <Chip
+          icon={<AccessTime sx={{ fontSize: 16, color: 'white !important' }} />}
+          label={`${totalTime} min`}
+          size="small"
+          sx={{
+            position: 'absolute',
+            bottom: 12,
+            left: 12,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            fontWeight: 500,
+            fontSize: '0.8125rem',
+            height: 28,
+            borderRadius: 14,
+            '& .MuiChip-icon': { color: 'white' },
+            '& .MuiChip-label': { pr: 1.5 },
+          }}
+        />
       </Box>
 
-      {/* Header - BELOW IMAGE with Author Info and Edit/Delete Menu */}
-      {recipe.author && (
-        <CardHeader
-          avatar={
-            <Avatar
-              src={recipe.author.avatar}
-              alt={recipe.author.username}
-              sx={{
-                width: { xs: 32, md: 36 },
-                height: { xs: 32, md: 36 },
-                cursor: 'pointer'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/profile/${recipe.author?.username}`);
-              }}
-            >
-              {recipe.author.username.charAt(0).toUpperCase()}
-            </Avatar>
-          }
-          action={
-            showActions && isOwner ? (
-              <Tooltip title="More options">
-                <IconButton
-                  onClick={handleMenuOpen}
-                  size={isMobile ? 'small' : 'medium'}
-                  aria-label="recipe options"
-                >
-                  <MoreVert />
-                </IconButton>
-              </Tooltip>
-            ) : null
-          }
-          title={
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 600,
-                color: 'text.primary',
-                fontSize: { xs: '0.8125rem', md: '0.875rem' },
-                cursor: 'pointer'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/profile/${recipe.author?.username}`);
-              }}
-            >
-              {recipe.author.fullName || recipe.author.username}
-            </Typography>
-          }
+      {/* Author Row */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          px: 2,
+          pt: 2,
+          pb: 1,
+        }}
+      >
+        <Avatar
+          src={recipe.author?.avatar}
+          alt={recipe.author?.username}
           sx={{
-            pb: 1,
-            pt: 1.5,
-            '& .MuiCardHeader-action': {
-              alignSelf: 'center',
-              marginTop: 0,
-              marginRight: 0,
-            }
+            width: 36,
+            height: 36,
+            cursor: 'pointer',
+            mr: 1.5,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/profile/${recipe.author?.username}`);
+          }}
+        >
+          {recipe.author?.username?.charAt(0).toUpperCase()}
+        </Avatar>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 500,
+            color: 'text.primary',
+            flex: 1,
+            cursor: 'pointer',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/profile/${recipe.author?.username}`);
+          }}
+        >
+          {recipe.author?.fullName || recipe.author?.username}
+        </Typography>
+        {showActions && isOwner && (
+          <IconButton
+            onClick={handleMenuOpen}
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
+            <MoreVert fontSize="small" />
+          </IconButton>
+        )}
+      </Box>
+
+      {/* Content */}
+      <CardContent sx={{ flex: 1, px: 2, pt: 0, pb: 1 }}>
+        {/* Title */}
+        <Typography
+          variant="h6"
+          component="h2"
+          sx={{
+            fontWeight: 600,
+            fontSize: '1.125rem',
+            lineHeight: 1.3,
+            mb: 0.5,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+          onClick={handleCardClick}
+        >
+          {recipe.title}
+        </Typography>
+
+        {/* Rating */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+          <Rating
+            value={recipe.averageRating || 0}
+            precision={0.5}
+            size="small"
+            readOnly
+            sx={{ color: '#FFB400' }}
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+            ({recipe.totalRatings || 0})
+          </Typography>
+        </Box>
+
+        {/* Description */}
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            mb: 1.5,
+            fontSize: '0.875rem',
+            lineHeight: 1.5,
+          }}
+        >
+          {recipe.description}
+        </Typography>
+
+        {/* Servings Chip */}
+        <Chip
+          icon={<Person sx={{ fontSize: 16 }} />}
+          label={`${recipe.servings} servings`}
+          size="small"
+          variant="outlined"
+          sx={{
+            fontSize: '0.8125rem',
+            fontWeight: 500,
+            borderColor: 'divider',
+            '& .MuiChip-label': { pr: 1.5 },
           }}
         />
-      )}
-
-      {/* Content Body - Recipe Details */}
-      <CardContent sx={{ flexGrow: 1, pb: { xs: 0.5, md: 1 }, px: { xs: 1.5, md: 2 }, pt: { xs: 1, md: 1.5 } }}>
-        <Box onClick={onClick}>
-
-          <Typography
-            variant="h6"
-            component="h2"
-            gutterBottom
-            sx={{
-              fontWeight: 600,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              mb: { xs: 0.5, md: 0.75 },
-              fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' }
-            }}
-          >
-            {recipe.title}
-          </Typography>
-
-          {/* Rating Display */}
-          {(recipe.averageRating !== undefined && recipe.averageRating > 0) ? (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: { xs: 0.75, md: 1 } }}>
-              <Rating
-                value={recipe.averageRating}
-                precision={0.1}
-                size="small"
-                readOnly
-              />
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-              >
-                ({recipe.totalRatings || 0})
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ mb: { xs: 0.75, md: 1 } }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' }, fontStyle: 'italic' }}
-              >
-                No ratings yet
-              </Typography>
-            </Box>
-          )}
-
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              mb: { xs: 1, md: 2 },
-              fontSize: { xs: '0.8125rem', md: '0.875rem' }
-            }}
-          >
-            {recipe.description}
-          </Typography>
-
-          <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 0.5, md: 1 } }}>
-            <Chip
-              icon={<Person sx={{ fontSize: { xs: 14, md: 16 } }} />}
-              label={`${recipe.servings} servings`}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
-            />
-          </Box>
-        </Box>
       </CardContent>
 
       {/* Actions */}
-      <CardActions sx={{ px: { xs: 1.5, md: 2 }, pb: { xs: 1.5, md: 2 }, pt: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 } }}>
+      <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Tooltip title={liked ? 'Unlike' : 'Like'}>
             <IconButton
               onClick={(e) => {
@@ -339,24 +314,21 @@ export default function RecipeCard({
               }}
               size="small"
               color={liked ? 'error' : 'default'}
+              sx={{ p: 0.5 }}
             >
               {liked ? (
-                <Favorite sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                <Favorite sx={{ fontSize: 22 }} />
               ) : (
-                <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                <FavoriteBorder sx={{ fontSize: 22 }} />
               )}
             </IconButton>
           </Tooltip>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
-          >
+          <Typography variant="body2" color="text.secondary" sx={{ minWidth: 16 }}>
             {likeCount}
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 }, ml: { xs: 1.5, md: 2 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 2 }}>
           <Tooltip title="Comments">
             <IconButton
               onClick={(e) => {
@@ -364,15 +336,12 @@ export default function RecipeCard({
                 onComment?.();
               }}
               size="small"
+              sx={{ p: 0.5 }}
             >
-              <ChatBubbleOutline sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+              <ChatBubbleOutline sx={{ fontSize: 22 }} />
             </IconButton>
           </Tooltip>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
-          >
+          <Typography variant="body2" color="text.secondary" sx={{ minWidth: 16 }}>
             {commentCount}
           </Typography>
         </Box>
