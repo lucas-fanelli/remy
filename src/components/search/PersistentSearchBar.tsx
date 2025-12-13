@@ -25,6 +25,7 @@ import {
     Clear as ClearIcon,
 } from '@mui/icons-material';
 import { motion, AnimatePresence, MotionProps } from 'framer-motion';
+import { useMotionContext } from '@/contexts/MotionContext';
 
 // Strict Type: Paper + Motion + Polymorphic 'component' prop + form attributes
 type MotionPaperProps = PaperProps & MotionProps & {
@@ -86,6 +87,7 @@ export default function PersistentSearchBar({
     const theme = useTheme();
     const router = useRouter();
     const pathname = usePathname(); // Used to force snap re-render on route change
+    const { setSource } = useMotionContext(); // Track navigation source for animations
     const inputRef = useRef<HTMLInputElement>(null);
 
     const [query, setQuery] = useState(initialValue);
@@ -427,6 +429,7 @@ export default function PersistentSearchBar({
                                                             <ListItemButton
                                                                 onClick={() => {
                                                                     setShowDropdown(false);
+                                                                    setSource('search', recipe.id); // Set source for fade animation
                                                                     router.push(`/recipe/${recipe.id}`);
                                                                 }}
                                                                 sx={{ py: 1.25, px: 2 }}

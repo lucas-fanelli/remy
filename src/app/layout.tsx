@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { MotionProvider } from '@/contexts/MotionContext';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { PwaProvider } from '@/contexts/PwaContext';
@@ -191,10 +192,12 @@ export default function RootLayout({
             <ToastProvider>
               <AuthProvider>
                 <PwaProvider>
-                  <LayoutWrapper>
-                    {children}
-                  </LayoutWrapper>
-                  <InstallPrompt />
+                  <MotionProvider>
+                    <LayoutWrapper>
+                      {children}
+                    </LayoutWrapper>
+                    <InstallPrompt />
+                  </MotionProvider>
                 </PwaProvider>
               </AuthProvider>
             </ToastProvider>

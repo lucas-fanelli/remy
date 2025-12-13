@@ -48,6 +48,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Recipe } from '@/domain/types/recipe';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMotionContext } from '@/contexts/MotionContext';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import CommentsSection from '@/components/recipe/CommentsSection';
 
@@ -58,6 +59,7 @@ export default function RecipeDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { user, token } = useAuth();
+  const { sourceType, clearSource } = useMotionContext(); // Track animation source
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -79,6 +81,21 @@ export default function RecipeDetailPage() {
 
   const recipeId = params.id as string;
   const isOwner = user && recipe && user.id === recipe.userId;
+
+  // Clear motion source after animation completes (on component mount)
+  // This ensures that subsequent navigations start fresh
+  useEffect(() => {
+    // Give time for the entry animation to complete, then clear source
+    const timeout = setTimeout(() => {
+      clearSource();
+    }, 400); // After 300ms animation + small buffer
+
+    return () => clearTimeout(timeout);
+  }, [clearSource]);
+
+  // Log which animation mode was used (for debugging, can be removed later)
+  // Phase 3 TODO: If sourceType === 'feed', use shared layout animation instead of fade
+  // Currently all navigation uses the default fade/slide from template.tsx
 
   const loadRecipe = useCallback(async () => {
     try {
