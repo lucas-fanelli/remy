@@ -92,33 +92,64 @@ export default function PersistentSearchBar({
     const [isFocused, setIsFocused] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
 
-    // Mock recipe suggestions for autocomplete when no API results
-    const mockRecipeSuggestions = [
-        { id: 'mock-1', title: 'Remy\'s Classic Ratatouille' },
-        { id: 'mock-2', title: 'Creamy Carbonara Pasta' },
-        { id: 'mock-3', title: 'Chicken Parmesan' },
-        { id: 'mock-4', title: 'Chocolate Lava Cake' },
-        { id: 'mock-5', title: 'Caesar Salad' },
-        { id: 'mock-6', title: 'Beef Stroganoff' },
-        { id: 'mock-7', title: 'Mushroom Risotto' },
-        { id: 'mock-8', title: 'Thai Green Curry' },
-        { id: 'mock-9', title: 'French Onion Soup' },
-        { id: 'mock-10', title: 'Lemon Garlic Salmon' },
-    ];
+    // Live search state
+    const [liveResults, setLiveResults] = useState<SearchResults>({ users: [], recipes: [] });
+    const [isSearching, setIsSearching] = useState(false);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Check if user has typed something
     const hasQuery = query.trim().length > 0;
 
-    // Filter mock suggestions based on query
-    const filteredSuggestions = hasQuery
-        ? mockRecipeSuggestions
-            .filter(recipe => recipe.title.toLowerCase().includes(query.toLowerCase()))
-            .slice(0, 3)
-        : [];
+    // Debounced search effect
+    useEffect(() => {
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
 
-    // Track if we have live results from API OR filtered mock suggestions
-    const hasLiveResults = results && (results.users.length > 0 || results.recipes.length > 0);
-    const hasMockResults = filteredSuggestions.length > 0 && !hasLiveResults;
+        // Don't search if query is too short
+        if (query.trim().length < 2) {
+            setLiveResults({ users: [], recipes: [] });
+            setIsSearching(false);
+            return;
+        }
+
+        // Set loading state
+        setIsSearching(true);
+
+        // Debounce: wait 300ms after user stops typing
+        searchTimeoutRef.current = setTimeout(async () => {
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setLiveResults({
+                        users: data.users || [],
+                        recipes: data.recipes || [],
+                    });
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                setLiveResults({ users: [], recipes: [] });
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+
+        // Cleanup on unmount
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, [query]);
+
+    // Combine props results with live results (props take priority)
+    const effectiveResults = results || liveResults;
+    const effectiveLoading = loading || isSearching;
+
+    // Track if we have live results from API
+    const hasLiveResults = effectiveResults.users.length > 0 || effectiveResults.recipes.length > 0;
 
     // Handle focus
     const handleFocus = useCallback(() => {
@@ -374,50 +405,8 @@ export default function PersistentSearchBar({
                                     </List>
                                 )}
 
-                                {/* Mock Recipe Predictions (when no API results) */}
-                                {hasMockResults && (
-                                    <>
-                                        <Divider sx={{ mx: 2, my: 0.5 }} />
-                                        <List dense disablePadding>
-                                            {filteredSuggestions.map((recipe) => (
-                                                <ListItem key={recipe.id} disablePadding>
-                                                    <ListItemButton
-                                                        onClick={() => {
-                                                            setShowDropdown(false);
-                                                            router.push(`/recipe/${recipe.id}`);
-                                                        }}
-                                                        sx={{ py: 1, px: 2 }}
-                                                    >
-                                                        <ListItemIcon sx={{ minWidth: 36 }}>
-                                                            <Box
-                                                                component="span"
-                                                                sx={{
-                                                                    width: 24,
-                                                                    height: 24,
-                                                                    borderRadius: '4px',
-                                                                    backgroundColor: alpha(theme.palette.warning.main, 0.2),
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    fontSize: 12,
-                                                                }}
-                                                            >
-                                                                🍳
-                                                            </Box>
-                                                        </ListItemIcon>
-                                                        <ListItemText
-                                                            primary={recipe.title}
-                                                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                                                        />
-                                                    </ListItemButton>
-                                                </ListItem>
-                                            ))}
-                                        </List>
-                                    </>
-                                )}
-
                                 {/* Loading indicator */}
-                                {loading && hasQuery && (
+                                {effectiveLoading && hasQuery && (
                                     <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <CircularProgress size={16} />
                                         <Typography variant="caption" color="text.secondary">
@@ -427,13 +416,13 @@ export default function PersistentSearchBar({
                                 )}
 
                                 {/* Live Results: Top 3 Recipes */}
-                                {hasLiveResults && results && (
+                                {hasLiveResults && (
                                     <>
-                                        {results.recipes.length > 0 && (
+                                        {effectiveResults.recipes.length > 0 && (
                                             <>
                                                 <Divider sx={{ mx: 2, my: 0.5 }} />
                                                 <List dense disablePadding>
-                                                    {results.recipes.slice(0, 3).map((recipe) => (
+                                                    {effectiveResults.recipes.slice(0, 3).map((recipe) => (
                                                         <ListItem key={`recipe-${recipe.id}`} disablePadding>
                                                             <ListItemButton
                                                                 onClick={() => {
@@ -473,11 +462,11 @@ export default function PersistentSearchBar({
                                         )}
 
                                         {/* Live Results: Users */}
-                                        {results.users.length > 0 && (
+                                        {effectiveResults.users.length > 0 && (
                                             <>
                                                 <Divider sx={{ mx: 2, my: 0.5 }} />
                                                 <List dense disablePadding>
-                                                    {results.users.slice(0, 2).map((user) => (
+                                                    {effectiveResults.users.slice(0, 2).map((user) => (
                                                         <ListItem key={`user-${user.id}`} disablePadding>
                                                             <ListItemButton
                                                                 onClick={() => {
@@ -522,8 +511,17 @@ export default function PersistentSearchBar({
                                     </>
                                 )}
 
+                                {/* No results found */}
+                                {hasQuery && !effectiveLoading && !hasLiveResults && (
+                                    <Box sx={{ px: 2, py: 2, textAlign: 'center' }}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            No matching recipes found
+                                        </Typography>
+                                    </Box>
+                                )}
+
                                 {/* Show suggestions when no query */}
-                                {!hasQuery && !loading && (
+                                {!hasQuery && !effectiveLoading && (
                                     <>
                                         {/* Recent Searches */}
                                         {recentSearches.length > 0 && (
