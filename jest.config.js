@@ -9,7 +9,9 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
-  maxWorkers: '50%', // Use 50% of available CPU cores
+  maxWorkers: '50%', // Use 50% of available CPU cores (optimal balance)
+  cache: true, // Cache transformed modules for faster subsequent runs
+  workerIdleMemoryLimit: '512MB', // Restart workers if they use too much memory
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
