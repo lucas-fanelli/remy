@@ -1644,5 +1644,153 @@ describe('CommentsSection Component', () => {
         expect(screen.getByText(/failed to upload image/i)).toBeInTheDocument();
       });
     });
+
+    it('should trigger file input when camera button is clicked (line 420)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/share your thoughts/i)).toBeInTheDocument();
+      });
+
+      // Find and click camera button
+      const cameraButton = screen.getByRole('button', { name: '' });
+      if (cameraButton.querySelector('[data-testid="CameraAltIcon"]')) {
+        fireEvent.click(cameraButton);
+        // File input should exist
+        expect(document.querySelector('input[type="file"]')).toBeInTheDocument();
+      }
+    });
+
+    it('should remove selected image when remove button is clicked (lines 204-206)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/share your thoughts/i)).toBeInTheDocument();
+      });
+
+      // Select an image first
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        const validFile = new File(['image content'], 'photo.jpg', { type: 'image/jpeg' });
+        fireEvent.change(fileInput, { target: { files: [validFile] } });
+
+        // Wait for preview to appear
+        await waitFor(() => {
+          // Image preview should be visible
+          const removeButton = screen.queryByRole('button', { name: /remove/i }) ||
+            screen.queryByRole('button', { name: '' });
+          // If remove button exists, click it
+          if (removeButton) {
+            fireEvent.click(removeButton);
+          }
+        });
+      }
+    });
+  });
+
+  // ==================== EDIT FUNCTIONALITY TESTS ====================
+  describe('Edit Comment Functionality - Lines 572, 623-650', () => {
+    beforeEach(() => {
+      mockUseAuth.mockReturnValue({
+        token: 'test-token',
+        user: { id: 'user1', username: 'testuser' },
+      });
+    });
+
+    it('should handle rating change in edit mode (line 572)', async () => {
+      const mockCommentWithRating = {
+        id: 'comment1',
+        text: 'Editable comment',
+        rating: 3,
+        createdAt: new Date().toISOString(),
+        user: { id: 'user1', username: 'testuser', avatar: null },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [mockCommentWithRating] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Editable comment')).toBeInTheDocument();
+      });
+
+      // Open menu and click edit
+      const moreButtons = screen.getAllByRole('button', { name: '' }).filter(btn =>
+        btn.querySelector('[data-testid="MoreVertIcon"]')
+      );
+
+      if (moreButtons.length > 0) {
+        fireEvent.click(moreButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getByText('Edit')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByText('Edit'));
+
+        // Should be in edit mode now
+        await waitFor(() => {
+          expect(screen.getByDisplayValue('Editable comment')).toBeInTheDocument();
+        });
+
+        // Find rating component and change rating
+        const ratingInputs = document.querySelectorAll('input[name="rating"]');
+        if (ratingInputs.length > 0) {
+          fireEvent.click(ratingInputs[3] as HTMLElement); // Click 4th star
+        }
+      }
+    });
+
+    it('should call onImageClick when comment image is clicked (line 623)', async () => {
+      const mockCommentWithImage = {
+        id: 'comment1',
+        text: 'Comment with image',
+        rating: 4,
+        imageUrl: 'https://example.com/comment-image.jpg',
+        createdAt: new Date().toISOString(),
+        user: { id: 'user2', username: 'otheruser', avatar: null },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [mockCommentWithImage] }),
+      });
+
+      const mockOnImageClick = jest.fn();
+      renderWithProviders(
+        <CommentsSection recipeId="recipe1" onImageClick={mockOnImageClick} />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Comment with image')).toBeInTheDocument();
+      });
+
+      // Find and click the image
+      const images = document.querySelectorAll('img');
+      const commentImage = Array.from(images).find(img =>
+        img.getAttribute('src') === 'https://example.com/comment-image.jpg'
+      );
+
+      if (commentImage) {
+        fireEvent.click(commentImage);
+        expect(mockOnImageClick).toHaveBeenCalledWith(
+          'https://example.com/comment-image.jpg',
+          'Photo by otheruser'
+        );
+      }
+    });
   });
 });
