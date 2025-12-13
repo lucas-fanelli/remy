@@ -105,7 +105,11 @@ export default function Template({ children }: TemplateProps) {
                         // Hint browser for smooth animation
                         willChange: 'transform, opacity',
                         transformOrigin: 'center center',
+                        // DEBUG: Red border to verify page transition wrapper renders
+                        border: '5px solid red',
+                        boxShadow: '0 0 50px red',
                     }}
+                    className="page-transition-wrapper"
                 >
                     {children}
                 </motion.div>
