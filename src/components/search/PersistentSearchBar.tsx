@@ -456,13 +456,100 @@ export default function PersistentSearchBar({
                                     </>
                                 )}
 
-                                {/* Show empty state when no query and no live results */}
-                                {!hasQuery && !hasLiveResults && (
-                                    <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Start typing to search recipes...
-                                        </Typography>
-                                    </Box>
+                                {/* Show suggestions when no query */}
+                                {!hasQuery && !loading && (
+                                    <>
+                                        {/* Recent Searches */}
+                                        {recentSearches.length > 0 && (
+                                            <>
+                                                <Box sx={{ px: 2, py: 1 }}>
+                                                    <Typography
+                                                        variant="caption"
+                                                        color="text.secondary"
+                                                        sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}
+                                                    >
+                                                        Recent Searches
+                                                    </Typography>
+                                                </Box>
+                                                <List dense disablePadding>
+                                                    {recentSearches.slice(0, 3).map((search, index) => (
+                                                        <ListItem key={`recent-${index}`} disablePadding>
+                                                            <ListItemButton
+                                                                onClick={() => handleSuggestionClick(search)}
+                                                                sx={{ py: 1, px: 2 }}
+                                                            >
+                                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                                    <Box
+                                                                        component="span"
+                                                                        sx={{
+                                                                            width: 24,
+                                                                            height: 24,
+                                                                            borderRadius: '50%',
+                                                                            backgroundColor: alpha(theme.palette.grey[500], 0.15),
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            fontSize: 12,
+                                                                        }}
+                                                                    >
+                                                                        🕒
+                                                                    </Box>
+                                                                </ListItemIcon>
+                                                                <ListItemText
+                                                                    primary={search}
+                                                                    primaryTypographyProps={{ fontSize: '0.9rem' }}
+                                                                />
+                                                            </ListItemButton>
+                                                        </ListItem>
+                                                    ))}
+                                                </List>
+                                                <Divider sx={{ mx: 2, my: 0.5 }} />
+                                            </>
+                                        )}
+
+                                        {/* Trending Suggestions */}
+                                        <Box sx={{ px: 2, py: 1 }}>
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}
+                                            >
+                                                Trending
+                                            </Typography>
+                                        </Box>
+                                        <List dense disablePadding>
+                                            {['Pasta Carbonara', 'Chicken Stir Fry', 'Chocolate Cake', 'Caesar Salad'].map((suggestion, index) => (
+                                                <ListItem key={`trending-${index}`} disablePadding>
+                                                    <ListItemButton
+                                                        onClick={() => handleSuggestionClick(suggestion)}
+                                                        sx={{ py: 1, px: 2 }}
+                                                    >
+                                                        <ListItemIcon sx={{ minWidth: 36 }}>
+                                                            <Box
+                                                                component="span"
+                                                                sx={{
+                                                                    width: 24,
+                                                                    height: 24,
+                                                                    borderRadius: '50%',
+                                                                    backgroundColor: alpha(theme.palette.primary.main, 0.15),
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    fontSize: 12,
+                                                                }}
+                                                            >
+                                                                🔥
+                                                            </Box>
+                                                        </ListItemIcon>
+                                                        <ListItemText
+                                                            primary={suggestion}
+                                                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                                                        />
+                                                    </ListItemButton>
+                                                </ListItem>
+                                            ))}
+                                        </List>
+                                    </>
                                 )}
                             </Paper>
                         </MotionBox>
