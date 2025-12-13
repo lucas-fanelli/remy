@@ -507,48 +507,14 @@ export default function PersistentSearchBar({
                                             </>
                                         )}
 
-                                        {/* Trending Suggestions */}
-                                        <Box sx={{ px: 2, py: 1 }}>
-                                            <Typography
-                                                variant="caption"
-                                                color="text.secondary"
-                                                sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}
-                                            >
-                                                Trending
-                                            </Typography>
-                                        </Box>
-                                        <List dense disablePadding>
-                                            {['Pasta Carbonara', 'Chicken Stir Fry', 'Chocolate Cake', 'Caesar Salad'].map((suggestion, index) => (
-                                                <ListItem key={`trending-${index}`} disablePadding>
-                                                    <ListItemButton
-                                                        onClick={() => handleSuggestionClick(suggestion)}
-                                                        sx={{ py: 1, px: 2 }}
-                                                    >
-                                                        <ListItemIcon sx={{ minWidth: 36 }}>
-                                                            <Box
-                                                                component="span"
-                                                                sx={{
-                                                                    width: 24,
-                                                                    height: 24,
-                                                                    borderRadius: '50%',
-                                                                    backgroundColor: alpha(theme.palette.primary.main, 0.15),
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    fontSize: 12,
-                                                                }}
-                                                            >
-                                                                🔥
-                                                            </Box>
-                                                        </ListItemIcon>
-                                                        <ListItemText
-                                                            primary={suggestion}
-                                                            primaryTypographyProps={{ fontSize: '0.9rem' }}
-                                                        />
-                                                    </ListItemButton>
-                                                </ListItem>
-                                            ))}
-                                        </List>
+                                        {/* Fallback when no recent searches */}
+                                        {recentSearches.length === 0 && (
+                                            <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Type to search recipes...
+                                                </Typography>
+                                            </Box>
+                                        )}
                                     </>
                                 )}
                             </Paper>
