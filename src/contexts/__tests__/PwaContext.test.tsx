@@ -42,12 +42,24 @@ describe('PwaContext', () => {
     let originalSessionStorage: Storage;
     let originalNavigator: Navigator;
     let originalLocation: Location;
+    let consoleWarnSpy: jest.SpyInstance;
 
     const mockLocalStorage: Record<string, string> = {};
     const mockSessionStorage: Record<string, string> = {};
 
+    // Silence console.warn GLOBALLY before any tests run
+    beforeAll(() => {
+        consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
+    });
+
+    afterAll(() => {
+        consoleWarnSpy.mockRestore();
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
+        // Re-apply console.warn mock after clearAllMocks
+        jest.spyOn(console, 'warn').mockImplementation(() => { });
 
         // Save originals
         originalMatchMedia = window.matchMedia;
@@ -509,6 +521,11 @@ describe('PwaContext', () => {
             // Component should still render and work normally despite API error
             expect(screen.getByTestId('is-installed')).toHaveTextContent('false');
             expect(screen.getByTestId('can-install')).toBeInTheDocument();
+
+            // Wait for async effects (including the rejected getInstalledRelatedApps) to complete
+            await act(async () => {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            });
 
             consoleWarn.mockRestore();
         });
