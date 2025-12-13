@@ -192,67 +192,11 @@ describe('Navigation Component', () => {
     });
   });
 
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should handle search input change', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ users: [], recipes: [] }),
-    });
 
-    renderWithProviders(<Navigation />);
 
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    fireEvent.change(searchInput, { target: { value: 'test query' } });
 
-    expect(searchInput).toHaveValue('test query');
 
-    // Wait for debounced search
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/search?q=test%20query')
-      );
-    }, { timeout: 500 });
 
-    // Wait for search results to render (ensures setSearchResults and setSearchLoading complete)
-    await waitFor(() => {
-      expect(screen.getByTestId('search-results')).toBeInTheDocument();
-    }, { timeout: 500 });
-  });
-
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should show search results when query is entered', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ users: [], recipes: [] }),
-    });
-
-    renderWithProviders(<Navigation />);
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    fireEvent.change(searchInput, { target: { value: 'test' } });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('search-results')).toBeInTheDocument();
-    });
-  });
-
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should show search results when typing', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ users: [], recipes: [] }),
-    });
-
-    renderWithProviders(<Navigation />);
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    fireEvent.change(searchInput, { target: { value: 'test' } });
-
-    // Search results should appear after debounce
-    await waitFor(() => {
-      expect(screen.getByTestId('search-results')).toBeInTheDocument();
-    }, { timeout: 500 });
-  });
 
   it('should handle tab clicks', () => {
     renderWithProviders(<Navigation />);
@@ -370,34 +314,9 @@ describe('Navigation Component', () => {
     });
   });
 
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should clear search query when clicking away', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ users: [], recipes: [] }),
-    });
 
-    renderWithProviders(<Navigation />);
 
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    fireEvent.change(searchInput, { target: { value: 'test' } });
 
-    await waitFor(() => {
-      expect(screen.getByTestId('search-results')).toBeInTheDocument();
-    });
-
-    // Click away functionality is tested by checking if component renders
-    expect(searchInput).toHaveValue('test');
-  });
-
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should not show search results when query is empty', () => {
-    renderWithProviders(<Navigation />);
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    expect(searchInput).toHaveValue('');
-    expect(screen.queryByTestId('search-results')).not.toBeInTheDocument();
-  });
 
   it('should render badge with notifications count', async () => {
     // Mock fetch for notifications API
@@ -425,66 +344,9 @@ describe('Navigation Component', () => {
     expect(brandName.length).toBeGreaterThan(0);
   });
 
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should handle search with debounce', async () => {
-    jest.useFakeTimers();
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ users: [], recipes: [] }),
-    });
 
-    renderWithProviders(<Navigation />);
 
-    const searchInput = screen.getByPlaceholderText(/search/i);
 
-    fireEvent.change(searchInput, { target: { value: 't' } });
-    fireEvent.change(searchInput, { target: { value: 'te' } });
-    fireEvent.change(searchInput, { target: { value: 'tes' } });
-    fireEvent.change(searchInput, { target: { value: 'test' } });
-
-    // Fast-forward time by 300ms (debounce delay)
-    act(() => {
-      jest.advanceTimersByTime(300);
-    });
-
-    await waitFor(() => {
-      // Should only call fetch once after debounce
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-    });
-
-    // Wait for search results to ensure state updates complete
-    await waitFor(() => {
-      expect(screen.getByTestId('search-results')).toBeInTheDocument();
-    });
-
-    jest.useRealTimers();
-
-    // Flush all pending promises to prevent act() warnings (after switching to real timers)
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    });
-  });
-
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should handle failed search gracefully', async () => {
-    mockFetch.mockRejectedValue(new Error('Search failed'));
-
-    renderWithProviders(<Navigation />);
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    fireEvent.change(searchInput, { target: { value: 'test' } });
-
-    // Component should still render even if search fails
-    await waitFor(() => {
-      expect(searchInput).toHaveValue('test');
-    }, { timeout: 500 });
-
-    // Wait for the failed fetch to complete (ensures setSearchLoading is called)
-    await waitFor(() => {
-      // The search should have been attempted
-      expect(mockFetch).toHaveBeenCalled();
-    }, { timeout: 500 });
-  });
 
   it('should show theme toggle in menu', async () => {
     renderWithProviders(<Navigation />);
@@ -560,27 +422,7 @@ describe('Navigation Component', () => {
     });
   });
 
-  // SKIP: Search state is now handled internally by PersistentSearchBar component
-  it.skip('should handle search error and log it', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
-    mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    renderWithProviders(<Navigation />);
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    fireEvent.change(searchInput, { target: { value: 'test' } });
-
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Search error:', expect.any(Error));
-    }, { timeout: 500 });
-
-    // Flush all pending promises to prevent act() warnings
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    });
-
-    consoleErrorSpy.mockRestore();
-  });
 
   it('should click brand name to navigate home', () => {
     renderWithProviders(<Navigation />);
@@ -2192,49 +2034,6 @@ describe('Navigation Component', () => {
       expect(true).toBe(true);
     });
 
-    // SKIP: Search state is now handled internally by PersistentSearchBar component
-    it.skip('should handle search API failure in desktop mode - line 246', async () => {
-      // Mock desktop viewport
-      const originalMatchMedia = window.matchMedia;
-      window.matchMedia = jest.fn().mockImplementation(query => ({
-        matches: query === '(min-width: 900px)', // Desktop mode
-        media: query,
-        onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
-      }));
 
-      const mockFetch = global.fetch as jest.Mock;
-      mockFetch.mockResolvedValueOnce({
-        ok: false, // Search fails
-        json: async () => ({ error: 'Search failed' }),
-      });
-
-      renderWithProviders(<Navigation />);
-
-      // In desktop mode, search input should be in the app bar
-      await waitFor(() => {
-        const searchInputs = screen.queryAllByPlaceholderText(/search/i);
-        if (searchInputs.length > 0) {
-          // Type in search
-          fireEvent.change(searchInputs[0], { target: { value: 'test search' } });
-        }
-      });
-
-      // Wait for debounced search to trigger
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/search?q='));
-      }, { timeout: 1000 });
-
-      // Line 246 sets empty results when search fails
-      // Since we can't directly observe setSearchResults state, we verify the API was called and failed
-      expect(mockFetch).toHaveBeenCalled();
-
-      // Restore matchMedia
-      window.matchMedia = originalMatchMedia;
-    });
   });
 });
