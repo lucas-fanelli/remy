@@ -9,7 +9,20 @@ import { Recipe } from '@/domain/types/recipe';
 jest.mock('framer-motion', () => ({
   motion: {
     create: (component: any) => component,
+    div: 'div', // Support motion.div as a regular div
   },
+}));
+
+// Mock MotionContext
+const mockSetSource = jest.fn();
+jest.mock('@/contexts/MotionContext', () => ({
+  useMotionContext: () => ({
+    sourceType: null,
+    recipeId: null,
+    layoutId: null,
+    setSource: mockSetSource,
+    clearSource: jest.fn(),
+  }),
 }));
 
 // Mock next/navigation

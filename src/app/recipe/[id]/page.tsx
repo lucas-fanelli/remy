@@ -88,14 +88,15 @@ export default function RecipeDetailPage() {
     // Give time for the entry animation to complete, then clear source
     const timeout = setTimeout(() => {
       clearSource();
-    }, 400); // After 300ms animation + small buffer
+    }, 500); // After animation completes + buffer
 
     return () => clearTimeout(timeout);
   }, [clearSource]);
 
-  // Log which animation mode was used (for debugging, can be removed later)
-  // Phase 3 TODO: If sourceType === 'feed', use shared layout animation instead of fade
-  // Currently all navigation uses the default fade/slide from template.tsx
+  // Hero transition layout ID - must match RecipeCard's layoutId
+  const heroId = `recipe-hero-${recipeId}`;
+
+  // Determine if we should use shared element animation (from feed) or fade (from search/direct)
 
   const loadRecipe = useCallback(async () => {
     try {
@@ -428,26 +429,40 @@ export default function RecipeDetailPage() {
       <Toolbar />
 
       <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 } }}>
-        {/* Recipe Image */}
-        <MotionBox
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        {/* Recipe Image - Hero Animation from Feed */}
+        <Box
           sx={{ position: 'relative', cursor: 'pointer', '&:hover .zoom-icon': { opacity: 1 } }}
           onClick={() => handleImageClick(recipe.imageUrl, recipe.title)}
         >
-          <Box
-            component="img"
-            src={recipe.imageUrl}
-            alt={recipe.title}
-            sx={{
-              width: '100%',
-              maxHeight: { xs: '300px', sm: '400px', md: '500px' },
-              objectFit: 'cover',
-              borderRadius: 2,
-              boxShadow: 3,
+          {/* Conditional Hero Animation: layoutId when from feed, fade otherwise */}
+          <motion.div
+            layoutId={sourceType === 'feed' ? heroId : undefined}
+            initial={sourceType !== 'feed' ? { opacity: 0, y: 20 } : undefined}
+            animate={sourceType !== 'feed' ? { opacity: 1, y: 0 } : undefined}
+            transition={{
+              type: 'spring',
+              stiffness: 300,
+              damping: 30,
+              duration: 0.4,
             }}
-          />
+            style={{
+              borderRadius: 8,
+              overflow: 'hidden',
+              zIndex: sourceType === 'feed' ? 50 : undefined, // Float above content during animation
+            }}
+          >
+            <Box
+              component="img"
+              src={recipe.imageUrl}
+              alt={recipe.title}
+              sx={{
+                width: '100%',
+                maxHeight: { xs: '300px', sm: '400px', md: '500px' },
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </motion.div>
           <Box
             className="zoom-icon"
             sx={{
@@ -468,7 +483,7 @@ export default function RecipeDetailPage() {
           >
             <ZoomIn />
           </Box>
-        </MotionBox>
+        </Box>
 
         {/* Recipe Header */}
         <MotionBox
