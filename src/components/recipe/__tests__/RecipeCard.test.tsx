@@ -256,6 +256,17 @@ describe('RecipeCard Component', () => {
       expect(mockPush).toHaveBeenCalledWith('/profile/johndoe');
     });
 
+    it('should navigate to author profile when clicking avatar (lines 194-195)', () => {
+      mockPush.mockClear();
+      renderWithTheme(<RecipeCard recipe={mockRecipeWithAuthor} />);
+
+      // Find the avatar and click it - it should stop propagation and navigate
+      const avatar = screen.getByAltText('johndoe');
+      fireEvent.click(avatar);
+
+      expect(mockPush).toHaveBeenCalledWith('/profile/johndoe');
+    });
+
     it('should display username when fullName is not provided', () => {
       const recipeWithUsernameOnly = {
         ...mockRecipe,

@@ -1148,4 +1148,50 @@ describe('CreateRecipeForm Component', () => {
       });
     });
   });
+
+  // ==================== BRANCH COVERAGE TESTS ====================
+  describe('Branch Coverage - Uncovered Lines', () => {
+    it('should clear amount when "to taste" unit is selected (line 132)', () => {
+      renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+      // Navigate to ingredients step
+      navigateToStep2();
+
+      // Fill in ingredient with an amount first
+      const amountInputs = screen.getAllByLabelText(/amount/i);
+      fireEvent.change(amountInputs[0], { target: { value: '2' } });
+      expect((amountInputs[0] as HTMLInputElement).value).toBe('2');
+
+      // Select "to taste" unit - should clear the amount
+      const unitSelects = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(unitSelects[0]);
+
+      // Find and click "to taste" option
+      const toTasteOption = screen.getByText('to taste');
+      fireEvent.click(toTasteOption);
+
+      // Amount should be cleared
+      expect((amountInputs[0] as HTMLInputElement).value).toBe('');
+    });
+
+    it('should upload image for instruction step (line 446)', async () => {
+      renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+      // Navigate to instructions step
+      navigateToStep3();
+
+      // There should be an upload image button for the instruction
+      const uploadButtons = screen.getAllByText(/upload image/i);
+      expect(uploadButtons.length).toBeGreaterThan(0);
+
+      // Click the upload button for the first instruction
+      fireEvent.click(uploadButtons[0]);
+
+      // After clicking, an image should be set
+      await waitFor(() => {
+        const imageText = screen.getAllByText(/image:/i);
+        expect(imageText.length).toBeGreaterThan(0);
+      });
+    });
+  });
 });
