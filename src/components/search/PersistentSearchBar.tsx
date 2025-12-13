@@ -92,9 +92,33 @@ export default function PersistentSearchBar({
     const [isFocused, setIsFocused] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
 
-    // Track if we have live results
-    const hasLiveResults = results && (results.users.length > 0 || results.recipes.length > 0);
+    // Mock recipe suggestions for autocomplete when no API results
+    const mockRecipeSuggestions = [
+        { id: 'mock-1', title: 'Remy\'s Classic Ratatouille' },
+        { id: 'mock-2', title: 'Creamy Carbonara Pasta' },
+        { id: 'mock-3', title: 'Chicken Parmesan' },
+        { id: 'mock-4', title: 'Chocolate Lava Cake' },
+        { id: 'mock-5', title: 'Caesar Salad' },
+        { id: 'mock-6', title: 'Beef Stroganoff' },
+        { id: 'mock-7', title: 'Mushroom Risotto' },
+        { id: 'mock-8', title: 'Thai Green Curry' },
+        { id: 'mock-9', title: 'French Onion Soup' },
+        { id: 'mock-10', title: 'Lemon Garlic Salmon' },
+    ];
+
+    // Check if user has typed something
     const hasQuery = query.trim().length > 0;
+
+    // Filter mock suggestions based on query
+    const filteredSuggestions = hasQuery
+        ? mockRecipeSuggestions
+            .filter(recipe => recipe.title.toLowerCase().includes(query.toLowerCase()))
+            .slice(0, 3)
+        : [];
+
+    // Track if we have live results from API OR filtered mock suggestions
+    const hasLiveResults = results && (results.users.length > 0 || results.recipes.length > 0);
+    const hasMockResults = filteredSuggestions.length > 0 && !hasLiveResults;
 
     // Handle focus
     const handleFocus = useCallback(() => {
@@ -348,6 +372,48 @@ export default function PersistentSearchBar({
                                             </ListItemButton>
                                         </ListItem>
                                     </List>
+                                )}
+
+                                {/* Mock Recipe Predictions (when no API results) */}
+                                {hasMockResults && (
+                                    <>
+                                        <Divider sx={{ mx: 2, my: 0.5 }} />
+                                        <List dense disablePadding>
+                                            {filteredSuggestions.map((recipe) => (
+                                                <ListItem key={recipe.id} disablePadding>
+                                                    <ListItemButton
+                                                        onClick={() => {
+                                                            setShowDropdown(false);
+                                                            router.push(`/recipe/${recipe.id}`);
+                                                        }}
+                                                        sx={{ py: 1, px: 2 }}
+                                                    >
+                                                        <ListItemIcon sx={{ minWidth: 36 }}>
+                                                            <Box
+                                                                component="span"
+                                                                sx={{
+                                                                    width: 24,
+                                                                    height: 24,
+                                                                    borderRadius: '4px',
+                                                                    backgroundColor: alpha(theme.palette.warning.main, 0.2),
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    fontSize: 12,
+                                                                }}
+                                                            >
+                                                                🍳
+                                                            </Box>
+                                                        </ListItemIcon>
+                                                        <ListItemText
+                                                            primary={recipe.title}
+                                                            primaryTypographyProps={{ fontSize: '0.9rem' }}
+                                                        />
+                                                    </ListItemButton>
+                                                </ListItem>
+                                            ))}
+                                        </List>
+                                    </>
                                 )}
 
                                 {/* Loading indicator */}
