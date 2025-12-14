@@ -302,9 +302,15 @@ export default function RecipeDetailPage() {
     }
   };
 
-  // Return null during loading - the global LoadingBar shows progress
-  if (loading) {
-    return null;
+  // Show minimal layout during initial load (no black screen)
+  // The LoadingBar at the top handles visual feedback
+  if (loading && !recipe) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Toolbar />
+        {/* Empty space with same structure to prevent layout shift */}
+      </Box>
+    );
   }
 
   if (error || !recipe) {
@@ -324,7 +330,12 @@ export default function RecipeDetailPage() {
   const totalTime = recipe.prepTime + recipe.cookingTime;
 
   return (
-    <Box sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}>
+    <MotionBox
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
+    >
       {/* Spacer for fixed AppBar - Material Design pattern */}
       <Toolbar />
 
@@ -859,6 +870,6 @@ export default function RecipeDetailPage() {
           </Box>
         )}
       </Dialog>
-    </Box>
+    </MotionBox>
   );
 }
