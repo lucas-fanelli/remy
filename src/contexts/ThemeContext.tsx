@@ -164,7 +164,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           },
         },
         shape: {
-          borderRadius: 8,
+          borderRadius: 4,
         },
         components: {
           MuiCssBaseline: {
@@ -184,15 +184,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           MuiButton: {
             styleOverrides: {
               root: {
-                textTransform: 'none',
+                textTransform: 'uppercase',
                 fontWeight: 600,
+                borderRadius: '4px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.12)',
+                '&:hover': {
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                },
+              },
+              text: {
+                textTransform: 'none',
+                boxShadow: 'none',
+                '&:hover': {
+                  boxShadow: 'none',
+                },
               },
             },
           },
           MuiCard: {
             styleOverrides: {
               root: {
-                boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+                borderRadius: '4px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.08)',
                 transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1)',
               },
             },

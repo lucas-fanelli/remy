@@ -113,15 +113,16 @@ export default function RecipeCard({
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       sx={{
         backgroundColor: 'background.paper',
-        borderRadius: 3,
+        borderRadius: '4px',
         overflow: 'hidden',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.08)',
         cursor: 'pointer',
+        transition: 'box-shadow 0.2s ease-in-out',
         '&:hover': {
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.1)',
         },
       }}
     >
@@ -152,10 +153,10 @@ export default function RecipeCard({
             top: 12,
             right: 12,
             fontWeight: 600,
-            textTransform: 'capitalize',
+            textTransform: 'uppercase',
             fontSize: '0.75rem',
             height: 28,
-            borderRadius: 14,
+            borderRadius: '4px',
             color: 'white',
             '& .MuiChip-label': { px: 1.5 },
           }}
@@ -175,7 +176,7 @@ export default function RecipeCard({
             fontWeight: 500,
             fontSize: '0.8125rem',
             height: 28,
-            borderRadius: 14,
+            borderRadius: '4px',
             '& .MuiChip-icon': { color: 'white' },
             '& .MuiChip-label': { pr: 1.5 },
           }}

@@ -399,7 +399,7 @@ export default function Navigation() {
           color: 'text.primary',
           borderBottom: 1,
           borderColor: 'divider',
-          boxShadow: 'none',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         }}
       >
         <Toolbar sx={{
@@ -690,7 +690,7 @@ export default function Navigation() {
           color: 'text.primary',
           borderBottom: 1,
           borderColor: 'divider',
-          boxShadow: 'none',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         }}
       >
         <Toolbar sx={{ px: { xs: 1, sm: 2 }, minHeight: { xs: 56, sm: 64 } }}>
