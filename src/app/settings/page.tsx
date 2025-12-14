@@ -69,11 +69,7 @@ export default function SettingsPage() {
   };
 
   if (isLoading) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return null;
   }
 
   if (!user) {
