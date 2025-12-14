@@ -897,6 +897,9 @@ describe('Navigation Component', () => {
     });
 
     it('should handle failed notification fetch - line 209-211', async () => {
+      // Suppress expected console.error for this test
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+
       // When fetch returns ok: false, component should gracefully handle it
       // by not setting any notifications (graceful degradation)
       mockFetch.mockResolvedValueOnce({
@@ -930,9 +933,19 @@ describe('Navigation Component', () => {
       );
       // All badges should be invisible or show 0 after failed fetch
       expect(visibleBadges.length).toBe(0);
+
+      // Verify error was logged (shows component handles the error)
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Navigation: Failed to fetch notifications, status:',
+        401
+      );
+      consoleErrorSpy.mockRestore();
     });
 
     it('should handle notification fetch error - line 212-213', async () => {
+      // Suppress expected console.error for this test
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+
       // When fetch throws an error, component should gracefully handle it
       const fetchError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(fetchError);
@@ -957,6 +970,10 @@ describe('Navigation Component', () => {
         (badge) => !badge.classList.contains('MuiBadge-invisible')
       );
       expect(visibleBadges.length).toBe(0);
+
+      // Verify error was logged (shows component handles the error)
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching notifications:', fetchError);
+      consoleErrorSpy.mockRestore();
     });
 
     it('should deduplicate notifications by ID - line 202-205', async () => {
