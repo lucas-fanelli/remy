@@ -103,13 +103,22 @@ export default function MatchedRecipes() {
     router.push('/pantry');
   };
 
+  // DEBUG BLOCK - TEMPORARY
   // If no token, don't show this component (user not logged in)
   if (!token) {
-    return null;
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">🔒 MatchedRecipes: No token</Typography>
+      </Box>
+    );
   }
 
   if (loading) {
-    return null;
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">⏳ MatchedRecipes: Loading...</Typography>
+      </Box>
+    );
   }
 
   if (!pantryItemsCount || pantryItemsCount === 0) {

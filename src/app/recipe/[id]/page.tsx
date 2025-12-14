@@ -343,20 +343,23 @@ export default function RecipeDetailPage() {
     }
   };
 
+  // DEBUG BLOCK - TEMPORARY
   if (loading) {
-    return null;
+    return (
+      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography color="text.secondary">⏳ Loading Recipe...</Typography>
+      </Box>
+    );
   }
 
   if (error || !recipe) {
     return (
-      <Container maxWidth="md" sx={{ py: { xs: 3, md: 4 }, px: { xs: 2, md: 3 } }}>
-        <Alert severity="error" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}>
-          {error || 'Recipe not found'}
-        </Alert>
-        <Button onClick={handleBack} startIcon={<ArrowBack />} size={isMobile ? 'large' : 'medium'}>
-          Go Back
-        </Button>
-      </Container>
+      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography color="error" sx={{ mb: 2 }}>⚠️ Recipe Data Missing or Error</Typography>
+        <Typography color="text.secondary">Error: {error || 'None'}</Typography>
+        <Typography color="text.secondary">Recipe var is: {typeof recipe}</Typography>
+        <Button onClick={handleBack} startIcon={<ArrowBack />} sx={{ mt: 2 }}>Go Back</Button>
+      </Box>
     );
   }
 

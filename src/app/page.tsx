@@ -26,12 +26,21 @@ export default function Home() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // DEBUG BLOCK - TEMPORARY
   if (isLoading) {
-    return null;
+    return (
+      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography color="text.secondary">⏳ Auth Loading...</Typography>
+      </Box>
+    );
   }
 
   if (!isAuthenticated) {
-    return null;
+    return (
+      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography color="text.secondary">🔒 Not Authenticated (redirecting...)</Typography>
+      </Box>
+    );
   }
 
   const handleCreateRecipe = async (data: CreateRecipeDTO) => {

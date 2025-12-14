@@ -238,18 +238,23 @@ export default function ProfilePage() {
     router.push(`/recipe/${recipeId}`);
   };
 
+  // DEBUG BLOCK - TEMPORARY
   if (loading) {
-    return null;
+    return (
+      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography color="text.secondary">⏳ Loading state is TRUE...</Typography>
+      </Box>
+    );
   }
 
   if (error || !profile) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error || 'Profile not found'}
-        </Alert>
-        <Button onClick={() => router.push('/')}>Go Back Home</Button>
-      </Container>
+      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography color="error" sx={{ mb: 2 }}>⚠️ Data Missing or Error</Typography>
+        <Typography color="text.secondary">Error: {error || 'None'}</Typography>
+        <Typography color="text.secondary">Profile var is: {typeof profile}</Typography>
+        <Button onClick={() => router.push('/')} sx={{ mt: 2 }}>Go Back Home</Button>
+      </Box>
     );
   }
 
