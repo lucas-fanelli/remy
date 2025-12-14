@@ -1,13 +1,17 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 /**
  * Template file for recipe detail pages
  * 
- * Unlike layout.tsx which persists across navigations, template.tsx
- * creates a NEW instance on every navigation. This is crucial for
- * Framer Motion's `initial` animation to trigger on each page visit.
+ * Uses AnimatePresence with pathname key to ensure animation triggers
+ * on every navigation, including first load from home page.
+ * 
+ * The isClient pattern prevents SSR hydration mismatch by not rendering
+ * the animation wrapper until client-side hydration completes.
  * 
  * @see https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#templates
  */
@@ -16,14 +20,31 @@ export default function RecipeTemplate({
 }: {
     children: React.ReactNode;
 }) {
+    const pathname = usePathname();
+    const [isClient, setIsClient] = useState(false);
+
+    // Wait for client-side hydration to complete before animating
+    useEffect(() => {
+        setIsClient(true);
+    }, [pathname]);
+
+    // Don't render animation wrapper during SSR - prevents hydration mismatch
+    if (!isClient) {
+        return <>{children}</>;
+    }
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 3, ease: 'easeOut' }}
-            style={{ minHeight: '100vh' }}
-        >
-            {children}
-        </motion.div>
+        <AnimatePresence mode="wait">
+            <motion.div
+                key={pathname}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                style={{ minHeight: '100vh' }}
+            >
+                {children}
+            </motion.div>
+        </AnimatePresence>
     );
 }
