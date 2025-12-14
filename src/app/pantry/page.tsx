@@ -282,22 +282,14 @@ export default function PantryPage() {
     return acc;
   }, {} as Record<string, PantryItem[]>);
 
-  // DEBUG BLOCK - TEMPORARY
+  // Return null during loading - the global LoadingBar shows progress
   // Guard clauses for loading states
   if (authLoading) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography color="text.secondary">⏳ Pantry: Auth Loading...</Typography>
-      </Box>
-    );
+    return null;
   }
 
   if (loading) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography color="text.secondary">⏳ Pantry: Data Loading...</Typography>
-      </Box>
-    );
+    return null;
   }
 
   return (

@@ -26,21 +26,13 @@ export default function Home() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // DEBUG BLOCK - TEMPORARY
+  // Return null during loading - the global LoadingBar shows progress
   if (isLoading) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography color="text.secondary">⏳ Auth Loading...</Typography>
-      </Box>
-    );
+    return null;
   }
 
   if (!isAuthenticated) {
-    return (
-      <Box sx={{ p: 4, textAlign: 'center', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography color="text.secondary">🔒 Not Authenticated (redirecting...)</Typography>
-      </Box>
-    );
+    return null; // Will redirect via useEffect
   }
 
   const handleCreateRecipe = async (data: CreateRecipeDTO) => {
