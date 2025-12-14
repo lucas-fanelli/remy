@@ -141,11 +141,7 @@ export default function NotificationsPage() {
   };
 
   if (isLoading) {
-    return (
-      <Container maxWidth="md" sx={{ mt: 10, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Container>
-    );
+    return null;
   }
 
   if (!user) {
@@ -153,11 +149,7 @@ export default function NotificationsPage() {
   }
 
   if (loading) {
-    return (
-      <Container maxWidth="md" sx={{ mt: 10, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Container>
-    );
+    return null;
   }
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;

@@ -282,6 +282,15 @@ export default function PantryPage() {
     return acc;
   }, {} as Record<string, PantryItem[]>);
 
+  // Guard clauses for loading states
+  if (authLoading) {
+    return null;
+  }
+
+  if (loading) {
+    return null;
+  }
+
   return (
     <Box sx={{ minHeight: '100vh', pb: 8, bgcolor: 'background.default' }}>
       {/* Spacer for fixed AppBar - Material Design pattern */}
@@ -344,9 +353,7 @@ export default function PantryPage() {
         </Card>
 
         {/* Items by Category */}
-        {loading ? (
-          null
-        ) : filteredItems.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <Card sx={{ p: 6, textAlign: 'center' }}>
             <Kitchen sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>
