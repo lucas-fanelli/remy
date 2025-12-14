@@ -306,13 +306,9 @@ export default function RecipeDetailPage() {
 
   const totalTime = recipe ? recipe.prepTime + recipe.cookingTime : 0;
 
-  // Always render MotionBox so animation triggers on mount (not on data arrival)
+  // Template.tsx handles the fade-in animation for this route
   return (
-    <MotionBox
-      key={recipeId} // Force remount on recipe change to trigger animation
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 3, ease: 'easeOut' }}
+    <Box
       sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
     >
       {/* Spacer for fixed AppBar - Material Design pattern */}
@@ -871,6 +867,6 @@ export default function RecipeDetailPage() {
           </Box>
         )}
       </Dialog>
-    </MotionBox>
+    </Box>
   );
 }
