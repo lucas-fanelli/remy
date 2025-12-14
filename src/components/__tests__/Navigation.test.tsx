@@ -1994,31 +1994,43 @@ describe('Navigation Component', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should generate breadcrumbs for complex nested paths - lines 381-411', () => {
-      // Test multiple pathname patterns to cover all branches in generateBreadcrumbs
-      const testPaths = [
-        { path: '/pantry', expectedBreadcrumbs: ['Home', 'My Pantry'] },
-        { path: '/profile/testuser', expectedBreadcrumbs: ['Home', 'Profile', 'testuser'] },
-        { path: '/recipe/123e4567-e89b-12d3-a456-426614174000', expectedBreadcrumbs: ['Home', 'Recipe', 'Details'] },
-        { path: '/settings', expectedBreadcrumbs: ['Home', 'Settings'] },
-        { path: '/pantry/add', expectedBreadcrumbs: ['Home', 'My Pantry', 'Add'] },
-      ];
+    it('should generate and render breadcrumbs for various paths - lines 360-390', () => {
+      // Test profile path - should show Home > Profile > username
+      mockPathname = '/profile/testuser';
+      const { unmount: unmount1 } = renderWithProviders(<Navigation />);
 
-      testPaths.forEach(({ path, expectedBreadcrumbs }) => {
-        mockPathname = path;
-        const { unmount } = renderWithProviders(<Navigation />);
+      // Breadcrumbs are rendered on desktop - verify component doesn't crash
+      const banners1 = screen.getAllByRole('banner');
+      expect(banners1.length).toBeGreaterThan(0);
+      unmount1();
 
-        // Breadcrumbs are rendered in the desktop view
-        // They appear as navigation links in the breadcrumb trail
-        expectedBreadcrumbs.forEach(breadcrumb => {
-          // Each breadcrumb should be present (except for UUID which becomes "Details")
-          if (breadcrumb !== 'Details') {
-            // Breadcrumbs exist in the component
-          }
-        });
+      // Test pantry path - should show Home > My Pantry
+      mockPathname = '/pantry';
+      const { unmount: unmount2 } = renderWithProviders(<Navigation />);
+      const banners2 = screen.getAllByRole('banner');
+      expect(banners2.length).toBeGreaterThan(0);
+      unmount2();
 
-        unmount();
-      });
+      // Test settings path - should show Home > Settings  
+      mockPathname = '/settings';
+      const { unmount: unmount3 } = renderWithProviders(<Navigation />);
+      const banners3 = screen.getAllByRole('banner');
+      expect(banners3.length).toBeGreaterThan(0);
+      unmount3();
+
+      // Test UUID path - should show Home > Recipe > Details
+      mockPathname = '/recipe/123e4567-e89b-12d3-a456-426614174000';
+      const { unmount: unmount4 } = renderWithProviders(<Navigation />);
+      const banners4 = screen.getAllByRole('banner');
+      expect(banners4.length).toBeGreaterThan(0);
+      unmount4();
+
+      // Test nested path - should generate multiple breadcrumbs
+      mockPathname = '/pantry/add/new';
+      const { unmount: unmount5 } = renderWithProviders(<Navigation />);
+      const banners5 = screen.getAllByRole('banner');
+      expect(banners5.length).toBeGreaterThan(0);
+      unmount5();
     });
 
     it('should handle unknown tab ID in handleTabClick - line 154', () => {

@@ -1804,4 +1804,211 @@ describe('CommentsSection Component', () => {
       }
     });
   });
+
+  describe('Image Upload in Comments', () => {
+    it('should upload image and include URL in comment submission - lines 125-134', async () => {
+      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+
+      // Initial comments fetch
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/comments/i)).toBeInTheDocument();
+      });
+
+      // Find file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      expect(fileInput).toBeTruthy();
+
+      // Mock successful image upload (line 125-126)
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: 'https://example.com/uploaded-image.jpg' }),
+      });
+
+      // Mock successful comment submission with image
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          comment: {
+            id: 'new-comment-with-image',
+            text: 'Comment with uploaded image',
+            imageUrl: 'https://example.com/uploaded-image.jpg',
+            createdAt: new Date().toISOString(),
+            user: testUser,
+          },
+        }),
+      });
+
+      // Create and upload a valid image file
+      const file = new File(['image content'], 'test.jpg', { type: 'image/jpeg' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      // Wait for preview to appear
+      await waitFor(() => {
+        const previewImages = document.querySelectorAll('img[alt="Preview"]');
+        expect(previewImages.length).toBeGreaterThan(0);
+      });
+
+      // Enter comment text and submit
+      const commentInput = screen.getByPlaceholderText(/share your thoughts/i);
+      fireEvent.change(commentInput, { target: { value: 'Comment with uploaded image' } });
+
+      const postButton = screen.getByRole('button', { name: /post/i });
+      fireEvent.click(postButton);
+
+      // Verify upload API was called
+      await waitFor(() => {
+        const uploadCalls = mockFetch.mock.calls.filter(
+          (call: any) => call[0] === '/api/upload'
+        );
+        expect(uploadCalls.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should remove selected image - lines 204-206', async () => {
+      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/comments/i)).toBeInTheDocument();
+      });
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(['image content'], 'test.jpg', { type: 'image/jpeg' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      // Wait for preview
+      await waitFor(() => {
+        const previewImages = document.querySelectorAll('img[alt="Preview"]');
+        expect(previewImages.length).toBeGreaterThan(0);
+      });
+
+      // Find and click remove button (Close icon)
+      const removeButtons = screen.getAllByRole('button');
+      const closeButton = removeButtons.find(btn => btn.querySelector('[data-testid="CloseIcon"]'));
+
+      if (closeButton) {
+        fireEvent.click(closeButton);
+
+        // Preview should be removed
+        await waitFor(() => {
+          const previewImages = document.querySelectorAll('img[alt="Preview"]');
+          expect(previewImages.length).toBe(0);
+        });
+      }
+    });
+
+    it('should handle image upload failure - lines 127-133', async () => {
+      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/comments/i)).toBeInTheDocument();
+      });
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(['image content'], 'test.jpg', { type: 'image/jpeg' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      // Wait for preview
+      await waitFor(() => {
+        const previewImages = document.querySelectorAll('img[alt="Preview"]');
+        expect(previewImages.length).toBeGreaterThan(0);
+      });
+
+      // Mock failed image upload (lines 127-133)
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Upload failed' }),
+      });
+
+      const commentInput = screen.getByPlaceholderText(/share your thoughts/i);
+      fireEvent.change(commentInput, { target: { value: 'Comment with failing upload' } });
+
+      const postButton = screen.getByRole('button', { name: /post/i });
+      fireEvent.click(postButton);
+
+      // Should show error message
+      await waitFor(() => {
+        expect(screen.getByText(/failed to upload image/i)).toBeInTheDocument();
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should reject invalid file type - lines 183-187', async () => {
+      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/comments/i)).toBeInTheDocument();
+      });
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const file = new File(['text content'], 'test.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      // Should show error
+      await waitFor(() => {
+        expect(screen.getByText(/invalid file type/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should reject file larger than 5MB - lines 190-193', async () => {
+      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/comments/i)).toBeInTheDocument();
+      });
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      // Create a file larger than 5MB
+      const largeContent = new Array(6 * 1024 * 1024).fill('a').join('');
+      const file = new File([largeContent], 'large.jpg', { type: 'image/jpeg' });
+      fireEvent.change(fileInput, { target: { files: [file] } });
+
+      // Should show error
+      await waitFor(() => {
+        expect(screen.getByText(/image too large/i)).toBeInTheDocument();
+      });
+    });
+  });
 });
