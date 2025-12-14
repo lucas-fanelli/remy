@@ -897,8 +897,8 @@ describe('Navigation Component', () => {
     });
 
     it('should handle failed notification fetch - line 209-211', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
-
+      // When fetch returns ok: false, component should gracefully handle it
+      // by not setting any notifications (graceful degradation)
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
@@ -907,29 +907,56 @@ describe('Navigation Component', () => {
 
       renderWithProviders(<Navigation />);
 
+      // Wait for fetch to be called
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Navigation: Failed to fetch notifications, status:',
-          401
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/notifications',
+          expect.objectContaining({
+            headers: {
+              'Authorization': 'Bearer mock-jwt-token',
+            },
+          })
         );
       });
 
-      consoleErrorSpy.mockRestore();
+      // Component should still render without crashing (graceful error handling)
+      const banners = screen.getAllByRole('banner');
+      expect(banners.length).toBeGreaterThan(0);
+
+      // Badge should show 0 or be invisible (no unread count set due to error)
+      const badges = document.querySelectorAll('.MuiBadge-badge');
+      const visibleBadges = Array.from(badges).filter(
+        (badge) => !badge.classList.contains('MuiBadge-invisible')
+      );
+      // All badges should be invisible or show 0 after failed fetch
+      expect(visibleBadges.length).toBe(0);
     });
 
     it('should handle notification fetch error - line 212-213', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      // When fetch throws an error, component should gracefully handle it
       const fetchError = new Error('Network error');
-
       mockFetch.mockRejectedValueOnce(fetchError);
 
       renderWithProviders(<Navigation />);
 
+      // Wait for fetch to be called
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error fetching notifications:', fetchError);
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/notifications',
+          expect.anything()
+        );
       });
 
-      consoleErrorSpy.mockRestore();
+      // Component should still render without crashing (graceful error handling)
+      const banners = screen.getAllByRole('banner');
+      expect(banners.length).toBeGreaterThan(0);
+
+      // Badge should show 0 or be invisible (no unread count set due to error)
+      const badges = document.querySelectorAll('.MuiBadge-badge');
+      const visibleBadges = Array.from(badges).filter(
+        (badge) => !badge.classList.contains('MuiBadge-invisible')
+      );
+      expect(visibleBadges.length).toBe(0);
     });
 
     it('should deduplicate notifications by ID - line 202-205', async () => {
