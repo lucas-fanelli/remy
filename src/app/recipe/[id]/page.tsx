@@ -96,8 +96,22 @@ export default function RecipeDetailPage() {
   const isOwner = user && recipe && user.id === recipe.userId;
 
   // Trigger animation after hydration - ensures fade works on initial load
+  // Use double-RAF pattern to ensure browser has painted before animating
   useEffect(() => {
-    setIsMounted(true);
+    // Reset mounted state when recipeId changes
+    setIsMounted(false);
+
+    // Double requestAnimationFrame ensures we wait for:
+    // 1. React's commit phase to complete
+    // 2. Browser's paint to occur
+    // This guarantees the animation is visible on first load
+    const frameId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsMounted(true);
+      });
+    });
+
+    return () => cancelAnimationFrame(frameId);
   }, [recipeId]);
 
   // Sync like/save status from query to local state
