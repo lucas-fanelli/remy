@@ -1344,4 +1344,114 @@ describe('RecipeFeed Component', () => {
       expect(createButton).toBeInTheDocument();
     });
   });
+
+  // ==================== TIME FILTER COVERAGE TESTS (lines 150, 152) ====================
+  describe('Time Filter Coverage', () => {
+    it('should filter by under60 time - line 150', async () => {
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      setupSuccessfulFetch([mockRecipe]);
+
+      const maxTimeSelect = screen.getAllByRole('combobox')[1]; // Duration is second
+      fireEvent.mouseDown(maxTimeSelect);
+
+      const under60Option = await screen.findByText('Under 1 hour');
+      fireEvent.click(under60Option);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('maxTime=60')
+        );
+      });
+
+      await act(async () => { });
+    });
+
+    it('should filter by over60 time - line 152', async () => {
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      setupSuccessfulFetch([mockRecipe]);
+
+      const maxTimeSelect = screen.getAllByRole('combobox')[1]; // Duration is second
+      fireEvent.mouseDown(maxTimeSelect);
+
+      const over60Option = await screen.findByText('Over 1 hour');
+      fireEvent.click(over60Option);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('minTime=60')
+        );
+      });
+
+      await act(async () => { });
+    });
+  });
+
+  // ==================== SORT ORDER COVERAGE TESTS (lines 155, 457) ====================
+  describe('Sort Order Coverage', () => {
+    it('should sort by highest rated - lines 155, 457', async () => {
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      setupSuccessfulFetch([mockRecipe]);
+
+      const sortSelect = screen.getAllByRole('combobox')[2]; // Sort By is third
+      fireEvent.mouseDown(sortSelect);
+
+      const highestRatedOption = await screen.findByText('Highest Rated');
+      fireEvent.click(highestRatedOption);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('sort=rating_desc')
+        );
+      });
+
+      await act(async () => { });
+    });
+
+    it('should sort by most reviewed - line 155', async () => {
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      setupSuccessfulFetch([mockRecipe]);
+
+      const sortSelect = screen.getAllByRole('combobox')[2]; // Sort By is third
+      fireEvent.mouseDown(sortSelect);
+
+      const mostReviewedOption = await screen.findByText('Most Reviewed');
+      fireEvent.click(mostReviewedOption);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('sort=most_reviewed')
+        );
+      });
+
+      await act(async () => { });
+    });
+  });
 });
