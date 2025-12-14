@@ -105,9 +105,8 @@ export default function ProfilePage() {
       setLoading(true);
       setError(null);
 
-      // Load user profile
+      // Load user profile first (required for other calls)
       const userResponse = await fetch(`/api/users/${username}`);
-      console.log('User response status:', userResponse.status);
 
       if (!userResponse.ok) {
         if (userResponse.status === 404) {
@@ -117,11 +116,7 @@ export default function ProfilePage() {
       }
 
       const userData = await userResponse.json();
-      console.log('User data received:', userData);
-
-      // Handle both userData.user and userData.data.user formats
       const user = userData.user || userData.data?.user || userData;
-      console.log('Setting profile to:', user);
 
       if (!user || !user.id) {
         throw new Error('Invalid user data received');
@@ -129,50 +124,59 @@ export default function ProfilePage() {
 
       setProfile(user);
 
-      // Load profile stats
-      const statsResponse = await fetch(`/api/users/${username}/stats`);
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
+      // Fetch all remaining data in parallel for faster loading
+      const parallelFetches: Promise<Response>[] = [
+        fetch(`/api/users/${username}/stats`),
+        fetch(`/api/users/${username}/recipes`),
+      ];
+
+      // Add conditional fetches
+      if (currentUser && !isOwnProfile && token) {
+        parallelFetches.push(
+          fetch(`/api/users/${username}/is-following`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          })
+        );
+      }
+
+      if (isOwnProfile && token) {
+        parallelFetches.push(
+          fetch(`/api/users/${username}/saved`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          })
+        );
+      }
+
+      // Execute all fetches in parallel
+      const results = await Promise.allSettled(parallelFetches);
+
+      // Process stats response
+      if (results[0].status === 'fulfilled' && results[0].value.ok) {
+        const statsData = await results[0].value.json();
         setStats(statsData);
       }
 
-      // Load user's recipes
-      const recipesResponse = await fetch(`/api/users/${username}/recipes`);
-      if (recipesResponse.ok) {
-        const recipesData = await recipesResponse.json();
+      // Process recipes response
+      if (results[1].status === 'fulfilled' && results[1].value.ok) {
+        const recipesData = await results[1].value.json();
         setRecipes(recipesData.recipes || []);
       }
 
-      // Check if following (if logged in and not own profile)
+      // Process follow status (if requested)
+      let resultIndex = 2;
       if (currentUser && !isOwnProfile && token) {
-        const followResponse = await fetch(`/api/users/${username}/is-following`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (followResponse.ok) {
-          const followData = await followResponse.json();
+        if (results[resultIndex]?.status === 'fulfilled' && results[resultIndex].value.ok) {
+          const followData = await results[resultIndex].value.json();
           setIsFollowing(followData.isFollowing);
         }
+        resultIndex++;
       }
 
-      // Load saved recipes if own profile
-      console.log('isOwnProfile:', isOwnProfile, 'token:', !!token);
+      // Process saved recipes (if requested)
       if (isOwnProfile && token) {
-        console.log('Fetching saved recipes...');
-        const savedResponse = await fetch(`/api/users/${username}/saved`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        console.log('Saved recipes response status:', savedResponse.status);
-        if (savedResponse.ok) {
-          const savedData = await savedResponse.json();
-          console.log('Saved recipes data:', savedData);
+        if (results[resultIndex]?.status === 'fulfilled' && results[resultIndex].value.ok) {
+          const savedData = await results[resultIndex].value.json();
           setSavedRecipes(savedData.recipes || []);
-        } else {
-          const errorData = await savedResponse.json();
-          console.error('Failed to load saved recipes:', errorData);
         }
       }
     } catch (err) {
