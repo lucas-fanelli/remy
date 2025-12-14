@@ -5,13 +5,28 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import RecipeCard from '../RecipeCard';
 import { Recipe } from '@/domain/types/recipe';
 
-// Mock framer-motion
-jest.mock('framer-motion', () => ({
-  motion: {
-    create: (component: any) => component,
-    div: 'div', // Support motion.div as a regular div
-  },
-}));
+// Mock framer-motion - properly filter out animation props
+jest.mock('framer-motion', () => {
+  const React = require('react');
+
+  // Create a wrapper that filters out Framer Motion props
+  const createMotionComponent = (Component: any) => {
+    return React.forwardRef(({
+      initial, animate, exit, transition, whileHover, whileTap,
+      whileFocus, whileDrag, whileInView, layout, layoutId,
+      variants, ...props
+    }: any, ref: any) => React.createElement(Component, { ...props, ref }));
+  };
+
+  const mockMotion: any = createMotionComponent;
+  mockMotion.create = createMotionComponent;
+  mockMotion.div = createMotionComponent('div');
+
+  return {
+    motion: mockMotion,
+    AnimatePresence: ({ children }: any) => children,
+  };
+});
 
 // Mock MotionContext
 const mockSetSource = jest.fn();

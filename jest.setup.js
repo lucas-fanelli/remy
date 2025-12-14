@@ -45,9 +45,7 @@ beforeAll(() => {
         message.includes('TouchRipple') ||
         message.includes('Error changing password:') ||
         message.includes('Error updating recipe:') ||
-        message.includes('Search error:') ||
-        message.includes('whileHover') ||
-        message.includes('whileTap'))
+        message.includes('Search error:'))
     ) {
       return
     }
