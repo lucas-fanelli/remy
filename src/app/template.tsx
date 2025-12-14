@@ -28,11 +28,21 @@ export default function Template({ children }: TemplateProps) {
         setIsClient(true);
     }, [pathname]);
 
-    // Don't render animation wrapper during SSR - prevents hydration mismatch
+    // During SSR/initial render, show content immediately with proper styling (no animation)
     if (!isClient) {
-        return <>{children}</>;
+        return (
+            <div
+                style={{
+                    minHeight: '100vh',
+                    backgroundColor: 'var(--mui-palette-background-default, #121212)',
+                }}
+            >
+                {children}
+            </div>
+        );
     }
 
+    // After hydration, use animated wrapper
     return (
         <AnimatePresence mode="wait">
             <motion.div
