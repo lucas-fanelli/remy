@@ -103,6 +103,11 @@ export default function MatchedRecipes() {
     router.push('/pantry');
   };
 
+  // If no token, don't show this component (user not logged in)
+  if (!token) {
+    return null;
+  }
+
   if (loading) {
     return null;
   }
