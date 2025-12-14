@@ -333,7 +333,7 @@ export default function RecipeDetailPage() {
     <MotionBox
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      transition={{ duration: 0.8, ease: 'easeOut' }}
       sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
     >
       {/* Spacer for fixed AppBar - Material Design pattern */}
