@@ -9,6 +9,7 @@ import { MotionProvider } from '@/contexts/MotionContext';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { PwaProvider } from '@/contexts/PwaContext';
+import QueryProvider from '@/providers/QueryProvider';
 import { BRANDING } from '@/config/branding';
 import './globals.css';
 
@@ -188,20 +189,22 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning>
         <AppRouterCacheProvider>
-          <ThemeProvider>
-            <ToastProvider>
-              <AuthProvider>
-                <PwaProvider>
-                  <MotionProvider>
-                    <LayoutWrapper>
-                      {children}
-                    </LayoutWrapper>
-                    <InstallPrompt />
-                  </MotionProvider>
-                </PwaProvider>
-              </AuthProvider>
-            </ToastProvider>
-          </ThemeProvider>
+          <QueryProvider>
+            <ThemeProvider>
+              <ToastProvider>
+                <AuthProvider>
+                  <PwaProvider>
+                    <MotionProvider>
+                      <LayoutWrapper>
+                        {children}
+                      </LayoutWrapper>
+                      <InstallPrompt />
+                    </MotionProvider>
+                  </PwaProvider>
+                </AuthProvider>
+              </ToastProvider>
+            </ThemeProvider>
+          </QueryProvider>
         </AppRouterCacheProvider>
         <Analytics />
       </body>
