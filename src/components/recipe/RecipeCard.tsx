@@ -227,6 +227,7 @@ export default function RecipeCard({
           <IconButton
             onClick={handleMenuOpen}
             size="small"
+            aria-label="recipe options"
             sx={{ color: 'text.secondary' }}
           >
             <MoreVert fontSize="small" />

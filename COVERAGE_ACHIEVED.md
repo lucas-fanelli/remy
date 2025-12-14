@@ -10,13 +10,13 @@ npm test
 ```
 Test Suites: 43 passed, 43 total
 Tests:       1012 passed, 1012 total
-Time:        ~24 seconds
+Time:        ~16 seconds
 
 Coverage Summary:
-  Statements:  96.52%  ✅
-  Branches:    86.52%  ✅
-  Functions:   96.73%  ✅
-  Lines:       97.78%  ✅
+  Statements:  97.28%  ✅
+  Branches:    87.85%  ✅
+  Functions:   97.02%  ✅
+  Lines:       98.11%  ✅
 ```
 
 ## Coverage by Layer
