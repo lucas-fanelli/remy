@@ -91,8 +91,14 @@ export default function RecipeDetailPage() {
   const [cookedLoading, setCookedLoading] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   const isOwner = user && recipe && user.id === recipe.userId;
+
+  // Trigger animation after hydration - ensures fade works on initial load
+  useEffect(() => {
+    setIsMounted(true);
+  }, [recipeId]);
 
   // Sync like/save status from query to local state
   useEffect(() => {
@@ -333,7 +339,7 @@ export default function RecipeDetailPage() {
     <MotionBox
       key={recipeId} // Force remount on recipe change to trigger animation
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      animate={{ opacity: isMounted ? 1 : 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
     >
