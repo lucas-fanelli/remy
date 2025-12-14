@@ -28,21 +28,17 @@ export default function Template({ children }: TemplateProps) {
         setIsClient(true);
     }, [pathname]);
 
-    // During SSR/initial render, show content immediately with proper styling (no animation)
+    // During SSR/initial render, show content immediately (no animation, transparent background)
+    // The page's own background will show through
     if (!isClient) {
         return (
-            <div
-                style={{
-                    minHeight: '100vh',
-                    backgroundColor: 'var(--mui-palette-background-default, #121212)',
-                }}
-            >
+            <div style={{ minHeight: '100vh' }}>
                 {children}
             </div>
         );
     }
 
-    // After hydration, use animated wrapper
+    // After hydration, use animated wrapper (also transparent to let page backgrounds show)
     return (
         <AnimatePresence mode="wait">
             <motion.div
@@ -55,10 +51,7 @@ export default function Template({ children }: TemplateProps) {
                     stiffness: 300,
                     damping: 30,
                 }}
-                style={{
-                    minHeight: '100vh',
-                    backgroundColor: 'var(--mui-palette-background-default, #121212)',
-                }}
+                style={{ minHeight: '100vh' }}
             >
                 {children}
             </motion.div>
