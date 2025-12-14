@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import { Box, Container, useTheme, useMediaQuery, Dialog, DialogTitle, DialogContent, Toolbar } from '@mui/material';
+import { Box, Container, useTheme, useMediaQuery, Dialog, DialogTitle, DialogContent, Toolbar, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import RecipeFeed from '@/components/recipe/RecipeFeed';
 import CreateRecipeForm from '@/components/recipe/CreateRecipeForm';
