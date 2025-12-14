@@ -331,9 +331,10 @@ export default function RecipeDetailPage() {
 
   return (
     <MotionBox
+      key={recipeId} // Force remount on recipe change to trigger animation
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 3, ease: 'easeOut' }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
     >
       {/* Spacer for fixed AppBar - Material Design pattern */}
