@@ -573,4 +573,157 @@ describe('PersistentSearchBar', () => {
             });
         });
     });
+
+    // ==================== LIVE SEARCH DEBOUNCE TESTS ====================
+    describe('Live Search Debounce (lines 127-140)', () => {
+        let mockFetch: jest.Mock;
+
+        beforeEach(() => {
+            mockFetch = jest.fn();
+            global.fetch = mockFetch;
+            jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        it('should fetch live search results after 300ms debounce', async () => {
+            mockFetch.mockResolvedValue({
+                ok: true,
+                json: async () => ({
+                    users: [{ id: '1', username: 'testuser' }],
+                    recipes: [{ id: '2', title: 'Test Recipe' }],
+                }),
+            });
+
+            renderWithTheme(<PersistentSearchBar showSuggestions={true} />);
+
+            const input = screen.getByRole('textbox');
+
+            // Type enough characters to trigger search
+            fireEvent.change(input, { target: { value: 'pasta' } });
+            fireEvent.focus(input);
+
+            // Should not have called fetch yet (debounce pending)
+            expect(mockFetch).not.toHaveBeenCalledWith(
+                expect.stringContaining('/api/search'),
+                expect.anything()
+            );
+
+            // Advance timers past debounce threshold
+            await act(async () => {
+                jest.advanceTimersByTime(350);
+            });
+
+            // Now fetch should have been called
+            await waitFor(() => {
+                expect(mockFetch).toHaveBeenCalledWith('/api/search?q=pasta');
+            });
+        });
+
+        it('should handle search API error gracefully - line 137', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+            mockFetch.mockRejectedValue(new Error('Network error'));
+
+            renderWithTheme(<PersistentSearchBar showSuggestions={true} />);
+
+            const input = screen.getByRole('textbox');
+            fireEvent.change(input, { target: { value: 'test' } });
+            fireEvent.focus(input);
+
+            // Advance timers past debounce
+            await act(async () => {
+                jest.advanceTimersByTime(350);
+            });
+
+            // Should have logged error
+            await waitFor(() => {
+                expect(consoleErrorSpy).toHaveBeenCalledWith('Search error:', expect.any(Error));
+            });
+
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('should clear results when query is too short', async () => {
+            renderWithTheme(<PersistentSearchBar showSuggestions={true} />);
+
+            const input = screen.getByRole('textbox');
+            fireEvent.change(input, { target: { value: 'a' } });
+            fireEvent.focus(input);
+
+            // Advance timers
+            await act(async () => {
+                jest.advanceTimersByTime(350);
+            });
+
+            // Should NOT call API for single character
+            expect(mockFetch).not.toHaveBeenCalled();
+        });
+    });
+
+    // ==================== RECENT SEARCHES TESTS (lines 550-552) ====================
+    describe('Recent Searches Display (lines 550-552)', () => {
+        it('should display recent searches when no query and focused', async () => {
+            const user = userEvent.setup({ delay: null });
+            const recentSearches = ['pasta', 'chicken', 'salad'];
+
+            renderWithTheme(
+                <PersistentSearchBar
+                    showSuggestions={true}
+                    recentSearches={recentSearches}
+                />
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+
+            // Should display "Recent Searches" header and items
+            await waitFor(() => {
+                expect(screen.getByText('Recent Searches')).toBeInTheDocument();
+                expect(screen.getByText('pasta')).toBeInTheDocument();
+                expect(screen.getByText('chicken')).toBeInTheDocument();
+                expect(screen.getByText('salad')).toBeInTheDocument();
+            });
+        });
+
+        it('should navigate when clicking a recent search', async () => {
+            const user = userEvent.setup({ delay: null });
+            const recentSearches = ['pizza', 'burger'];
+
+            renderWithTheme(
+                <PersistentSearchBar
+                    showSuggestions={true}
+                    recentSearches={recentSearches}
+                />
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+
+            // Wait for recent searches to appear
+            const pizzaItem = await screen.findByText('pizza');
+            await user.click(pizzaItem);
+
+            expect(mockPush).toHaveBeenCalledWith('/search?q=pizza');
+        });
+
+        it('should show "Type to search" when no recent searches', async () => {
+            const user = userEvent.setup({ delay: null });
+
+            renderWithTheme(
+                <PersistentSearchBar
+                    showSuggestions={true}
+                    recentSearches={[]}
+                />
+            );
+
+            const input = screen.getByRole('textbox');
+            await user.click(input);
+
+            await waitFor(() => {
+                expect(screen.getByText('Type to search recipes...')).toBeInTheDocument();
+            });
+        });
+    });
 });
