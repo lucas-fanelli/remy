@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 /**
  * Global Page Transition Template
@@ -9,6 +10,9 @@ import { motion, AnimatePresence } from 'framer-motion';
  * Consistent "Slide Up & Fade" transition for ALL pages.
  * Uses mode="wait" for clean sequential transitions.
  * Spring physics for snappy, polished feel.
+ * 
+ * The isClient pattern prevents SSR hydration mismatch by not rendering
+ * the animation wrapper until client-side hydration completes.
  */
 
 interface TemplateProps {
@@ -17,9 +21,20 @@ interface TemplateProps {
 
 export default function Template({ children }: TemplateProps) {
     const pathname = usePathname();
+    const [isClient, setIsClient] = useState(false);
+
+    // Wait for client-side hydration to complete before animating
+    useEffect(() => {
+        setIsClient(true);
+    }, [pathname]);
+
+    // Don't render animation wrapper during SSR - prevents hydration mismatch
+    if (!isClient) {
+        return <>{children}</>;
+    }
 
     return (
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="wait">
             <motion.div
                 key={pathname}
                 initial={{ opacity: 0, y: 20 }}
