@@ -41,12 +41,11 @@ beforeAll(() => {
     if (
       typeof message === 'string' &&
       (message.includes('Warning: An update to') ||
-       message.includes('inside a test was not wrapped in act') ||
-       message.includes('TouchRipple') ||
-       message.includes('Error changing password:') ||
-       message.includes('Error updating recipe:') ||
-       message.includes('Search error:') ||
-       message.includes('Failed to fetch notifications'))
+        message.includes('inside a test was not wrapped in act') ||
+        message.includes('TouchRipple') ||
+        message.includes('Error changing password:') ||
+        message.includes('Error updating recipe:') ||
+        message.includes('Search error:'))
     ) {
       return
     }
