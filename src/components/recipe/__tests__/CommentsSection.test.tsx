@@ -114,9 +114,9 @@ describe('CommentsSection Component', () => {
 
     const { container } = renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
-    // Check for skeleton loading state (looking for skeleton elements)
-    const skeletons = container.querySelectorAll('.MuiSkeleton-root');
-    expect(skeletons.length).toBeGreaterThan(0);
+    // Loading state now renders null instead of skeletons
+    // The comments list section should be empty/null during loading
+    expect(container.querySelectorAll('.MuiCard-root').length).toBe(0);
   });
 
   it('should show empty state when no comments', async () => {

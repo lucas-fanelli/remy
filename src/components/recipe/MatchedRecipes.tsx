@@ -14,7 +14,6 @@ import {
   Tabs,
   Tab,
   LinearProgress,
-  Skeleton,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -105,28 +104,7 @@ export default function MatchedRecipes() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ mb: { xs: 4, md: 6 } }}>
-        <Skeleton variant="text" sx={{ width: { xs: 200, md: 250 }, height: { xs: 32, md: 40 }, mb: { xs: 1.5, md: 2 } }} />
-        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-          {[1, 2, 3].map((item) => (
-            <Grid item xs={12} sm={6} md={4} key={item}>
-              <Card>
-                <Skeleton variant="rectangular" width="100%" sx={{ height: { xs: 160, sm: 180, md: 200 } }} />
-                <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-                  <Skeleton variant="text" width="80%" height={30} />
-                  <Skeleton variant="text" width="60%" height={24} sx={{ mt: 1 }} />
-                  <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mt: { xs: 1.5, md: 2 } }}>
-                    <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 2 }} />
-                    <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 2 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
+    return null;
   }
 
   if (!pantryItemsCount || pantryItemsCount === 0) {

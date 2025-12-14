@@ -10,7 +10,6 @@ import {
   CardContent,
   Rating,
   Divider,
-  Skeleton,
   Alert,
   Chip,
   IconButton,
@@ -457,24 +456,7 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
 
       {/* Comments List */}
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
-          {[...Array(3)].map((_, index) => (
-            <Card key={`comment-skeleton-${index}`}>
-              <CardContent>
-                <Box sx={{ display: 'flex', gap: { xs: 1, md: 1.5 }, mb: { xs: 1, md: 1.5 } }}>
-                  <Skeleton variant="circular" sx={{ width: { xs: 32, md: 40 }, height: { xs: 32, md: 40 } }} />
-                  <Box sx={{ flex: 1 }}>
-                    <Skeleton variant="text" width="30%" height={24} />
-                    <Skeleton variant="text" width="20%" height={20} />
-                  </Box>
-                </Box>
-                <Skeleton variant="text" width="100%" />
-                <Skeleton variant="text" width="90%" />
-                <Skeleton variant="text" width="70%" />
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
+        null
       ) : comments.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: { xs: 4, md: 6 } }}>
           <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>

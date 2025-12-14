@@ -11,7 +11,6 @@ import {
   Avatar,
   Typography,
   Divider,
-  Skeleton,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -86,22 +85,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
       }}
     >
       {loading ? (
-        <List sx={{ py: 0 }}>
-          {[...Array(3)].map((_, index) => (
-            <React.Fragment key={`skeleton-${index}`}>
-              {index > 0 && <Divider />}
-              <ListItem>
-                <ListItemAvatar>
-                  <Skeleton variant="circular" width={40} height={40} />
-                </ListItemAvatar>
-                <ListItemText
-                  primary={<Skeleton variant="text" width="60%" />}
-                  secondary={<Skeleton variant="text" width="40%" />}
-                />
-              </ListItem>
-            </React.Fragment>
-          ))}
-        </List>
+        null
       ) : !hasResults ? (
         <Box sx={{ py: { xs: 2, md: 3 }, px: { xs: 1.5, md: 2 }, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
@@ -159,29 +143,29 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                     px: { xs: 1.5, md: 2 },
                   }}
                 >
-                <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
-                  <Avatar
-                    src={user.avatar}
-                    sx={{
-                      bgcolor: 'primary.main',
-                      width: { xs: 32, md: 40 },
-                      height: { xs: 32, md: 40 }
+                  <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
+                    <Avatar
+                      src={user.avatar}
+                      sx={{
+                        bgcolor: 'primary.main',
+                        width: { xs: 32, md: 40 },
+                        height: { xs: 32, md: 40 }
+                      }}
+                    >
+                      <Person sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={user.username}
+                    secondary={isMobile ? null : user.email}
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                      fontSize: { xs: '0.875rem', md: '1rem' }
                     }}
-                  >
-                    <Person sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={user.username}
-                  secondary={isMobile ? null : user.email}
-                  primaryTypographyProps={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.875rem', md: '1rem' }
-                  }}
-                  secondaryTypographyProps={{
-                    fontSize: { xs: '0.75rem', md: '0.875rem' }
-                  }}
-                />
+                    secondaryTypographyProps={{
+                      fontSize: { xs: '0.75rem', md: '0.875rem' }
+                    }}
+                  />
                 </ListItemButton>
               </ListItem>
             </React.Fragment>
@@ -201,33 +185,33 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                     px: { xs: 1.5, md: 2 },
                   }}
                 >
-                <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
-                  <Avatar
-                    src={recipe.imageUrl}
-                    variant="rounded"
-                    sx={{
-                      bgcolor: 'secondary.main',
-                      width: { xs: 32, md: 40 },
-                      height: { xs: 32, md: 40 }
+                  <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
+                    <Avatar
+                      src={recipe.imageUrl}
+                      variant="rounded"
+                      sx={{
+                        bgcolor: 'secondary.main',
+                        width: { xs: 32, md: 40 },
+                        height: { xs: 32, md: 40 }
+                      }}
+                    >
+                      <Restaurant sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={recipe.title}
+                    secondary={isMobile
+                      ? null
+                      : `${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
+                    }
+                    primaryTypographyProps={{
+                      fontWeight: 600,
+                      fontSize: { xs: '0.875rem', md: '1rem' }
                     }}
-                  >
-                    <Restaurant sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={recipe.title}
-                  secondary={isMobile
-                    ? null
-                    : `${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
-                  }
-                  primaryTypographyProps={{
-                    fontWeight: 600,
-                    fontSize: { xs: '0.875rem', md: '1rem' }
-                  }}
-                  secondaryTypographyProps={{
-                    fontSize: { xs: '0.75rem', md: '0.875rem' }
-                  }}
-                />
+                    secondaryTypographyProps={{
+                      fontSize: { xs: '0.75rem', md: '0.875rem' }
+                    }}
+                  />
                 </ListItemButton>
               </ListItem>
             </React.Fragment>

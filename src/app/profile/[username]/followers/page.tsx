@@ -14,7 +14,6 @@ import {
   ListItemText,
   Avatar,
   Button,
-  Skeleton,
   Alert,
   Toolbar,
   IconButton,
@@ -109,30 +108,7 @@ export default function FollowersPage() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Toolbar />
-        <Container maxWidth="md" sx={{ pt: 2, pb: 4 }}>
-          <Box sx={{ mb: 3 }}>
-            <Skeleton variant="text" width={200} height={40} />
-          </Box>
-          <List>
-            {[1, 2, 3, 4, 5].map((item) => (
-              <ListItem key={item} sx={{ py: 2 }}>
-                <ListItemAvatar>
-                  <Skeleton variant="circular" width={48} height={48} />
-                </ListItemAvatar>
-                <ListItemText
-                  primary={<Skeleton width="60%" />}
-                  secondary={<Skeleton width="40%" />}
-                />
-                <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 1 }} />
-              </ListItem>
-            ))}
-          </List>
-        </Container>
-      </Box>
-    );
+    return null;
   }
 
   if (error) {

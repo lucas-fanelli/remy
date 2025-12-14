@@ -168,10 +168,9 @@ describe('RecipeFeed Component', () => {
 
   // Helper to wait for component loading to complete
   const waitForLoadingComplete = async (container: HTMLElement) => {
-    // Wait for skeletons to disappear (indicates loading complete)
+    // Wait for any content to appear (loading returns null now)
     await waitFor(() => {
-      const skeletons = container.querySelectorAll('.MuiSkeleton-root');
-      expect(skeletons.length).toBe(0);
+      expect(screen.queryByText('Discover Recipes')).toBeInTheDocument();
     }, { timeout: 3000 });
     // Additional flush to ensure all state updates complete
     await act(async () => {
@@ -179,15 +178,14 @@ describe('RecipeFeed Component', () => {
     });
   };
 
-  it('should render loading state initially', () => {
+  it('should render loading state initially as null content', () => {
     mockFetch.mockImplementation(() => new Promise(() => { }));
 
     const { container } = renderWithProviders(<RecipeFeed />);
 
-    // Should show skeleton loading cards instead of progressbar
-    // MUI Skeleton uses the class "MuiSkeleton-root"
-    const skeletons = container.querySelectorAll('.MuiSkeleton-root');
-    expect(skeletons.length).toBeGreaterThan(0);
+    // Loading state now renders null for the loading skeleton area
+    // Discover Recipes heading should still be present
+    expect(screen.getByText('Discover Recipes')).toBeInTheDocument();
   });
 
   it('should fetch and display recipes', async () => {
@@ -253,15 +251,14 @@ describe('RecipeFeed Component', () => {
   it('should render filter controls', async () => {
     setupSuccessfulFetch();
 
-    const { container } = renderWithProviders(<RecipeFeed />);
+    renderWithProviders(<RecipeFeed />);
 
     // Filters section should be present
     expect(screen.getByText('Filters')).toBeInTheDocument();
 
-    // Wait for component to load fully (skeleton cards should disappear)
+    // Wait for recipes to load
     await waitFor(() => {
-      const skeletons = container.querySelectorAll('.MuiSkeleton-root');
-      expect(skeletons.length).toBe(0);
+      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
     });
   });
 

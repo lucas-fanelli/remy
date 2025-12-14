@@ -24,7 +24,6 @@ import {
   DialogActions,
   Snackbar,
   Toolbar,
-  Skeleton,
   useTheme,
   useMediaQuery,
   Rating,
@@ -345,49 +344,7 @@ export default function RecipeDetailPage() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Toolbar />
-        <Container maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, pb: { xs: 6, md: 8 }, px: { xs: 2, md: 3 } }}>
-          {/* Recipe Image Skeleton */}
-          <Skeleton variant="rectangular" width="100%" sx={{ height: { xs: 250, sm: 350, md: 400 }, borderRadius: 2, mb: { xs: 2, md: 3 } }} />
-
-          {/* Title and Meta Skeleton */}
-          <Box sx={{ mb: { xs: 2, md: 3 } }}>
-            <Skeleton variant="text" sx={{ width: { xs: '90%', md: '80%' }, height: { xs: 36, md: 48 }, mb: { xs: 1.5, md: 2 } }} />
-            <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mb: { xs: 1.5, md: 2 }, flexWrap: 'wrap' }}>
-              <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 2 }} />
-              <Skeleton variant="rectangular" width={80} height={32} sx={{ borderRadius: 2 }} />
-              <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 2 }} />
-            </Box>
-          </Box>
-
-          {/* Author Skeleton */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, md: 2 }, mb: { xs: 2, md: 3 } }}>
-            <Skeleton variant="circular" sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 } }} />
-            <Box sx={{ flex: 1 }}>
-              <Skeleton variant="text" width={150} height={24} />
-              <Skeleton variant="text" width={100} height={20} />
-            </Box>
-          </Box>
-
-          {/* Action Buttons Skeleton */}
-          <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, mb: { xs: 3, md: 4 }, flexWrap: 'wrap' }}>
-            <Skeleton variant="rectangular" sx={{ width: { xs: '100%', sm: 120 }, height: 40, borderRadius: 1 }} />
-            <Skeleton variant="rectangular" sx={{ width: { xs: '100%', sm: 120 }, height: 40, borderRadius: 1 }} />
-            <Skeleton variant="rectangular" sx={{ width: { xs: '100%', sm: 150 }, height: 40, borderRadius: 1 }} />
-          </Box>
-
-          <Divider sx={{ my: { xs: 3, md: 4 } }} />
-
-          {/* Details Cards Skeleton */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: { xs: 1.5, md: 2 }, mb: { xs: 3, md: 4 } }}>
-            <Card><CardContent sx={{ p: { xs: 1.5, md: 2 } }}><Skeleton variant="text" width="60%" height={30} /><Skeleton variant="text" width="80%" height={24} /></CardContent></Card>
-            <Card><CardContent sx={{ p: { xs: 1.5, md: 2 } }}><Skeleton variant="text" width="60%" height={30} /><Skeleton variant="text" width="80%" height={24} /></CardContent></Card>
-          </Box>
-        </Container>
-      </Box>
-    );
+    return null;
   }
 
   if (error || !recipe) {

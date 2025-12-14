@@ -49,14 +49,13 @@ describe('SearchResults Component', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('should show loading state', () => {
-    renderWithTheme(
+  it('should show loading state as null', () => {
+    const { container } = renderWithTheme(
       <SearchResults query="test" users={[]} recipes={[]} loading={true} onClose={mockOnClose} />
     );
 
-    // Check for skeleton loading state
-    const listItems = screen.getAllByRole('listitem');
-    expect(listItems.length).toBeGreaterThan(0);
+    // Loading state now renders null instead of skeleton list items
+    expect(container.querySelector('.MuiList-root')).toBeNull();
   });
 
   it('should show no results message when no users or recipes found', () => {

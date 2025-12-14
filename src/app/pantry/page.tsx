@@ -32,7 +32,6 @@ import {
   ListItemSecondaryAction,
   Divider,
   Toolbar,
-  Skeleton,
 } from '@mui/material';
 import {
   Add,
@@ -346,27 +345,7 @@ export default function PantryPage() {
 
         {/* Items by Category */}
         {loading ? (
-          <Grid container spacing={2}>
-            {[1, 2, 3, 4].map((item) => (
-              <Grid item xs={12} md={6} key={item}>
-                <Card>
-                  <CardContent>
-                    <Skeleton variant="text" width="40%" height={32} sx={{ mb: 2 }} />
-                    <List dense>
-                      {[1, 2, 3].map((i) => (
-                        <ListItem key={i}>
-                          <ListItemText
-                            primary={<Skeleton variant="text" width="60%" />}
-                            secondary={<Skeleton variant="text" width="40%" />}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          null
         ) : filteredItems.length === 0 ? (
           <Card sx={{ p: 6, textAlign: 'center' }}>
             <Kitchen sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />

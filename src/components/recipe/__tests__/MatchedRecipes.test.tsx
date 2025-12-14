@@ -54,23 +54,20 @@ describe('MatchedRecipes Component', () => {
     mockUseAuth.mockReturnValue({ token: null }); // Default to no token
   });
 
-  it('should render loading state initially', () => {
-    mockFetch.mockImplementation(() => new Promise(() => {}));
+  it('should render null during loading state', () => {
+    mockFetch.mockImplementation(() => new Promise(() => { }));
 
     const { container } = renderWithProviders(<MatchedRecipes />);
 
-    // Should show skeleton loading cards instead of progressbar
-    // MUI Skeleton uses the class "MuiSkeleton-root"
-    const skeletons = container.querySelectorAll('.MuiSkeleton-root');
-    expect(skeletons.length).toBeGreaterThan(0);
+    // Loading state returns null - no content should be rendered
+    expect(container.firstChild).toBeNull();
   });
 
-  it('should render without fetching when no token', () => {
+  it('should render null without fetching when no token', () => {
     const { container } = renderWithProviders(<MatchedRecipes />);
 
-    // Should show skeleton loading cards
-    const skeletons = container.querySelectorAll('.MuiSkeleton-root');
-    expect(skeletons.length).toBeGreaterThan(0);
+    // Loading state returns null
+    expect(container.firstChild).toBeNull();
 
     // Verify no fetch was called
     expect(mockFetch).not.toHaveBeenCalled();
@@ -357,7 +354,7 @@ describe('MatchedRecipes Component', () => {
   });
 
   it('should handle fetch error gracefully', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 

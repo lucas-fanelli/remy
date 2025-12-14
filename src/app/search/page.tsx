@@ -12,7 +12,6 @@ import {
   CardContent,
   CardMedia,
   Avatar,
-  Skeleton,
   Paper,
   useTheme,
   useMediaQuery,
@@ -65,21 +64,7 @@ const getDifficultyColor = (difficulty: string) => {
 
 // Fallback loading component for Suspense
 function SearchPageFallback() {
-  return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pt: 4 }}>
-      <Container maxWidth="lg">
-        <Skeleton variant="text" width={200} height={40} sx={{ mb: 2 }} />
-        <Skeleton variant="rectangular" height={48} sx={{ mb: 3, borderRadius: 1 }} />
-        <Grid container spacing={2}>
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-    </Box>
-  );
+  return null;
 }
 
 // Main search page content that uses useSearchParams
@@ -160,24 +145,7 @@ function SearchPageContent() {
         </Paper>
 
         {loading ? (
-          <Grid container spacing={3}>
-            {[...Array(6)].map((_, index) => (
-              <Grid item xs={12} sm={6} md={4} key={`skeleton-${index}`}>
-                <Card>
-                  <Skeleton variant="rectangular" sx={{ height: 200 }} />
-                  <CardContent>
-                    <Skeleton variant="text" width="70%" height={28} sx={{ mb: 1 }} />
-                    <Skeleton variant="text" width="100%" />
-                    <Skeleton variant="text" width="90%" sx={{ mb: 2 }} />
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Skeleton variant="circular" width={24} height={24} />
-                      <Skeleton variant="text" width={100} />
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          null
         ) : (
           <TabPanelTransition activeKey={tabValue}>
             {/* Recipes Tab */}

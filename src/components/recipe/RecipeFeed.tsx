@@ -18,7 +18,6 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  Skeleton,
   Card,
   CardContent,
   useTheme,
@@ -524,57 +523,8 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
         )
       )}
 
-      {/* Loading Skeleton Cards */}
-      {loading && recipes.length === 0 && (
-        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-          {[1, 2, 3, 4, 5, 6].map((item) => (
-            <Grid item xs={12} sm={6} md={4} key={item}>
-              <Card>
-                <Skeleton variant="rectangular" width="100%" sx={{ height: { xs: 180, sm: 200, md: 240 } }} />
-                <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.5, md: 2 } }}>
-                    <Skeleton variant="circular" sx={{ width: { xs: 32, md: 40 }, height: { xs: 32, md: 40 } }} />
-                    <Skeleton variant="text" width={120} height={24} />
-                  </Box>
-                  <Skeleton variant="text" width="90%" height={28} />
-                  <Skeleton variant="text" width="70%" height={20} sx={{ mt: 1 }} />
-                  <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mt: { xs: 1.5, md: 2 } }}>
-                    <Skeleton variant="rectangular" width={70} height={24} sx={{ borderRadius: 2 }} />
-                    <Skeleton variant="rectangular" width={70} height={24} sx={{ borderRadius: 2 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-
-      {/* Loading More Indicator */}
-      {loading && recipes.length > 0 && (
-        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-          {[...Array(3)].map((_, index) => (
-            <Grid item xs={12} sm={6} md={4} key={`skeleton-${index}`}>
-              <Card>
-                <Skeleton
-                  variant="rectangular"
-                  sx={{
-                    height: { xs: 180, sm: 200, md: 240 }
-                  }}
-                />
-                <CardContent>
-                  <Skeleton variant="text" width="60%" height={32} sx={{ mb: 1 }} />
-                  <Skeleton variant="text" width="100%" />
-                  <Skeleton variant="text" width="80%" sx={{ mb: 2 }} />
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 1 }} />
-                    <Skeleton variant="rectangular" width={100} height={24} sx={{ borderRadius: 1 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+      {/* Loading state - render nothing */}
+      {loading && recipes.length === 0 && null}
 
       {/* End of Feed Message */}
       {!loading && !hasMore && recipes.length > 0 && (

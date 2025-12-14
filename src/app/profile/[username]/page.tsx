@@ -18,7 +18,6 @@ import {
   Chip,
   Alert,
   Divider,
-  Skeleton,
   Toolbar,
   Grow,
 } from '@mui/material';
@@ -240,59 +239,7 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ minHeight: '100vh', pb: 8, backgroundColor: 'background.default' }}>
-        {/* Spacer for fixed AppBar */}
-        <Toolbar />
-
-        <Container maxWidth="lg" sx={{ pt: 2 }}>
-          {/* Profile Header Skeleton */}
-          <Box sx={{ display: 'flex', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Skeleton variant="circular" width={150} height={150} />
-            </Box>
-            <Box sx={{ flex: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Skeleton variant="text" width={200} height={40} />
-                <Skeleton variant="rectangular" width={120} height={32} sx={{ borderRadius: 1 }} />
-              </Box>
-              <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
-                <Skeleton variant="text" width={100} height={30} />
-                <Skeleton variant="text" width={100} height={30} />
-                <Skeleton variant="text" width={100} height={30} />
-              </Box>
-              <Skeleton variant="text" width="80%" height={20} />
-              <Skeleton variant="text" width="60%" height={20} />
-            </Box>
-          </Box>
-
-          <Divider sx={{ mb: 3 }} />
-
-          {/* Tabs Skeleton */}
-          <Box sx={{ mb: 3 }}>
-            <Skeleton variant="rectangular" width="100%" height={48} />
-          </Box>
-
-          {/* Recipe Grid Skeleton */}
-          <Grid container spacing={2}>
-            {[1, 2, 3, 4, 5, 6].map((item) => (
-              <Grid item xs={12} sm={6} md={4} key={item}>
-                <Card>
-                  <Skeleton variant="rectangular" width="100%" height={200} />
-                  <CardContent>
-                    <Skeleton variant="text" width="80%" height={30} />
-                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                      <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 2 }} />
-                      <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 2 }} />
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
-    );
+    return null;
   }
 
   if (error || !profile) {
