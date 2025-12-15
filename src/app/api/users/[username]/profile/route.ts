@@ -26,11 +26,16 @@ export async function GET(
         let currentUserId: string | null = null;
 
         if (authHeader) {
-            const token = authHeader.replace('Bearer ', '');
-            const tokenService = container.getTokenService();
-            const payload = tokenService.verify(token);
-            if (payload) {
-                currentUserId = payload.userId;
+            try {
+                const token = authHeader.replace('Bearer ', '');
+                const tokenService = container.getTokenService();
+                const payload = tokenService.verify(token);
+                if (payload) {
+                    currentUserId = payload.userId;
+                }
+            } catch {
+                // Token verification failed - continue without authentication
+                // This allows viewing profiles without being logged in
             }
         }
 
