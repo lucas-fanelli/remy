@@ -10,17 +10,16 @@ import {
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Avatar,
   Paper,
   useTheme,
   useMediaQuery,
-  Chip,
 } from '@mui/material';
-import { Person, Restaurant, AccessTime } from '@mui/icons-material';
+import { Person, Restaurant } from '@mui/icons-material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
+import RecipeCard from '@/components/recipe/RecipeCard';
 
 interface User {
   id: string;
@@ -48,19 +47,6 @@ interface TabPanelProps {
   index: number;
   value: number;
 }
-
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty.toLowerCase()) {
-    case 'easy':
-      return 'success';
-    case 'medium':
-      return 'warning';
-    case 'hard':
-      return 'error';
-    default:
-      return 'default';
-  }
-};
 
 // Fallback loading component for Suspense
 function SearchPageFallback() {
@@ -133,7 +119,7 @@ function SearchPageContent() {
           </Typography>
         </Box>
 
-        <Paper sx={{ mb: 3 }}>
+        <Paper sx={{ mb: 3, width: 'fit-content' }}>
           <AnimatedTabs
             tabs={[
               { key: 0, label: `Recipes (${recipes.length})`, icon: <Restaurant /> },
@@ -165,95 +151,25 @@ function SearchPageContent() {
                   <Grid container spacing={3}>
                     {recipes.map((recipe) => (
                       <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-                        <Card
-                          sx={{
-                            backgroundColor: (theme) => theme.palette.background.paper,
-                            cursor: 'pointer',
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: 4,
-                            },
+                        <RecipeCard
+                          recipe={{
+                            id: recipe.id,
+                            title: recipe.title,
+                            description: recipe.description,
+                            imageUrl: recipe.imageUrl,
+                            difficulty: recipe.difficulty as 'easy' | 'medium' | 'hard',
+                            prepTime: recipe.prepTime,
+                            cookingTime: recipe.cookingTime,
+                            servings: 0,
+                            ingredients: [],
+                            steps: [],
+                            userId: recipe.author?.username || '',
+                            author: recipe.author,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
                           }}
                           onClick={() => handleRecipeClick(recipe.id)}
-                        >
-                          <Box sx={{ position: 'relative' }}>
-                            <CardMedia
-                              component="img"
-                              height="200"
-                              image={recipe.imageUrl}
-                              alt={recipe.title}
-                              sx={{ objectFit: 'cover' }}
-                            />
-                            <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
-                              <Chip
-                                label={recipe.difficulty}
-                                size="small"
-                                color={getDifficultyColor(recipe.difficulty) as any}
-                                sx={{
-                                  fontWeight: 600,
-                                  textTransform: 'capitalize',
-                                  backdropFilter: 'blur(10px)',
-                                  color: 'white',
-                                  '& .MuiChip-label': { color: 'white' },
-                                }}
-                              />
-                            </Box>
-                            <Box sx={{ position: 'absolute', bottom: 12, left: 12 }}>
-                              <Chip
-                                icon={<AccessTime sx={{ fontSize: 14 }} />}
-                                label={`${recipe.prepTime + recipe.cookingTime} min`}
-                                size="small"
-                                sx={{
-                                  backdropFilter: 'blur(10px)',
-                                  backgroundColor: (theme) =>
-                                    theme.palette.mode === 'dark'
-                                      ? 'rgba(255,255,255,0.9)'
-                                      : 'rgba(0,0,0,0.7)',
-                                  color: (theme) =>
-                                    theme.palette.mode === 'dark' ? 'black' : 'white',
-                                  '& .MuiChip-icon': {
-                                    color: (theme) =>
-                                      theme.palette.mode === 'dark' ? 'black' : 'white',
-                                  },
-                                }}
-                              />
-                            </Box>
-                          </Box>
-                          <CardContent sx={{ flexGrow: 1 }}>
-                            <Typography variant="h6" gutterBottom noWrap>
-                              {recipe.title}
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{
-                                mb: 2,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                              }}
-                            >
-                              {recipe.description}
-                            </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Avatar
-                                src={recipe.author.avatar}
-                                sx={{ width: 24, height: 24 }}
-                              >
-                                {recipe.author.username.charAt(0).toUpperCase()}
-                              </Avatar>
-                              <Typography variant="caption" color="text.secondary">
-                                by {recipe.author.username}
-                              </Typography>
-                            </Box>
-                          </CardContent>
-                        </Card>
+                        />
                       </Grid>
                     ))}
                   </Grid>
