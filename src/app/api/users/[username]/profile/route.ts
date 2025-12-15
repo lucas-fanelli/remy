@@ -132,7 +132,7 @@ export async function GET(
                         },
                     },
                 },
-                orderBy: { savedAt: 'desc' },
+                orderBy: { createdAt: 'desc' },
             }).then(saved => saved.map(s => ({
                 id: s.post.id,
                 title: s.post.title,
