@@ -36,6 +36,11 @@ interface Recipe {
   difficulty: string;
   prepTime: number;
   cookingTime: number;
+  servings: number;
+  likeCount?: number;
+  commentCount?: number;
+  averageRating?: number;
+  totalRatings?: number;
   author: {
     username: string;
     avatar?: string;
@@ -119,7 +124,7 @@ function SearchPageContent() {
           </Typography>
         </Box>
 
-        <Paper sx={{ mb: 3, width: 'fit-content' }}>
+        <Paper sx={{ mb: 3, width: 'fit-content', mx: 'auto', borderRadius: '20px', overflow: 'hidden' }}>
           <AnimatedTabs
             tabs={[
               { key: 0, label: `Recipes (${recipes.length})`, icon: <Restaurant /> },
@@ -160,14 +165,18 @@ function SearchPageContent() {
                             difficulty: recipe.difficulty as 'easy' | 'medium' | 'hard',
                             prepTime: recipe.prepTime,
                             cookingTime: recipe.cookingTime,
-                            servings: 0,
+                            servings: recipe.servings || 4,
                             ingredients: [],
                             steps: [],
                             userId: recipe.author?.username || '',
                             author: recipe.author,
                             createdAt: new Date(),
                             updatedAt: new Date(),
+                            averageRating: recipe.averageRating,
+                            totalRatings: recipe.totalRatings,
                           }}
+                          likeCount={recipe.likeCount || 0}
+                          commentCount={recipe.commentCount || 0}
                           onClick={() => handleRecipeClick(recipe.id)}
                         />
                       </Grid>
