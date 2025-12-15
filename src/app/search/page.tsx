@@ -167,7 +167,7 @@ function SearchPageContent() {
                             cookingTime: recipe.cookingTime,
                             servings: recipe.servings || 4,
                             ingredients: [],
-                            steps: [],
+                            instructions: [],
                             userId: recipe.author?.username || '',
                             author: recipe.author,
                             createdAt: new Date(),
