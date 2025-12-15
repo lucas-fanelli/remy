@@ -1,60 +1,15 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
-
 /**
- * Global Page Transition Template
+ * Global Template - Passthrough
  * 
- * Consistent "Slide Up & Fade" transition for ALL pages.
- * Uses mode="wait" for clean sequential transitions.
- * Spring physics for snappy, polished feel.
- * 
- * The isClient pattern prevents SSR hydration mismatch by not rendering
- * the animation wrapper until client-side hydration completes.
+ * Animation is handled by individual pages after their data loads.
+ * This allows deferred navigation to work:
+ * 1. User clicks link
+ * 2. loading.tsx returns null, keeping current page visible
+ * 3. LoadingBar shows progress
+ * 4. When data loads, new page renders with its own entrance animation
  */
-
-interface TemplateProps {
-    children: React.ReactNode;
-}
-
-export default function Template({ children }: TemplateProps) {
-    const pathname = usePathname();
-    const [isClient, setIsClient] = useState(false);
-
-    // Wait for client-side hydration to complete before animating
-    useEffect(() => {
-        setIsClient(true);
-    }, [pathname]);
-
-    // During SSR/initial render, show content immediately (no animation, transparent background)
-    // The page's own background will show through
-    if (!isClient) {
-        return (
-            <div style={{ minHeight: '100vh' }}>
-                {children}
-            </div>
-        );
-    }
-
-    // After hydration, use animated wrapper (also transparent to let page backgrounds show)
-    return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key={pathname}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{
-                    type: 'spring',
-                    stiffness: 300,
-                    damping: 30,
-                }}
-                style={{ minHeight: '100vh' }}
-            >
-                {children}
-            </motion.div>
-        </AnimatePresence>
-    );
+export default function Template({ children }: { children: React.ReactNode }) {
+    return <>{children}</>;
 }

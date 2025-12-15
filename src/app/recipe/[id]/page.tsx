@@ -306,567 +306,573 @@ export default function RecipeDetailPage() {
 
   const totalTime = recipe ? recipe.prepTime + recipe.cookingTime : 0;
 
-  // Template.tsx handles the fade-in animation for this route
+  // Page-level animation for smooth transitions
   return (
-    <Box
-      sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      {/* Spacer for fixed AppBar - Material Design pattern */}
-      <Toolbar />
+      <Box
+        sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
+      >
+        {/* Spacer for fixed AppBar - Material Design pattern */}
+        <Toolbar />
 
-      {/* Loading state - inside MotionBox for animation */}
-      {loading && !recipe && (
-        <Box sx={{ minHeight: 'calc(100vh - 64px)' }}>
-          {/* Empty space with same structure to prevent layout shift */}
-        </Box>
-      )}
+        {/* Loading state - inside MotionBox for animation */}
+        {loading && !recipe && (
+          <Box sx={{ minHeight: 'calc(100vh - 64px)' }}>
+            {/* Empty space with same structure to prevent layout shift */}
+          </Box>
+        )}
 
-      {/* Error state */}
-      {(error || (!loading && !recipe)) && (
-        <Container maxWidth="md" sx={{ py: { xs: 3, md: 4 }, px: { xs: 2, md: 3 } }}>
-          <Alert severity="error" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}>
-            {error || 'Recipe not found'}
-          </Alert>
-          <Button onClick={handleBack} startIcon={<ArrowBack />} size={isMobile ? 'large' : 'medium'}>
-            Go Back
-          </Button>
-        </Container>
-      )}
+        {/* Error state */}
+        {(error || (!loading && !recipe)) && (
+          <Container maxWidth="md" sx={{ py: { xs: 3, md: 4 }, px: { xs: 2, md: 3 } }}>
+            <Alert severity="error" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}>
+              {error || 'Recipe not found'}
+            </Alert>
+            <Button onClick={handleBack} startIcon={<ArrowBack />} size={isMobile ? 'large' : 'medium'}>
+              Go Back
+            </Button>
+          </Container>
+        )}
 
-      {/* Recipe content */}
-      {recipe && (
-        <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 } }}>
-          {/* Recipe Image */}
-          <MotionBox
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            sx={{
-              position: 'relative',
-              cursor: 'pointer',
-              '&:hover .zoom-icon': { opacity: 1 },
-              borderRadius: 2,
-              overflow: 'hidden',
-            }}
-            onClick={() => handleImageClick(recipe.imageUrl, recipe.title)}
-          >
-            <Box
-              component="img"
-              src={recipe.imageUrl}
-              alt={recipe.title}
-              sx={{
-                width: '100%',
-                maxHeight: { xs: '300px', sm: '400px', md: '500px' },
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-            <Box
-              className="zoom-icon"
-              sx={{
-                position: 'absolute',
-                top: 16,
-                right: 16,
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                color: 'white',
-                borderRadius: '50%',
-                width: 40,
-                height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: 0,
-                transition: 'opacity 0.3s',
-              }}
-            >
-              <ZoomIn />
-            </Box>
-          </MotionBox>
-
-          {/* Recipe Header */}
-          <MotionBox
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            sx={{ mt: { xs: 2, md: 3 } }}
-          >
-            {/* Title and Tags */}
-            <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
-              <Typography
-                variant="h3"
-                component="h1"
-                gutterBottom
-                sx={{
-                  fontWeight: 700,
-                  color: 'text.primary',
-                  fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' },
-                }}
-              >
-                {recipe.title}
-              </Typography>
-
-              {/* Rating Display */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 1.5, md: 2 } }}>
-                {(recipe.averageRating !== undefined && recipe.averageRating > 0) ? (
-                  <>
-                    <Rating
-                      value={recipe.averageRating}
-                      precision={0.1}
-                      size={isMobile ? 'medium' : 'large'}
-                      readOnly
-                    />
-                    <Typography
-                      variant="body1"
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
-                    >
-                      {recipe.averageRating.toFixed(1)} ({recipe.totalRatings} {recipe.totalRatings === 1 ? 'review' : 'reviews'})
-                    </Typography>
-                  </>
-                ) : (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontStyle: 'italic' }}
-                  >
-                    No ratings yet
-                  </Typography>
-                )}
-              </Box>
-
-              <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 1.5, md: 2 } }}>
-                <Chip
-                  label={recipe.difficulty}
-                  color={getDifficultyColor(recipe.difficulty) as any}
-                  size={isMobile ? 'small' : 'medium'}
-                  sx={{
-                    textTransform: 'capitalize',
-                    fontWeight: 600,
-                    fontSize: { xs: '0.75rem', md: '0.8125rem' },
-                    color: 'common.white',
-                    '& .MuiChip-label': {
-                      color: 'common.white',
-                    },
-                  }}
-                />
-                <Chip
-                  icon={<Person sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
-                  label={`${recipe.servings} servings`}
-                  variant="outlined"
-                  size={isMobile ? 'small' : 'medium'}
-                  sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-                />
-                <Chip
-                  icon={<AccessTime sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
-                  label={`${totalTime} min total`}
-                  variant="outlined"
-                  size={isMobile ? 'small' : 'medium'}
-                  sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
-                />
-              </Box>
-            </Box>
-
-            {/* Author Info */}
-            {recipe.author && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: { xs: 1.5, md: 2 },
-                  mb: { xs: 2, md: 3 },
-                  cursor: 'pointer',
-                  '&:hover': {
-                    opacity: 0.8
-                  }
-                }}
-                onClick={() => router.push(`/profile/${recipe.author?.username}`)}
-              >
-                <Avatar
-                  src={recipe.author.avatar}
-                  alt={recipe.author.username}
-                  sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 } }}
-                >
-                  {recipe.author.username.charAt(0).toUpperCase()}
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', fontSize: { xs: '0.9375rem', md: '1rem' } }}>
-                    {recipe.author.fullName || recipe.author.username}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                    @{recipe.author.username}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-
-            {/* Description */}
-            <Typography variant="body1" color="text.secondary" paragraph sx={{ fontSize: { xs: '0.9375rem', sm: '1rem', md: '1.1rem' } }}>
-              {recipe.description}
-            </Typography>
-
-            {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, my: { xs: 2, md: 3 }, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <IconButton
-                  onClick={handleLike}
-                  color={liked ? 'error' : 'default'}
-                  size={isMobile ? 'medium' : 'large'}
-                  disabled={likeLoading}
-                >
-                  {liked ? <Favorite /> : <FavoriteBorder />}
-                </IconButton>
-                {likesCount > 0 && (
-                  <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary', fontSize: { xs: '0.875rem', md: '1rem' } }}>
-                    {likesCount}
-                  </Typography>
-                )}
-              </Box>
-              <IconButton
-                onClick={handleSave}
-                color={saved ? 'primary' : 'default'}
-                size={isMobile ? 'medium' : 'large'}
-                disabled={saveLoading}
-              >
-                {saved ? <Bookmark /> : <BookmarkBorder />}
-              </IconButton>
-              {!isMobile && (
-                <IconButton onClick={handleShare} size="large">
-                  <Share />
-                </IconButton>
-              )}
-              <Button
-                variant="outlined"
-                startIcon={<Restaurant />}
-                onClick={handleMarkAsCooked}
-                disabled={cookedLoading}
-                size={isMobile ? 'medium' : 'large'}
-                fullWidth={isMobile}
-              >
-                {cookedLoading ? 'Marking...' : 'Mark as Cooked'}
-              </Button>
-              {isOwner && (
-                <>
-                  <IconButton
-                    onClick={handleEdit}
-                    color="primary"
-                    size={isMobile ? 'medium' : 'large'}
-                    sx={{
-                      border: 1,
-                      borderColor: 'primary.main',
-                      '&:hover': {
-                        backgroundColor: 'primary.main',
-                        color: 'white',
-                        '& .MuiSvgIcon-root': {
-                          color: 'white',
-                        },
-                      },
-                    }}
-                  >
-                    <Edit />
-                  </IconButton>
-                  <IconButton
-                    onClick={handleDelete}
-                    color="error"
-                    size={isMobile ? 'medium' : 'large'}
-                    sx={{
-                      border: 1,
-                      borderColor: 'error.main',
-                      '&:hover': {
-                        backgroundColor: 'error.main',
-                        color: 'white',
-                        '& .MuiSvgIcon-root': {
-                          color: 'white',
-                        },
-                      },
-                    }}
-                  >
-                    <Delete />
-                  </IconButton>
-                </>
-              )}
-            </Box>
-
-            <Divider sx={{ my: { xs: 2, md: 3 } }} />
-
-            {/* Time Breakdown */}
-            <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, md: 3 }, flexWrap: 'wrap' }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
-                  PREP TIME
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-                  {recipe.prepTime} min
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
-                  COOK TIME
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-                  {recipe.cookingTime} min
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
-                  TOTAL TIME
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-                  {totalTime} min
-                </Typography>
-              </Box>
-            </Box>
-          </MotionBox>
-
-          {/* Ingredients Section */}
-          <MotionCard
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            sx={{ mb: 3 }}
-          >
-            <CardContent>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Ingredients
-              </Typography>
-              <Box component="ul" sx={{ pl: 2 }}>
-                {recipe.ingredients.map((ingredient: any, index: number) => (
-                  <Box
-                    component="li"
-                    key={index}
-                    sx={{
-                      mb: 1.5,
-                      typography: 'body1',
-                      '&::marker': { color: 'primary.main' },
-                    }}
-                  >
-                    <strong>{ingredient.amount} {ingredient.unit}</strong> {ingredient.name}
-                  </Box>
-                ))}
-              </Box>
-            </CardContent>
-          </MotionCard>
-
-          {/* Instructions Section */}
-          <MotionCard
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            sx={{ mb: 3 }}
-          >
-            <CardContent>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Instructions
-              </Typography>
-              <Box>
-                {recipe.instructions.map((instruction: any, index: number) => (
-                  <Box key={index} sx={{ mb: 3, display: 'flex', gap: 2 }}>
-                    <Box
-                      sx={{
-                        minWidth: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        backgroundColor: 'primary.main',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '1.1rem',
-                      }}
-                    >
-                      {instruction.step}
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
-                        {instruction.description}
-                      </Typography>
-                      {instruction.image && (
-                        <Box
-                          sx={{
-                            position: 'relative',
-                            maxWidth: 400,
-                            cursor: 'pointer',
-                            '&:hover .zoom-icon': { opacity: 1 },
-                          }}
-                          onClick={() => handleImageClick(instruction.image!, `Step ${instruction.step}`)}
-                        >
-                          <Box
-                            component="img"
-                            src={instruction.image}
-                            alt={`Step ${instruction.step}`}
-                            sx={{
-                              width: '100%',
-                              borderRadius: 2,
-                              mt: 2,
-                            }}
-                          />
-                          <Box
-                            className="zoom-icon"
-                            sx={{
-                              position: 'absolute',
-                              top: 24,
-                              right: 8,
-                              backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                              color: 'white',
-                              borderRadius: '50%',
-                              width: 32,
-                              height: 32,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              opacity: 0,
-                              transition: 'opacity 0.3s',
-                            }}
-                          >
-                            <ZoomIn sx={{ fontSize: 20 }} />
-                          </Box>
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </CardContent>
-          </MotionCard>
-
-          {/* Caption Section (if exists) */}
-          {recipe.caption && (
+        {/* Recipe content */}
+        {recipe && (
+          <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 } }}>
+            {/* Recipe Image */}
             <MotionBox
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.4 }}
+              sx={{
+                position: 'relative',
+                cursor: 'pointer',
+                '&:hover .zoom-icon': { opacity: 1 },
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+              onClick={() => handleImageClick(recipe.imageUrl, recipe.title)}
+            >
+              <Box
+                component="img"
+                src={recipe.imageUrl}
+                alt={recipe.title}
+                sx={{
+                  width: '100%',
+                  maxHeight: { xs: '300px', sm: '400px', md: '500px' },
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              <Box
+                className="zoom-icon"
+                sx={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: 40,
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0,
+                  transition: 'opacity 0.3s',
+                }}
+              >
+                <ZoomIn />
+              </Box>
+            </MotionBox>
+
+            {/* Recipe Header */}
+            <MotionBox
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              sx={{ mt: { xs: 2, md: 3 } }}
+            >
+              {/* Title and Tags */}
+              <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
+                <Typography
+                  variant="h3"
+                  component="h1"
+                  gutterBottom
+                  sx={{
+                    fontWeight: 700,
+                    color: 'text.primary',
+                    fontSize: { xs: '1.75rem', sm: '2.25rem', md: '3rem' },
+                  }}
+                >
+                  {recipe.title}
+                </Typography>
+
+                {/* Rating Display */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 1.5, md: 2 } }}>
+                  {(recipe.averageRating !== undefined && recipe.averageRating > 0) ? (
+                    <>
+                      <Rating
+                        value={recipe.averageRating}
+                        precision={0.1}
+                        size={isMobile ? 'medium' : 'large'}
+                        readOnly
+                      />
+                      <Typography
+                        variant="body1"
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+                      >
+                        {recipe.averageRating.toFixed(1)} ({recipe.totalRatings} {recipe.totalRatings === 1 ? 'review' : 'reviews'})
+                      </Typography>
+                    </>
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontStyle: 'italic' }}
+                    >
+                      No ratings yet
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 1.5, md: 2 } }}>
+                  <Chip
+                    label={recipe.difficulty}
+                    color={getDifficultyColor(recipe.difficulty) as any}
+                    size={isMobile ? 'small' : 'medium'}
+                    sx={{
+                      textTransform: 'capitalize',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.75rem', md: '0.8125rem' },
+                      color: 'common.white',
+                      '& .MuiChip-label': {
+                        color: 'common.white',
+                      },
+                    }}
+                  />
+                  <Chip
+                    icon={<Person sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
+                    label={`${recipe.servings} servings`}
+                    variant="outlined"
+                    size={isMobile ? 'small' : 'medium'}
+                    sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                  />
+                  <Chip
+                    icon={<AccessTime sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
+                    label={`${totalTime} min total`}
+                    variant="outlined"
+                    size={isMobile ? 'small' : 'medium'}
+                    sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
+                  />
+                </Box>
+              </Box>
+
+              {/* Author Info */}
+              {recipe.author && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 1.5, md: 2 },
+                    mb: { xs: 2, md: 3 },
+                    cursor: 'pointer',
+                    '&:hover': {
+                      opacity: 0.8
+                    }
+                  }}
+                  onClick={() => router.push(`/profile/${recipe.author?.username}`)}
+                >
+                  <Avatar
+                    src={recipe.author.avatar}
+                    alt={recipe.author.username}
+                    sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 } }}
+                  >
+                    {recipe.author.username.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', fontSize: { xs: '0.9375rem', md: '1rem' } }}>
+                      {recipe.author.fullName || recipe.author.username}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                      @{recipe.author.username}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Description */}
+              <Typography variant="body1" color="text.secondary" paragraph sx={{ fontSize: { xs: '0.9375rem', sm: '1rem', md: '1.1rem' } }}>
+                {recipe.description}
+              </Typography>
+
+              {/* Action Buttons */}
+              <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, my: { xs: 2, md: 3 }, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <IconButton
+                    onClick={handleLike}
+                    color={liked ? 'error' : 'default'}
+                    size={isMobile ? 'medium' : 'large'}
+                    disabled={likeLoading}
+                  >
+                    {liked ? <Favorite /> : <FavoriteBorder />}
+                  </IconButton>
+                  {likesCount > 0 && (
+                    <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary', fontSize: { xs: '0.875rem', md: '1rem' } }}>
+                      {likesCount}
+                    </Typography>
+                  )}
+                </Box>
+                <IconButton
+                  onClick={handleSave}
+                  color={saved ? 'primary' : 'default'}
+                  size={isMobile ? 'medium' : 'large'}
+                  disabled={saveLoading}
+                >
+                  {saved ? <Bookmark /> : <BookmarkBorder />}
+                </IconButton>
+                {!isMobile && (
+                  <IconButton onClick={handleShare} size="large">
+                    <Share />
+                  </IconButton>
+                )}
+                <Button
+                  variant="outlined"
+                  startIcon={<Restaurant />}
+                  onClick={handleMarkAsCooked}
+                  disabled={cookedLoading}
+                  size={isMobile ? 'medium' : 'large'}
+                  fullWidth={isMobile}
+                >
+                  {cookedLoading ? 'Marking...' : 'Mark as Cooked'}
+                </Button>
+                {isOwner && (
+                  <>
+                    <IconButton
+                      onClick={handleEdit}
+                      color="primary"
+                      size={isMobile ? 'medium' : 'large'}
+                      sx={{
+                        border: 1,
+                        borderColor: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'primary.main',
+                          color: 'white',
+                          '& .MuiSvgIcon-root': {
+                            color: 'white',
+                          },
+                        },
+                      }}
+                    >
+                      <Edit />
+                    </IconButton>
+                    <IconButton
+                      onClick={handleDelete}
+                      color="error"
+                      size={isMobile ? 'medium' : 'large'}
+                      sx={{
+                        border: 1,
+                        borderColor: 'error.main',
+                        '&:hover': {
+                          backgroundColor: 'error.main',
+                          color: 'white',
+                          '& .MuiSvgIcon-root': {
+                            color: 'white',
+                          },
+                        },
+                      }}
+                    >
+                      <Delete />
+                    </IconButton>
+                  </>
+                )}
+              </Box>
+
+              <Divider sx={{ my: { xs: 2, md: 3 } }} />
+
+              {/* Time Breakdown */}
+              <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, md: 3 }, flexWrap: 'wrap' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                    PREP TIME
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+                    {recipe.prepTime} min
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                    COOK TIME
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+                    {recipe.cookingTime} min
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                    TOTAL TIME
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+                    {totalTime} min
+                  </Typography>
+                </Box>
+              </Box>
+            </MotionBox>
+
+            {/* Ingredients Section */}
+            <MotionCard
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
               sx={{ mb: 3 }}
             >
-              <Paper sx={{
-                p: 3,
-                backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
-              }}>
-                <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
-                  &ldquo;{recipe.caption}&rdquo;
+              <CardContent>
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+                  Ingredients
                 </Typography>
-              </Paper>
+                <Box component="ul" sx={{ pl: 2 }}>
+                  {recipe.ingredients.map((ingredient: any, index: number) => (
+                    <Box
+                      component="li"
+                      key={index}
+                      sx={{
+                        mb: 1.5,
+                        typography: 'body1',
+                        '&::marker': { color: 'primary.main' },
+                      }}
+                    >
+                      <strong>{ingredient.amount} {ingredient.unit}</strong> {ingredient.name}
+                    </Box>
+                  ))}
+                </Box>
+              </CardContent>
+            </MotionCard>
+
+            {/* Instructions Section */}
+            <MotionCard
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              sx={{ mb: 3 }}
+            >
+              <CardContent>
+                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
+                  Instructions
+                </Typography>
+                <Box>
+                  {recipe.instructions.map((instruction: any, index: number) => (
+                    <Box key={index} sx={{ mb: 3, display: 'flex', gap: 2 }}>
+                      <Box
+                        sx={{
+                          minWidth: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          backgroundColor: 'primary.main',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                        }}
+                      >
+                        {instruction.step}
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+                          {instruction.description}
+                        </Typography>
+                        {instruction.image && (
+                          <Box
+                            sx={{
+                              position: 'relative',
+                              maxWidth: 400,
+                              cursor: 'pointer',
+                              '&:hover .zoom-icon': { opacity: 1 },
+                            }}
+                            onClick={() => handleImageClick(instruction.image!, `Step ${instruction.step}`)}
+                          >
+                            <Box
+                              component="img"
+                              src={instruction.image}
+                              alt={`Step ${instruction.step}`}
+                              sx={{
+                                width: '100%',
+                                borderRadius: 2,
+                                mt: 2,
+                              }}
+                            />
+                            <Box
+                              className="zoom-icon"
+                              sx={{
+                                position: 'absolute',
+                                top: 24,
+                                right: 8,
+                                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                color: 'white',
+                                borderRadius: '50%',
+                                width: 32,
+                                height: 32,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                opacity: 0,
+                                transition: 'opacity 0.3s',
+                              }}
+                            >
+                              <ZoomIn sx={{ fontSize: 20 }} />
+                            </Box>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </CardContent>
+            </MotionCard>
+
+            {/* Caption Section (if exists) */}
+            {recipe.caption && (
+              <MotionBox
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                sx={{ mb: 3 }}
+              >
+                <Paper sx={{
+                  p: 3,
+                  backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
+                }}>
+                  <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
+                    &ldquo;{recipe.caption}&rdquo;
+                  </Typography>
+                </Paper>
+              </MotionBox>
+            )}
+
+            {/* Comments Section */}
+            <MotionBox
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <CommentsSection recipeId={recipeId} recipeAuthorId={recipe.userId} onImageClick={handleImageClick} />
             </MotionBox>
-          )}
+          </Container>
+        )}
 
-          {/* Comments Section */}
-          <MotionBox
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <CommentsSection recipeId={recipeId} recipeAuthorId={recipe.userId} onImageClick={handleImageClick} />
-          </MotionBox>
-        </Container>
-      )}
+        {/* Edit Recipe Modal */}
+        <EditRecipeModal
+          open={editModalOpen}
+          recipe={recipe}
+          onClose={() => setEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+        />
 
-      {/* Edit Recipe Modal */}
-      <EditRecipeModal
-        open={editModalOpen}
-        recipe={recipe}
-        onClose={() => setEditModalOpen(false)}
-        onSuccess={handleEditSuccess}
-      />
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => !deleting && setDeleteDialogOpen(false)}
+        >
+          <DialogTitle>Delete Recipe?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete &ldquo;{recipe?.title}&rdquo;? This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button onClick={confirmDelete} color="error" disabled={deleting} autoFocus>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => !deleting && setDeleteDialogOpen(false)}
-      >
-        <DialogTitle>Delete Recipe?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete &ldquo;{recipe?.title}&rdquo;? This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button onClick={confirmDelete} color="error" disabled={deleting} autoFocus>
-            {deleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-      >
-        <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
-      {/* Fullscreen Image Viewer */}
-      <Dialog
-        open={imageViewerOpen}
-        onClose={handleImageViewerClose}
-        maxWidth={false}
-        fullWidth
-        onClick={handleImageViewerClose}
-        slotProps={{
-          backdrop: {
-            sx: {
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              backdropFilter: 'blur(8px)',
-              cursor: 'pointer',
-            },
-          },
-          paper: {
-            sx: {
-              backgroundColor: 'transparent',
-              boxShadow: 'none',
-              margin: 0,
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              height: '100vh',
-              pointerEvents: 'none',
-            },
-          },
-        }}
-      >
-        <IconButton
+        {/* Fullscreen Image Viewer */}
+        <Dialog
+          open={imageViewerOpen}
+          onClose={handleImageViewerClose}
+          maxWidth={false}
+          fullWidth
           onClick={handleImageViewerClose}
-          sx={{
-            position: 'absolute',
-            top: { xs: 72, sm: 16 },
-            right: { xs: 16, sm: 16 },
-            color: 'white',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+          slotProps={{
+            backdrop: {
+              sx: {
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                backdropFilter: 'blur(8px)',
+                cursor: 'pointer',
+              },
             },
-            zIndex: 1,
+            paper: {
+              sx: {
+                backgroundColor: 'transparent',
+                boxShadow: 'none',
+                margin: 0,
+                maxWidth: '100vw',
+                maxHeight: '100vh',
+                height: '100vh',
+                pointerEvents: 'none',
+              },
+            },
           }}
         >
-          <Close />
-        </IconButton>
-        {selectedImage && (
-          <Box
+          <IconButton
+            onClick={handleImageViewerClose}
             sx={{
-              width: '100%',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              p: { xs: 2, md: 4 },
+              position: 'absolute',
+              top: { xs: 72, sm: 16 },
+              right: { xs: 16, sm: 16 },
+              color: 'white',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              },
+              zIndex: 1,
             }}
           >
+            <Close />
+          </IconButton>
+          {selectedImage && (
             <Box
-              component="img"
-              src={selectedImage.url}
-              alt={selectedImage.alt}
               sx={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
+                width: '100%',
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: { xs: 2, md: 4 },
               }}
-            />
-          </Box>
-        )}
-      </Dialog>
-    </Box>
+            >
+              <Box
+                component="img"
+                src={selectedImage.url}
+                alt={selectedImage.alt}
+                sx={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                }}
+              />
+            </Box>
+          )}
+        </Dialog>
+      </Box>
+    </motion.div>
   );
 }

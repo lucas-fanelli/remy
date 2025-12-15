@@ -64,46 +64,52 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-      {/* Spacer for fixed AppBar - Material Design pattern */}
-      <Toolbar />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+    >
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        {/* Spacer for fixed AppBar - Material Design pattern */}
+        <Toolbar />
 
-      {/* Main Content */}
-      <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 10, sm: 11, md: 4 }, px: { xs: 2, md: 3 } }}>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+        {/* Main Content */}
+        <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 10, sm: 11, md: 4 }, px: { xs: 2, md: 3 } }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Recipe Matching based on pantry */}
+            <MatchedRecipes />
+
+            {/* Divider */}
+            <Box sx={{ my: { xs: 4, md: 6 } }} />
+
+            {/* All Recipes Feed */}
+            <RecipeFeed onCreateRecipe={() => setCreateDialogOpen(true)} />
+          </motion.div>
+        </Container>
+
+        {/* Create Recipe Dialog */}
+        <Dialog
+          open={createDialogOpen}
+          onClose={() => setCreateDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+          fullScreen={isMobile}
         >
-          {/* Recipe Matching based on pantry */}
-          <MatchedRecipes />
-
-          {/* Divider */}
-          <Box sx={{ my: { xs: 4, md: 6 } }} />
-
-          {/* All Recipes Feed */}
-          <RecipeFeed onCreateRecipe={() => setCreateDialogOpen(true)} />
-        </motion.div>
-      </Container>
-
-      {/* Create Recipe Dialog */}
-      <Dialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-        fullScreen={isMobile}
-      >
-        <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Create New Recipe</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: { xs: 1, md: 2 } }}>
-            <CreateRecipeForm
-              onSubmit={handleCreateRecipe}
-              onCancel={() => setCreateDialogOpen(false)}
-            />
-          </Box>
-        </DialogContent>
-      </Dialog>
-    </Box>
+          <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Create New Recipe</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: { xs: 1, md: 2 } }}>
+              <CreateRecipeForm
+                onSubmit={handleCreateRecipe}
+                onCancel={() => setCreateDialogOpen(false)}
+              />
+            </Box>
+          </DialogContent>
+        </Dialog>
+      </Box>
+    </motion.div>
   );
 }
