@@ -94,7 +94,7 @@ export default function AnimatedTabs({
                                     left: 12,
                                     right: 12,
                                     height: 3,
-                                    backgroundColor: 'rgb(103, 58, 183)',
+                                    backgroundColor: theme.palette.primary.main,
                                     borderRadius: 3,
                                 }}
                                 transition={{
