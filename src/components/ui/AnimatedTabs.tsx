@@ -90,12 +90,12 @@ export default function AnimatedTabs({
                                 layoutId="active-tab-indicator"
                                 style={{
                                     position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
+                                    bottom: 2,
+                                    left: 12,
+                                    right: 12,
                                     height: 3,
-                                    backgroundColor: theme.palette.primary.main,
-                                    borderRadius: '3px 3px 0 0',
+                                    backgroundColor: 'rgb(103, 58, 183)',
+                                    borderRadius: 3,
                                 }}
                                 transition={{
                                     type: 'spring',
