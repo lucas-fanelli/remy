@@ -105,79 +105,34 @@ export default function ProfilePage() {
       setLoading(true);
       setError(null);
 
-      // Load user profile first (required for other calls)
-      const userResponse = await fetch(`/api/users/${username}`);
+      // Single API call to get ALL profile data
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-      if (!userResponse.ok) {
-        if (userResponse.status === 404) {
+      const response = await fetch(`/api/users/${username}/profile`, { headers });
+
+      if (!response.ok) {
+        if (response.status === 404) {
           throw new Error('User not found');
         }
         throw new Error('Failed to load profile');
       }
 
-      const userData = await userResponse.json();
-      const user = userData.user || userData.data?.user || userData;
+      const data = await response.json();
 
-      if (!user || !user.id) {
-        throw new Error('Invalid user data received');
+      // Set all state from single response
+      setProfile(data.user);
+      setStats(data.stats);
+      setRecipes(data.recipes || []);
+
+      if (data.isFollowing !== undefined) {
+        setIsFollowing(data.isFollowing);
       }
 
-      setProfile(user);
-
-      // Fetch all remaining data in parallel for faster loading
-      const parallelFetches: Promise<Response>[] = [
-        fetch(`/api/users/${username}/stats`),
-        fetch(`/api/users/${username}/recipes`),
-      ];
-
-      // Add conditional fetches
-      if (currentUser && !isOwnProfile && token) {
-        parallelFetches.push(
-          fetch(`/api/users/${username}/is-following`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          })
-        );
-      }
-
-      if (isOwnProfile && token) {
-        parallelFetches.push(
-          fetch(`/api/users/${username}/saved`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-          })
-        );
-      }
-
-      // Execute all fetches in parallel
-      const results = await Promise.allSettled(parallelFetches);
-
-      // Process stats response
-      if (results[0].status === 'fulfilled' && results[0].value.ok) {
-        const statsData = await results[0].value.json();
-        setStats(statsData);
-      }
-
-      // Process recipes response
-      if (results[1].status === 'fulfilled' && results[1].value.ok) {
-        const recipesData = await results[1].value.json();
-        setRecipes(recipesData.recipes || []);
-      }
-
-      // Process follow status (if requested)
-      let resultIndex = 2;
-      if (currentUser && !isOwnProfile && token) {
-        if (results[resultIndex]?.status === 'fulfilled' && results[resultIndex].value.ok) {
-          const followData = await results[resultIndex].value.json();
-          setIsFollowing(followData.isFollowing);
-        }
-        resultIndex++;
-      }
-
-      // Process saved recipes (if requested)
-      if (isOwnProfile && token) {
-        if (results[resultIndex]?.status === 'fulfilled' && results[resultIndex].value.ok) {
-          const savedData = await results[resultIndex].value.json();
-          setSavedRecipes(savedData.recipes || []);
-        }
+      if (data.savedRecipes) {
+        setSavedRecipes(data.savedRecipes);
       }
     } catch (err) {
       console.error('Error loading profile:', err);
@@ -185,7 +140,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [username, currentUser, isOwnProfile, token]);
+  }, [username, token]);
 
   useEffect(() => {
     loadProfile();
