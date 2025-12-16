@@ -213,7 +213,6 @@ export default function RecipeCard({
           sx={{
             fontWeight: 500,
             color: 'text.primary',
-            flex: 1,
             cursor: 'pointer',
           }}
           onClick={(e) => {
@@ -223,6 +222,7 @@ export default function RecipeCard({
         >
           {recipe.author?.fullName || recipe.author?.username}
         </Typography>
+        <Box sx={{ flex: 1 }} />
         {showActions && isOwner && (
           <IconButton
             onClick={handleMenuOpen}
