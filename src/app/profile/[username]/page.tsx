@@ -58,6 +58,10 @@ interface Recipe {
   difficulty: string;
   likesCount: number;
   commentsCount: number;
+  author?: {
+    username: string;
+    avatar?: string;
+  };
 }
 
 interface ProfileStats {
@@ -418,7 +422,9 @@ export default function ProfilePage() {
                               sx={{
                                 backgroundColor: (theme) => theme.palette.background.paper,
                                 cursor: 'pointer',
-                                height: '100%'
+                                height: '100%',
+                                borderRadius: '20px',
+                                overflow: 'hidden',
                               }}
                             >
                               <CardMedia
@@ -480,7 +486,9 @@ export default function ProfilePage() {
                               sx={{
                                 backgroundColor: (theme) => theme.palette.background.paper,
                                 cursor: 'pointer',
-                                height: '100%'
+                                height: '100%',
+                                borderRadius: '20px',
+                                overflow: 'hidden',
                               }}
                             >
                               <CardMedia
@@ -494,6 +502,11 @@ export default function ProfilePage() {
                                 <Typography variant="h6" gutterBottom noWrap>
                                   {recipe.title}
                                 </Typography>
+                                {recipe.author && (
+                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                    by {recipe.author.username}
+                                  </Typography>
+                                )}
                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                   <Chip
                                     label={recipe.difficulty}

@@ -123,6 +123,12 @@ export async function GET(
                             prepTime: true,
                             servings: true,
                             createdAt: true,
+                            user: {
+                                select: {
+                                    username: true,
+                                    avatar: true,
+                                },
+                            },
                             _count: {
                                 select: {
                                     likes: true,
@@ -145,6 +151,10 @@ export async function GET(
                 likesCount: s.post._count.likes,
                 commentsCount: s.post._count.comments,
                 createdAt: s.post.createdAt,
+                author: {
+                    username: s.post.user.username,
+                    avatar: s.post.user.avatar,
+                },
             })));
             conditionalQueries.push(savedRecipesPromise);
         }
