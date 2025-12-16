@@ -116,7 +116,7 @@ function SearchPageContent() {
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Container maxWidth="lg" sx={{ pt: { xs: 9, sm: 10, md: 12 }, pb: { xs: 12, sm: 13, md: 4 } }}>
         <Box sx={{ mb: 3 }}>
-          <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
+          <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom color="text.primary">
             Search Results
           </Typography>
           <Typography variant="body1" color="text.secondary">
@@ -175,8 +175,7 @@ function SearchPageContent() {
                             averageRating: recipe.averageRating,
                             totalRatings: recipe.totalRatings,
                           }}
-                          likeCount={recipe.likeCount || 0}
-                          commentCount={recipe.commentCount || 0}
+                          showActions={false}
                           onClick={() => handleRecipeClick(recipe.id)}
                         />
                       </Grid>
