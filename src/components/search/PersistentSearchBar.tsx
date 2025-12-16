@@ -183,13 +183,15 @@ export default function PersistentSearchBar({
         e.preventDefault();
         if (query.trim()) {
             setShowDropdown(false);
+            // Close parent dialog (e.g., mobile search dialog)
+            onResultClick?.();
             if (onSearch) {
                 onSearch(query.trim());
             } else {
                 router.push(`/search?q=${encodeURIComponent(query.trim())}`);
             }
         }
-    }, [query, onSearch, router]);
+    }, [query, onSearch, onResultClick, router]);
 
     // Handle clear
     const handleClear = useCallback(() => {
