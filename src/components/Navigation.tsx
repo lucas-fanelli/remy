@@ -697,7 +697,17 @@ export default function Navigation() {
           <IconButton edge="start" onClick={() => setDrawerOpen(true)} size="small">
             <MenuIcon />
           </IconButton>
-          <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: { xs: 0.5, sm: 1 } }}>
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: { xs: 0.5, sm: 1 },
+              cursor: 'pointer',
+            }}
+            onClick={() => router.push('/')}
+          >
             <Box
               component="img"
               src={BRANDING.logo}
