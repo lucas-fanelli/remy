@@ -20,6 +20,7 @@ import {
   Divider,
   Toolbar,
   Grow,
+  Rating,
 } from '@mui/material';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import {
@@ -58,6 +59,8 @@ interface Recipe {
   difficulty: string;
   likesCount: number;
   commentsCount: number;
+  averageRating?: number;
+  totalRatings?: number;
   author?: {
     username: string;
     avatar?: string;
@@ -503,9 +506,31 @@ export default function ProfilePage() {
                                   {recipe.title}
                                 </Typography>
                                 {recipe.author && (
-                                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                    by {recipe.author.username}
-                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                    <Avatar
+                                      src={recipe.author.avatar}
+                                      sx={{ width: 24, height: 24 }}
+                                    >
+                                      {recipe.author.username.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                    <Typography variant="body2" color="text.secondary">
+                                      {recipe.author.username}
+                                    </Typography>
+                                  </Box>
+                                )}
+                                {(recipe.averageRating !== undefined && recipe.averageRating > 0) && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                                    <Rating
+                                      value={recipe.averageRating}
+                                      precision={0.5}
+                                      size="small"
+                                      readOnly
+                                      sx={{ color: '#FFB400' }}
+                                    />
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                                      ({recipe.totalRatings || 0})
+                                    </Typography>
+                                  </Box>
                                 )}
                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                   <Chip

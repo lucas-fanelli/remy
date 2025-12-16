@@ -139,23 +139,40 @@ export async function GET(
                     },
                 },
                 orderBy: { createdAt: 'desc' },
-            }).then(saved => saved.map(s => ({
-                id: s.post.id,
-                title: s.post.title,
-                description: s.post.description,
-                imageUrl: s.post.imageUrl,
-                difficulty: s.post.difficulty || 'medium',
-                cookingTime: s.post.cookingTime,
-                prepTime: s.post.prepTime,
-                servings: s.post.servings,
-                likesCount: s.post._count.likes,
-                commentsCount: s.post._count.comments,
-                createdAt: s.post.createdAt,
-                author: {
-                    username: s.post.user.username,
-                    avatar: s.post.user.avatar,
-                },
-            })));
+            }).then(async saved => {
+                // Get ratings for all saved recipe posts
+                const postIds = saved.map(s => s.post.id);
+                const ratings = await prisma.rating.groupBy({
+                    by: ['postId'],
+                    where: { postId: { in: postIds } },
+                    _avg: { rating: true },
+                    _count: { rating: true },
+                });
+                const ratingsMap = new Map(ratings.map(r => [r.postId, {
+                    averageRating: r._avg.rating || 0,
+                    totalRatings: r._count.rating || 0,
+                }]));
+
+                return saved.map(s => ({
+                    id: s.post.id,
+                    title: s.post.title,
+                    description: s.post.description,
+                    imageUrl: s.post.imageUrl,
+                    difficulty: s.post.difficulty || 'medium',
+                    cookingTime: s.post.cookingTime,
+                    prepTime: s.post.prepTime,
+                    servings: s.post.servings,
+                    likesCount: s.post._count.likes,
+                    commentsCount: s.post._count.comments,
+                    createdAt: s.post.createdAt,
+                    averageRating: ratingsMap.get(s.post.id)?.averageRating || 0,
+                    totalRatings: ratingsMap.get(s.post.id)?.totalRatings || 0,
+                    author: {
+                        username: s.post.user.username,
+                        avatar: s.post.user.avatar,
+                    },
+                }));
+            });
             conditionalQueries.push(savedRecipesPromise);
         }
 
