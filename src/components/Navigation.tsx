@@ -791,7 +791,8 @@ export default function Navigation() {
           }
         }}
       >
-        <Box sx={{ width: { xs: 280, sm: 320 } }} role="presentation">
+        <Box sx={{ width: { xs: 280, sm: 320 }, height: '100%', display: 'flex', flexDirection: 'column' }} role="presentation">
+          {/* Main content */}
           <List>
             <ListItem sx={{ py: 2 }}>
               <ListItemIcon>
@@ -829,6 +830,13 @@ export default function Navigation() {
                 </ListItemButton>
               </ListItem>
             ))}
+          </List>
+
+          {/* Spacer to push bottom section down */}
+          <Box sx={{ flexGrow: 1 }} />
+
+          {/* Bottom section - Settings, Dark Mode, Logout */}
+          <List>
             <Divider />
             <ListItem disablePadding>
               <ListItemButton
