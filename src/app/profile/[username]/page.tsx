@@ -441,6 +441,20 @@ export default function ProfilePage() {
                                 <Typography variant="h6" gutterBottom noWrap>
                                   {recipe.title}
                                 </Typography>
+                                {(recipe.averageRating !== undefined && recipe.averageRating > 0) && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                                    <Rating
+                                      value={recipe.averageRating}
+                                      precision={0.5}
+                                      size="small"
+                                      readOnly
+                                      sx={{ color: '#FFB400' }}
+                                    />
+                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                                      ({recipe.totalRatings || 0})
+                                    </Typography>
+                                  </Box>
+                                )}
                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                   <Chip
                                     label={recipe.difficulty}

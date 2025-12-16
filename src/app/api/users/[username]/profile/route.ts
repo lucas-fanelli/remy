@@ -179,6 +179,19 @@ export async function GET(
         // Wait for conditional queries
         await Promise.all(conditionalQueries);
 
+        // Get ratings for user's recipes
+        const recipeIds = user.posts.map(r => r.id);
+        const recipeRatings = await prisma.rating.groupBy({
+            by: ['postId'],
+            where: { postId: { in: recipeIds } },
+            _avg: { rating: true },
+            _count: { rating: true },
+        });
+        const recipeRatingsMap = new Map(recipeRatings.map(r => [r.postId, {
+            averageRating: r._avg.rating || 0,
+            totalRatings: r._count.rating || 0,
+        }]));
+
         // Format recipes
         const recipes = user.posts.map(recipe => ({
             id: recipe.id,
@@ -192,6 +205,8 @@ export async function GET(
             likesCount: recipe._count.likes,
             commentsCount: recipe._count.comments,
             createdAt: recipe.createdAt,
+            averageRating: recipeRatingsMap.get(recipe.id)?.averageRating || 0,
+            totalRatings: recipeRatingsMap.get(recipe.id)?.totalRatings || 0,
         }));
 
         // Build response
