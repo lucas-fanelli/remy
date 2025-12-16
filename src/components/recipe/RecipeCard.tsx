@@ -304,49 +304,51 @@ export default function RecipeCard({
         />
       </CardContent>
 
-      {/* Actions */}
-      <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Tooltip title={liked ? 'Unlike' : 'Like'}>
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                onLike?.();
-              }}
-              size="small"
-              color={liked ? 'error' : 'default'}
-              sx={{ p: 0.5 }}
-            >
-              {liked ? (
-                <Favorite sx={{ fontSize: 22 }} />
-              ) : (
-                <FavoriteBorder sx={{ fontSize: 22 }} />
-              )}
-            </IconButton>
-          </Tooltip>
-          <Typography variant="body2" color="text.secondary" sx={{ minWidth: 16 }}>
-            {likeCount}
-          </Typography>
-        </Box>
+      {/* Actions - only show when showActions is true */}
+      {showActions && (
+        <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Tooltip title={liked ? 'Unlike' : 'Like'}>
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLike?.();
+                }}
+                size="small"
+                color={liked ? 'error' : 'default'}
+                sx={{ p: 0.5 }}
+              >
+                {liked ? (
+                  <Favorite sx={{ fontSize: 22 }} />
+                ) : (
+                  <FavoriteBorder sx={{ fontSize: 22 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 16 }}>
+              {likeCount}
+            </Typography>
+          </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 2 }}>
-          <Tooltip title="Comments">
-            <IconButton
-              onClick={(e) => {
-                e.stopPropagation();
-                onComment?.();
-              }}
-              size="small"
-              sx={{ p: 0.5 }}
-            >
-              <ChatBubbleOutline sx={{ fontSize: 22 }} />
-            </IconButton>
-          </Tooltip>
-          <Typography variant="body2" color="text.secondary" sx={{ minWidth: 16 }}>
-            {commentCount}
-          </Typography>
-        </Box>
-      </CardActions>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 2 }}>
+            <Tooltip title="Comments">
+              <IconButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onComment?.();
+                }}
+                size="small"
+                sx={{ p: 0.5 }}
+              >
+                <ChatBubbleOutline sx={{ fontSize: 22 }} />
+              </IconButton>
+            </Tooltip>
+            <Typography variant="body2" color="text.secondary" sx={{ minWidth: 16 }}>
+              {commentCount}
+            </Typography>
+          </Box>
+        </CardActions>
+      )}
 
       {/* Edit/Delete Menu */}
       <Menu

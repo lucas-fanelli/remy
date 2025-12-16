@@ -126,7 +126,7 @@ describe('RecipeCard Component', () => {
 
   it('should call onLike when like button is clicked', () => {
     const handleLike = jest.fn();
-    renderWithTheme(<RecipeCard recipe={mockRecipe} onLike={handleLike} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} onLike={handleLike} showActions={true} />);
 
     const likeButton = screen.getByRole('button', { name: /like/i });
     fireEvent.click(likeButton);
@@ -136,7 +136,7 @@ describe('RecipeCard Component', () => {
 
   it('should call onComment when comment button is clicked', () => {
     const handleComment = jest.fn();
-    renderWithTheme(<RecipeCard recipe={mockRecipe} onComment={handleComment} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} onComment={handleComment} showActions={true} />);
 
     const commentButton = screen.getByRole('button', { name: /comments/i });
     fireEvent.click(commentButton);
@@ -145,26 +145,26 @@ describe('RecipeCard Component', () => {
   });
 
   it('should display like count', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} likeCount={42} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} likeCount={42} showActions={true} />);
 
     expect(screen.getByText('42')).toBeInTheDocument();
   });
 
   it('should display comment count', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} commentCount={15} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} commentCount={15} showActions={true} />);
 
     expect(screen.getByText('15')).toBeInTheDocument();
   });
 
   it('should show filled heart when liked', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} liked={true} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} liked={true} showActions={true} />);
 
     const likeButton = screen.getByRole('button', { name: /unlike/i });
     expect(likeButton).toBeInTheDocument();
   });
 
   it('should show outlined heart when not liked', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} liked={false} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} liked={false} showActions={true} />);
 
     const likeButton = screen.getByRole('button', { name: /like/i });
     expect(likeButton).toBeInTheDocument();
