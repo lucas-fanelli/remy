@@ -222,7 +222,7 @@ export default function RecipeCard({
         >
           {recipe.author?.fullName || recipe.author?.username}
         </Typography>
-        <Box sx={{ flex: 1 }} />
+        <Box sx={{ flex: 1, cursor: 'pointer' }} onClick={() => router.push(`/recipe/${recipe.id}`)} />
         {showActions && isOwner && (
           <IconButton
             onClick={handleMenuOpen}
