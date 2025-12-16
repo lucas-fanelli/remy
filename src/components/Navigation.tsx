@@ -697,32 +697,32 @@ export default function Navigation() {
           <IconButton edge="start" onClick={() => setDrawerOpen(true)} size="small">
             <MenuIcon />
           </IconButton>
-          <Box
-            sx={{
-              flexGrow: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: { xs: 0.5, sm: 1 },
-              cursor: 'pointer',
-            }}
-            onClick={() => router.push('/')}
-          >
-            <Box
-              component="img"
-              src={BRANDING.logo}
-              alt={BRANDING.name}
-              sx={{ height: { xs: 24, sm: 28 }, width: { xs: 24, sm: 28 } }}
-            />
+          <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
             <Box
               sx={{
-                fontFamily: BRANDING.font,
-                fontSize: { xs: '16px', sm: '20px' },
-                fontWeight: 600,
-                color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : BRANDING.colors.primary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 0.5, sm: 1 },
+                cursor: 'pointer',
               }}
+              onClick={() => router.push('/')}
             >
-              {BRANDING.name}
+              <Box
+                component="img"
+                src={BRANDING.logo}
+                alt={BRANDING.name}
+                sx={{ height: { xs: 24, sm: 28 }, width: { xs: 24, sm: 28 } }}
+              />
+              <Box
+                sx={{
+                  fontFamily: BRANDING.font,
+                  fontSize: { xs: '16px', sm: '20px' },
+                  fontWeight: 600,
+                  color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : BRANDING.colors.primary,
+                }}
+              >
+                {BRANDING.name}
+              </Box>
             </Box>
           </Box>
           <IconButton onClick={handleNotificationsOpen} size="small">
