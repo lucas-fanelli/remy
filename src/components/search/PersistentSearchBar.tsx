@@ -203,12 +203,14 @@ export default function PersistentSearchBar({
     const handleSuggestionClick = useCallback((suggestion: string) => {
         setQuery(suggestion);
         setShowDropdown(false);
+        // Close parent dialog (e.g., mobile search dialog)
+        onResultClick?.();
         if (onSearch) {
             onSearch(suggestion);
         } else {
             router.push(`/search?q=${encodeURIComponent(suggestion)}`);
         }
-    }, [onSearch, router]);
+    }, [onSearch, onResultClick, router]);
 
     // Animation variants for the container
     const containerVariants = {
