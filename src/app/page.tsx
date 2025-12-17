@@ -20,19 +20,9 @@ export default function Home() {
   const router = useRouter();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth');
-    }
-  }, [isAuthenticated, isLoading, router]);
-
   // Return null during loading - the global LoadingBar shows progress
   if (isLoading) {
     return null;
-  }
-
-  if (!isAuthenticated) {
-    return null; // Will redirect via useEffect
   }
 
   const handleCreateRecipe = async (data: CreateRecipeDTO) => {
