@@ -154,7 +154,13 @@ export default function ProfilePage() {
   }, [loadProfile]);
 
   const handleFollow = async () => {
-    if (!token || isOwnProfile) return;
+    if (isOwnProfile) return;
+
+    // Redirect guests to auth page
+    if (!token) {
+      router.push('/auth');
+      return;
+    }
 
     // Store the current state before the API call
     const previousFollowState = isFollowing;
