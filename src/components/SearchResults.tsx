@@ -120,7 +120,8 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                 secondary="View all results"
                 primaryTypographyProps={{
                   fontWeight: 600,
-                  fontSize: { xs: '0.875rem', md: '1rem' }
+                  fontSize: { xs: '0.875rem', md: '1rem' },
+                  color: 'text.primary',
                 }}
                 secondaryTypographyProps={{
                   fontSize: { xs: '0.75rem', md: '0.875rem' }
@@ -160,7 +161,8 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                     secondary={isMobile ? null : user.email}
                     primaryTypographyProps={{
                       fontWeight: 600,
-                      fontSize: { xs: '0.875rem', md: '1rem' }
+                      fontSize: { xs: '0.875rem', md: '1rem' },
+                      color: 'text.primary',
                     }}
                     secondaryTypographyProps={{
                       fontSize: { xs: '0.75rem', md: '0.875rem' }
@@ -206,7 +208,8 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                     }
                     primaryTypographyProps={{
                       fontWeight: 600,
-                      fontSize: { xs: '0.875rem', md: '1rem' }
+                      fontSize: { xs: '0.875rem', md: '1rem' },
+                      color: 'text.primary',
                     }}
                     secondaryTypographyProps={{
                       fontSize: { xs: '0.75rem', md: '0.875rem' }

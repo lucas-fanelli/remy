@@ -130,7 +130,7 @@ export default function AboutPage() {
                         border: `1px solid ${theme.palette.divider}`,
                     }}
                 >
-                    <Typography variant="h4" fontWeight={600} gutterBottom>
+                    <Typography variant="h4" fontWeight={600} gutterBottom color="text.primary">
                         What is Remy&apos;s?
                     </Typography>
                     <Typography variant="body1" color="text.secondary" paragraph>
@@ -152,7 +152,7 @@ export default function AboutPage() {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     sx={{ mb: 6 }}
                 >
-                    <Typography variant="h4" fontWeight={600} textAlign="center" gutterBottom>
+                    <Typography variant="h4" fontWeight={600} textAlign="center" gutterBottom color="text.primary">
                         Features
                     </Typography>
                     <Typography
@@ -191,7 +191,7 @@ export default function AboutPage() {
                                 }}
                             >
                                 <Box sx={{ color: 'primary.main', mb: 2 }}>{feature.icon}</Box>
-                                <Typography variant="h6" fontWeight={600} gutterBottom>
+                                <Typography variant="h6" fontWeight={600} gutterBottom color="text.primary">
                                     {feature.title}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
@@ -211,7 +211,7 @@ export default function AboutPage() {
                     transition={{ duration: 0.6, delay: 0.3 }}
                     sx={{ textAlign: 'center', mb: 6 }}
                 >
-                    <Typography variant="h4" fontWeight={600} gutterBottom>
+                    <Typography variant="h4" fontWeight={600} gutterBottom color="text.primary">
                         Created By
                     </Typography>
                     <Box
@@ -233,7 +233,7 @@ export default function AboutPage() {
                         >
                             LF
                         </Avatar>
-                        <Typography variant="h5" fontWeight={600}>
+                        <Typography variant="h5" fontWeight={600} color="text.primary">
                             Lucas Fanelli
                         </Typography>
                         <Typography
@@ -264,7 +264,7 @@ export default function AboutPage() {
                     transition={{ duration: 0.6, delay: 0.4 }}
                     sx={{ textAlign: 'center' }}
                 >
-                    <Typography variant="h5" fontWeight={600} gutterBottom>
+                    <Typography variant="h5" fontWeight={600} gutterBottom color="text.primary">
                         Built With
                     </Typography>
                     <Box
