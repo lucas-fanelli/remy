@@ -22,8 +22,10 @@
 - 🥘 **Pantry Management** - Track ingredients and get personalized recipe matches
 - 📷 **Rich Media Comments** - Attach photos to comments to show off cooking results
 - 💬 **Social Interaction** - Follow users, like and comment on recipes
+- 👤 **Guest Browsing** - Browse recipes without an account, sign in when ready to interact
 - 🔔 **Smart Notifications** - Mark as read on click, real-time updates
 - 📊 **User Profiles** - Personal stats, followers, and recipe collections
+- ℹ️ **About Us Page** - Learn about Remy's features and creator
 - 📱 **Responsive Design** - Beautiful UI that works on any device
 - 🌙 **Modern Dark Mode** - Eye-friendly theme with teal accents
 - 🔒 **Enterprise Security** - Rate limiting, JWT auth, security headers
@@ -297,7 +299,15 @@ npm start
 - [x] Enhanced mobile UX (safe areas, touch handling)
 - [x] Next.js 16 upgrade
 
-### v1.2 - Planned
+### v1.2.0 - About Us & Guest Browsing ✅
+- [x] About Us page with features, creator info, and tech stack
+- [x] Guest Browsing mode - browse without logging in
+- [x] "Continue as Guest" link on auth page
+- [x] Sign-in prompts for protected actions (like, follow, create)
+- [x] Pantry shows sign-in card for guests
+- [x] Likes API returns real counts for guests
+
+### v1.3 - Planned
 - [ ] System for tracking errors
 - [ ] System for users to report errors manually
 - [ ] Suggestion system
@@ -306,7 +316,7 @@ npm start
 - [ ] Recipe collections
 - [ ] Advanced search filters
 
-### v1.3 - Future
+### v1.4 - Future
 - [ ] Mobile apps
 - [ ] Meal planning
 - [ ] Shopping lists

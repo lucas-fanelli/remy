@@ -766,8 +766,78 @@ Coverage:    97.28% statements | 87.85% branches | 97.02% functions | 98.16% lin
 
 ---
 
-*Updated: 2025-12-05*
-*Session Type: v1.0.0 Production Release - Final Polish*
+## 🎉 v1.2.0 About Us & Guest Browsing (2025-12-17)
+
+### Session Summary: About Us Page & Guest Browsing Mode
+
+Added two major features to improve user experience and discoverability:
+
+### ℹ️ About Us Page
+
+**New Page Created:**
+- **Path:** `/about`
+- **Content:**
+  - Hero section with "About Remy's" title
+  - "What is Remy's?" explanation section
+  - 6 feature cards (Share Recipes, Smart Pantry, Discover, Save Favorites, Connect, Share)
+  - Creator section with Lucas Fanelli and YouTube link
+  - Tech stack chips: Next.js 16, React 19, TypeScript, Material-UI, Prisma, PostgreSQL, Framer Motion
+  - "Back to Home" link
+
+**Navigation Links Added:**
+- Desktop Footer: "About Us" button next to "Contact"
+- Mobile Drawer: "About Us" list item with Info icon
+
+### 👤 Guest Browsing Mode
+
+**Problem:** Users were forced to log in before seeing any content.
+
+**Solution:** Allow guests to browse freely, redirect to `/auth` for protected actions.
+
+**Files Modified:**
+- `src/app/page.tsx` - Removed auth redirect, Share Recipe button checks auth
+- `src/app/auth/page.tsx` - Added "Continue as Guest" link
+- `src/app/pantry/page.tsx` - Shows sign-in card instead of redirect
+- `src/app/profile/[username]/page.tsx` - Follow button redirects guests
+- `src/components/Navigation.tsx` - Create Recipe button checks auth, dropdown shows Guest/Sign In
+- `src/app/api/recipes/[id]/like/route.ts` - Returns real likesCount for guests
+
+**Guest Permissions:**
+| Action | Guest | Logged In |
+|--------|-------|-----------|
+| Browse recipes | ✅ | ✅ |
+| View recipe details | ✅ | ✅ |
+| View profiles | ✅ | ✅ |
+| See like counts | ✅ | ✅ |
+| Like recipes | ❌ → /auth | ✅ |
+| Follow users | ❌ → /auth | ✅ |
+| Create recipes | ❌ → /auth | ✅ |
+| Access pantry | ❌ (sign-in card) | ✅ |
+
+### 📊 Commits
+
+1. `feat: add About Us page and link in footer/drawer`
+2. `fix: increase padding on About page for mobile app bar`
+3. `fix: update Next.js version to 16 in About page tech stack`
+4. `feat: implement guest browsing with Sign In option for unauthenticated users`
+5. `fix: replace fragments with arrays in Menu component for MUI compatibility`
+6. `fix: remove auth redirect from homepage to allow guest browsing`
+7. `feat: add Browse as Guest option to auth page, show sign-in prompt on pantry for guests`
+8. `feat: redirect guests to auth when clicking Follow button`
+9. `feat: redirect guests to auth when creating recipe, fix likes API to show actual count for guests`
+10. `fix: redirect guests to auth when clicking Share Recipe button on homepage`
+
+### 🏆 Status: v1.2.0 Complete
+
+- **About Us Page**: ✅ Live
+- **Guest Browsing**: ✅ Fully implemented
+- **All protected actions**: ✅ Redirect to auth
+- **Likes for guests**: ✅ Show real counts
+
+---
+
+*Updated: 2025-12-17*
+*Session Type: v1.2.0 Feature Release - About Us & Guest Browsing*
 *Repository: https://github.com/TheReaperGuy/remy-s-master*
 *Live Demo: https://remy-s.vercel.app/*
-*Status: Production-Ready with 100% Test Pass Rate*
+*Status: Production-Ready with v1.2.0 Features*

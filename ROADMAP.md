@@ -41,9 +41,18 @@
 - RecipeCard layout improvements ✅
 - Auth toggle button accessibility ✅
 
-## Next Phase - v1.1 (Future Enhancements)
+## Next Phase - v1.2 (About Us & Guest Browsing) - COMPLETE ✅
 
-### Planned Features
+### Completed Features (2025-12-17)
+- [x] About Us page (`/about`) with features, creator info (Lucas Fanelli), and tech stack
+- [x] Guest Browsing mode - users can browse recipes without logging in
+- [x] "Continue as Guest" link on auth page
+- [x] Sign-in prompts for protected actions (like, follow, create recipe)
+- [x] Pantry shows sign-in card for guests instead of redirect
+- [x] Likes API returns real counts for guests (fixed likesCount: 0 bug)
+- [x] About Us link in desktop footer and mobile drawer
+
+## Next Phase - v1.3 (Future Enhancements)
 - [ ] Email notifications and password reset flow
 - [ ] Recipe collections/folders
 - [ ] Advanced search and filters
