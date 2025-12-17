@@ -201,6 +201,11 @@ export default function Navigation() {
         },
       });
 
+      // Defensive check for when fetch returns undefined (e.g., in tests)
+      if (!response) {
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
 
