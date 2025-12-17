@@ -59,6 +59,7 @@ import {
   Close,
   YouTube,
   Email,
+  Info,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -848,6 +849,24 @@ export default function Navigation() {
                 </ListItemIcon>
                 <ListItemText
                   primary="Contact"
+                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
+            {/* About Us */}
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => {
+                  router.push('/about');
+                  setDrawerOpen(false);
+                }}
+                sx={{ py: { xs: 1.5, sm: 2 } }}
+              >
+                <ListItemIcon>
+                  <Info sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="About Us"
                   primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                 />
               </ListItemButton>

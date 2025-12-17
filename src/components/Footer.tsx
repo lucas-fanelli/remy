@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Typography,
@@ -21,11 +22,13 @@ import {
   YouTube,
   Email,
   Close,
+  Info,
 } from '@mui/icons-material';
 import { useThemeMode } from '@/contexts/ThemeContext';
 
 export default function Footer() {
   const theme = useTheme();
+  const router = useRouter();
   const { mode, toggleTheme } = useThemeMode();
   const [contactOpen, setContactOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -83,21 +86,38 @@ export default function Footer() {
           Lucas Fanelli
         </Typography>
 
-        {/* Center: Contact */}
-        <Button
-          variant="text"
-          startIcon={<Email />}
-          onClick={handleOpenContact}
-          sx={{
-            textTransform: 'none',
-            color: 'text.secondary',
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-        >
-          Contact
-        </Button>
+        {/* Center: Contact | About Us */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            variant="text"
+            startIcon={<Email />}
+            onClick={handleOpenContact}
+            sx={{
+              textTransform: 'none',
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+              },
+            }}
+          >
+            Contact
+          </Button>
+          <Typography color="text.disabled">|</Typography>
+          <Button
+            variant="text"
+            startIcon={<Info />}
+            onClick={() => router.push('/about')}
+            sx={{
+              textTransform: 'none',
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'primary.main',
+              },
+            }}
+          >
+            About Us
+          </Button>
+        </Box>
 
         {/* Right: YouTube + Theme Toggle */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
