@@ -60,13 +60,12 @@ export default function Footer() {
       <Box
         component="footer"
         sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: { xs: 'center', sm: 'space-between' },
-          gap: { xs: 1.5, sm: 0 },
-          px: { xs: 2, sm: 4 },
-          py: { xs: 1.5, sm: 2 },
+          justifyContent: 'space-between',
+          px: 4,
+          py: 2,
           mt: 'auto',
           borderTop: 1,
           borderColor: 'divider',
@@ -79,8 +78,6 @@ export default function Footer() {
           sx={{
             fontWeight: 500,
             color: 'text.secondary',
-            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-            order: { xs: 3, sm: 1 },
           }}
         >
           Lucas Fanelli
@@ -89,14 +86,11 @@ export default function Footer() {
         {/* Center: Contact */}
         <Button
           variant="text"
-          startIcon={<Email sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }} />}
+          startIcon={<Email />}
           onClick={handleOpenContact}
           sx={{
             textTransform: 'none',
             color: 'text.secondary',
-            fontSize: { xs: '0.8rem', sm: '0.875rem' },
-            py: { xs: 0.5, sm: 1 },
-            order: { xs: 1, sm: 2 },
             '&:hover': {
               color: 'primary.main',
             },
@@ -106,7 +100,7 @@ export default function Footer() {
         </Button>
 
         {/* Right: YouTube + Theme Toggle */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, order: { xs: 2, sm: 3 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Tooltip title="YouTube Channel">
             <IconButton
               component={Link}
@@ -116,7 +110,7 @@ export default function Footer() {
               size="small"
               sx={{ color: 'text.secondary', '&:hover': { color: '#FF0000' } }}
             >
-              <YouTube sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+              <YouTube />
             </IconButton>
           </Tooltip>
           <Tooltip title={mode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
@@ -125,7 +119,7 @@ export default function Footer() {
               size="small"
               sx={{ color: 'text.secondary' }}
             >
-              {mode === 'dark' ? <LightMode sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} /> : <DarkMode sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />}
+              {mode === 'dark' ? <LightMode /> : <DarkMode />}
             </IconButton>
           </Tooltip>
         </Box>

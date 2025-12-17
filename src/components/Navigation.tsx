@@ -57,6 +57,8 @@ import {
   ChatBubbleOutline,
   Star,
   Close,
+  YouTube,
+  Email,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -829,9 +831,66 @@ export default function Navigation() {
           {/* Spacer to push bottom section down */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Bottom section - Settings, Dark Mode, Logout */}
+          {/* Bottom section - Contact, YouTube, Theme, Settings, Logout */}
           <List>
             <Divider />
+            {/* Contact */}
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => {
+                  window.open('mailto:lucasarielfanelli@hotmail.com', '_blank');
+                  setDrawerOpen(false);
+                }}
+                sx={{ py: { xs: 1.5, sm: 2 } }}
+              >
+                <ListItemIcon>
+                  <Email sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Contact"
+                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
+            {/* YouTube */}
+            <ListItem disablePadding>
+              <ListItemButton
+                component="a"
+                href="https://www.youtube.com/@9QNA-4I"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setDrawerOpen(false)}
+                sx={{ py: { xs: 1.5, sm: 2 } }}
+              >
+                <ListItemIcon>
+                  <YouTube sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, color: '#FF0000' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="YouTube"
+                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
+            {/* Theme Toggle */}
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={() => {
+                  toggleTheme();
+                  setDrawerOpen(false);
+                }}
+                sx={{ py: { xs: 1.5, sm: 2 } }}
+              >
+                <ListItemIcon>
+                  {mode === 'dark' ? <LightMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} /> : <DarkMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />}
+                </ListItemIcon>
+                <ListItemText
+                  primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                />
+              </ListItemButton>
+            </ListItem>
+            <Divider />
+            {/* Settings */}
             <ListItem disablePadding>
               <ListItemButton
                 onClick={() => {
@@ -849,6 +908,7 @@ export default function Navigation() {
                 />
               </ListItemButton>
             </ListItem>
+            {/* Logout */}
             <ListItem disablePadding>
               <ListItemButton
                 onClick={() => {
@@ -865,6 +925,13 @@ export default function Navigation() {
                   primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                 />
               </ListItemButton>
+            </ListItem>
+            {/* Signature */}
+            <Divider />
+            <ListItem sx={{ py: 1, justifyContent: 'center' }}>
+              <Typography variant="caption" color="text.secondary">
+                Lucas Fanelli
+              </Typography>
             </ListItem>
           </List>
         </Box>
