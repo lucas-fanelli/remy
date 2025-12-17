@@ -22,11 +22,11 @@ import {
   Email,
   Close,
 } from '@mui/icons-material';
-import { useThemeContext } from '@/contexts/ThemeContext';
+import { useThemeMode } from '@/contexts/ThemeContext';
 
 export default function Footer() {
   const theme = useTheme();
-  const { mode, toggleTheme } = useThemeContext();
+  const { mode, toggleTheme } = useThemeMode();
   const [contactOpen, setContactOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
