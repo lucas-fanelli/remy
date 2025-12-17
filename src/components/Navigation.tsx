@@ -60,6 +60,7 @@ import {
   YouTube,
   Email,
   Info,
+  Login,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -530,28 +531,47 @@ export default function Navigation() {
           horizontal: 'right',
         }}
       >
-        <MenuItem disabled>
-          <strong>@{user?.username}</strong>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleProfileClick}>
-          <ListItemIcon>
-            <Person fontSize="small" />
-          </ListItemIcon>
-          Profile
-        </MenuItem>
-        <MenuItem onClick={() => { router.push('/settings'); handleMenuClose(); }}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Settings
-        </MenuItem>
-        <MenuItem onClick={handleLogout}>
-          <ListItemIcon>
-            <Logout fontSize="small" />
-          </ListItemIcon>
-          Logout
-        </MenuItem>
+        {user ? (
+          // Authenticated user menu
+          <>
+            <MenuItem disabled>
+              <strong>@{user.username}</strong>
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={() => { router.push(`/profile/${user.username}`); handleMenuClose(); }}>
+              <ListItemIcon>
+                <Person fontSize="small" />
+              </ListItemIcon>
+              Profile
+            </MenuItem>
+            <MenuItem onClick={() => { router.push('/settings'); handleMenuClose(); }}>
+              <ListItemIcon>
+                <Settings fontSize="small" />
+              </ListItemIcon>
+              Settings
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <Logout fontSize="small" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </>
+        ) : (
+          // Guest menu
+          <>
+            <MenuItem disabled>
+              <strong>Guest</strong>
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={() => { router.push('/auth'); handleMenuClose(); }}>
+              <ListItemIcon>
+                <Login fontSize="small" />
+              </ListItemIcon>
+              Sign In
+            </MenuItem>
+          </>
+        )}
       </Menu>
 
       {/* Notifications Dropdown Menu */}
@@ -791,18 +811,21 @@ export default function Navigation() {
         <Box sx={{ width: { xs: 280, sm: 320 }, height: '100%', display: 'flex', flexDirection: 'column' }} role="presentation">
           {/* Main content */}
           <List>
-            <ListItem sx={{ py: 2 }}>
+            <ListItem
+              sx={{ py: 2, cursor: !user ? 'pointer' : 'default' }}
+              onClick={!user ? () => { router.push('/auth'); setDrawerOpen(false); } : undefined}
+            >
               <ListItemIcon>
                 <Avatar
                   src={user?.avatar || undefined}
                   sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }}
                 >
-                  {user?.username?.charAt(0).toUpperCase()}
+                  {user ? user.username?.charAt(0).toUpperCase() : '?'}
                 </Avatar>
               </ListItemIcon>
               <ListItemText
-                primary={user?.username || 'Your Profile'}
-                secondary={`@${user?.username || 'username'}`}
+                primary={user?.username || 'Guest'}
+                secondary={user ? `@${user.username}` : 'Tap to sign in'}
                 primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                 secondaryTypographyProps={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
               />
@@ -909,42 +932,66 @@ export default function Navigation() {
               </ListItemButton>
             </ListItem>
             <Divider />
-            {/* Settings */}
-            <ListItem disablePadding>
-              <ListItemButton
-                onClick={() => {
-                  router.push('/settings');
-                  setDrawerOpen(false);
-                }}
-                sx={{ py: { xs: 1.5, sm: 2 } }}
-              >
-                <ListItemIcon>
-                  <Settings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Settings"
-                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-                />
-              </ListItemButton>
-            </ListItem>
-            {/* Logout */}
-            <ListItem disablePadding>
-              <ListItemButton
-                onClick={() => {
-                  handleLogout();
-                  setDrawerOpen(false);
-                }}
-                sx={{ py: { xs: 1.5, sm: 2 } }}
-              >
-                <ListItemIcon>
-                  <Logout sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Logout"
-                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-                />
-              </ListItemButton>
-            </ListItem>
+            {user ? (
+              // Authenticated user options
+              <>
+                {/* Settings */}
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => {
+                      router.push('/settings');
+                      setDrawerOpen(false);
+                    }}
+                    sx={{ py: { xs: 1.5, sm: 2 } }}
+                  >
+                    <ListItemIcon>
+                      <Settings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Settings"
+                      primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+                {/* Logout */}
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => {
+                      handleLogout();
+                      setDrawerOpen(false);
+                    }}
+                    sx={{ py: { xs: 1.5, sm: 2 } }}
+                  >
+                    <ListItemIcon>
+                      <Logout sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Logout"
+                      primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              </>
+            ) : (
+              // Guest options
+              <ListItem disablePadding>
+                <ListItemButton
+                  onClick={() => {
+                    router.push('/auth');
+                    setDrawerOpen(false);
+                  }}
+                  sx={{ py: { xs: 1.5, sm: 2 } }}
+                >
+                  <ListItemIcon>
+                    <Login sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Sign In"
+                    primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            )}
             {/* Signature */}
             <Divider />
             <ListItem sx={{ py: 1, justifyContent: 'center' }}>
