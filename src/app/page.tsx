@@ -77,7 +77,13 @@ export default function Home() {
             <Box sx={{ my: { xs: 4, md: 6 } }} />
 
             {/* All Recipes Feed */}
-            <RecipeFeed onCreateRecipe={() => setCreateDialogOpen(true)} />
+            <RecipeFeed onCreateRecipe={() => {
+              if (!isAuthenticated) {
+                router.push('/auth');
+                return;
+              }
+              setCreateDialogOpen(true);
+            }} />
           </motion.div>
         </Container>
 
