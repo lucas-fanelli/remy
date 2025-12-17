@@ -61,6 +61,7 @@ import {
   Email,
   Info,
   Login,
+  AdminPanelSettings,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -94,7 +95,7 @@ export default function Navigation() {
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, token } = useAuth();
+  const { user, logout, token, isAdmin } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const [activeTab, setActiveTab] = useState('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -559,6 +560,14 @@ export default function Navigation() {
             </ListItemIcon>
             Settings
           </MenuItem>,
+          ...(isAdmin ? [
+            <MenuItem key="admin" onClick={() => { router.push('/admin'); handleMenuClose(); }}>
+              <ListItemIcon>
+                <AdminPanelSettings fontSize="small" />
+              </ListItemIcon>
+              Admin
+            </MenuItem>
+          ] : []),
           <MenuItem key="logout" onClick={handleLogout}>
             <ListItemIcon>
               <Logout fontSize="small" />
@@ -959,6 +968,26 @@ export default function Navigation() {
                     />
                   </ListItemButton>
                 </ListItem>
+                {/* Admin Panel - only for admins */}
+                {isAdmin && (
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      onClick={() => {
+                        router.push('/admin');
+                        setDrawerOpen(false);
+                      }}
+                      sx={{ py: { xs: 1.5, sm: 2 } }}
+                    >
+                      <ListItemIcon>
+                        <AdminPanelSettings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, color: 'warning.main' }} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary="Admin"
+                        primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' }, color: 'warning.main' }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                )}
                 {/* Logout */}
                 <ListItem disablePadding>
                   <ListItemButton

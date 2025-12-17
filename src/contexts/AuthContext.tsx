@@ -9,6 +9,7 @@ export type User = {
   bio?: string | null;
   avatar?: string | null;
   website?: string | null;
+  role: 'USER' | 'ADMIN';
   isVerified: boolean;
   isPrivate: boolean;
   createdAt: Date;
@@ -20,6 +21,7 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   login: (emailOrUsername: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
@@ -148,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         isLoading,
         isAuthenticated: !!user,
+        isAdmin: user?.role === 'ADMIN',
         login,
         register,
         logout,

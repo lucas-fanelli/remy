@@ -36,6 +36,9 @@ import { IngredientMatchService } from '@/infrastructure/services/IngredientMatc
 import { INotificationService } from '@/domain/services/INotificationService';
 import { NotificationService } from '@/infrastructure/services/NotificationService';
 
+import { IAdminService } from '@/domain/services/IAdminService';
+import { AdminService } from '@/infrastructure/services/AdminService';
+
 // Dependency Injection Container
 // Single Responsibility: Manages object creation and dependencies
 // Dependency Inversion: High-level modules depend on abstractions
@@ -124,6 +127,12 @@ class Container {
         this.services.get('INotificationRepository') as INotificationRepository
       )
     );
+
+    // Register Admin Service
+    this.services.set(
+      'IAdminService',
+      new AdminService(this.services.get('PrismaClient') as PrismaClient)
+    );
   }
 
   public get<T>(serviceName: string): T {
@@ -181,6 +190,10 @@ class Container {
 
   public getNotificationRepository(): INotificationRepository {
     return this.get<INotificationRepository>('INotificationRepository');
+  }
+
+  public getAdminService(): IAdminService {
+    return this.get<IAdminService>('IAdminService');
   }
 }
 

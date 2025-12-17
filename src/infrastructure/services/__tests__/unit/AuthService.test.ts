@@ -20,6 +20,7 @@ describe('AuthService - Unit Tests', () => {
     bio: null,
     avatar: null,
     website: null,
+    role: 'USER',
     isVerified: false,
     isPrivate: false,
     createdAt: new Date(),

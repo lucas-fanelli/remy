@@ -16,6 +16,7 @@ describe('UserService - Unit Tests', () => {
     bio: 'Test bio',
     avatar: 'https://example.com/avatar.jpg',
     website: 'https://example.com',
+    role: 'USER',
     isVerified: false,
     isPrivate: false,
     createdAt: new Date(),

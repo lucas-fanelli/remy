@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { User, Role } from '@prisma/client';
 import {
   IAuthService,
   RegisterDTO,
@@ -16,7 +16,16 @@ export class AuthService implements IAuthService {
     private readonly userRepository: IUserRepository,
     private readonly passwordService: IPasswordService,
     private readonly tokenService: ITokenService
-  ) {}
+  ) { }
+
+  /**
+   * Check if email should be auto-promoted to admin based on ADMIN_EMAILS env var
+   */
+  private isAdminEmail(email: string): boolean {
+    const adminEmails = process.env.ADMIN_EMAILS || '';
+    const emailList = adminEmails.split(',').map(e => e.trim().toLowerCase());
+    return emailList.includes(email.toLowerCase());
+  }
 
   async register(data: RegisterDTO): Promise<AuthResponse> {
     // Validate password
@@ -47,19 +56,24 @@ export class AuthService implements IAuthService {
     // Hash password
     const hashedPassword = await this.passwordService.hash(data.password);
 
-    // Create user
+    // Check if this email should be auto-promoted to admin
+    const role: Role = this.isAdminEmail(data.email) ? 'ADMIN' : 'USER';
+
+    // Create user with appropriate role
     const user = await this.userRepository.create({
       email: data.email,
       username: data.username,
       password: hashedPassword,
       fullName: data.fullName,
+      role,
     });
 
-    // Generate token
+    // Generate token with role
     const token = this.tokenService.generate({
       userId: user.id,
       email: user.email,
       username: user.username,
+      role: user.role,
     });
 
     // Return user without password
@@ -92,11 +106,18 @@ export class AuthService implements IAuthService {
       throw new Error('Invalid credentials');
     }
 
-    // Generate token
+    // Check if user should be promoted to admin (in case they registered before being added to ADMIN_EMAILS)
+    if (this.isAdminEmail(user.email) && user.role !== 'ADMIN') {
+      await this.userRepository.updateRole(user.id, 'ADMIN');
+      user.role = 'ADMIN';
+    }
+
+    // Generate token with role
     const token = this.tokenService.generate({
       userId: user.id,
       email: user.email,
       username: user.username,
+      role: user.role,
     });
 
     // Return user without password

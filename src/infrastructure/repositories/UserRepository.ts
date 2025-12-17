@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { User, Role } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import {
   IUserRepository,
@@ -9,7 +9,7 @@ import {
 // Concrete implementation of IUserRepository
 // Single Responsibility Principle: Only handles user data access
 export class UserRepository implements IUserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: PrismaClient) { }
 
   async create(data: CreateUserDTO): Promise<User> {
     return this.prisma.user.create({
@@ -18,6 +18,7 @@ export class UserRepository implements IUserRepository {
         username: data.username,
         password: data.password,
         fullName: data.fullName,
+        role: data.role,
       },
     });
   }
@@ -63,6 +64,13 @@ export class UserRepository implements IUserRepository {
       data: {
         password: hashedPassword,
       },
+    });
+  }
+
+  async updateRole(id: string, role: Role): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: { role },
     });
   }
 

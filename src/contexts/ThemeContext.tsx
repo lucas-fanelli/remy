@@ -62,6 +62,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setMode((prevMode) => {
       const newMode = prevMode === 'light' ? 'dark' : 'light';
       localStorage.setItem('themeMode', newMode);
+
+      // Sync HTML element classes and styles to prevent flash on navigation
+      if (newMode === 'dark') {
+        document.documentElement.classList.add('dark-mode');
+        document.documentElement.style.colorScheme = 'dark';
+        document.documentElement.style.backgroundColor = '#1E1E1E';
+      } else {
+        document.documentElement.classList.remove('dark-mode');
+        document.documentElement.style.colorScheme = 'light';
+        document.documentElement.style.backgroundColor = '#FAFAFA';
+      }
+
       return newMode;
     });
   };

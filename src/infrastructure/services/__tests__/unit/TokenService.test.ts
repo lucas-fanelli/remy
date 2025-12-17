@@ -16,6 +16,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = tokenService.generate(payload);
@@ -30,6 +31,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token1 = tokenService.generate(payload);
@@ -46,6 +48,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = tokenService.generate(payload);
@@ -61,6 +64,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = tokenService.generate(payload);
@@ -84,6 +88,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = tokenService.generate(payload);
@@ -114,6 +119,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = tokenService.generate(payload);
@@ -143,6 +149,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = tokenService.generate(payload);
@@ -180,6 +187,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = service.generate(payload);
@@ -193,6 +201,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = service.generate(payload);
@@ -211,6 +220,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = service.generate(payload);
@@ -231,6 +241,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = service.generate(payload);
@@ -253,6 +264,7 @@ describe('TokenService - Unit Tests', () => {
         userId: 'user-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       };
 
       const token = service.generate(payload);

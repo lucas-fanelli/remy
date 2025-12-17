@@ -220,6 +220,7 @@ describe('Container - Unit Tests', () => {
         userId: 'test-123',
         email: 'test@example.com',
         username: 'testuser',
+        role: 'USER',
       });
 
       expect(typeof token).toBe('string');

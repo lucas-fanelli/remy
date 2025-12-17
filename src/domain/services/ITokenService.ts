@@ -2,6 +2,7 @@ export interface TokenPayload {
   userId: string;
   email: string;
   username: string;
+  role: string;
 }
 
 // Interface Segregation Principle: Separate interface for token operations

@@ -31,6 +31,7 @@ describe('ChangePasswordDialog', () => {
         id: '1',
         username: 'testuser',
         email: 'test@example.com',
+        role: 'USER' as const,
         isVerified: false,
         isPrivate: false,
         createdAt: new Date(),
@@ -39,6 +40,7 @@ describe('ChangePasswordDialog', () => {
       token: 'mock-token',
       isLoading: false,
       isAuthenticated: true,
+      isAdmin: false,
       login: jest.fn(),
       register: jest.fn(),
       logout: jest.fn(),
@@ -420,6 +422,7 @@ describe('ChangePasswordDialog', () => {
         token: null,
         isLoading: false,
         isAuthenticated: false,
+        isAdmin: false,
         login: jest.fn(),
         register: jest.fn(),
         logout: jest.fn(),
@@ -591,7 +594,7 @@ describe('ChangePasswordDialog', () => {
 
   describe('Error Handling - Lines 136-143', () => {
     it('should throw Error with custom message when response not ok - line 136', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid current password' }),
@@ -623,7 +626,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should throw Error with fallback message when error field missing - line 136', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({}),
@@ -654,7 +657,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should handle non-Error exceptions - line 143', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       mockFetch.mockRejectedValueOnce('String error');
 
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
@@ -682,7 +685,7 @@ describe('ChangePasswordDialog', () => {
     });
 
     it('should log error to console on failure - line 142', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(testError);
 

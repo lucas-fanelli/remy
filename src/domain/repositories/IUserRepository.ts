@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { User, Role } from '@prisma/client';
 
 // Repository interface following Interface Segregation Principle (ISP)
 // and Dependency Inversion Principle (DIP)
@@ -8,6 +8,7 @@ export type CreateUserDTO = {
   username: string;
   password: string;
   fullName?: string;
+  role?: Role;
 };
 
 export type UpdateUserDTO = {
@@ -33,6 +34,7 @@ export interface IUserRepository {
   // Update
   update(id: string, data: UpdateUserDTO): Promise<User>;
   updatePassword(id: string, hashedPassword: string): Promise<User>;
+  updateRole(id: string, role: Role): Promise<User>;
 
   // Delete
   delete(id: string): Promise<User>;
