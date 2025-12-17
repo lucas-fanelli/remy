@@ -112,9 +112,14 @@ export async function GET(
   try {
     const { id: recipeId } = await params;
 
+    // Get total likes count (works for guests too)
+    const likesCount = await prisma.like.count({
+      where: { postId: recipeId },
+    });
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json({ liked: false, likesCount: 0 });
+      return NextResponse.json({ liked: false, likesCount });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -122,7 +127,7 @@ export async function GET(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json({ liked: false, likesCount: 0 });
+      return NextResponse.json({ liked: false, likesCount });
     }
 
     // Check if liked
@@ -133,11 +138,6 @@ export async function GET(
           userId: payload.userId,
         },
       },
-    });
-
-    // Get total likes count
-    const likesCount = await prisma.like.count({
-      where: { postId: recipeId },
     });
 
     return NextResponse.json({

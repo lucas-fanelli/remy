@@ -147,6 +147,11 @@ export default function Navigation() {
         }
         break;
       case 'add':
+        // Redirect guests to auth page
+        if (!user) {
+          router.push('/auth');
+          return;
+        }
         // Open create recipe dialog
         setCreateRecipeOpen(true);
         break;
