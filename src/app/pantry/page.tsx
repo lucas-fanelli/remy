@@ -109,14 +109,14 @@ export default function PantryPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!authLoading && !token) {
-      router.push('/auth');
-      return;
+    if (!authLoading) {
+      if (token) {
+        loadPantry();
+      } else {
+        setLoading(false);
+      }
     }
-    if (token) {
-      loadPantry();
-    }
-  }, [token, authLoading, router, loadPantry]);
+  }, [token, authLoading, loadPantry]);
 
   const handleOpenDialog = (item?: PantryItem) => {
     if (item) {
@@ -288,8 +288,48 @@ export default function PantryPage() {
     return null;
   }
 
+
   if (loading) {
     return null;
+  }
+
+  // Guest user - show sign-in prompt
+  if (!token) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      >
+        <Box sx={{ minHeight: '100vh', pb: 8, bgcolor: 'background.default' }}>
+          <Toolbar />
+          <Container maxWidth="lg" sx={{ pt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+              <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
+              <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                My Pantry
+              </Typography>
+            </Box>
+            <Card sx={{ p: 4, textAlign: 'center' }}>
+              <Kitchen sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h5" fontWeight={600} gutterBottom>
+                Sign in to access your pantry
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                Track your ingredients and discover recipes you can make with what you already have.
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                onClick={() => router.push('/auth')}
+              >
+                Sign In to Continue
+              </Button>
+            </Card>
+          </Container>
+        </Box>
+      </motion.div>
+    );
   }
 
   return (

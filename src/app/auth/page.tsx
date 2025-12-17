@@ -4,8 +4,9 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useState, useEffect } from 'react';
-import { Box, Container } from '@mui/material';
+import { Box, Container, Typography, Link } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import NextLink from 'next/link';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { useAuth } from '@/contexts/AuthContext';
@@ -60,6 +61,27 @@ export default function AuthPage() {
           ) : (
             <RegisterForm onSwitchToLogin={() => setIsLogin(true)} />
           )}
+
+          {/* Browse as Guest */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mt: 3 }}
+          >
+            Just browsing?{' '}
+            <Link
+              component={NextLink}
+              href="/"
+              sx={{
+                color: 'primary.main',
+                textDecoration: 'none',
+                fontWeight: 500,
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Continue as Guest
+            </Link>
+          </Typography>
         </Box>
       </Container>
     </Box>
