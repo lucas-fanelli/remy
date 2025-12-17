@@ -429,4 +429,20 @@ describe('Container - Unit Tests', () => {
       expect(repo1).toBe(repo2);
     });
   });
+
+  describe('getAdminService', () => {
+    it('should return AdminService instance', () => {
+      const adminService = container.getAdminService();
+
+      expect(adminService).toBeDefined();
+      expect(adminService.constructor.name).toBe('AdminService');
+    });
+
+    it('should return same instance on multiple calls (singleton)', () => {
+      const service1 = container.getAdminService();
+      const service2 = container.getAdminService();
+
+      expect(service1).toBe(service2);
+    });
+  });
 });

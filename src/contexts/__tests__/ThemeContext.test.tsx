@@ -109,4 +109,57 @@ describe('ThemeContext', () => {
 
     consoleSpy.mockRestore();
   });
+
+  it('should add theme-ready class after mount delay', async () => {
+    jest.useFakeTimers();
+    localStorage.setItem('themeMode', 'dark');
+
+    render(
+      <ThemeProvider>
+        <TestComponent />
+      </ThemeProvider>
+    );
+
+    // Fast-forward past the 50ms hydration timer
+    await act(async () => {
+      jest.advanceTimersByTime(50);
+    });
+
+    // Fast-forward past the 150ms show timer
+    await act(async () => {
+      jest.advanceTimersByTime(150);
+    });
+
+    expect(document.documentElement.classList.contains('theme-ready')).toBe(true);
+    expect(document.documentElement.classList.contains('loading')).toBe(false);
+
+    jest.useRealTimers();
+  });
+
+  it('should sync dark-mode class to HTML element when toggling', () => {
+    // Clear any existing classes and styles
+    document.documentElement.className = '';
+    document.documentElement.style.colorScheme = '';
+    document.documentElement.style.backgroundColor = '';
+
+    render(
+      <ThemeProvider>
+        <TestComponent />
+      </ThemeProvider>
+    );
+
+    // Toggle to dark - this should add dark-mode class
+    fireEvent.click(screen.getByText('Toggle Theme'));
+
+    expect(document.documentElement.className).toContain('dark-mode');
+    expect(document.documentElement.style.colorScheme).toBe('dark');
+    expect(document.documentElement.style.backgroundColor).toBe('rgb(30, 30, 30)');
+
+    // Toggle back to light - this should remove dark-mode class
+    fireEvent.click(screen.getByText('Toggle Theme'));
+
+    expect(document.documentElement.className).not.toContain('dark-mode');
+    expect(document.documentElement.style.colorScheme).toBe('light');
+    expect(document.documentElement.style.backgroundColor).toBe('rgb(250, 250, 250)');
+  });
 });

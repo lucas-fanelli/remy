@@ -269,6 +269,31 @@ describe('UserRepository - Unit Tests', () => {
     });
   });
 
+  describe('updateRole', () => {
+    it('should update user role to ADMIN', async () => {
+      const updatedUser = { ...mockUser, role: 'ADMIN' as const };
+      prismaMock.user.update.mockResolvedValue(updatedUser);
+
+      const result = await userRepository.updateRole('user-123', 'ADMIN');
+
+      expect(result).toEqual(updatedUser);
+      expect(result.role).toBe('ADMIN');
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+        data: { role: 'ADMIN' },
+      });
+    });
+
+    it('should update user role to USER', async () => {
+      const updatedUser = { ...mockUser, role: 'USER' as const };
+      prismaMock.user.update.mockResolvedValue(updatedUser);
+
+      const result = await userRepository.updateRole('user-123', 'USER');
+
+      expect(result.role).toBe('USER');
+    });
+  });
+
   describe('delete', () => {
     it('should delete user', async () => {
       prismaMock.user.delete.mockResolvedValue(mockUser);

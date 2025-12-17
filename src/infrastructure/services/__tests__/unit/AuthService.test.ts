@@ -198,6 +198,29 @@ describe('AuthService - Unit Tests', () => {
         'Invalid credentials'
       );
     });
+
+    it('should promote user to admin if email is in ADMIN_EMAILS', async () => {
+      const originalEnv = process.env.ADMIN_EMAILS;
+      process.env.ADMIN_EMAILS = 'admin@example.com,test@example.com';
+
+      const userNotAdmin = { ...mockUser, role: 'USER' };
+      const loginData = {
+        emailOrUsername: 'test@example.com',
+        password: 'Test1234',
+      };
+
+      mockUserRepository.findByEmail = jest.fn().mockResolvedValue(userNotAdmin);
+      mockPasswordService.compare = jest.fn().mockResolvedValue(true);
+      mockUserRepository.updateRole = jest.fn().mockResolvedValue({ ...userNotAdmin, role: 'ADMIN' });
+      mockTokenService.generate = jest.fn().mockReturnValue('jwt_token');
+
+      const result = await authService.login(loginData);
+
+      expect(mockUserRepository.updateRole).toHaveBeenCalledWith(userNotAdmin.id, 'ADMIN');
+      expect(result.user.role).toBe('ADMIN');
+
+      process.env.ADMIN_EMAILS = originalEnv;
+    });
   });
 
   describe('validateToken', () => {
