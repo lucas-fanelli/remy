@@ -79,8 +79,8 @@ export default function AboutPage() {
         <Box
             sx={{
                 minHeight: '100vh',
-                pt: { xs: 10, md: 12 },
-                pb: 6,
+                pt: { xs: 12, md: 14 },
+                pb: { xs: 12, md: 6 },
                 backgroundColor: theme.palette.background.default,
             }}
         >
