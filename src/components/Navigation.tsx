@@ -543,12 +543,6 @@ export default function Navigation() {
           </ListItemIcon>
           Settings
         </MenuItem>
-        <MenuItem onClick={() => { toggleTheme(); handleMenuClose(); }}>
-          <ListItemIcon>
-            {mode === 'dark' ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
-          </ListItemIcon>
-          {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
-        </MenuItem>
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <Logout fontSize="small" />
@@ -851,23 +845,6 @@ export default function Navigation() {
                 </ListItemIcon>
                 <ListItemText
                   primary="Settings"
-                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-                />
-              </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding>
-              <ListItemButton
-                onClick={() => {
-                  toggleTheme();
-                  setDrawerOpen(false);
-                }}
-                sx={{ py: { xs: 1.5, sm: 2 } }}
-              >
-                <ListItemIcon>
-                  {mode === 'dark' ? <LightMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} /> : <DarkMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
                   primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                 />
               </ListItemButton>

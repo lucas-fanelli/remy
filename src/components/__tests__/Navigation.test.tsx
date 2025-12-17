@@ -348,39 +348,7 @@ describe('Navigation Component', () => {
 
 
 
-  it('should show theme toggle in menu', async () => {
-    renderWithProviders(<Navigation />);
-
-    const avatarButtons = screen.getAllByRole('button');
-    const avatarButton = avatarButtons[avatarButtons.length - 1];
-    fireEvent.click(avatarButton);
-
-    await waitFor(() => {
-      const themeToggle = screen.getByText(/dark mode|light mode/i);
-      expect(themeToggle).toBeInTheDocument();
-    });
-  });
-
-  it('should handle theme toggle click', async () => {
-    renderWithProviders(<Navigation />);
-
-    const avatarButtons = screen.getAllByRole('button');
-    const avatarButton = avatarButtons[avatarButtons.length - 1];
-    fireEvent.click(avatarButton);
-
-    await waitFor(() => {
-      const themeToggle = screen.getByText(/dark mode|light mode/i);
-      expect(themeToggle).toBeInTheDocument();
-    });
-
-    const themeToggle = screen.getByText(/dark mode|light mode/i);
-    fireEvent.click(themeToggle);
-
-    // Menu should close after clicking
-    await waitFor(() => {
-      expect(screen.queryByText('Profile')).not.toBeInTheDocument();
-    });
-  });
+  // NOTE: Theme toggle tests removed - Theme toggle moved to Footer component
 
   it('should render all navigation icons', () => {
     renderWithProviders(<Navigation />);
@@ -1746,34 +1714,7 @@ describe('Navigation Component', () => {
       expect(mockPush).toHaveBeenCalledWith('/settings');
     });
 
-    it('should toggle theme and close drawer when theme button clicked - line 881-882', async () => {
-      renderWithProviders(<Navigation />);
-
-      const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
-      });
-
-      expect(menuButton).toBeDefined();
-      fireEvent.click(menuButton!);
-
-      await waitFor(() => {
-        const themeToggle = screen.getByText(/Dark Mode|Light Mode/i);
-        expect(themeToggle).toBeInTheDocument();
-      });
-
-      // Find theme toggle button
-      const allButtons = screen.getAllByRole('button');
-      const themeButton = allButtons.find(btn =>
-        btn.textContent?.includes('Dark Mode') || btn.textContent?.includes('Light Mode')
-      );
-      expect(themeButton).toBeDefined();
-
-      fireEvent.click(themeButton!);
-      // Theme should toggle and drawer should close
-      expect(themeButton).toBeInTheDocument();
-    });
+    // NOTE: Theme toggle test removed - Theme toggle moved to Footer component
 
     it('should logout and close drawer when Logout clicked - line 898-899', async () => {
       renderWithProviders(<Navigation />);

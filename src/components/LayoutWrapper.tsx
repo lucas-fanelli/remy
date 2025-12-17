@@ -6,6 +6,7 @@ import React, { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 import Navigation from './Navigation';
 import LoadingBar from './LoadingBar';
+import Footer from './Footer';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
       </Suspense>
       {!hideNavigation && <Navigation />}
       {children}
+      {!hideNavigation && <Footer />}
     </>
   );
 }

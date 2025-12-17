@@ -23,6 +23,13 @@ jest.mock('../LoadingBar', () => {
   };
 });
 
+// Mock Footer component
+jest.mock('../Footer', () => {
+  return function MockFooter() {
+    return <div data-testid="footer">Footer</div>;
+  };
+});
+
 describe('LayoutWrapper Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
