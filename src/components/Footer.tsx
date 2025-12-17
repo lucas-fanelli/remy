@@ -48,7 +48,7 @@ export default function Footer() {
   };
 
   const handleSendEmail = () => {
-    const mailtoLink = `mailto:lucasfanelli.dev@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
+    const mailtoLink = `mailto:lucasarielfanelli@hotmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
       `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.subject}`
     )}`;
     window.open(mailtoLink, '_blank');
