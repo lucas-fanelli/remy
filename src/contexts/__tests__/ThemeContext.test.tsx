@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, useThemeMode } from '../ThemeContext';
 
@@ -20,6 +20,9 @@ describe('ThemeContext', () => {
     // Clear localStorage before each test
     localStorage.clear();
     jest.clearAllMocks();
+    // Setup classList mock
+    document.documentElement.classList.remove('loading');
+    document.documentElement.classList.remove('theme-ready');
   });
 
   it('should default to light mode when no preference is stored', () => {
