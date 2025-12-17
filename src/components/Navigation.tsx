@@ -531,47 +531,43 @@ export default function Navigation() {
           horizontal: 'right',
         }}
       >
-        {user ? (
+        {user ? [
           // Authenticated user menu
-          <>
-            <MenuItem disabled>
-              <strong>@{user.username}</strong>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={() => { router.push(`/profile/${user.username}`); handleMenuClose(); }}>
-              <ListItemIcon>
-                <Person fontSize="small" />
-              </ListItemIcon>
-              Profile
-            </MenuItem>
-            <MenuItem onClick={() => { router.push('/settings'); handleMenuClose(); }}>
-              <ListItemIcon>
-                <Settings fontSize="small" />
-              </ListItemIcon>
-              Settings
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <Logout fontSize="small" />
-              </ListItemIcon>
-              Logout
-            </MenuItem>
-          </>
-        ) : (
+          <MenuItem key="username" disabled>
+            <strong>@{user.username}</strong>
+          </MenuItem>,
+          <Divider key="divider1" />,
+          <MenuItem key="profile" onClick={() => { router.push(`/profile/${user.username}`); handleMenuClose(); }}>
+            <ListItemIcon>
+              <Person fontSize="small" />
+            </ListItemIcon>
+            Profile
+          </MenuItem>,
+          <MenuItem key="settings" onClick={() => { router.push('/settings'); handleMenuClose(); }}>
+            <ListItemIcon>
+              <Settings fontSize="small" />
+            </ListItemIcon>
+            Settings
+          </MenuItem>,
+          <MenuItem key="logout" onClick={handleLogout}>
+            <ListItemIcon>
+              <Logout fontSize="small" />
+            </ListItemIcon>
+            Logout
+          </MenuItem>
+        ] : [
           // Guest menu
-          <>
-            <MenuItem disabled>
-              <strong>Guest</strong>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={() => { router.push('/auth'); handleMenuClose(); }}>
-              <ListItemIcon>
-                <Login fontSize="small" />
-              </ListItemIcon>
-              Sign In
-            </MenuItem>
-          </>
-        )}
+          <MenuItem key="guest" disabled>
+            <strong>Guest</strong>
+          </MenuItem>,
+          <Divider key="divider2" />,
+          <MenuItem key="signin" onClick={() => { router.push('/auth'); handleMenuClose(); }}>
+            <ListItemIcon>
+              <Login fontSize="small" />
+            </ListItemIcon>
+            Sign In
+          </MenuItem>
+        ]}
       </Menu>
 
       {/* Notifications Dropdown Menu */}
