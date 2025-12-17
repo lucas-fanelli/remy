@@ -179,6 +179,17 @@ describe('Navigation Component', () => {
   });
 
   it('should open menu when avatar is clicked', () => {
+    // Mock authenticated user for this test
+    mockUseAuth.mockReturnValue({
+      user: { id: '1', username: 'testuser', email: 'test@test.com' },
+      token: 'test-token',
+      isLoading: false,
+      isAuthenticated: true,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
     renderWithProviders(<Navigation />);
 
     // Find avatar button
@@ -226,6 +237,17 @@ describe('Navigation Component', () => {
   });
 
   it('should show menu items when menu is opened', async () => {
+    // Mock authenticated user for this test
+    mockUseAuth.mockReturnValue({
+      user: { id: '1', username: 'testuser', email: 'test@test.com' },
+      token: 'test-token',
+      isLoading: false,
+      isAuthenticated: true,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
     renderWithProviders(<Navigation />);
 
     const avatarButtons = screen.getAllByRole('button');
@@ -241,6 +263,17 @@ describe('Navigation Component', () => {
   });
 
   it('should navigate to profile when Profile menu item is clicked', async () => {
+    // Mock authenticated user for this test
+    mockUseAuth.mockReturnValue({
+      user: { id: '1', username: 'testuser', email: 'test@test.com' },
+      token: 'test-token',
+      isLoading: false,
+      isAuthenticated: true,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
     renderWithProviders(<Navigation />);
 
     const avatarButtons = screen.getAllByRole('button');
@@ -279,6 +312,17 @@ describe('Navigation Component', () => {
   });
 
   it('should navigate to settings when Settings menu item is clicked', async () => {
+    // Mock authenticated user for this test
+    mockUseAuth.mockReturnValue({
+      user: { id: '1', username: 'testuser', email: 'test@test.com' },
+      token: 'test-token',
+      isLoading: false,
+      isAuthenticated: true,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
     renderWithProviders(<Navigation />);
 
     const avatarButtons = screen.getAllByRole('button');
@@ -296,6 +340,17 @@ describe('Navigation Component', () => {
   });
 
   it('should close menu when menu item is clicked', async () => {
+    // Mock authenticated user for this test
+    mockUseAuth.mockReturnValue({
+      user: { id: '1', username: 'testuser', email: 'test@test.com' },
+      token: 'test-token',
+      isLoading: false,
+      isAuthenticated: true,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
     renderWithProviders(<Navigation />);
 
     const avatarButtons = screen.getAllByRole('button');
@@ -371,6 +426,17 @@ describe('Navigation Component', () => {
   });
 
   it('should handle logout when Logout menu item is clicked', async () => {
+    // Mock authenticated user for this test
+    mockUseAuth.mockReturnValue({
+      user: { id: '1', username: 'testuser', email: 'test@test.com' },
+      token: 'test-token',
+      isLoading: false,
+      isAuthenticated: true,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
     renderWithProviders(<Navigation />);
 
     const avatarButtons = screen.getAllByRole('button');
@@ -405,6 +471,17 @@ describe('Navigation Component', () => {
   });
 
   it('should close menu when another menu item causes close', async () => {
+    // Mock authenticated user for this test
+    mockUseAuth.mockReturnValue({
+      user: { id: '1', username: 'testuser', email: 'test@test.com' },
+      token: 'test-token',
+      isLoading: false,
+      isAuthenticated: true,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
     renderWithProviders(<Navigation />);
 
     const avatarButtons = screen.getAllByRole('button');
@@ -1689,6 +1766,17 @@ describe('Navigation Component', () => {
     });
 
     it('should navigate to settings and close drawer when Settings clicked - line 864-865', async () => {
+      // Mock authenticated user for this test
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
@@ -1717,6 +1805,17 @@ describe('Navigation Component', () => {
     // NOTE: Theme toggle test removed - Theme toggle moved to Footer component
 
     it('should logout and close drawer when Logout clicked - line 898-899', async () => {
+      // Mock authenticated user for this test
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
