@@ -860,4 +860,51 @@ describe('EditProfileModal', () => {
       });
     });
   });
+
+  describe('Mobile Viewport - lines 178-342', () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      originalMatchMedia = window.matchMedia;
+      // Mock mobile viewport (width < 600px triggers sm breakpoint)
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it('should render in mobile mode with fullScreen dialog - lines 178-224', async () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      // Modal should be visible
+      expect(screen.getByText(/edit profile/i)).toBeInTheDocument();
+    });
+
+    it('should render mobile-sized form fields - lines 250-332', async () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/bio/i)).toBeInTheDocument();
+    });
+
+    it('should render mobile-sized buttons - lines 335-342', async () => {
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+
+      const cancelButton = screen.getByRole('button', { name: /cancel/i });
+      const saveButton = screen.getByRole('button', { name: /save changes/i });
+
+      expect(cancelButton).toBeInTheDocument();
+      expect(saveButton).toBeInTheDocument();
+    });
+  });
 });

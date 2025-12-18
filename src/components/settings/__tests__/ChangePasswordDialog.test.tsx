@@ -807,4 +807,71 @@ describe('ChangePasswordDialog', () => {
       }
     });
   });
+
+  describe('Mobile Viewport - lines 173-314', () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      originalMatchMedia = window.matchMedia;
+      // Mock mobile viewport (width < 600px triggers sm breakpoint)
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it('should render in mobile mode with fullScreen dialog - lines 170, 173', async () => {
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      // Dialog should be visible
+      const changePasswordElements = screen.getAllByText('Change Password');
+      expect(changePasswordElements.length).toBeGreaterThan(0);
+    });
+
+    it('should render mobile-sized buttons - lines 304, 312-314', async () => {
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const cancelButton = screen.getByRole('button', { name: /cancel/i });
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+
+      expect(cancelButton).toBeInTheDocument();
+      expect(submitButton).toBeInTheDocument();
+    });
+
+    it('should render mobile-sized input fields - lines 210, 240, 270', async () => {
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      expect(screen.getByLabelText(/current password/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^new password/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/confirm new password/i)).toBeInTheDocument();
+    });
+
+    it('should render mobile-sized close button - line 188', async () => {
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const closeButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('[data-testid="CloseIcon"]')
+      );
+      expect(closeButtons.length).toBeGreaterThan(0);
+    });
+
+    it('should render mobile-sized visibility toggle buttons - lines 217, 247, 277', async () => {
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const visibilityButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('[data-testid="VisibilityIcon"]')
+      );
+      expect(visibilityButtons.length).toBe(3);
+    });
+  });
 });

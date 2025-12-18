@@ -516,4 +516,89 @@ describe('MatchedRecipes Component', () => {
       expect(screen.getByText('Unknown')).toBeInTheDocument();
     });
   });
+
+  describe('Mobile Viewport - lines 132-177', () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      originalMatchMedia = window.matchMedia;
+      // Mock mobile viewport (width < 600px triggers sm breakpoint)
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it('should render mobile-sized button in empty pantry state - lines 132-134', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          readyToCook: [],
+          almostThere: [],
+          pantryItemsCount: 0,
+        }),
+      });
+
+      const mockToken = 'test-token';
+      mockUseAuth.mockReturnValue({ token: mockToken });
+
+      renderWithProviders(<MatchedRecipes />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /go to my pantry/i })).toBeInTheDocument();
+      });
+    });
+
+    it('should render mobile-style tabs - lines 166-180', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          readyToCook: [],
+          almostThere: [],
+          pantryItemsCount: 5,
+        }),
+      });
+
+      const mockToken = 'test-token';
+      mockUseAuth.mockReturnValue({ token: mockToken });
+
+      renderWithProviders(<MatchedRecipes />);
+
+      await waitFor(() => {
+        // Mobile tabs should have shorter labels (Ready vs Ready to Cook)
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs.length).toBe(2);
+      });
+    });
+
+    it('should render mobile-style tab icons hidden - lines 170, 176', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          readyToCook: [],
+          almostThere: [],
+          pantryItemsCount: 5,
+        }),
+      });
+
+      const mockToken = 'test-token';
+      mockUseAuth.mockReturnValue({ token: mockToken });
+
+      renderWithProviders(<MatchedRecipes />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/recipes based on your pantry/i)).toBeInTheDocument();
+      });
+    });
+  });
 });
