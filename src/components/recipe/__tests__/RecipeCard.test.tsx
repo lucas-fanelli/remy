@@ -124,6 +124,15 @@ describe('RecipeCard Component', () => {
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
+  it('should navigate to recipe page when clicked without onClick prop - line 72', () => {
+    renderWithTheme(<RecipeCard recipe={mockRecipe} />);
+
+    const title = screen.getByText('Test Recipe');
+    fireEvent.click(title);
+
+    expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-1');
+  });
+
   it('should call onLike when like button is clicked', () => {
     const handleLike = jest.fn();
     renderWithTheme(<RecipeCard recipe={mockRecipe} onLike={handleLike} showActions={true} />);
