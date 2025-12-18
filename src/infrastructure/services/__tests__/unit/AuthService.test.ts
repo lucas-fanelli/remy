@@ -328,4 +328,58 @@ describe('AuthService - Unit Tests', () => {
       ).rejects.toThrow('Invalid old password');
     });
   });
+
+  describe('ADMIN_EMAILS edge cases - lines 25, 60', () => {
+    it('should fallback to empty string when ADMIN_EMAILS is undefined - line 25', async () => {
+      const originalEnv = process.env.ADMIN_EMAILS;
+      delete process.env.ADMIN_EMAILS;
+
+      const registerData = {
+        email: 'test@example.com',
+        username: 'testuser',
+        password: 'Test1234',
+        fullName: 'Test User',
+      };
+
+      mockPasswordService.validate = jest.fn().mockReturnValue(true);
+      mockUserRepository.exists = jest.fn().mockResolvedValue(false);
+      mockPasswordService.hash = jest.fn().mockResolvedValue('hashed_password');
+      mockUserRepository.create = jest.fn().mockResolvedValue({ ...mockUser, role: 'USER' });
+      mockTokenService.generate = jest.fn().mockReturnValue('jwt_token');
+
+      const result = await authService.register(registerData);
+
+      // Should default to USER role when ADMIN_EMAILS is not set
+      expect(result.user.role).toBe('USER');
+
+      process.env.ADMIN_EMAILS = originalEnv;
+    });
+
+    it('should register as USER when email is not in ADMIN_EMAILS - line 60', async () => {
+      const originalEnv = process.env.ADMIN_EMAILS;
+      process.env.ADMIN_EMAILS = 'admin@example.com';
+
+      const registerData = {
+        email: 'notadmin@example.com',
+        username: 'notadmin',
+        password: 'Test1234',
+        fullName: 'Not Admin',
+      };
+
+      mockPasswordService.validate = jest.fn().mockReturnValue(true);
+      mockUserRepository.exists = jest.fn().mockResolvedValue(false);
+      mockPasswordService.hash = jest.fn().mockResolvedValue('hashed_password');
+      mockUserRepository.create = jest.fn().mockResolvedValue({ ...mockUser, email: 'notadmin@example.com', role: 'USER' });
+      mockTokenService.generate = jest.fn().mockReturnValue('jwt_token');
+
+      const result = await authService.register(registerData);
+
+      expect(result.user.role).toBe('USER');
+      expect(mockUserRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        role: 'USER',
+      }));
+
+      process.env.ADMIN_EMAILS = originalEnv;
+    });
+  });
 });

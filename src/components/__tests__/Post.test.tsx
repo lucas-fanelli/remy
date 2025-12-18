@@ -383,4 +383,23 @@ describe('Post Component', () => {
     // Input should be cleared
     expect(commentInput.value).toBe('');
   });
+
+  it('should use default empty array when comments prop is not provided - line 46', () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <Post
+          username="testuser"
+          avatar="/avatar.jpg"
+          image="/post.jpg"
+          likes={42}
+          caption="Test caption"
+          timestamp="2 hours ago"
+        />
+      </ThemeProvider>
+    );
+
+    // Post should render without "View all X comments" since comments defaults to []
+    expect(screen.queryByText(/view all/i)).not.toBeInTheDocument();
+    expect(screen.getByText('42 likes')).toBeInTheDocument();
+  });
 });

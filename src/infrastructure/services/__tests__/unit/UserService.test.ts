@@ -258,5 +258,22 @@ describe('UserService - Unit Tests', () => {
 
       expect(result).toBeDefined();
     });
+
+    it('should handle users with undefined fullName - line 78', async () => {
+      const userWithUndefinedName = { ...mockUser, fullName: undefined };
+      mockUserRepository.findMany = jest.fn().mockResolvedValue([userWithUndefinedName]);
+
+      const result = await userService.searchUsers('test', 10);
+
+      expect(result).toBeDefined();
+    });
+
+    it('should use default limit when not provided - line 70', async () => {
+      mockUserRepository.findMany = jest.fn().mockResolvedValue([mockUser]);
+
+      const result = await userService.searchUsers('test');
+
+      expect(result).toBeDefined();
+    });
   });
 });

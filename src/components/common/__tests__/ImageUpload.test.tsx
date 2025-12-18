@@ -162,7 +162,7 @@ describe('ImageUpload Component', () => {
   });
 
   it('should handle upload error', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
     mockFetch.mockResolvedValueOnce({
       ok: false,
       json: async () => ({ error: 'Upload failed' }),
@@ -266,7 +266,7 @@ describe('ImageUpload Component', () => {
   });
 
   it('should handle network error in catch block - line 80', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
     // Mock fetch to throw a network error
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
@@ -292,7 +292,7 @@ describe('ImageUpload Component', () => {
   });
 
   it('should handle non-Error exception in catch block - line 80', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
     // Mock fetch to throw a non-Error object
     mockFetch.mockRejectedValueOnce('String error');
 
@@ -389,5 +389,33 @@ describe('ImageUpload Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/Uploading.../i)).toBeInTheDocument();
     });
+  });
+
+  it('should use fallback error message when server returns no error field - line 74', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({}), // No error field
+    });
+
+    renderWithTheme(
+      <ImageUpload value="" onChange={mockOnChange} />
+    );
+
+    const file = new File(['dummy content'], 'test.jpg', { type: 'image/jpeg' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    Object.defineProperty(input, 'files', {
+      value: [file],
+    });
+
+    fireEvent.change(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('Upload failed')).toBeInTheDocument();
+    });
+
+    expect(mockOnChange).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 });

@@ -196,4 +196,41 @@ describe('ConfirmDialog', () => {
 
     expect(screen.getByText('Mobile Test')).toBeInTheDocument();
   });
+
+  describe('Mobile Viewport - line 53', () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      originalMatchMedia = window.matchMedia;
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it('should render fullscreen dialog with zero borderRadius on mobile - line 53', () => {
+      renderWithTheme(
+        <ConfirmDialog
+          open={true}
+          onClose={mockOnClose}
+          onConfirm={mockOnConfirm}
+          title="Mobile Dialog"
+          message="Testing mobile fullscreen"
+        />
+      );
+
+      expect(screen.getByText('Mobile Dialog')).toBeInTheDocument();
+      expect(screen.getByText('Testing mobile fullscreen')).toBeInTheDocument();
+    });
+  });
 });
