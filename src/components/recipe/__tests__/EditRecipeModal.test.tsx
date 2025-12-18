@@ -871,4 +871,45 @@ describe('EditRecipeModal Component', () => {
     // Component should render without errors
     expect(screen.getByLabelText(/recipe title/i)).toBeInTheDocument();
   });
+
+  it('should clear amount when selecting "to taste" unit - line 148', async () => {
+    renderWithProviders(
+      <EditRecipeModal
+        open={true}
+        recipe={mockRecipe}
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+      />
+    );
+
+    // Navigate to ingredients step
+    const nextButton = screen.getByRole('button', { name: /next/i });
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/add ingredient/i)).toBeInTheDocument();
+    });
+
+    // Get amount input and verify it has value
+    const amountInputs = screen.getAllByLabelText(/amount/i);
+    expect(amountInputs[0]).toHaveValue('2');
+
+    // Wait for unit selects to render
+    await waitFor(() => {
+      const selects = screen.queryAllByRole('combobox');
+      expect(selects.length).toBeGreaterThan(0);
+    });
+
+    // Select "to taste" from the unit dropdown
+    const unitSelects = screen.getAllByRole('combobox');
+    fireEvent.mouseDown(unitSelects[0]);
+
+    const toTasteOption = await screen.findByText('to taste');
+    fireEvent.click(toTasteOption);
+
+    // Amount should now be cleared and disabled
+    await waitFor(() => {
+      expect(unitSelects[0].textContent).toBe('to taste');
+    });
+  });
 });
