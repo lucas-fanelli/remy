@@ -98,7 +98,7 @@ describe('LoginForm Component', () => {
   });
 
   it('should show loading state during login', async () => {
-    mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
+    mockFetch.mockImplementation(() => new Promise(() => { })); // Never resolves
 
     renderWithProviders(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
 
