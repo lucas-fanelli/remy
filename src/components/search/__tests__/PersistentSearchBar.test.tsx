@@ -660,6 +660,31 @@ describe('PersistentSearchBar', () => {
             // Should NOT call API for single character
             expect(mockFetch).not.toHaveBeenCalled();
         });
+
+        it('should fallback to empty arrays when API returns no users/recipes fields - lines 132-133', async () => {
+            mockFetch.mockResolvedValue({
+                ok: true,
+                json: async () => ({}), // No users or recipes fields
+            });
+
+            renderWithTheme(<PersistentSearchBar showSuggestions={true} />);
+
+            const input = screen.getByRole('textbox');
+            fireEvent.change(input, { target: { value: 'testquery' } });
+            fireEvent.focus(input);
+
+            // Advance timers past debounce
+            await act(async () => {
+                jest.advanceTimersByTime(350);
+            });
+
+            await waitFor(() => {
+                expect(mockFetch).toHaveBeenCalledWith('/api/search?q=testquery');
+            });
+
+            // Component should not crash and should handle empty arrays gracefully
+            expect(input).toBeInTheDocument();
+        });
     });
 
     // ==================== RECENT SEARCHES TESTS (lines 550-552) ====================

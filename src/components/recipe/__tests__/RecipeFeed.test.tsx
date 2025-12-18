@@ -1451,4 +1451,75 @@ describe('RecipeFeed Component', () => {
       await act(async () => { });
     });
   });
+
+  // ==================== DELETE ERROR FALLBACK (line 234) ====================
+  describe('Delete Error Fallback - line 234', () => {
+    it('should show fallback error message when server returns no error field - line 234', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      setupSuccessfulFetch();
+
+      renderWithProviders(<RecipeFeed />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      });
+
+      const deleteButton = screen.getByRole('button', { name: /delete/i });
+      fireEvent.click(deleteButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
+      });
+
+      // Mock delete API failure without error field
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}), // No error field
+      });
+
+      const confirmButton = screen.getByRole('button', { name: /^delete$/i });
+      fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/failed to delete recipe/i)).toBeInTheDocument();
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  // ==================== MOBILE VIEWPORT TESTS (line 379) ====================
+  describe('Mobile Viewport - line 379', () => {
+    let originalMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      originalMatchMedia = window.matchMedia;
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it('should render mobile-sized Share Recipe button - line 379', async () => {
+      setupSuccessfulFetch();
+      const mockOnCreateRecipe = jest.fn();
+
+      renderWithProviders(<RecipeFeed onCreateRecipe={mockOnCreateRecipe} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /share recipe/i })).toBeInTheDocument();
+      });
+    });
+  });
 });
