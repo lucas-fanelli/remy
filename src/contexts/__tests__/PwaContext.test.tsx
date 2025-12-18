@@ -564,4 +564,69 @@ describe('PwaContext', () => {
             expect(screen.getByTestId('show-install-prompt')).toHaveTextContent('false');
         });
     });
+
+    describe('triggerInstall returns false when dismissed - line 241', () => {
+        it('should return false when user dismisses the install prompt', async () => {
+            let capturedContext: any;
+
+            render(
+                <PwaProvider>
+                    <TestConsumer onContextChange={(ctx) => { capturedContext = ctx; }} />
+                </PwaProvider>
+            );
+
+            // Setup mock prompt with 'dismissed' outcome
+            const mockPrompt = jest.fn().mockResolvedValue(undefined);
+            const mockUserChoice = Promise.resolve({ outcome: 'dismissed' as const });
+
+            const event = new Event('beforeinstallprompt');
+            Object.defineProperty(event, 'prompt', { value: mockPrompt });
+            Object.defineProperty(event, 'userChoice', { value: mockUserChoice });
+            Object.defineProperty(event, 'preventDefault', { value: jest.fn() });
+
+            await act(async () => {
+                window.dispatchEvent(event);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('prompt-available')).toHaveTextContent('true');
+            });
+
+            // Trigger install should return false when user dismisses
+            const result = await capturedContext.triggerInstall();
+
+            expect(result).toBe(false);
+        });
+    });
+
+    describe('resetDismissal shows prompt for iOS Safari - line 267', () => {
+        it('should show install prompt when resetting on iOS Safari', async () => {
+            // Mock iOS Safari user agent
+            Object.defineProperty(window.navigator, 'userAgent', {
+                value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1',
+                configurable: true,
+            });
+            Object.defineProperty(window.navigator, 'standalone', {
+                value: false,
+                configurable: true,
+            });
+
+            render(
+                <PwaProvider>
+                    <TestConsumer />
+                </PwaProvider>
+            );
+
+            // First dismiss the prompt
+            fireEvent.click(screen.getByTestId('dismiss-prompt'));
+
+            // Then reset the dismissal 
+            fireEvent.click(screen.getByTestId('reset-dismissal'));
+
+            // Should show install prompt again for iOS Safari
+            await waitFor(() => {
+                expect(screen.getByTestId('show-install-prompt')).toHaveTextContent('true');
+            });
+        });
+    });
 });
