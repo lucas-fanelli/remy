@@ -308,6 +308,51 @@ describe('NotificationRepository', () => {
       });
       expect(count).toBe(3);
     });
+
+    it('should delete notifications with postId filter - line 193', async () => {
+      (mockPrisma.notification.deleteMany as jest.Mock).mockResolvedValue({ count: 2 });
+
+      const count = await repository.deleteMany({
+        recipientId: 'user1',
+        postId: 'post123',
+      });
+
+      expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
+        where: {
+          recipientId: 'user1',
+          postId: 'post123',
+        },
+      });
+      expect(count).toBe(2);
+    });
+  });
+
+  describe('mapToNotificationWithSender fallback - line 271', () => {
+    it('should use fallback sender when sender is null', async () => {
+      const mockNotificationWithoutSender = {
+        id: 'notif1',
+        recipientId: 'user1',
+        senderId: 'user2',
+        type: 'follow',
+        postId: null,
+        commentId: null,
+        isRead: false,
+        createdAt: new Date(),
+        sender: null, // No sender data
+      };
+
+      (mockPrisma.notification.findMany as jest.Mock).mockResolvedValue([mockNotificationWithoutSender]);
+
+      const result = await repository.findByRecipientId('user1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].sender).toEqual({
+        id: 'user2',
+        username: 'Unknown',
+        fullName: null,
+        avatar: null,
+      });
+    });
   });
 
   describe('exists', () => {

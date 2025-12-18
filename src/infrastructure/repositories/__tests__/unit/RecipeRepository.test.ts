@@ -523,5 +523,16 @@ describe('RecipeRepository - Unit Tests', () => {
       expect(result?.instructions).toEqual([]);
       expect(result?.caption).toBeUndefined();
     });
+
+    it('should handle undefined user in post data - lines 205-208', async () => {
+      const postWithoutUser = { ...mockPost, user: undefined };
+
+      prismaMock.post.findUnique.mockResolvedValue(postWithoutUser as any);
+
+      const result = await recipeRepository.findById('recipe-123');
+
+      expect(result).toBeDefined();
+      expect(result?.author).toBeUndefined();
+    });
   });
 });
