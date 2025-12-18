@@ -90,6 +90,14 @@ describe('NotificationService (Refactored)', () => {
       expect(mockRepository.findUnreadByRecipientId).toHaveBeenCalledWith('user1', 20, 0);
       expect(result).toEqual(mockNotifications);
     });
+
+    it('should use default pagination values - lines 36-37', async () => {
+      mockRepository.findUnreadByRecipientId.mockResolvedValue([]);
+
+      await service.getUnreadNotifications('user1');
+
+      expect(mockRepository.findUnreadByRecipientId).toHaveBeenCalledWith('user1', 50, 0);
+    });
   });
 
   describe('markAllAsRead', () => {
