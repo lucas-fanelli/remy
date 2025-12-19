@@ -162,4 +162,26 @@ describe('ThemeContext', () => {
     expect(document.documentElement.style.colorScheme).toBe('light');
     expect(document.documentElement.style.backgroundColor).toBe('rgb(250, 250, 250)');
   });
+
+  it('should enable transitions after initial load - lines 187-192', async () => {
+    render(
+      <ThemeProvider>
+        <TestComponent />
+      </ThemeProvider>
+    );
+
+    // Wait for useEffect to complete (50ms delay in source + buffer)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Toggle theme after isInitialLoad becomes false
+    fireEvent.click(screen.getByText('Toggle Theme'));
+
+    // Theme should now be dark with transitions enabled (not 'none')
+    expect(screen.getByTestId('current-mode')).toHaveTextContent('dark');
+
+    // Toggle back - this exercises the theme useMemo with isInitialLoad = false
+    fireEvent.click(screen.getByText('Toggle Theme'));
+
+    expect(screen.getByTestId('current-mode')).toHaveTextContent('light');
+  });
 });

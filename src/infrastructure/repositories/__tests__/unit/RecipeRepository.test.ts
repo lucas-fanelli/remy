@@ -535,4 +535,28 @@ describe('RecipeRepository - Unit Tests', () => {
       expect(result?.author).toBeUndefined();
     });
   });
+
+  describe('getRecent with undefined user', () => {
+    it('should handle undefined user in getRecent - lines 205-208', async () => {
+      const postWithoutUser = { ...mockPost, user: undefined };
+      prismaMock.post.findMany.mockResolvedValue([postWithoutUser as any]);
+
+      const result = await recipeRepository.getRecent();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].author).toBeUndefined();
+    });
+  });
+
+  describe('search with undefined user', () => {
+    it('should handle undefined user in search - lines 205-208', async () => {
+      const postWithoutUser = { ...mockPost, user: undefined };
+      prismaMock.post.findMany.mockResolvedValue([postWithoutUser as any]);
+
+      const result = await recipeRepository.search({ query: 'test' });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].author).toBeUndefined();
+    });
+  });
 });
