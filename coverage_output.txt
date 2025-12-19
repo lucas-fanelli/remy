@@ -1,0 +1,130 @@
+﻿
+> recipe-sharing-app@0.1.0 test
+> jest --coverage --coverage --coverageReporters=text
+
+node.exe : PASS src/components/auth/__tests__/LoginForm.test.tsx
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (PASS src/compon...inForm.test.tsx:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+PASS src/components/__tests__/Post.test.tsx
+PASS src/app/settings/__tests__/page.test.tsx
+PASS src/components/recipe/__tests__/RecipeCard.test.tsx
+PASS src/contexts/__tests__/ToastContext.test.tsx
+PASS src/infrastructure/services/__tests__/unit/TokenService.test.ts
+PASS src/components/common/__tests__/ImageUpload.test.tsx
+PASS src/components/auth/__tests__/RegisterForm.test.tsx
+PASS src/components/recipe/__tests__/MatchedRecipes.test.tsx
+PASS src/components/__tests__/Footer.test.tsx
+PASS src/components/__tests__/Suggestions.test.tsx
+PASS src/components/auth/__tests__/RegisterFormNonError.test.tsx
+PASS src/components/pwa/__tests__/InstallPrompt.test.tsx
+PASS src/components/__tests__/SearchResults.test.tsx
+PASS src/infrastructure/services/__tests__/unit/PasswordService.test.ts
+PASS src/contexts/__tests__/ThemeContext.test.tsx
+PASS src/contexts/__tests__/AuthContext.test.tsx
+PASS src/components/common/__tests__/ConfirmDialog.test.tsx
+PASS src/components/__tests__/LoadingBar.test.tsx
+PASS src/contexts/__tests__/PwaContext.test.tsx
+PASS src/components/auth/__tests__/LoginFormNonError.test.tsx
+PASS src/components/common/__tests__/LoadingWithProgress.test.tsx
+PASS src/components/ui/__tests__/AnimatedTabs.test.tsx
+PASS src/lib/container/__tests__/unit/container.test.ts
+PASS src/components/search/__tests__/index.test.ts
+PASS src/components/ui/__tests__/TabPanelTransition.test.tsx
+PASS src/contexts/__tests__/MotionContext.test.tsx
+PASS src/components/__tests__/LayoutWrapper.test.tsx
+PASS src/infrastructure/services/__tests__/unit/RecipeService.test.ts
+PASS src/lib/validation/__tests__/unit/schemas.test.ts
+PASS src/infrastructure/services/__tests__/unit/PantryService.test.ts
+PASS src/infrastructure/repositories/__tests__/unit/UserRepository.test.ts
+PASS src/infrastructure/services/__tests__/unit/AuthService.test.ts
+PASS src/infrastructure/services/__tests__/unit/AdminService.test.ts
+PASS src/infrastructure/services/__tests__/unit/UserService.test.ts
+PASS src/infrastructure/services/__tests__/unit/IngredientMatchService.test.ts
+PASS src/infrastructure/repositories/__tests__/unit/RecipeRepository.test.ts
+PASS src/infrastructure/services/__tests__/unit/NotificationService.test.ts
+PASS src/infrastructure/repositories/__tests__/unit/PantryRepository.test.ts
+PASS src/infrastructure/repositories/__tests__/unit/NotificationRepository.test.ts
+PASS src/components/settings/__tests__/ChangePasswordDialog.test.tsx (6.005 s)
+PASS src/components/search/__tests__/PersistentSearchBar.test.tsx (6.947 s)
+PASS src/components/profile/__tests__/EditProfileModal.test.tsx (7.184 s)
+PASS src/components/recipe/__tests__/EditRecipeModal.test.tsx (7.708 s)
+PASS src/components/recipe/__tests__/RecipeFeed.test.tsx (8.229 s)
+PASS src/components/recipe/__tests__/CommentsSection.test.tsx (8.709 s)
+PASS src/components/__tests__/Navigation.test.tsx (8.755 s)
+PASS src/components/recipe/__tests__/CreateRecipeForm.test.tsx (13.73 s)
+-----------------------------|---------|----------|---------|---------|--------------------------------------------------------------
+File                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                            
+-----------------------------|---------|----------|---------|---------|--------------------------------------------------------------
+All files                    |   97.25 |    91.83 |   97.09 |   98.36 |                                                              
+ components                  |   89.88 |     93.9 |   89.52 |   91.46 |                                                              
+  Footer.tsx                 |     100 |      100 |     100 |     100 |                                                              
+  LayoutWrapper.tsx          |      90 |      100 |     100 |     100 |                                                              
+  LoadingBar.tsx             |   94.11 |      100 |     100 |     100 |                                                              
+  Navigation.tsx             |    84.4 |    90.82 |   83.07 |   86.27 | 160,332,375-405,523-526,919,976-977,1015-1016,1062,1096-1115 
+  Post.tsx                   |     100 |      100 |     100 |     100 |                                                              
+  SearchResults.tsx          |     100 |      100 |     100 |     100 |                                                              
+  Suggestions.tsx            |     100 |      100 |     100 |     100 |                                                              
+ components/auth             |     100 |      100 |     100 |     100 |                                                              
+  LoginForm.tsx              |     100 |      100 |     100 |     100 |                                                              
+  RegisterForm.tsx           |     100 |      100 |     100 |     100 |                                                              
+ components/common           |     100 |      100 |     100 |     100 |                                                              
+  ConfirmDialog.tsx          |     100 |      100 |     100 |     100 |                                                              
+  ImageUpload.tsx            |     100 |      100 |     100 |     100 |                                                              
+  LoadingWithProgress.tsx    |     100 |      100 |     100 |     100 |                                                              
+ components/profile          |     100 |      100 |     100 |     100 |                                                              
+  EditProfileModal.tsx       |     100 |      100 |     100 |     100 |                                                              
+ components/pwa              |     100 |      100 |     100 |     100 |                                                              
+  InstallPrompt.tsx          |     100 |      100 |     100 |     100 |                                                              
+ components/recipe           |   98.23 |    83.72 |   98.45 |   99.21 |                                                              
+  CommentsSection.tsx        |   95.93 |    78.26 |   93.75 |   99.37 | 554                                                          
+  CreateRecipeForm.tsx       |   98.14 |    76.47 |     100 |   98.05 | 95,530                                                       
+  EditRecipeModal.tsx        |    98.4 |    80.55 |   97.67 |   98.33 | 455,516                                                      
+  MatchedRecipes.tsx         |     100 |      100 |     100 |     100 |                                                              
+  RecipeCard.tsx             |     100 |      100 |     100 |     100 |                                                              
+  RecipeFeed.tsx             |   99.43 |    94.02 |     100 |     100 | 133,272,297-299                                              
+ components/search           |     100 |      100 |     100 |     100 |                                                              
+  PersistentSearchBar.tsx    |     100 |      100 |     100 |     100 |                                                              
+  index.ts                   |     100 |      100 |     100 |     100 |                                                              
+ components/settings         |     100 |      100 |     100 |     100 |                                                              
+  ChangePasswordDialog.tsx   |     100 |      100 |     100 |     100 |                                                              
+ components/ui               |     100 |      100 |     100 |     100 |                                                              
+  AnimatedTabs.tsx           |     100 |      100 |     100 |     100 |                                                              
+  TabPanelTransition.tsx     |     100 |      100 |     100 |     100 |                                                              
+ contexts                    |    96.5 |    88.54 |   98.36 |     100 |                                                              
+  AuthContext.tsx            |     100 |      100 |     100 |     100 |                                                              
+  MotionContext.tsx          |     100 |      100 |     100 |     100 |                                                              
+  PwaContext.tsx             |   93.23 |    79.54 |     100 |     100 | 44,58,71,86,101-150                                          
+  ThemeContext.tsx           |   97.87 |    93.54 |   91.66 |     100 | 187-192                                                      
+  ToastContext.tsx           |     100 |      100 |     100 |     100 |                                                              
+ domain/types                |     100 |      100 |     100 |     100 |                                                              
+  pantry.ts                  |     100 |      100 |     100 |     100 |                                                              
+ infrastructure/repositories |   98.54 |     93.9 |   96.55 |     100 |                                                              
+  NotificationRepository.ts  |   96.49 |      100 |      90 |     100 |                                                              
+  PantryRepository.ts        |     100 |      100 |     100 |     100 |                                                              
+  RecipeRepository.ts        |     100 |    88.09 |     100 |     100 | 205-208                                                      
+  UserRepository.ts          |     100 |      100 |     100 |     100 |                                                              
+ infrastructure/services     |   99.46 |     97.6 |     100 |   99.45 |                                                              
+  AdminService.ts            |     100 |      100 |     100 |     100 |                                                              
+  AuthService.ts             |     100 |       95 |     100 |     100 | 60                                                           
+  IngredientMatchService.ts  |   97.26 |    93.33 |     100 |   97.14 | 197,202                                                      
+  NotificationService.ts     |     100 |      100 |     100 |     100 |                                                              
+  PantryService.ts           |     100 |      100 |     100 |     100 |                                                              
+  PasswordService.ts         |     100 |      100 |     100 |     100 |                                                              
+  RecipeService.ts           |     100 |      100 |     100 |     100 |                                                              
+  TokenService.ts            |     100 |      100 |     100 |     100 |                                                              
+  UserService.ts             |     100 |     90.9 |     100 |     100 | 77                                                           
+ lib/container               |     100 |      100 |     100 |     100 |                                                              
+  container.ts               |     100 |      100 |     100 |     100 |                                                              
+ lib/validation              |     100 |      100 |     100 |     100 |                                                              
+  schemas.ts                 |     100 |      100 |     100 |     100 |                                                              
+-----------------------------|---------|----------|---------|---------|--------------------------------------------------------------
+
+Test Suites: 48 passed, 48 total
+Tests:       1140 passed, 1140 total
+Snapshots:   0 total
+Time:        15.79 s
+Ran all test suites.

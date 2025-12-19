@@ -389,5 +389,19 @@ describe('IngredientMatchService', () => {
       const userIngredients2 = ['potato'];
       expect(service.calculateMatchPercentage(recipeIngredients2, userIngredients2)).toBe(100);
     });
+
+    it('should match reverse plural variations (singular in recipe, plural in pantry) - line 197', () => {
+      // Test word2 + 's' === word1 (pantry has plural, recipe has singular)
+      const recipeIngredients = ['chicken'];
+      const userIngredients = ['chickens'];
+      expect(service.calculateMatchPercentage(recipeIngredients, userIngredients)).toBe(100);
+    });
+
+    it('should match reverse "es" plural variations - line 202', () => {
+      // Test word2 + 'es' === word1 (pantry has plural, recipe has singular)
+      const recipeIngredients = ['tomato'];
+      const userIngredients = ['tomatoes'];
+      expect(service.calculateMatchPercentage(recipeIngredients, userIngredients)).toBe(100);
+    });
   });
 });
