@@ -1193,5 +1193,30 @@ describe('CreateRecipeForm Component', () => {
         expect(imageText.length).toBeGreaterThan(0);
       });
     });
+
+    it('should allow proceeding with "to taste" ingredient without amount (line 90)', async () => {
+      renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+
+      // Navigate to ingredients step
+      navigateToStep2();
+
+      // Fill in ingredient name
+      const ingredientInputs = screen.getAllByLabelText(/^ingredient \*$/i);
+      fireEvent.change(ingredientInputs[0], { target: { value: 'Salt' } });
+
+      // Select "to taste" unit (no amount required)
+      const unitSelects = screen.getAllByRole('combobox');
+      fireEvent.mouseDown(unitSelects[0]);
+      const toTasteOption = screen.getByText('to taste');
+      fireEvent.click(toTasteOption);
+
+      // Should be able to proceed to next step (tests line 90: i.unit === 'to taste' || i.amount.trim() !== '')
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+      // Should navigate to instructions step
+      await waitFor(() => {
+        expect(screen.getByText(/add step/i)).toBeInTheDocument();
+      });
+    });
   });
 });
