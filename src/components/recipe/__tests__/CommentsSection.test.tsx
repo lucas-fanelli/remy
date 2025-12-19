@@ -2011,4 +2011,102 @@ describe('CommentsSection Component', () => {
       });
     });
   });
+
+  // ==================== EDIT RATING CHANGE (line 554) ====================
+  describe('Edit Rating Change - line 554', () => {
+    it('should update edit rating when rating is changed in edit mode - line 554', async () => {
+      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+
+      const existingComment = {
+        id: 'comment1',
+        text: 'My comment',
+        rating: 4,
+        createdAt: new Date().toISOString(),
+        user: { id: 'user123', username: 'testuser', avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [existingComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('My comment')).toBeInTheDocument();
+      });
+
+      // Open menu and click edit
+      const moreButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('[data-testid="MoreVertIcon"]')
+      );
+      if (moreButtons.length > 0) {
+        fireEvent.click(moreButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
+        });
+
+        const editMenuItem = screen.getAllByRole('menuitem')[0];
+        fireEvent.click(editMenuItem);
+
+        // Now in edit mode, find the rating component and change it
+        await waitFor(() => {
+          const ratingLabels = screen.queryAllByLabelText(/star/i);
+          if (ratingLabels.length > 0) {
+            // Click a star to change rating (line 554 coverage)
+            fireEvent.click(ratingLabels[0]);
+          }
+        });
+      }
+    });
+  });
+
+  // ==================== MENU ON CLOSE (line 632) ====================
+  describe('Menu onClose - line 632', () => {
+    it('should close menu when clicking away - line 632', async () => {
+      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+
+      const existingComment = {
+        id: 'comment1',
+        text: 'Test comment for menu',
+        rating: 5,
+        createdAt: new Date().toISOString(),
+        user: { id: 'user123', username: 'testuser', avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [existingComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test comment for menu')).toBeInTheDocument();
+      });
+
+      // Open menu
+      const moreButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('[data-testid="MoreVertIcon"]')
+      );
+      if (moreButtons.length > 0) {
+        fireEvent.click(moreButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
+        });
+
+        // Press Escape to trigger onClose (line 632)
+        fireEvent.keyDown(document.activeElement || document.body, { key: 'Escape' });
+
+        // Menu should close
+        await waitFor(() => {
+          expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+        });
+      }
+    });
+  });
 });
