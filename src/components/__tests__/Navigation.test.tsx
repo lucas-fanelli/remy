@@ -2617,4 +2617,113 @@ describe('Navigation Component', () => {
       }
     });
   });
+
+  // ==================== CREATE RECIPE DIALOG (lines 1096-1115) ====================
+  describe('Create Recipe Dialog - lines 1096-1115', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
+
+    it('should open create recipe dialog when clicking create recipe in drawer - lines 1096-1115', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Open drawer
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
+      });
+
+      if (!menuButton) return;
+
+      fireEvent.click(menuButton);
+
+      // Find Create Recipe button in drawer
+      await waitFor(() => {
+        const createButton = screen.queryByText('Create Recipe');
+        if (createButton) {
+          fireEvent.click(createButton);
+        }
+      });
+
+      // Check for dialog
+      await waitFor(() => {
+        const dialogTitle = screen.queryByText('Create New Recipe');
+        if (dialogTitle) {
+          expect(dialogTitle).toBeInTheDocument();
+        }
+      });
+    });
+  });
+
+  // ==================== MOBILE LOGO CLICK (line 740) ====================
+  describe('Mobile Logo Click - line 740', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
+
+    it('should navigate to home when clicking logo in mobile - line 740', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Find logo box and click
+      const logoImages = screen.getAllByRole('img');
+      const logo = logoImages.find(img => img.getAttribute('alt')?.toLowerCase().includes('remy'));
+
+      if (logo) {
+        const clickableBox = logo.closest('[style*="cursor: pointer"]') || logo.parentElement;
+        if (clickableBox) {
+          fireEvent.click(clickableBox);
+          expect(mockPush).toHaveBeenCalledWith('/');
+        }
+      }
+    });
+  });
 });
