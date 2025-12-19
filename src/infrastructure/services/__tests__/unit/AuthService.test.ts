@@ -381,5 +381,41 @@ describe('AuthService - Unit Tests', () => {
 
       process.env.ADMIN_EMAILS = originalEnv;
     });
+
+    it('should register with ADMIN role when email is in ADMIN_EMAILS - line 60', async () => {
+      const originalEnv = process.env.ADMIN_EMAILS;
+      process.env.ADMIN_EMAILS = 'admin@test.com';
+
+      const registerData = {
+        email: 'admin@test.com',
+        username: 'adminuser',
+        password: 'AdminPass123!',
+        fullName: 'Admin User',
+      };
+
+      mockPasswordService.validate.mockReturnValue(true);
+      mockPasswordService.hash.mockResolvedValue('hashed_password');
+      mockUserRepository.findByEmail.mockResolvedValue(null);
+      mockUserRepository.findByUsername.mockResolvedValue(null);
+      mockUserRepository.create.mockResolvedValue({
+        id: 'new-admin',
+        email: 'admin@test.com',
+        username: 'adminuser',
+        fullName: 'Admin User',
+        role: 'ADMIN',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      mockTokenService.generateToken.mockReturnValue('test-token');
+
+      await authService.register(registerData);
+
+      // Verify user was created with ADMIN role
+      expect(mockUserRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+        role: 'ADMIN',
+      }));
+
+      process.env.ADMIN_EMAILS = originalEnv;
+    });
   });
 });
