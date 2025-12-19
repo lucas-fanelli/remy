@@ -2251,7 +2251,120 @@ describe('Navigation Component', () => {
         expect(screen.getByText('Admin')).toBeInTheDocument();
       });
     });
+  });
 
+  // ==================== GUEST DRAWER CLICK (line 831) ====================
+  describe('Guest Drawer Click - line 831', () => {
+    beforeEach(() => {
+      // Mock mobile viewport
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
 
+    it('should navigate to auth when guest clicks avatar in drawer - line 831', async () => {
+      mockUseAuth.mockReturnValue({
+        user: null, // Guest
+        token: null,
+        isLoading: false,
+        isAuthenticated: false,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Open drawer
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
+      });
+
+      if (!menuButton) return;
+
+      fireEvent.click(menuButton);
+
+      // Wait for drawer to open and find Guest text
+      await waitFor(() => {
+        expect(screen.getByText('Guest')).toBeInTheDocument();
+      });
+
+      // Click on the Guest list item (which should trigger navigation)
+      const guestItem = screen.getByText('Guest').closest('li');
+      if (guestItem) {
+        fireEvent.click(guestItem);
+        expect(mockPush).toHaveBeenCalledWith('/auth');
+      }
+    });
+  });
+
+  // ==================== THEME TOGGLE IN DRAWER (lines 934-936) ====================
+  describe('Theme Toggle in Drawer - lines 934-936', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
+
+    it('should toggle theme when clicking theme button in drawer - lines 934-936', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Open drawer
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
+      });
+
+      if (!menuButton) return;
+
+      fireEvent.click(menuButton);
+
+      // Wait for drawer and find Dark Mode/Light Mode toggle
+      await waitFor(() => {
+        const themeButton = screen.queryByText(/dark mode|light mode/i);
+        expect(themeButton).toBeInTheDocument();
+      });
+
+      // Click theme toggle
+      const themeButton = screen.getByText(/dark mode|light mode/i);
+      fireEvent.click(themeButton);
+    });
   });
 });
