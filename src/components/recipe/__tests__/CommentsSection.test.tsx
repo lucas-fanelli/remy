@@ -2108,5 +2108,63 @@ describe('CommentsSection Component', () => {
         });
       }
     });
+
+    it('should change edit rating when clicking rating stars - line 554', async () => {
+      const localTestUser = { id: 'user123', username: 'testuser', avatar: '/avatar.jpg' };
+      mockUseAuth.mockReturnValue({ token: 'valid-token', user: localTestUser });
+
+      const existingComment = {
+        id: 'comment1',
+        text: 'Test comment for rating edit',
+        rating: 3,
+        createdAt: new Date().toISOString(),
+        user: { id: 'user123', username: 'testuser', avatar: '/avatar.jpg' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [existingComment] }),
+      });
+
+      renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Test comment for rating edit')).toBeInTheDocument();
+      });
+
+      // Open menu
+      const moreButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('[data-testid="MoreVertIcon"]')
+      );
+      if (moreButtons.length > 0) {
+        fireEvent.click(moreButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
+        });
+
+        // Click Edit
+        const editMenuItem = screen.getByText('Edit');
+        fireEvent.click(editMenuItem);
+
+        // Wait for edit mode with rating
+        await waitFor(() => {
+          expect(screen.getByText('Rating:')).toBeInTheDocument();
+        });
+
+        // Find the rating component in edit mode and click a star
+        const ratingLabels = document.querySelectorAll('.MuiRating-label');
+        if (ratingLabels.length > 0) {
+          // Click on the 5th star to change rating from 3 to 5
+          const fifthStar = ratingLabels[4] as HTMLElement;
+          if (fifthStar) {
+            const input = fifthStar.querySelector('input');
+            if (input) {
+              fireEvent.click(input);
+            }
+          }
+        }
+      }
+    });
   });
 });

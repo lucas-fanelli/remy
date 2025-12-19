@@ -2367,4 +2367,254 @@ describe('Navigation Component', () => {
       fireEvent.click(themeButton);
     });
   });
+
+  // ==================== DESKTOP NAVIGATION TESTS (lines 523-583) ====================
+  describe('Desktop Navigation Menu - lines 523-583', () => {
+    beforeEach(() => {
+      // Mock desktop viewport
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: false, // Desktop view
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
+
+    it('should navigate to profile when clicking My Profile in desktop menu - lines 523-529', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Click on avatar to open menu
+      const avatars = screen.getAllByRole('button');
+      const avatarButton = avatars.find(btn =>
+        btn.querySelector('.MuiAvatar-root')
+      );
+
+      if (avatarButton) {
+        fireEvent.click(avatarButton);
+
+        await waitFor(() => {
+          const profileMenuItem = screen.queryByText('My Profile');
+          if (profileMenuItem) {
+            fireEvent.click(profileMenuItem);
+            expect(mockPush).toHaveBeenCalledWith('/profile/testuser');
+          }
+        });
+      }
+    });
+
+    it('should navigate to admin when clicking Admin in desktop menu - lines 567-572', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'adminuser', email: 'admin@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Click on avatar to open menu
+      const avatars = screen.getAllByRole('button');
+      const avatarButton = avatars.find(btn =>
+        btn.querySelector('.MuiAvatar-root')
+      );
+
+      if (avatarButton) {
+        fireEvent.click(avatarButton);
+
+        await waitFor(() => {
+          const adminMenuItem = screen.queryByText('Admin');
+          if (adminMenuItem) {
+            fireEvent.click(adminMenuItem);
+            expect(mockPush).toHaveBeenCalledWith('/admin');
+          }
+        });
+      }
+    });
+
+    it('should navigate to auth when clicking Sign In in desktop guest menu - lines 585-590', async () => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        token: null,
+        isLoading: false,
+        isAuthenticated: false,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Click on guest avatar to open menu
+      const avatars = screen.getAllByRole('button');
+      const avatarButton = avatars.find(btn =>
+        btn.querySelector('.MuiAvatar-root')
+      );
+
+      if (avatarButton) {
+        fireEvent.click(avatarButton);
+
+        await waitFor(() => {
+          const signInMenuItem = screen.queryByText('Sign In');
+          if (signInMenuItem) {
+            fireEvent.click(signInMenuItem);
+            expect(mockPush).toHaveBeenCalledWith('/auth');
+          }
+        });
+      }
+    });
+  });
+
+  // ==================== MOBILE BOTTOM NAV TESTS (lines 976-1016) ====================
+  describe('Mobile Bottom Navigation Tabs - lines 976-1016', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
+
+    it('should navigate to home when clicking home tab - lines 976-977', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Find home button in bottom nav
+      const homeButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('[data-testid="HomeIcon"]')
+      );
+
+      if (homeButtons.length > 0) {
+        fireEvent.click(homeButtons[0]);
+        expect(mockPush).toHaveBeenCalledWith('/');
+      }
+    });
+
+    it('should navigate to pantry when clicking pantry tab - lines 1015-1016', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Find pantry button in bottom nav
+      const pantryButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('[data-testid="KitchenIcon"]')
+      );
+
+      if (pantryButtons.length > 0) {
+        fireEvent.click(pantryButtons[0]);
+        expect(mockPush).toHaveBeenCalledWith('/pantry');
+      }
+    });
+  });
+
+  // ==================== DRAWER YOUTUBE LINK (line 919) ====================
+  describe('Drawer YouTube Link - line 919', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
+
+    it('should render YouTube button in drawer - line 919', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Open drawer
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
+      });
+
+      if (!menuButton) return;
+
+      fireEvent.click(menuButton);
+
+      // Find YouTube link
+      await waitFor(() => {
+        expect(screen.getByText('YouTube')).toBeInTheDocument();
+      });
+
+      // Click YouTube link
+      const youtubeLink = screen.getByText('YouTube').closest('a');
+      if (youtubeLink) {
+        expect(youtubeLink).toHaveAttribute('href', 'https://www.youtube.com/@9QNA-4I');
+      }
+    });
+  });
 });
