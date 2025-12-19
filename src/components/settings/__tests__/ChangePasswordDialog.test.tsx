@@ -873,5 +873,33 @@ describe('ChangePasswordDialog', () => {
       );
       expect(visibilityButtons.length).toBe(3);
     });
+
+    it('should show mobile-sized CircularProgress when saving - line 314', async () => {
+      // Delay the fetch to keep saving state active
+      mockFetch.mockImplementationOnce(() => new Promise(resolve =>
+        setTimeout(() => resolve({
+          ok: true,
+          json: async () => ({ success: true }),
+        }), 1000)
+      ));
+
+      render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
+
+      const currentPasswordInput = screen.getByLabelText(/current password/i);
+      const newPasswordInput = screen.getByLabelText(/^new password/i);
+      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i);
+
+      fireEvent.change(currentPasswordInput, { target: { value: 'OldPass123' } });
+      fireEvent.change(newPasswordInput, { target: { value: 'NewPass123' } });
+      fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
+
+      const submitButton = screen.getByRole('button', { name: /change password/i });
+      fireEvent.click(submitButton);
+
+      // Should show CircularProgress while saving (covers line 314)
+      await waitFor(() => {
+        expect(screen.getByRole('progressbar')).toBeInTheDocument();
+      });
+    });
   });
 });

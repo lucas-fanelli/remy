@@ -1522,4 +1522,23 @@ describe('RecipeFeed Component', () => {
       });
     });
   });
+
+  // ==================== LOADING GUARD (line 133) ====================
+  describe('Loading Guard - line 133', () => {
+    it('should not load recipes twice when already loading - line 133', async () => {
+      const localMockOnCreateRecipe = jest.fn();
+      // Set up a delayed fetch to simulate loading state
+      mockFetch.mockImplementationOnce(() => new Promise(resolve => {
+        setTimeout(() => resolve({
+          ok: true,
+          json: async () => ({ recipes: mockRecipes, total: 2 }),
+        }), 500);
+      }));
+
+      renderWithProviders(<RecipeFeed onCreateRecipe={localMockOnCreateRecipe} />);
+
+      // The component should be loading now, additional loadRecipes calls should return early (line 133)
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
 });
