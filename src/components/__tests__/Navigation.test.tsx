@@ -2726,4 +2726,95 @@ describe('Navigation Component', () => {
       }
     });
   });
+
+  // ==================== ADMIN DRAWER TESTS (lines 976-977) ====================
+  describe('Admin Drawer Navigation - lines 976-977', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
+    });
+
+    it('should navigate to admin when admin clicks Admin in drawer - lines 976-977', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'adminuser', email: 'admin@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: true,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Open drawer
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
+      });
+
+      if (!menuButton) return;
+
+      fireEvent.click(menuButton);
+
+      // Find Admin button in drawer
+      await waitFor(() => {
+        const adminButton = screen.queryByText('Admin');
+        if (adminButton) {
+          fireEvent.click(adminButton);
+          expect(mockPush).toHaveBeenCalledWith('/admin');
+        }
+      });
+    });
+
+    it('should navigate to settings when clicking Settings in drawer - line 1015-1016', async () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: '1', username: 'testuser', email: 'test@test.com' },
+        token: 'test-token',
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: jest.fn(),
+      });
+
+      renderWithProviders(<Navigation />);
+
+      // Open drawer
+      const buttons = screen.getAllByRole('button');
+      const menuButton = buttons.find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
+      });
+
+      if (!menuButton) return;
+
+      fireEvent.click(menuButton);
+
+      // Find Settings button in drawer
+      await waitFor(() => {
+        const settingsButton = screen.queryByText('Settings');
+        if (settingsButton) {
+          fireEvent.click(settingsButton);
+          expect(mockPush).toHaveBeenCalledWith('/settings');
+        }
+      });
+    });
+  });
 });

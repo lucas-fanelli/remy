@@ -275,5 +275,34 @@ describe('UserService - Unit Tests', () => {
 
       expect(result).toBeDefined();
     });
+
+    it('should search users with undefined fullName - line 77', async () => {
+      const userWithoutFullName = {
+        ...mockUser,
+        fullName: undefined,
+      };
+      mockUserRepository.findMany = jest.fn().mockResolvedValue([userWithoutFullName]);
+
+      // Search by username should still work when fullName is undefined
+      const result = await userService.searchUsers('test');
+
+      expect(result).toBeDefined();
+      expect(result.length).toBe(1);
+      expect(result[0].username).toBe('testuser');
+    });
+
+    it('should search users and match by fullName when present - line 77-78', async () => {
+      const userWithFullName = {
+        ...mockUser,
+        fullName: 'John Doe',
+      };
+      mockUserRepository.findMany = jest.fn().mockResolvedValue([userWithFullName]);
+
+      // Search by fullName should work
+      const result = await userService.searchUsers('john');
+
+      expect(result).toBeDefined();
+      expect(result.length).toBe(1);
+    });
   });
 });
