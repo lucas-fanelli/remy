@@ -204,6 +204,22 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  // Refetch recipes when page becomes visible (e.g., user returns from recipe detail page)
+  // This ensures rating updates are reflected on the home page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Only refetch if we already have recipes (component has mounted and loaded)
+        if (recipes.length > 0) {
+          loadRecipes(true);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [recipes.length, loadRecipes]);
+
   const clearFilters = () => {
     setDifficultyFilter('all');
     setTimeFilter('any');
