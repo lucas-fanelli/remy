@@ -44,6 +44,10 @@ const customJestConfig = {
     '**/__tests__/**/*.(test|spec).[jt]s?(x)',
     '**/?(*.)+(spec|test).[jt]s?(x)',
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/e2e/',  // Playwright E2E tests - run with npm run test:e2e
+  ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: {
