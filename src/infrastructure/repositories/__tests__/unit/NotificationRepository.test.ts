@@ -1,6 +1,6 @@
-import { NotificationRepository } from '../../NotificationRepository';
 import { PrismaClient } from '@prisma/client';
 import { CreateNotificationDTO } from '@/domain/types/notification';
+import { NotificationRepository } from '../../NotificationRepository';
 
 // Mock Prisma Client
 const mockPrisma = {

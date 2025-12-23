@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
 import { Box, Avatar, Typography, Button, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Suggestion {

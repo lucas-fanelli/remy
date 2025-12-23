@@ -1,12 +1,12 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import '@testing-library/jest-dom';
-import SettingsPage from '../page';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/contexts/ToastContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useRouter } from 'next/navigation';
+import SettingsPage from '../page';
 
 // Mock dependencies
 jest.mock('@/contexts/AuthContext');

@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import { Person, Restaurant, Search } from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -14,8 +14,8 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Person, Restaurant, Search } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import React from 'react';
 
 interface User {
   id: string;

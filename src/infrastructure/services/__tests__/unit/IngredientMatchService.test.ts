@@ -1,7 +1,7 @@
-import { IngredientMatchService } from '../../IngredientMatchService';
+import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
 import { Recipe } from '@/domain/types/recipe';
-import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { IngredientMatchService } from '../../IngredientMatchService';
 
 describe('IngredientMatchService', () => {
   let service: IngredientMatchService;

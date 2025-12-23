@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/container/container';
-import { IRecipeService } from '@/domain/services/IRecipeService';
-import { ITokenService } from '@/domain/services/ITokenService';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
+import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
 /**

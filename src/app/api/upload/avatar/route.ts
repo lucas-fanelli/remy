@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // Configure route to use Node.js runtime
 export const runtime = 'nodejs';

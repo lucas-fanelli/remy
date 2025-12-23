@@ -1,4 +1,4 @@
-import { RecipeService } from '../../RecipeService';
+import { mockDeep } from 'jest-mock-extended';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
 import {
   Recipe,
@@ -6,7 +6,7 @@ import {
   UpdateRecipeDTO,
   RecipeSearchOptions,
 } from '@/domain/types/recipe';
-import { mockDeep } from 'jest-mock-extended';
+import { RecipeService } from '../../RecipeService';
 
 describe('RecipeService - Unit Tests', () => {
   let recipeService: RecipeService;

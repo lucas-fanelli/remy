@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -20,8 +19,9 @@ import {
   useTheme,
   ClickAwayListener,
 } from '@mui/material';
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import { motion, AnimatePresence, MotionProps } from 'framer-motion';
+import { useRouter, usePathname } from 'next/navigation';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMotionContext } from '@/contexts/MotionContext';
 
 // Strict Type: Paper + Motion + Polymorphic 'component' prop + form attributes

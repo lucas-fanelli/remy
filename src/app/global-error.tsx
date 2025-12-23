@@ -1,8 +1,8 @@
 'use client';
 
+import { Box, Button, Container, Typography } from '@mui/material';
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
-import { Box, Button, Container, Typography } from '@mui/material';
 
 export default function GlobalError({
   error,

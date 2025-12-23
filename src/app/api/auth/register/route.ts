@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
-import { container } from '@/lib/container/container';
-import { ApiResponseHelper } from '@/lib/api/response';
-import { registerSchema } from '@/lib/validation/schemas';
 import { ZodError } from 'zod';
+import { ApiResponseHelper } from '@/lib/api/response';
+import { container } from '@/lib/container/container';
+import { registerSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { LightMode, DarkMode, YouTube, Email, Close, Info } from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -16,7 +15,8 @@ import {
   useTheme,
   Tooltip,
 } from '@mui/material';
-import { LightMode, DarkMode, YouTube, Email, Close, Info } from '@mui/icons-material';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 import { useThemeMode } from '@/contexts/ThemeContext';
 
 export default function Footer() {

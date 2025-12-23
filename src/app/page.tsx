@@ -3,7 +3,6 @@
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState } from 'react';
 import {
   Box,
   Container,
@@ -13,13 +12,13 @@ import {
   DialogTitle,
   DialogContent,
   Toolbar,
-  Typography,
 } from '@mui/material';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import RecipeFeed from '@/components/recipe/RecipeFeed';
+import React, { useState } from 'react';
 import CreateRecipeForm from '@/components/recipe/CreateRecipeForm';
 import MatchedRecipes from '@/components/recipe/MatchedRecipes';
-import { motion } from 'framer-motion';
+import RecipeFeed from '@/components/recipe/RecipeFeed';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
 

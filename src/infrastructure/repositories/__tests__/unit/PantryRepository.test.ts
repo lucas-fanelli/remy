@@ -1,7 +1,7 @@
-import { PantryRepository } from '../../PantryRepository';
 import { PrismaClient } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { IngredientCategory } from '@/domain/types/pantry';
+import { PantryRepository } from '../../PantryRepository';
 
 describe('PantryRepository', () => {
   let repository: PantryRepository;

@@ -1,7 +1,7 @@
-import React from 'react';
+import { ThemeProvider, createTheme } from '@mui/material';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider, createTheme } from '@mui/material';
+import React from 'react';
 import PersistentSearchBar from '../PersistentSearchBar';
 
 // Mock next/navigation

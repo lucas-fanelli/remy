@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import LoginForm from '../LoginForm';
 import { AuthProvider } from '@/contexts/AuthContext';
+import LoginForm from '../LoginForm';
 
 // Mock framer-motion
 jest.mock('framer-motion', () => ({

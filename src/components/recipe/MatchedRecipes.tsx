@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import { CheckCircle, Circle, Kitchen } from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -9,7 +9,6 @@ import {
   Chip,
   Button,
   Grid,
-  CircularProgress,
   Alert,
   Tabs,
   Tab,
@@ -17,10 +16,10 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { CheckCircle, Circle, Restaurant, ShoppingCart, Kitchen } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MotionCard = motion.create(Card);
 

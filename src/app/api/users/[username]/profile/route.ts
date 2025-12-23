@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/database/prisma';
 import { container } from '@/lib/container/container';
+import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/users/[username]/profile - Combined profile endpoint

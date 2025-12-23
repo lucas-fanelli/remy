@@ -1,5 +1,5 @@
-import { INotificationService } from '@/domain/services/INotificationService';
 import { INotificationRepository } from '@/domain/repositories/INotificationRepository';
+import { INotificationService } from '@/domain/services/INotificationService';
 import { NotificationResponse, NotificationWithSender } from '@/domain/types/notification';
 
 /**

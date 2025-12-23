@@ -1,8 +1,8 @@
-import { PantryService } from '../../PantryService';
-import { IPantryRepository } from '@/domain/repositories/IPantryRepository';
 import { PrismaClient } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { IPantryRepository } from '@/domain/repositories/IPantryRepository';
 import { IngredientCategory } from '@/domain/types/pantry';
+import { PantryService } from '../../PantryService';
 
 describe('PantryService', () => {
   let service: PantryService;

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { Snackbar, Alert, AlertColor, Slide, SlideProps } from '@mui/material';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 interface Toast {
   id: string;

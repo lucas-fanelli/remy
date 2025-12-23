@@ -1,7 +1,7 @@
-import { UserService } from '../../UserService';
-import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { User } from '@prisma/client';
 import { mockDeep } from 'jest-mock-extended';
+import { IUserRepository } from '@/domain/repositories/IUserRepository';
+import { UserService } from '../../UserService';
 
 describe('UserService - Unit Tests', () => {
   let userService: UserService;

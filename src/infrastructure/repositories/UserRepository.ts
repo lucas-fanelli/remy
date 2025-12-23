@@ -1,5 +1,4 @@
-import { User, Role } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
+import { User, Role, PrismaClient } from '@prisma/client';
 import {
   IUserRepository,
   CreateUserDTO,

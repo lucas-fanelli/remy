@@ -1,5 +1,5 @@
-import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
+import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
 import { RecipeMatch, IngredientMatchFilters } from '@/domain/types/pantry';
 import { Recipe } from '@/domain/types/recipe';
 

@@ -1,8 +1,8 @@
 'use client';
 
+import { Box, Typography, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { ReactNode } from 'react';
-import { Box, Typography, useTheme } from '@mui/material';
 
 interface TabItem {
   key: string | number;

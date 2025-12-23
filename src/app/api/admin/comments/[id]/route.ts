@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/container/container';
 import { requireAdmin, isAdminAuthError } from '@/lib/auth/requireAdmin';
+import { container } from '@/lib/container/container';
 
 interface RouteParams {
   params: Promise<{ id: string }>;

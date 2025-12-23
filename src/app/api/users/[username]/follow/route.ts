@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { INotificationService } from '@/domain/services/INotificationService';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { INotificationService } from '@/domain/services/INotificationService';
 
 export async function POST(
   request: NextRequest,

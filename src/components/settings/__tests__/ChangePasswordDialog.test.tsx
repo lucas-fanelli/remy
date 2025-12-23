@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
-import ChangePasswordDialog from '../ChangePasswordDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import ChangePasswordDialog from '../ChangePasswordDialog';
 
 // Mock dependencies
 jest.mock('@/contexts/AuthContext');

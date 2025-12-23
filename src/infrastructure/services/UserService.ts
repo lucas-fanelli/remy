@@ -1,9 +1,9 @@
+import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import {
   IUserService,
   UpdateUserProfileDTO,
   UserPublicProfile,
 } from '@/domain/services/IUserService';
-import { IUserRepository } from '@/domain/repositories/IUserRepository';
 
 // Single Responsibility Principle: Only handles user management operations
 // Open/Closed Principle: Open for extension, closed for modification

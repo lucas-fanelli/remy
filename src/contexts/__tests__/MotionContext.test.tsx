@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, screen, act } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import { MotionProvider, useMotionContext } from '../MotionContext';
 

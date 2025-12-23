@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import { Close as CloseIcon, PhotoCamera } from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -17,7 +17,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Close as CloseIcon, PhotoCamera } from '@mui/icons-material';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 

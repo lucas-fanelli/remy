@@ -1,7 +1,7 @@
-import { RecipeRepository } from '../../RecipeRepository';
 import { PrismaClient, Post } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { CreateRecipeDTO, UpdateRecipeDTO, RecipeSearchOptions } from '@/domain/types/recipe';
+import { RecipeRepository } from '../../RecipeRepository';
 
 describe('RecipeRepository - Unit Tests', () => {
   let recipeRepository: RecipeRepository;

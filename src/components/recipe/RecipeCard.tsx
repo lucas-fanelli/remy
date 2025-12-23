@@ -1,5 +1,14 @@
 'use client';
-import React from 'react';
+import {
+  Favorite,
+  FavoriteBorder,
+  ChatBubbleOutline,
+  AccessTime,
+  Person,
+  Edit,
+  Delete,
+  MoreVert,
+} from '@mui/icons-material';
 import {
   Card,
   CardContent,
@@ -16,19 +25,10 @@ import {
   ListItemText,
   Rating,
 } from '@mui/material';
-import {
-  Favorite,
-  FavoriteBorder,
-  ChatBubbleOutline,
-  AccessTime,
-  Person,
-  Edit,
-  Delete,
-  MoreVert,
-} from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import { Recipe } from '@/domain/types/recipe';
 import { useRouter } from 'next/navigation';
+import React from 'react';
+import { Recipe } from '@/domain/types/recipe';
 
 const MotionCard = motion.create(Card);
 

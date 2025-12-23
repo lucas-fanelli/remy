@@ -1,10 +1,10 @@
-import React from 'react';
 import { render, screen, waitFor, configure } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import '@testing-library/jest-dom';
-import EditProfileModal from '../EditProfileModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import EditProfileModal from '../EditProfileModal';
 
 // Speed up waitFor operations (500ms instead of default 1000ms)
 configure({ asyncUtilTimeout: 100 });

@@ -3,7 +3,7 @@
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { FavoriteBorder, PersonAdd, ChatBubbleOutline, Star } from '@mui/icons-material';
 import {
   Container,
   Box,
@@ -14,13 +14,12 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
-  CircularProgress,
   Button,
 } from '@mui/material';
-import { FavoriteBorder, PersonAdd, ChatBubbleOutline, Star } from '@mui/icons-material';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Notification {
   id: string;

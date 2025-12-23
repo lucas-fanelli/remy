@@ -3,7 +3,16 @@
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
+import {
+  Security,
+  Palette,
+  VpnKey,
+  ArrowBack,
+  GetApp,
+  PhoneIphone,
+  CheckCircle,
+  OpenInNew,
+} from '@mui/icons-material';
 import {
   Container,
   Box,
@@ -19,28 +28,18 @@ import {
   ListItemText,
   Alert,
   Button,
-  CircularProgress,
   useTheme,
   useMediaQuery,
   IconButton,
 } from '@mui/material';
-import {
-  Security,
-  Palette,
-  VpnKey,
-  ArrowBack,
-  GetApp,
-  PhoneIphone,
-  CheckCircle,
-  OpenInNew,
-} from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePwa } from '@/contexts/PwaContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
-import { usePwa } from '@/contexts/PwaContext';
-import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 
 const MotionPaper = motion.create(Paper);
 

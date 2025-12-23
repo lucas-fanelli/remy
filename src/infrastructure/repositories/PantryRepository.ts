@@ -44,7 +44,7 @@ export class PantryRepository implements IPantryRepository {
 
   async addIngredients(userId: string, ingredients: PantryIngredient[]): Promise<UserPantry> {
     // Get existing pantry or create new one
-    let pantry = await this.findByUserId(userId);
+    const pantry = await this.findByUserId(userId);
 
     if (!pantry) {
       return this.create(userId, ingredients);

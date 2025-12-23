@@ -3,7 +3,14 @@
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Settings,
+  GridOn,
+  BookmarkBorder,
+  Restaurant,
+  Edit as EditIcon,
+  Link as LinkIcon,
+} from '@mui/icons-material';
 import {
   Container,
   Box,
@@ -17,27 +24,17 @@ import {
   IconButton,
   Chip,
   Alert,
-  Divider,
   Toolbar,
   Grow,
   Rating,
 } from '@mui/material';
-import EditProfileModal from '@/components/profile/EditProfileModal';
-import {
-  Settings,
-  GridOn,
-  BookmarkBorder,
-  Restaurant,
-  Group,
-  Edit as EditIcon,
-  Link as LinkIcon,
-  ArrowBack,
-} from '@mui/icons-material';
-import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
+import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MotionCard = motion.create(Card);
 const MotionBox = motion.create(Box);

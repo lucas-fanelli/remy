@@ -1,10 +1,10 @@
-import { NotificationService } from '../../NotificationService';
 import { INotificationRepository } from '@/domain/repositories/INotificationRepository';
 import {
   Notification,
   NotificationWithSender,
   NotificationResponse,
 } from '@/domain/types/notification';
+import { NotificationService } from '../../NotificationService';
 
 // Mock repository
 const mockRepository: jest.Mocked<INotificationRepository> = {

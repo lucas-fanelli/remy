@@ -11,19 +11,27 @@
   },
   "plugins": [
     "@typescript-eslint",
-    "import"
+    "import",
+    "unused-imports"
   ],
   "rules": {
-    "@typescript-eslint/no-unused-vars": [
+    "@typescript-eslint/no-unused-vars": "off",
+    "unused-imports/no-unused-imports": "warn",
+    "unused-imports/no-unused-vars": [
       "warn",
       {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
         "argsIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
+        "ignoreRestSiblings": true,
+        "destructuredArrayIgnorePattern": "^_",
+        "caughtErrors": "none"
       }
     ],
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/prefer-as-const": "warn",
-    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/no-require-imports": "off",
     "react/display-name": "off",
     "import/order": [
@@ -40,7 +48,7 @@
           "index",
           "type"
         ],
-        "newlines-between": "never",
+        "newlines-between": "ignore",
         "alphabetize": {
           "order": "asc",
           "caseInsensitive": true
@@ -68,7 +76,16 @@
       ],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off",
-        "@typescript-eslint/no-unused-vars": "off"
+        "unused-imports/no-unused-vars": "off",
+        "unused-imports/no-unused-imports": "off"
+      }
+    },
+    {
+      "files": [
+        "src/scripts/**/*"
+      ],
+      "rules": {
+        "unused-imports/no-unused-vars": "off"
       }
     }
   ],

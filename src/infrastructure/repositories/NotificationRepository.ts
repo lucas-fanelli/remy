@@ -6,7 +6,6 @@ import {
   CreateNotificationDTO,
   UpdateNotificationDTO,
   NotificationQueryOptions,
-  NotificationSender,
 } from '@/domain/types/notification';
 
 /**

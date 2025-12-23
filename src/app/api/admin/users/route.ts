@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/container/container';
-import { requireAdmin, isAdminAuthError } from '@/lib/auth/requireAdmin';
 import { Role } from '@prisma/client';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin, isAdminAuthError } from '@/lib/auth/requireAdmin';
+import { container } from '@/lib/container/container';
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAdmin(request);

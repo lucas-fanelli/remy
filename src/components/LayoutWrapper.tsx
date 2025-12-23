@@ -2,11 +2,11 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
-import Navigation from './Navigation';
-import LoadingBar from './LoadingBar';
+import React, { Suspense } from 'react';
 import Footer from './Footer';
+import LoadingBar from './LoadingBar';
+import Navigation from './Navigation';
 
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

@@ -1,43 +1,35 @@
 import { PrismaClient } from '@prisma/client';
-import prisma from '@/lib/database/prisma';
 
 // Repositories
-import { IUserRepository } from '@/domain/repositories/IUserRepository';
-import { UserRepository } from '@/infrastructure/repositories/UserRepository';
-import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
-import { RecipeRepository } from '@/infrastructure/repositories/RecipeRepository';
-import { IPantryRepository } from '@/domain/repositories/IPantryRepository';
-import { PantryRepository } from '@/infrastructure/repositories/PantryRepository';
 import { INotificationRepository } from '@/domain/repositories/INotificationRepository';
+import { IPantryRepository } from '@/domain/repositories/IPantryRepository';
+import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
+import { IUserRepository } from '@/domain/repositories/IUserRepository';
+import { IAdminService } from '@/domain/services/IAdminService';
+import { IAuthService } from '@/domain/services/IAuthService';
+import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
+import { INotificationService } from '@/domain/services/INotificationService';
+import { IPantryService } from '@/domain/services/IPantryService';
+import { IPasswordService } from '@/domain/services/IPasswordService';
+import { IRecipeService } from '@/domain/services/IRecipeService';
+import { ITokenService } from '@/domain/services/ITokenService';
+import { IUserService } from '@/domain/services/IUserService';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository';
+import { PantryRepository } from '@/infrastructure/repositories/PantryRepository';
+import { RecipeRepository } from '@/infrastructure/repositories/RecipeRepository';
+import { UserRepository } from '@/infrastructure/repositories/UserRepository';
 
 // Services
-import { IPasswordService } from '@/domain/services/IPasswordService';
-import { PasswordService } from '@/infrastructure/services/PasswordService';
-
-import { ITokenService } from '@/domain/services/ITokenService';
-import { TokenService } from '@/infrastructure/services/TokenService';
-
-import { IAuthService } from '@/domain/services/IAuthService';
-import { AuthService } from '@/infrastructure/services/AuthService';
-
-import { IUserService } from '@/domain/services/IUserService';
-import { UserService } from '@/infrastructure/services/UserService';
-
-import { IRecipeService } from '@/domain/services/IRecipeService';
-import { RecipeService } from '@/infrastructure/services/RecipeService';
-
-import { IPantryService } from '@/domain/services/IPantryService';
-import { PantryService } from '@/infrastructure/services/PantryService';
-
-import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
-import { IngredientMatchService } from '@/infrastructure/services/IngredientMatchService';
-
-import { INotificationService } from '@/domain/services/INotificationService';
-import { NotificationService } from '@/infrastructure/services/NotificationService';
-
-import { IAdminService } from '@/domain/services/IAdminService';
 import { AdminService } from '@/infrastructure/services/AdminService';
+import { AuthService } from '@/infrastructure/services/AuthService';
+import { IngredientMatchService } from '@/infrastructure/services/IngredientMatchService';
+import { NotificationService } from '@/infrastructure/services/NotificationService';
+import { PantryService } from '@/infrastructure/services/PantryService';
+import { PasswordService } from '@/infrastructure/services/PasswordService';
+import { RecipeService } from '@/infrastructure/services/RecipeService';
+import { TokenService } from '@/infrastructure/services/TokenService';
+import { UserService } from '@/infrastructure/services/UserService';
+import prisma from '@/lib/database/prisma';
 
 // Dependency Injection Container
 // Single Responsibility: Manages object creation and dependencies

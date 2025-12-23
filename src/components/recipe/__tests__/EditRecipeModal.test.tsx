@@ -1,10 +1,10 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import EditRecipeModal from '../EditRecipeModal';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Recipe } from '@/domain/types/recipe';
+import EditRecipeModal from '../EditRecipeModal';
 
 // Speed up waitFor - aggressive timeout
 configure({ asyncUtilTimeout: 50 });

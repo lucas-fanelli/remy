@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { Restaurant, Kitchen, People, Search, Favorite, Share, YouTube } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -12,19 +12,9 @@ import {
   Link,
   useTheme,
 } from '@mui/material';
-import {
-  Restaurant,
-  Kitchen,
-  People,
-  Search,
-  Favorite,
-  Share,
-  GitHub,
-  LinkedIn,
-  YouTube,
-} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import NextLink from 'next/link';
+import React from 'react';
 
 const MotionBox = motion.create(Box);
 const MotionPaper = motion.create(Paper);

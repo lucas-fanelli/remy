@@ -1,6 +1,6 @@
 import { User, Role } from '@prisma/client';
-import { IAuthService, RegisterDTO, LoginDTO, AuthResponse } from '@/domain/services/IAuthService';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
+import { IAuthService, RegisterDTO, LoginDTO, AuthResponse } from '@/domain/services/IAuthService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import { ITokenService } from '@/domain/services/ITokenService';
 

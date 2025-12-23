@@ -1,6 +1,6 @@
-import { AdminService } from '../../AdminService';
 import { PrismaClient } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { AdminService } from '../../AdminService';
 
 describe('AdminService - Unit Tests', () => {
   let adminService: AdminService;

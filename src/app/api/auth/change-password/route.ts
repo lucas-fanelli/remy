@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
-import { requireAuth } from '@/lib/api/auth';
-import { container } from '@/lib/container/container';
-import { ApiResponseHelper } from '@/lib/api/response';
-import { changePasswordSchema } from '@/lib/validation/schemas';
 import { ZodError } from 'zod';
+import { requireAuth } from '@/lib/api/auth';
+import { ApiResponseHelper } from '@/lib/api/response';
+import { container } from '@/lib/container/container';
+import { changePasswordSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {

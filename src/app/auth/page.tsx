@@ -3,10 +3,10 @@
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect } from 'react';
 import { Box, Container, Typography, Link } from '@mui/material';
-import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { useAuth } from '@/contexts/AuthContext';

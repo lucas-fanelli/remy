@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import MatchedRecipes from '../MatchedRecipes';
 import { AuthProvider } from '@/contexts/AuthContext';
+import MatchedRecipes from '../MatchedRecipes';
 
 // Mock framer-motion - comprehensive mock supporting all patterns
 jest.mock('framer-motion', () => {

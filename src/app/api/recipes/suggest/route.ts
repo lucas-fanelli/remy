@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/container/container';
-import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
-import { ITokenService } from '@/domain/services/ITokenService';
-import { IPantryService } from '@/domain/services/IPantryService';
 import { IngredientMatchFilters } from '@/domain/types/pantry';
+import { container } from '@/lib/container/container';
 
 /**
  * POST /api/recipes/suggest - Get recipe suggestions based on available ingredients

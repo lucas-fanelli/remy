@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import {
   registerSchema,
   loginSchema,
@@ -6,7 +7,6 @@ import {
   paginationSchema,
   searchSchema,
 } from '../../schemas';
-import { ZodError } from 'zod';
 
 describe('Validation Schemas - Unit Tests', () => {
   describe('registerSchema', () => {

@@ -3,7 +3,7 @@
 // Force dynamic rendering for this page since it uses useRouter
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { Add, Edit, Delete, Kitchen, FilterList, Search } from '@mui/icons-material';
 import {
   Container,
   Box,
@@ -25,19 +25,18 @@ import {
   InputLabel,
   Alert,
   Snackbar,
-  Fab,
   List,
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
   Divider,
   Toolbar,
+  Autocomplete,
 } from '@mui/material';
-import { Add, Edit, Delete, Kitchen, FilterList, ArrowBack, Search } from '@mui/icons-material';
-import { Autocomplete } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MotionCard = motion.create(Card);
 

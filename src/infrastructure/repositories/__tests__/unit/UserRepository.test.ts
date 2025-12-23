@@ -1,6 +1,6 @@
-import { UserRepository } from '../../UserRepository';
 import { PrismaClient, User } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { UserRepository } from '../../UserRepository';
 
 describe('UserRepository - Unit Tests', () => {
   let userRepository: UserRepository;

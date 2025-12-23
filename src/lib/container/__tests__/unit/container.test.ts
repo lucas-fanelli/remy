@@ -1,9 +1,9 @@
-import { container } from '../../container';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { IAuthService } from '@/domain/services/IAuthService';
-import { IUserService } from '@/domain/services/IUserService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import { ITokenService } from '@/domain/services/ITokenService';
+import { IUserService } from '@/domain/services/IUserService';
+import { container } from '../../container';
 
 // Mock Prisma to avoid database connection
 jest.mock('@/lib/database/prisma', () => ({

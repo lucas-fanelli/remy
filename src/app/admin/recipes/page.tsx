@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { Search, Delete, ArrowBack, Restaurant, Visibility } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -27,8 +27,8 @@ import {
   Tooltip,
   useTheme,
 } from '@mui/material';
-import { Search, Delete, ArrowBack, Restaurant, Visibility } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminRecipe {

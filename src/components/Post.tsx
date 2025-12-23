@@ -1,5 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import {
+  Favorite,
+  FavoriteBorder,
+  ChatBubbleOutline,
+  Send,
+  BookmarkBorder,
+  Bookmark,
+  MoreVert,
+} from '@mui/icons-material';
 import {
   Card,
   CardHeader,
@@ -13,16 +21,8 @@ import {
   Collapse,
   TextField,
 } from '@mui/material';
-import {
-  Favorite,
-  FavoriteBorder,
-  ChatBubbleOutline,
-  Send,
-  BookmarkBorder,
-  Bookmark,
-  MoreVert,
-} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
 
 const MotionCard = motion.create(Card);
 

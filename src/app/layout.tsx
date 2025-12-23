@@ -1,16 +1,16 @@
-import type { Metadata } from 'next';
-import { Nunito } from 'next/font/google';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { Analytics } from '@vercel/analytics/next';
-import { ThemeProvider } from '@/contexts/ThemeContext';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { ToastProvider } from '@/contexts/ToastContext';
-import { MotionProvider } from '@/contexts/MotionContext';
+import { Nunito } from 'next/font/google';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
-import { PwaProvider } from '@/contexts/PwaContext';
-import QueryProvider from '@/providers/QueryProvider';
 import { BRANDING } from '@/config/branding';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { MotionProvider } from '@/contexts/MotionContext';
+import { PwaProvider } from '@/contexts/PwaContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ToastProvider } from '@/contexts/ToastContext';
+import QueryProvider from '@/providers/QueryProvider';
+import type { Metadata } from 'next';
 import './globals.css';
 
 // Nunito - Rounded, friendly typography

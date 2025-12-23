@@ -4,7 +4,21 @@
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import {
+  ArrowBack,
+  AccessTime,
+  Restaurant,
+  Person,
+  Edit,
+  Delete,
+  Favorite,
+  FavoriteBorder,
+  Share,
+  BookmarkBorder,
+  Bookmark,
+  Close,
+  ZoomIn,
+} from '@mui/icons-material';
 import {
   Container,
   Box,
@@ -29,28 +43,14 @@ import {
   useMediaQuery,
   Rating,
 } from '@mui/material';
-import {
-  ArrowBack,
-  AccessTime,
-  Restaurant,
-  Person,
-  Edit,
-  Delete,
-  Favorite,
-  FavoriteBorder,
-  Share,
-  BookmarkBorder,
-  Bookmark,
-  Close,
-  ZoomIn,
-} from '@mui/icons-material';
-import { useRouter, useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
-import EditRecipeModal from '@/components/recipe/EditRecipeModal';
-import CommentsSection from '@/components/recipe/CommentsSection';
-import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus, ApiRecipe } from '@/hooks/useRecipe';
 import { useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { useRouter, useParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import CommentsSection from '@/components/recipe/CommentsSection';
+import EditRecipeModal from '@/components/recipe/EditRecipeModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus, ApiRecipe } from '@/hooks/useRecipe';
 
 // Use ApiRecipe as Recipe alias for this file
 type Recipe = ApiRecipe;

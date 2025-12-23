@@ -1,7 +1,7 @@
 'use client';
 
-import { Box, Typography, Button } from '@mui/material';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
+import { Box, Typography, Button } from '@mui/material';
 
 export default function OfflinePage() {
   const handleRetry = () => {

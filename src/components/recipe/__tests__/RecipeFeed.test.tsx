@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, waitFor, fireEvent, act, configure } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import RecipeFeed from '../RecipeFeed';
 import { AuthProvider } from '@/contexts/AuthContext';
+import RecipeFeed from '../RecipeFeed';
 
 // Speed up waitFor - needs longer timeout for multiple sequential async operations
 configure({ asyncUtilTimeout: 250 });

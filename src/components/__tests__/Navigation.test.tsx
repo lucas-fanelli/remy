@@ -1,10 +1,10 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, act, configure } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import Navigation from '../Navigation';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider } from '@/contexts/ThemeContext';
+import Navigation from '../Navigation';
 
 // Speed up waitFor - aggressive timeout
 configure({ asyncUtilTimeout: 50 });
@@ -49,7 +49,7 @@ jest.mock('next/navigation', () => ({
 
 // Mock CreateRecipeForm to allow triggering onSubmit for testing handleCreateRecipe
 let mockCreateRecipeFormSubmit: ((data: any) => Promise<void>) | null = null;
-let mockShouldAutoSubmit = false;
+const mockShouldAutoSubmit = false;
 jest.mock('@/components/recipe/CreateRecipeForm', () => {
   return function MockCreateRecipeForm({ onSubmit, onCancel }: any) {
     mockCreateRecipeFormSubmit = onSubmit;

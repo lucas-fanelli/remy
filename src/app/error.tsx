@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import {
   ErrorOutline as ErrorIcon,
   Refresh as RefreshIcon,
   Home as HomeIcon,
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
+import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import * as Sentry from '@sentry/nextjs';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 interface ErrorProps {
   error: Error & { digest?: string };

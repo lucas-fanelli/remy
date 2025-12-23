@@ -1,5 +1,12 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import {
+  Close as CloseIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  ArrowBack,
+  ArrowForward,
+  Check,
+} from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -25,15 +32,10 @@ import {
   useMediaQuery,
   MobileStepper,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  ArrowBack,
-  ArrowForward,
-  Check,
-} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import ImageUpload from '@/components/common/ImageUpload';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Recipe,
   UpdateRecipeDTO,
@@ -41,8 +43,6 @@ import {
   Instruction,
   DifficultyLevel,
 } from '@/domain/types/recipe';
-import { useAuth } from '@/contexts/AuthContext';
-import ImageUpload from '@/components/common/ImageUpload';
 
 const MotionBox = motion.create(Box);
 

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Send, Person, MoreVert, Edit, Delete, Close, Check, CameraAlt } from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -9,7 +9,6 @@ import {
   Card,
   CardContent,
   Rating,
-  Divider,
   Alert,
   Chip,
   IconButton,
@@ -26,10 +25,10 @@ import {
   useMediaQuery,
   CircularProgress,
 } from '@mui/material';
-import { Send, Person, MoreVert, Edit, Delete, Close, Check, CameraAlt } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MotionCard = motion.create(Card);
 

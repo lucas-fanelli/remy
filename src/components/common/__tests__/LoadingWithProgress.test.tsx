@@ -1,5 +1,5 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import LoadingWithProgress from '../LoadingWithProgress';
 import { ThemeProvider, createTheme } from '@mui/material/styles';

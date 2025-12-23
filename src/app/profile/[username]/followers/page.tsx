@@ -3,7 +3,7 @@
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
 
-import React, { useEffect, useState } from 'react';
+import { ArrowBack } from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -11,7 +11,6 @@ import {
   List,
   ListItem,
   ListItemAvatar,
-  ListItemText,
   Avatar,
   Button,
   Alert,
@@ -19,9 +18,9 @@ import {
   IconButton,
   Paper,
 } from '@mui/material';
-import { useRouter, useParams } from 'next/navigation';
-import { ArrowBack } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useRouter, useParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UserListItem {

@@ -1,5 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  ArrowBack,
+  ArrowForward,
+  Check,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -22,17 +28,10 @@ import {
   useMediaQuery,
   MobileStepper,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  ArrowBack,
-  ArrowForward,
-  Restaurant,
-  Check,
-} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreateRecipeDTO, Ingredient, Instruction, DifficultyLevel } from '@/domain/types/recipe';
+import React, { useState } from 'react';
 import ImageUpload from '@/components/common/ImageUpload';
+import { CreateRecipeDTO, Ingredient, Instruction, DifficultyLevel } from '@/domain/types/recipe';
 
 const MotionBox = motion.create(Box);
 

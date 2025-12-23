@@ -1,4 +1,4 @@
-import { UserPantry, PantryIngredient } from '../types/pantry';
+import { UserPantry } from '../types/pantry';
 
 /**
  * Pantry Service Interface

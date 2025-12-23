@@ -1,5 +1,5 @@
-import { IRecipeService } from '@/domain/services/IRecipeService';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
+import { IRecipeService } from '@/domain/services/IRecipeService';
 import {
   Recipe,
   CreateRecipeDTO,

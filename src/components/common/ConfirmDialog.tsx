@@ -1,5 +1,4 @@
 'use client';
-import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,6 +9,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import React from 'react';
 
 interface ConfirmDialogProps {
   open: boolean;

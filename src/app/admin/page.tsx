@@ -1,6 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import {
+  People,
+  Restaurant,
+  Comment,
+  Favorite,
+  AdminPanelSettings,
+  TrendingUp,
+} from '@mui/icons-material';
 import {
   Box,
   Container,
@@ -13,15 +20,8 @@ import {
   CardActionArea,
   useTheme,
 } from '@mui/material';
-import {
-  People,
-  Restaurant,
-  Comment,
-  Favorite,
-  AdminPanelSettings,
-  TrendingUp,
-} from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminStats {

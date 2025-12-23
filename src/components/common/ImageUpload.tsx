@@ -1,8 +1,7 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import { Delete, Image as ImageIcon } from '@mui/icons-material';
 import {
   Box,
-  Button,
   Card,
   CardMedia,
   IconButton,
@@ -10,8 +9,8 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { Delete, Image as ImageIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import React, { useState, useRef } from 'react';
 
 const MotionCard = motion.create(Card);
 

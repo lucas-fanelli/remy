@@ -1,9 +1,9 @@
-import { AuthService } from '../../AuthService';
+import { User } from '@prisma/client';
+import { mock, mockDeep } from 'jest-mock-extended';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import { ITokenService } from '@/domain/services/ITokenService';
-import { User } from '@prisma/client';
-import { mock, mockDeep } from 'jest-mock-extended';
+import { AuthService } from '../../AuthService';
 
 describe('AuthService - Unit Tests', () => {
   let authService: AuthService;

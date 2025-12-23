@@ -1,9 +1,9 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import RecipeCard from '../RecipeCard';
 import { Recipe } from '@/domain/types/recipe';
+import RecipeCard from '../RecipeCard';
 
 // Mock framer-motion - properly filter out animation props
 jest.mock('framer-motion', () => {

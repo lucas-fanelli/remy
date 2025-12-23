@@ -1,7 +1,7 @@
 'use client';
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 import { BRANDING } from '@/config/branding';
 
 interface ThemeContextType {

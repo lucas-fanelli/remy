@@ -1,5 +1,5 @@
-import { TokenService } from '../../TokenService';
 import { TokenPayload } from '@/domain/services/ITokenService';
+import { TokenService } from '../../TokenService';
 
 describe('TokenService - Unit Tests', () => {
   let tokenService: TokenService;

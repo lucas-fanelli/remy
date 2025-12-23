@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import { Person, Restaurant } from '@mui/icons-material';
 import {
   Container,
   Box,
@@ -15,11 +15,11 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Person, Restaurant } from '@mui/icons-material';
 import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import RecipeCard from '@/components/recipe/RecipeCard';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
-import RecipeCard from '@/components/recipe/RecipeCard';
 
 interface User {
   id: string;

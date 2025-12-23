@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/lib/container/container';
 import { IUserService } from '@/domain/services/IUserService';
+import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
 export async function GET(request: NextRequest) {

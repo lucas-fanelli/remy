@@ -1,40 +1,4 @@
 'use client';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import NextLink from 'next/link';
-import {
-  AppBar,
-  Toolbar,
-  Box,
-  IconButton,
-  Avatar,
-  InputBase,
-  Badge,
-  useTheme,
-  useMediaQuery,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Menu,
-  MenuItem,
-  ClickAwayListener,
-  Breadcrumbs,
-  Link,
-  Typography,
-  Container,
-  Paper,
-  ListItemAvatar,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Slide,
-} from '@mui/material';
 import {
   Home,
   HomeOutlined,
@@ -49,10 +13,6 @@ import {
   Person,
   Kitchen,
   KitchenOutlined,
-  ArrowBack,
-  Edit,
-  Delete,
-  MoreVert,
   PersonAdd,
   ChatBubbleOutline,
   Star,
@@ -63,15 +23,42 @@ import {
   Login,
   AdminPanelSettings,
 } from '@mui/icons-material';
+import {
+  AppBar,
+  Toolbar,
+  Box,
+  IconButton,
+  Avatar,
+  Badge,
+  useTheme,
+  useMediaQuery,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Menu,
+  MenuItem,
+  Typography,
+  ListItemAvatar,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Slide,
+} from '@mui/material';
+import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
-import { BRANDING } from '@/config/branding';
-import SearchResults from './SearchResults';
-import PersistentSearchBar from './search/PersistentSearchBar';
-import CreateRecipeForm from './recipe/CreateRecipeForm';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
-import { formatDistanceToNow } from 'date-fns';
+import CreateRecipeForm from './recipe/CreateRecipeForm';
+import PersistentSearchBar from './search/PersistentSearchBar';
 
 interface Notification {
   id: string;

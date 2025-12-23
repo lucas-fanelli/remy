@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import { Add as AddIcon, FilterList } from '@mui/icons-material';
 import {
   Box,
   Grid,
@@ -18,18 +18,16 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  Card,
-  CardContent,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { Add as AddIcon, FilterList } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import RecipeCard from './RecipeCard';
-import EditRecipeModal from './EditRecipeModal';
-import { Recipe, DifficultyLevel } from '@/domain/types/recipe';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Recipe } from '@/domain/types/recipe';
+import EditRecipeModal from './EditRecipeModal';
+import RecipeCard from './RecipeCard';
 
 const MotionBox = motion.create(Box);
 

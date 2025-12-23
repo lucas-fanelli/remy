@@ -1,17 +1,9 @@
 'use client';
-import React, { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
+import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from 'react';
 import { BRANDING } from '@/config/branding';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MotionBox = motion(Box);
 
