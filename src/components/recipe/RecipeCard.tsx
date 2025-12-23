@@ -256,16 +256,28 @@ export default function RecipeCard({
 
         {/* Rating */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-          <Rating
-            value={recipe.averageRating || 0}
-            precision={0.5}
-            size="small"
-            readOnly
-            sx={{ color: '#FFB400' }}
-          />
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
-            ({recipe.totalRatings || 0})
-          </Typography>
+          {recipe.totalRatings && recipe.totalRatings > 0 ? (
+            <>
+              <Rating
+                value={recipe.averageRating || 0}
+                precision={0.5}
+                size="small"
+                readOnly
+                sx={{ color: '#FFB400' }}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                ({recipe.totalRatings})
+              </Typography>
+            </>
+          ) : (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: '0.8125rem', fontStyle: 'italic' }}
+            >
+              No ratings yet
+            </Typography>
+          )}
         </Box>
 
         {/* Description */}
