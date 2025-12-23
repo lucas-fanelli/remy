@@ -1,10 +1,11 @@
 # 🍽️ Remy's - Recipe Sharing Platform
 
-[![Test Coverage](https://img.shields.io/badge/coverage-97.28%25-brightgreen)](./COVERAGE_ACHIEVED.md)
-[![Tests](https://img.shields.io/badge/tests-1035%20passing-success)](./TEST_SUMMARY.md)
+[![CI](https://github.com/TheReaperGuy/remy-s-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TheReaperGuy/remy-s-master/actions/workflows/ci.yml)
+[![Test Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)](./COVERAGE_ACHIEVED.md)
+[![Tests](https://img.shields.io/badge/tests-1150%20passing-success)](./TEST_SUMMARY.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16.0-black)](https://nextjs.org/)
-[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://remy-s.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://remy-recipes.com)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-success)](./docs/V1_LAUNCH_COMPLETE.md)
 
 > **A modern recipe sharing platform where users can discover, create, and share amazing recipes with a vibrant community.**
@@ -29,13 +30,16 @@
 - 📱 **Responsive Design** - Beautiful UI that works on any device
 - 🌙 **Modern Dark Mode** - Eye-friendly theme with teal accents
 - 🔒 **Enterprise Security** - Rate limiting, JWT auth, security headers
-- 📈 **97.02% Test Coverage** - All 1035 tests passing, production-grade reliability
+- 📈 **98% Test Coverage** - All 1,150 tests passing, production-grade reliability
+- 🔧 **CI/CD Pipeline** - GitHub Actions for lint, test, and build on every PR
+- 🛡️ **Error Tracking** - Sentry integration for production monitoring
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - PostgreSQL 14+
 - Docker (optional)
@@ -69,13 +73,13 @@ Open **http://localhost:3000** 🎉
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
+| Document                                               | Description               |
+| ------------------------------------------------------ | ------------------------- |
 | [Production Readiness](./docs/PRODUCTION_READINESS.md) | Complete deployment guide |
-| [V1 Launch Summary](./docs/V1_LAUNCH_COMPLETE.md) | All implemented features |
-| [Database Migrations](./docs/DATABASE_MIGRATIONS.md) | Database management guide |
-| [Docker Setup](./DOCKER_SETUP_COMPLETE.md) | Docker configuration |
-| [UI Testing](./docs/UI_TESTING_SETUP.md) | Testing guidelines |
+| [V1 Launch Summary](./docs/V1_LAUNCH_COMPLETE.md)      | All implemented features  |
+| [Database Migrations](./docs/DATABASE_MIGRATIONS.md)   | Database management guide |
+| [Docker Setup](./DOCKER_SETUP_COMPLETE.md)             | Docker configuration      |
+| [UI Testing](./docs/UI_TESTING_SETUP.md)               | Testing guidelines        |
 
 ---
 
@@ -86,20 +90,22 @@ Open **http://localhost:3000** 🎉
 **PWA:** Serwist • Service Worker • Web App Manifest
 **Media:** Cloudinary CDN • Image optimization
 **Auth:** JWT • bcrypt • NextAuth
-**Testing:** Jest • React Testing Library • Playwright
-**DevOps:** Docker • Vercel-ready
+**Testing:** Jest • React Testing Library • Playwright E2E
+**DevOps:** Docker • Vercel • GitHub Actions CI/CD
+**Observability:** Sentry • Vercel Analytics
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-npm test              # All tests with coverage
+npm test              # All unit/integration tests with coverage
 npm run test:watch    # Watch mode
-npm run test:e2e      # End-to-end tests
+npm run test:e2e      # Playwright E2E tests (starts dev server)
+npm run test:e2e:ui   # E2E tests with visual debugger
 ```
 
-**Coverage:** 97.02% statements | 87.47% branches | 98.23% lines | All 1035 tests passing
+**Coverage:** 98% statements | 92% branches | 98% lines | All 1,150 tests passing
 
 ---
 
@@ -111,6 +117,12 @@ npm run dev                    # Start dev server
 npm run build                  # Production build
 npm run start                  # Start production
 
+# Code Quality
+npm run lint                   # ESLint (TypeScript rules)
+npm run lint:fix               # Auto-fix lint issues
+npm run format                 # Prettier format all files
+npm run typecheck              # TypeScript type checking
+
 # Database
 npm run db:migrate:deploy      # Deploy migrations (prod)
 npm run db:studio              # Database GUI
@@ -121,8 +133,9 @@ npm run docker:up              # Start all services
 npm run docker:prod            # Production mode
 
 # Testing
-npm test                       # Run all tests
-npm run test:e2e               # E2E tests
+npm test                       # Run Jest tests
+npm run test:e2e               # Playwright E2E tests
+npm run test:all               # Both Jest + E2E
 ```
 
 ---
@@ -240,17 +253,20 @@ src/
 ## 🚀 Deployment
 
 ### Vercel (Recommended - 2 minutes)
+
 1. Push to GitHub
 2. Import in Vercel
 3. Add environment variables
 4. Deploy ✅
 
 ### Docker
+
 ```bash
 docker-compose --profile production up -d
 ```
 
 ### Manual
+
 ```bash
 npm ci
 npm run db:migrate:deploy
@@ -265,20 +281,23 @@ npm start
 ## 📈 Monitoring
 
 **Health Endpoints:**
+
 - `/api/health` - Application health
 - `/api/ready` - Readiness probe
 
-**Built-in:**
-- Rate limit tracking
-- Error boundaries
-- Performance monitoring ready
-- Sentry integration ready
+**Observability:**
+
+- ✅ **Sentry** - Error tracking and performance monitoring
+- ✅ **Error Boundaries** - Graceful error handling with user feedback
+- ✅ **Rate Limiting** - Request throttling with tracking
+- ✅ **Vercel Analytics** - Page views and performance metrics
 
 ---
 
 ## 🗺️ Roadmap
 
 ### v1.0.0 - Live in Production ✅
+
 - [x] Recipe CRUD operations
 - [x] User authentication & profiles
 - [x] Social features (likes, comments, follows)
@@ -291,6 +310,7 @@ npm start
 - [x] Deployed to Vercel
 
 ### v1.1.0 - PWA & Media Features ✅
+
 - [x] Progressive Web App (PWA) with Serwist
 - [x] Install prompts (iOS, Android, Desktop)
 - [x] Offline fallback page
@@ -300,6 +320,7 @@ npm start
 - [x] Next.js 16 upgrade
 
 ### v1.2.0 - About Us & Guest Browsing ✅
+
 - [x] About Us page with features, creator info, and tech stack
 - [x] Guest Browsing mode - browse without logging in
 - [x] "Continue as Guest" link on auth page
@@ -307,8 +328,16 @@ npm start
 - [x] Pantry shows sign-in card for guests
 - [x] Likes API returns real counts for guests
 
-### v1.3 - Planned
-- [ ] System for tracking errors
+### v1.3 - Engineering Maturity ✅
+
+- [x] CI/CD Pipeline with GitHub Actions (lint, test, build)
+- [x] ESLint with TypeScript strict rules
+- [x] Prettier + Husky pre-commit hooks
+- [x] Sentry error tracking integration
+- [x] Playwright E2E tests for critical paths
+
+### v1.4 - Planned
+
 - [ ] System for users to report errors manually
 - [ ] Suggestion system
 - [ ] Email notifications
@@ -316,7 +345,8 @@ npm start
 - [ ] Recipe collections
 - [ ] Advanced search filters
 
-### v1.4 - Future
+### v1.5 - Future
+
 - [ ] Mobile apps
 - [ ] Meal planning
 - [ ] Shopping lists
@@ -328,6 +358,7 @@ npm start
 ## 🙏 Acknowledgments
 
 Built with:
+
 - [Next.js](https://nextjs.org/) - React Framework
 - [Prisma](https://www.prisma.io/) - Database ORM
 - [Material-UI](https://mui.com/) - Component Library
@@ -337,20 +368,22 @@ Built with:
 
 ## 🎉 Status
 
-**✅ v1.1.0 - LIVE IN PRODUCTION**
+**✅ v1.3.0 - LIVE IN PRODUCTION**
 
-**Live URL:** [remy-s.vercel.app](https://remy-s.vercel.app/)
+**Live URL:** [remy-recipes.com](https://remy-recipes.com)
 
-- 1035/1035 tests passing (100% pass rate)
-- 97.28% statement coverage
-- 98.16% line coverage
+- 1,150/1,150 tests passing (100% pass rate)
+- 98% statement coverage
+- 92% branch coverage
 - 0 failing tests
+- CI/CD pipeline with GitHub Actions
+- Sentry error tracking
 - Security hardened
 - Performance optimized
 - PWA enabled (installable)
-- Fully documented
+- Pre-commit hooks (Prettier + ESLint)
 - Deployed to Vercel
-- Production database (Vercel Postgres/Neon)
+- Production database (Neon)
 - Cloudinary CDN for images
 
 **Fully operational and serving users!** 🚀
@@ -366,6 +399,7 @@ Built with:
 ### v1.1.0 - PWA & Media Features (2025-12-11) 📱
 
 **New Features:**
+
 - ✅ **Progressive Web App (PWA)**: Full PWA support with Serwist service worker
 - ✅ **Install Prompts**: Custom install UI for iOS (Share → Add to Home Screen), Android, and Desktop
 - ✅ **Offline Support**: Graceful offline fallback page with retry functionality
@@ -374,12 +408,14 @@ Built with:
 - ✅ **Open App**: Deep linking to open installed PWA from browser
 
 **Technical Upgrades:**
+
 - ✅ **Next.js 16**: Upgraded from Next.js 15 to 16.0
 - ✅ **Serwist Integration**: Modern PWA toolkit replacing next-pwa
 - ✅ **Database Schema**: Added `imageUrl` field to Comment model
 - ✅ **API Endpoints**: Added PATCH /api/notifications/[id] for single notification updates
 
 **UX Improvements:**
+
 - ✅ **Mobile Safe Areas**: Proper handling of iOS notches and home indicators
 - ✅ **Theme Color**: Pure black (#000000) status bar for dark mode
 - ✅ **Auth Loading States**: Fixed protected page redirects during auth loading
@@ -391,6 +427,7 @@ Built with:
 **🌐 Live at:** [remy-s.vercel.app](https://remy-s.vercel.app/)
 
 #### Core Features
+
 - ✅ **Recipe Management**: Full CRUD operations for recipes with images
 - ✅ **User System**: Authentication, profiles, followers, and social features
 - ✅ **Pantry Management**: Track ingredients and get matched recipe suggestions
@@ -398,6 +435,7 @@ Built with:
 - ✅ **Search & Discovery**: Advanced recipe search and filtering
 
 #### UI/UX Improvements
+
 - ✅ **Modern Dark Mode**: "Modern Neutral" theme with teal accents (#26A69A)
 - ✅ **Theme Consistency**: Unified navigation bar colors across all pages
 - ✅ **Responsive Design**: Optimized layouts for mobile, tablet, and desktop
@@ -407,17 +445,20 @@ Built with:
 - ✅ **Hydration Fixes**: Eliminated theme flash on page reload
 
 #### Internationalization & Accessibility
+
 - ✅ **Google Translate Support**: DOM mutation patch prevents crashes during translation
 - ✅ **Translation-Safe Components**: Auth toggle buttons remain functional in all languages
 - ✅ **Structural Isolation**: Interactive elements protected from translation DOM mutations
 
 #### Testing & Quality
+
 - ✅ **910/910 Tests Passing**: 100% pass rate with 0 failures
 - ✅ **97.28% Coverage**: Statements coverage across all layers
 - ✅ **98.16% Line Coverage**: Comprehensive line-level testing
 - ✅ **0 Flaky Tests**: Deterministic, reliable test suite
 
 #### Production Infrastructure
+
 - ✅ **Vercel Deployment**: Auto-deploy from main branch
 - ✅ **Vercel Postgres**: Production database (Neon)
 - ✅ **Cloudinary CDN**: Image storage and delivery
