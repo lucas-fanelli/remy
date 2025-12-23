@@ -33,15 +33,7 @@ import {
   Divider,
   Toolbar,
 } from '@mui/material';
-import {
-  Add,
-  Edit,
-  Delete,
-  Kitchen,
-  FilterList,
-  ArrowBack,
-  Search,
-} from '@mui/icons-material';
+import { Add, Edit, Delete, Kitchen, FilterList, ArrowBack, Search } from '@mui/icons-material';
 import { Autocomplete } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -71,7 +63,11 @@ export default function PantryPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,7 +88,7 @@ export default function PantryPage() {
       setLoading(true);
       const response = await fetch('/api/pantry', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -155,7 +151,7 @@ export default function PantryPage() {
     // Check if ingredient already exists (case-insensitive)
     if (!editingItem) {
       const existingIngredient = items.find(
-        item => item.name.toLowerCase() === formData.name.trim().toLowerCase()
+        (item) => item.name.toLowerCase() === formData.name.trim().toLowerCase()
       );
 
       if (existingIngredient) {
@@ -169,9 +165,8 @@ export default function PantryPage() {
     const categoryToSave = formData.category.trim() || 'other';
 
     // Support "to taste" - use 0 for quantity if not provided
-    const quantity = formData.quantity && parseFloat(formData.quantity) > 0
-      ? parseFloat(formData.quantity)
-      : 0;
+    const quantity =
+      formData.quantity && parseFloat(formData.quantity) > 0 ? parseFloat(formData.quantity) : 0;
 
     try {
       const url = editingItem ? `/api/pantry/${editingItem.id}` : '/api/pantry';
@@ -181,7 +176,7 @@ export default function PantryPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: formData.name.trim(),
@@ -202,7 +197,11 @@ export default function PantryPage() {
         });
       } else {
         const error = await response.json();
-        setSnackbar({ open: true, message: error.error || 'Failed to save item', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: error.error || 'Failed to save item',
+          severity: 'error',
+        });
       }
     } catch (error) {
       console.error('Error saving item:', error);
@@ -235,7 +234,7 @@ export default function PantryPage() {
       const response = await fetch(`/api/pantry/${itemToDelete}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -244,7 +243,11 @@ export default function PantryPage() {
         setSnackbar({ open: true, message: 'Item deleted successfully', severity: 'success' });
       } else {
         const error = await response.json();
-        setSnackbar({ open: true, message: error.error || 'Failed to delete item', severity: 'error' });
+        setSnackbar({
+          open: true,
+          message: error.error || 'Failed to delete item',
+          severity: 'error',
+        });
       }
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -262,32 +265,35 @@ export default function PantryPage() {
 
   // Get all unique categories from items (both predefined and custom)
   const allCategories = React.useMemo(() => {
-    const customCategories = new Set(items.map(item => item.category).filter(Boolean));
+    const customCategories = new Set(items.map((item) => item.category).filter(Boolean));
     const combined = new Set([...categories, ...Array.from(customCategories)]);
     return Array.from(combined).sort();
   }, [items]);
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = items.filter((item) => {
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
-    const matchesSearch = !searchQuery ||
+    const matchesSearch =
+      !searchQuery ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.notes && item.notes.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
-  const groupedItems = filteredItems.reduce((acc, item) => {
-    const category = item.category || 'other';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(item);
-    return acc;
-  }, {} as Record<string, PantryItem[]>);
+  const groupedItems = filteredItems.reduce(
+    (acc, item) => {
+      const category = item.category || 'other';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(item);
+      return acc;
+    },
+    {} as Record<string, PantryItem[]>
+  );
 
   // Return null during loading - the global LoadingBar shows progress
   // Guard clauses for loading states
   if (authLoading) {
     return null;
   }
-
 
   if (loading) {
     return null;
@@ -318,11 +324,7 @@ export default function PantryPage() {
               <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                 Track your ingredients and discover recipes you can make with what you already have.
               </Typography>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => router.push('/auth')}
-              >
+              <Button variant="contained" size="large" onClick={() => router.push('/auth')}>
                 Sign In to Continue
               </Button>
             </Card>
@@ -345,7 +347,9 @@ export default function PantryPage() {
         <Container maxWidth="lg" sx={{ pt: 2 }}>
           {/* Note: Back button is now in the Navigation component */}
 
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}
+          >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
               <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
@@ -386,11 +390,14 @@ export default function PantryPage() {
                     onChange={(e) => setCategoryFilter(e.target.value)}
                   >
                     <MenuItem value="all">All Categories</MenuItem>
-                    {allCategories.map((cat) => cat && (
-                      <MenuItem key={cat} value={cat}>
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                      </MenuItem>
-                    ))}
+                    {allCategories.map(
+                      (cat) =>
+                        cat && (
+                          <MenuItem key={cat} value={cat}>
+                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                          </MenuItem>
+                        )
+                    )}
                   </Select>
                 </FormControl>
                 <Chip label={`${filteredItems.length} items`} color="primary" />
@@ -422,7 +429,10 @@ export default function PantryPage() {
                     transition={{ duration: 0.3 }}
                   >
                     <CardContent>
-                      <Typography variant="h6" sx={{ mb: 2, textTransform: 'capitalize', fontWeight: 600 }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ mb: 2, textTransform: 'capitalize', fontWeight: 600 }}
+                      >
                         {category}
                       </Typography>
                       <List dense>
@@ -515,7 +525,11 @@ export default function PantryPage() {
                   value={formData.category}
                   onChange={(event, newValue) => {
                     // Allow null/empty values
-                    const value = newValue ? (typeof newValue === 'string' ? newValue.toLowerCase().trim() : newValue) : '';
+                    const value = newValue
+                      ? typeof newValue === 'string'
+                        ? newValue.toLowerCase().trim()
+                        : newValue
+                      : '';
                     setFormData({ ...formData, category: value });
                   }}
                   onInputChange={(event, newInputValue, reason) => {
@@ -525,14 +539,20 @@ export default function PantryPage() {
                       setFormData({ ...formData, category: value });
                     }
                   }}
-                  getOptionLabel={(option) => option ? option.charAt(0).toUpperCase() + option.slice(1) : ''}
+                  getOptionLabel={(option) =>
+                    option ? option.charAt(0).toUpperCase() + option.slice(1) : ''
+                  }
                   renderInput={(params) => (
                     <TextField
                       {...params}
                       label="Category"
                       placeholder="Select or type a category"
                       fullWidth
-                      helperText={formData.category ? `Will be saved as: ${formData.category.charAt(0).toUpperCase() + formData.category.slice(1)}` : ''}
+                      helperText={
+                        formData.category
+                          ? `Will be saved as: ${formData.category.charAt(0).toUpperCase() + formData.category.slice(1)}`
+                          : ''
+                      }
                     />
                   )}
                 />
@@ -556,12 +576,7 @@ export default function PantryPage() {
           </Dialog>
 
           {/* Delete Confirmation Dialog */}
-          <Dialog
-            open={deleteDialogOpen}
-            onClose={handleDeleteCancel}
-            maxWidth="xs"
-            fullWidth
-          >
+          <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="xs" fullWidth>
             <DialogTitle>Delete Pantry Item?</DialogTitle>
             <DialogContent>
               <Typography>
@@ -579,16 +594,15 @@ export default function PantryPage() {
           </Dialog>
 
           {/* Modify Existing Ingredient Dialog */}
-          <Dialog
-            open={modifyDialogOpen}
-            onClose={handleCancelModify}
-            maxWidth="xs"
-            fullWidth
-          >
+          <Dialog open={modifyDialogOpen} onClose={handleCancelModify} maxWidth="xs" fullWidth>
             <DialogTitle>Ingredient Already Exists</DialogTitle>
             <DialogContent>
               <Typography>
-                {existingItem?.name} already exists in your pantry with {existingItem?.quantity === 0 ? 'to taste' : `${existingItem?.quantity} ${existingItem?.unit}`}.
+                {existingItem?.name} already exists in your pantry with{' '}
+                {existingItem?.quantity === 0
+                  ? 'to taste'
+                  : `${existingItem?.quantity} ${existingItem?.unit}`}
+                .
               </Typography>
               <Typography sx={{ mt: 2 }}>
                 Would you like to modify the existing ingredient?

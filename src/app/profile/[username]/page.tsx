@@ -93,7 +93,11 @@ export default function ProfilePage() {
   const username = params.username as string;
 
   const [profile, setProfile] = useState<User | null>(null);
-  const [stats, setStats] = useState<ProfileStats>({ recipesCount: 0, followersCount: 0, followingCount: 0 });
+  const [stats, setStats] = useState<ProfileStats>({
+    recipesCount: 0,
+    followersCount: 0,
+    followingCount: 0,
+  });
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +175,7 @@ export default function ProfilePage() {
 
       // Optimistically update UI
       setIsFollowing(!previousFollowState);
-      setStats(prev => ({
+      setStats((prev) => ({
         ...prev,
         followersCount: previousFollowState ? prev.followersCount - 1 : prev.followersCount + 1,
       }));
@@ -180,14 +184,14 @@ export default function ProfilePage() {
       const response = await fetch(`/api/users/${username}/${endpoint}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
         // Revert on error
         setIsFollowing(previousFollowState);
-        setStats(prev => ({
+        setStats((prev) => ({
           ...prev,
           followersCount: previousFollowersCount,
         }));
@@ -196,7 +200,7 @@ export default function ProfilePage() {
     } catch (error) {
       // Revert on error
       setIsFollowing(previousFollowState);
-      setStats(prev => ({
+      setStats((prev) => ({
         ...prev,
         followersCount: previousFollowersCount,
       }));
@@ -238,14 +242,15 @@ export default function ProfilePage() {
         <Toolbar />
 
         <Container maxWidth="lg" sx={{ pt: 2 }}>
-
           {/* Profile Header */}
           <MotionBox
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Box sx={{ display: 'flex', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <Box
+              sx={{ display: 'flex', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}
+            >
               {/* Avatar */}
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                 <Avatar
@@ -263,7 +268,9 @@ export default function ProfilePage() {
 
               {/* Profile Info */}
               <Box sx={{ flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+                <Box
+                  sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}
+                >
                   <Typography variant="h4" component="h1" sx={{ color: 'text.primary' }}>
                     {profile.username}
                   </Typography>
@@ -301,10 +308,18 @@ export default function ProfilePage() {
                 {/* Stats */}
                 <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
                   <Box>
-                    <Typography variant="h6" component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                    <Typography
+                      variant="h6"
+                      component="span"
+                      sx={{ fontWeight: 700, color: 'text.primary' }}
+                    >
                       {stats.recipesCount}
                     </Typography>
-                    <Typography variant="body2" component="span" sx={{ ml: 0.5, color: 'text.primary' }}>
+                    <Typography
+                      variant="body2"
+                      component="span"
+                      sx={{ ml: 0.5, color: 'text.primary' }}
+                    >
                       recipes
                     </Typography>
                   </Box>
@@ -316,10 +331,18 @@ export default function ProfilePage() {
                     }}
                     onClick={() => router.push(`/profile/${username}/followers`)}
                   >
-                    <Typography variant="h6" component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                    <Typography
+                      variant="h6"
+                      component="span"
+                      sx={{ fontWeight: 700, color: 'text.primary' }}
+                    >
                       {stats.followersCount}
                     </Typography>
-                    <Typography variant="body2" component="span" sx={{ ml: 0.5, color: 'text.primary' }}>
+                    <Typography
+                      variant="body2"
+                      component="span"
+                      sx={{ ml: 0.5, color: 'text.primary' }}
+                    >
                       followers
                     </Typography>
                   </Box>
@@ -331,10 +354,18 @@ export default function ProfilePage() {
                     }}
                     onClick={() => router.push(`/profile/${username}/following`)}
                   >
-                    <Typography variant="h6" component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                    <Typography
+                      variant="h6"
+                      component="span"
+                      sx={{ fontWeight: 700, color: 'text.primary' }}
+                    >
                       {stats.followingCount}
                     </Typography>
-                    <Typography variant="body2" component="span" sx={{ ml: 0.5, color: 'text.primary' }}>
+                    <Typography
+                      variant="body2"
+                      component="span"
+                      sx={{ ml: 0.5, color: 'text.primary' }}
+                    >
                       following
                     </Typography>
                   </Box>
@@ -381,7 +412,11 @@ export default function ProfilePage() {
                       href={profile.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                      sx={{
+                        color: 'primary.main',
+                        textDecoration: 'none',
+                        '&:hover': { textDecoration: 'underline' },
+                      }}
                     >
                       {profile.website}
                     </Typography>
@@ -447,8 +482,10 @@ export default function ProfilePage() {
                                 <Typography variant="h6" gutterBottom noWrap>
                                   {recipe.title}
                                 </Typography>
-                                {(recipe.averageRating !== undefined && recipe.averageRating > 0) && (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                                {recipe.averageRating !== undefined && recipe.averageRating > 0 && (
+                                  <Box
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}
+                                  >
                                     <Rating
                                       value={recipe.averageRating}
                                       precision={0.5}
@@ -456,7 +493,11 @@ export default function ProfilePage() {
                                       readOnly
                                       sx={{ color: '#FFB400' }}
                                     />
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ fontSize: '0.8125rem' }}
+                                    >
                                       ({recipe.totalRatings || 0})
                                     </Typography>
                                   </Box>
@@ -526,7 +567,9 @@ export default function ProfilePage() {
                                   {recipe.title}
                                 </Typography>
                                 {recipe.author && (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                  <Box
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}
+                                  >
                                     <Avatar
                                       src={recipe.author.avatar}
                                       sx={{ width: 24, height: 24 }}
@@ -538,8 +581,10 @@ export default function ProfilePage() {
                                     </Typography>
                                   </Box>
                                 )}
-                                {(recipe.averageRating !== undefined && recipe.averageRating > 0) && (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+                                {recipe.averageRating !== undefined && recipe.averageRating > 0 && (
+                                  <Box
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}
+                                  >
                                     <Rating
                                       value={recipe.averageRating}
                                       precision={0.5}
@@ -547,7 +592,11 @@ export default function ProfilePage() {
                                       readOnly
                                       sx={{ color: '#FFB400' }}
                                     />
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                      sx={{ fontSize: '0.8125rem' }}
+                                    >
                                       ({recipe.totalRatings || 0})
                                     </Typography>
                                   </Box>

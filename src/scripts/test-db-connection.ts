@@ -39,7 +39,9 @@ async function testConnection() {
       });
 
       users.forEach((user) => {
-        console.log(`  - @${user.username} (${user.email}) - ${user.createdAt.toLocaleDateString()}`);
+        console.log(
+          `  - @${user.username} (${user.email}) - ${user.createdAt.toLocaleDateString()}`
+        );
       });
       console.log('');
     }

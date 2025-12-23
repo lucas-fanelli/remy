@@ -15,11 +15,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Visibility,
-  VisibilityOff,
-} from '@mui/icons-material';
+import { Close as CloseIcon, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -122,7 +118,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           oldPassword: formData.currentPassword,
@@ -181,7 +177,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
           alignItems: 'center',
           fontSize: { xs: '1.25rem', md: '1.5rem' },
           px: { xs: 2, md: 3 },
-          py: { xs: 1.5, md: 2 }
+          py: { xs: 1.5, md: 2 },
         }}
       >
         Change Password
@@ -194,7 +190,8 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
         <DialogContent sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
             <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-              Your password must be at least 8 characters and include uppercase, lowercase, and numbers.
+              Your password must be at least 8 characters and include uppercase, lowercase, and
+              numbers.
             </Alert>
 
             {/* Current Password */}
@@ -294,7 +291,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
             px: { xs: 2, md: 3 },
             pb: { xs: 2, md: 3 },
             gap: { xs: 1, sm: 0 },
-            flexDirection: { xs: 'column-reverse', sm: 'row' }
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
           }}
         >
           <Button

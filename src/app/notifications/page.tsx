@@ -50,7 +50,7 @@ export default function NotificationsPage() {
     try {
       const response = await fetch('/api/notifications', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -84,14 +84,12 @@ export default function NotificationsPage() {
       const response = await fetch('/api/notifications', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((notif) => ({ ...notif, isRead: true }))
-        );
+        setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
       }
     } catch (error) {
       console.error('Error marking notifications as read:', error);
@@ -161,12 +159,7 @@ export default function NotificationsPage() {
           Notifications
         </Typography>
         {unreadCount > 0 && (
-          <Button
-            variant="text"
-            onClick={markAllAsRead}
-            disabled={markingAsRead}
-            size="small"
-          >
+          <Button variant="text" onClick={markAllAsRead} disabled={markingAsRead} size="small">
             {markingAsRead ? 'Marking...' : 'Mark all as read'}
           </Button>
         )}
@@ -210,9 +203,7 @@ export default function NotificationsPage() {
                     primary={
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         {getNotificationIcon(notification.type)}
-                        <Typography variant="body1">
-                          {getNotificationText(notification)}
-                        </Typography>
+                        <Typography variant="body1">{getNotificationText(notification)}</Typography>
                       </Box>
                     }
                     secondary={
@@ -224,7 +215,12 @@ export default function NotificationsPage() {
                     }
                   />
                 </ListItem>
-                {index < notifications.length - 1 && <Box component="hr" sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', m: 0 }} />}
+                {index < notifications.length - 1 && (
+                  <Box
+                    component="hr"
+                    sx={{ border: 'none', borderTop: '1px solid', borderColor: 'divider', m: 0 }}
+                  />
+                )}
               </React.Fragment>
             ))}
           </List>

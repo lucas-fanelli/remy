@@ -27,10 +27,7 @@ export async function GET(
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if following

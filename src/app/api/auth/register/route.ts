@@ -21,9 +21,7 @@ export async function POST(request: NextRequest) {
     return ApiResponseHelper.created(result, 'User registered successfully');
   } catch (error) {
     if (error instanceof ZodError) {
-      return ApiResponseHelper.badRequest(
-        error.errors.map((e) => e.message).join(', ')
-      );
+      return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
     if (error instanceof Error) {

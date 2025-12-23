@@ -3,10 +3,7 @@ import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
 // GET comments for a recipe
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
 
@@ -29,15 +26,15 @@ export async function GET(
     const ratings = await prisma.rating.findMany({
       where: {
         postId: recipeId,
-        userId: { in: comments.map(c => c.userId) },
+        userId: { in: comments.map((c) => c.userId) },
       },
     });
 
     // Create a map of userId to rating
-    const ratingsMap = new Map(ratings.map(r => [r.userId, r.rating]));
+    const ratingsMap = new Map(ratings.map((r) => [r.userId, r.rating]));
 
     // Attach ratings to comments
-    const commentsWithRatings = comments.map(comment => ({
+    const commentsWithRatings = comments.map((comment) => ({
       ...comment,
       rating: ratingsMap.get(comment.userId) || null,
     }));
@@ -45,28 +42,19 @@ export async function GET(
     return NextResponse.json({ comments: commentsWithRatings });
   } catch (error) {
     console.error('Error fetching comments:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch comments' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
   }
 }
 
 // POST a new comment
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
 
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -74,28 +62,19 @@ export async function POST(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const body = await request.json();
     const { text, rating, imageUrl } = body;
 
     if (!text || text.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Comment text is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
     }
 
     // Validate rating if provided
     if (rating !== undefined && (rating < 1 || rating > 5)) {
-      return NextResponse.json(
-        { error: 'Rating must be between 1 and 5' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
     }
 
     // Check if recipe exists
@@ -104,10 +83,7 @@ export async function POST(
     });
 
     if (!recipe) {
-      return NextResponse.json(
-        { error: 'Recipe not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
     // Create comment
@@ -170,7 +146,12 @@ export async function POST(
 
     // Create comment notification
     const notificationService = container.getNotificationService();
-    await notificationService.createCommentNotification(payload.userId, recipeId, recipe.userId, comment.id);
+    await notificationService.createCommentNotification(
+      payload.userId,
+      recipeId,
+      recipe.userId,
+      comment.id
+    );
 
     // Add rating to comment object for response
     const commentWithRating = {
@@ -184,9 +165,6 @@ export async function POST(
     });
   } catch (error) {
     console.error('Error creating comment:', error);
-    return NextResponse.json(
-      { error: 'Failed to create comment' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
   }
 }

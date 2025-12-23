@@ -11,11 +11,26 @@ jest.mock('framer-motion', () => {
 
   // Create a wrapper that filters out Framer Motion props
   const createMotionComponent = (Component: any) => {
-    return React.forwardRef(({
-      initial, animate, exit, transition, whileHover, whileTap,
-      whileFocus, whileDrag, whileInView, layout, layoutId,
-      variants, ...props
-    }: any, ref: any) => React.createElement(Component, { ...props, ref }));
+    return React.forwardRef(
+      (
+        {
+          initial,
+          animate,
+          exit,
+          transition,
+          whileHover,
+          whileTap,
+          whileFocus,
+          whileDrag,
+          whileInView,
+          layout,
+          layoutId,
+          variants,
+          ...props
+        }: any,
+        ref: any
+      ) => React.createElement(Component, { ...props, ref })
+    );
   };
 
   const mockMotion: any = createMotionComponent;
@@ -51,11 +66,7 @@ jest.mock('next/navigation', () => ({
 const mockTheme = createTheme();
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 const mockRecipe: Recipe = {
@@ -106,9 +117,7 @@ describe('RecipeCard Component', () => {
   });
 
   it('should display difficulty badge for all users including owners', () => {
-    renderWithTheme(
-      <RecipeCard recipe={mockRecipe} currentUserId="user-1" showActions={false} />
-    );
+    renderWithTheme(<RecipeCard recipe={mockRecipe} currentUserId="user-1" showActions={false} />);
 
     // Difficulty badge is now always shown
     expect(screen.getByText('easy')).toBeInTheDocument();
@@ -145,7 +154,9 @@ describe('RecipeCard Component', () => {
 
   it('should call onComment when comment button is clicked', () => {
     const handleComment = jest.fn();
-    renderWithTheme(<RecipeCard recipe={mockRecipe} onComment={handleComment} showActions={true} />);
+    renderWithTheme(
+      <RecipeCard recipe={mockRecipe} onComment={handleComment} showActions={true} />
+    );
 
     const commentButton = screen.getByRole('button', { name: /comments/i });
     fireEvent.click(commentButton);
@@ -368,7 +379,7 @@ describe('RecipeCard Component', () => {
 
       // Find and click the more button to open menu
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });

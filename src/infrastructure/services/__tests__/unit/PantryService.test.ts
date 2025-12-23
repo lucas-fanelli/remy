@@ -241,7 +241,11 @@ describe('PantryService', () => {
         id: '1',
         userId,
         ingredients: [
-          { name: 'special-ingredient', category: IngredientCategory.SPICE, addedAt: expect.any(Date) },
+          {
+            name: 'special-ingredient',
+            category: IngredientCategory.SPICE,
+            addedAt: expect.any(Date),
+          },
         ],
         updatedAt: new Date(),
       };
@@ -338,9 +342,9 @@ describe('PantryService', () => {
     });
 
     it('should throw error when no ingredients specified', async () => {
-      await expect(
-        service.removeIngredients(userId, [])
-      ).rejects.toThrow('No ingredients specified for removal');
+      await expect(service.removeIngredients(userId, [])).rejects.toThrow(
+        'No ingredients specified for removal'
+      );
     });
   });
 
@@ -356,9 +360,7 @@ describe('PantryService', () => {
     it('should throw error if pantry does not exist', async () => {
       mockPantryRepository.exists.mockResolvedValue(false);
 
-      await expect(
-        service.clearPantry(userId)
-      ).rejects.toThrow('Pantry not found');
+      await expect(service.clearPantry(userId)).rejects.toThrow('Pantry not found');
     });
   });
 
@@ -366,7 +368,12 @@ describe('PantryService', () => {
     it('should return matching ingredient names from catalog', async () => {
       const mockIngredients = [
         { id: '1', name: 'tomato', category: IngredientCategory.VEGETABLE, createdAt: new Date() },
-        { id: '2', name: 'tomato sauce', category: IngredientCategory.CONDIMENT, createdAt: new Date() },
+        {
+          id: '2',
+          name: 'tomato sauce',
+          category: IngredientCategory.CONDIMENT,
+          createdAt: new Date(),
+        },
       ];
 
       (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue(mockIngredients);

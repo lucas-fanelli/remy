@@ -18,7 +18,9 @@ export async function GET() {
     // Check critical dependencies
     const checks = await Promise.all([
       // Database connectivity
-      prisma.$queryRaw`SELECT 1`.then(() => ({ database: 'ready' })).catch(() => ({ database: 'not_ready' })),
+      prisma.$queryRaw`SELECT 1`
+        .then(() => ({ database: 'ready' }))
+        .catch(() => ({ database: 'not_ready' })),
 
       // Environment variables
       Promise.resolve({

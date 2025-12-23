@@ -3,20 +3,14 @@ import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
 // PUT - Update pantry item
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: itemId } = await params;
 
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -24,10 +18,7 @@ export async function PUT(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Check if item exists and belongs to user
@@ -37,10 +28,7 @@ export async function PUT(
     });
 
     if (!item) {
-      return NextResponse.json(
-        { error: 'Item not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
     if (item.pantry.userId !== payload.userId) {
@@ -55,24 +43,15 @@ export async function PUT(
 
     // Validation
     if (name !== undefined && name.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Item name cannot be empty' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Item name cannot be empty' }, { status: 400 });
     }
 
     if (quantity !== undefined && quantity <= 0) {
-      return NextResponse.json(
-        { error: 'Quantity must be greater than 0' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Quantity must be greater than 0' }, { status: 400 });
     }
 
     if (unit !== undefined && unit.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Unit cannot be empty' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Unit cannot be empty' }, { status: 400 });
     }
 
     // Update item
@@ -94,10 +73,7 @@ export async function PUT(
     });
   } catch (error) {
     console.error('Error updating pantry item:', error);
-    return NextResponse.json(
-      { error: 'Failed to update item' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
   }
 }
 
@@ -112,10 +88,7 @@ export async function DELETE(
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -123,10 +96,7 @@ export async function DELETE(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Check if item exists and belongs to user
@@ -136,10 +106,7 @@ export async function DELETE(
     });
 
     if (!item) {
-      return NextResponse.json(
-        { error: 'Item not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
     if (item.pantry.userId !== payload.userId) {
@@ -159,9 +126,6 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('Error deleting pantry item:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete item' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 });
   }
 }

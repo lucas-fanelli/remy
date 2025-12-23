@@ -24,9 +24,7 @@ describe('IngredientMatchService', () => {
       { name: 'garlic', amount: '3', unit: 'cloves' },
       { name: 'olive oil', amount: '2', unit: 'tbsp' },
     ],
-    instructions: [
-      { step: 1, description: 'Cook pasta' },
-    ],
+    instructions: [{ step: 1, description: 'Cook pasta' }],
     createdAt: new Date(),
     updatedAt: new Date(),
   };

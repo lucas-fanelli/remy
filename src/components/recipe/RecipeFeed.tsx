@@ -55,7 +55,9 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
   const [sortOrder, setSortOrder] = useState<string>('newest');
 
   // Like and comment states
-  const [recipeLikes, setRecipeLikes] = useState<Record<string, { liked: boolean; count: number }>>({});
+  const [recipeLikes, setRecipeLikes] = useState<Record<string, { liked: boolean; count: number }>>(
+    {}
+  );
   const [recipeComments, setRecipeComments] = useState<Record<string, number>>({});
 
   // Delete confirmation dialog
@@ -78,111 +80,116 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     severity: 'info',
   });
 
-
   // Fetch like and comment data for recipes
-  const fetchRecipeEngagement = useCallback(async (recipeIds: string[]) => {
-    if (!recipeIds.length) return;
+  const fetchRecipeEngagement = useCallback(
+    async (recipeIds: string[]) => {
+      if (!recipeIds.length) return;
 
-    try {
-      // Fetch likes and comments in parallel for all recipes
-      const likePromises = recipeIds.map(async (id) => {
-        const headers: HeadersInit = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        const response = await fetch(`/api/recipes/${id}/like`, { headers });
-        if (response.ok) {
-          const data = await response.json();
-          return { id, data };
-        }
-        return { id, data: { liked: false, likesCount: 0 } };
-      });
-
-      const commentPromises = recipeIds.map(async (id) => {
-        const response = await fetch(`/api/recipes/${id}/comments`);
-        if (response.ok) {
-          const data = await response.json();
-          return { id, count: data.comments?.length || 0 };
-        }
-        return { id, count: 0 };
-      });
-
-      const [likeResults, commentResults] = await Promise.all([
-        Promise.all(likePromises),
-        Promise.all(commentPromises),
-      ]);
-
-      // Update state
-      const newLikes: Record<string, { liked: boolean; count: number }> = {};
-      likeResults.forEach(({ id, data }) => {
-        newLikes[id] = { liked: data.liked, count: data.likesCount };
-      });
-      setRecipeLikes((prev) => ({ ...prev, ...newLikes }));
-
-      const newComments: Record<string, number> = {};
-      commentResults.forEach(({ id, count }) => {
-        newComments[id] = count;
-      });
-      setRecipeComments((prev) => ({ ...prev, ...newComments }));
-    } catch (error) {
-      console.error('Error fetching recipe engagement:', error);
-    }
-  }, [token]);
-
-  const loadRecipes = useCallback(async (reset = false) => {
-    if (loading) return;
-
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams({
-        limit: '12',
-        offset: String(reset ? 0 : page * 12),
-      });
-
-      if (difficultyFilter !== 'all') {
-        queryParams.append('difficulty', difficultyFilter);
-      }
-      // Handle time filter - can be maxTime or minTime
-      if (timeFilter === 'under30') {
-        queryParams.append('maxTime', '30');
-      } else if (timeFilter === 'under60') {
-        queryParams.append('maxTime', '60');
-      } else if (timeFilter === 'over60') {
-        queryParams.append('minTime', '60');
-      }
-      if (sortOrder !== 'newest') {
-        queryParams.append('sort', sortOrder);
-      }
-
-      const response = await fetch(`/api/recipes?${queryParams}`);
-      if (!response.ok) throw new Error('Failed to load recipes');
-
-      const data = await response.json();
-
-      if (reset) {
-        setRecipes(data.recipes);
-        setPage(1);
-      } else {
-        setRecipes((prev) => {
-          // Prevent duplicate keys by filtering out recipes that already exist
-          const existingIds = new Set(prev.map(r => r.id));
-          const newRecipes = data.recipes.filter((r: Recipe) => !existingIds.has(r.id));
-          return [...prev, ...newRecipes];
+      try {
+        // Fetch likes and comments in parallel for all recipes
+        const likePromises = recipeIds.map(async (id) => {
+          const headers: HeadersInit = {};
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          const response = await fetch(`/api/recipes/${id}/like`, { headers });
+          if (response.ok) {
+            const data = await response.json();
+            return { id, data };
+          }
+          return { id, data: { liked: false, likesCount: 0 } };
         });
-        setPage((prev) => prev + 1);
+
+        const commentPromises = recipeIds.map(async (id) => {
+          const response = await fetch(`/api/recipes/${id}/comments`);
+          if (response.ok) {
+            const data = await response.json();
+            return { id, count: data.comments?.length || 0 };
+          }
+          return { id, count: 0 };
+        });
+
+        const [likeResults, commentResults] = await Promise.all([
+          Promise.all(likePromises),
+          Promise.all(commentPromises),
+        ]);
+
+        // Update state
+        const newLikes: Record<string, { liked: boolean; count: number }> = {};
+        likeResults.forEach(({ id, data }) => {
+          newLikes[id] = { liked: data.liked, count: data.likesCount };
+        });
+        setRecipeLikes((prev) => ({ ...prev, ...newLikes }));
+
+        const newComments: Record<string, number> = {};
+        commentResults.forEach(({ id, count }) => {
+          newComments[id] = count;
+        });
+        setRecipeComments((prev) => ({ ...prev, ...newComments }));
+      } catch (error) {
+        console.error('Error fetching recipe engagement:', error);
       }
+    },
+    [token]
+  );
 
-      setHasMore(data.recipes.length === 12);
+  const loadRecipes = useCallback(
+    async (reset = false) => {
+      if (loading) return;
 
-      // Fetch engagement data for new recipes
-      const recipeIds = data.recipes.map((r: Recipe) => r.id);
-      await fetchRecipeEngagement(recipeIds);
-    } catch (error) {
-      console.error('Error loading recipes:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, page, difficultyFilter, timeFilter, sortOrder, fetchRecipeEngagement]);
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams({
+          limit: '12',
+          offset: String(reset ? 0 : page * 12),
+        });
+
+        if (difficultyFilter !== 'all') {
+          queryParams.append('difficulty', difficultyFilter);
+        }
+        // Handle time filter - can be maxTime or minTime
+        if (timeFilter === 'under30') {
+          queryParams.append('maxTime', '30');
+        } else if (timeFilter === 'under60') {
+          queryParams.append('maxTime', '60');
+        } else if (timeFilter === 'over60') {
+          queryParams.append('minTime', '60');
+        }
+        if (sortOrder !== 'newest') {
+          queryParams.append('sort', sortOrder);
+        }
+
+        const response = await fetch(`/api/recipes?${queryParams}`);
+        if (!response.ok) throw new Error('Failed to load recipes');
+
+        const data = await response.json();
+
+        if (reset) {
+          setRecipes(data.recipes);
+          setPage(1);
+        } else {
+          setRecipes((prev) => {
+            // Prevent duplicate keys by filtering out recipes that already exist
+            const existingIds = new Set(prev.map((r) => r.id));
+            const newRecipes = data.recipes.filter((r: Recipe) => !existingIds.has(r.id));
+            return [...prev, ...newRecipes];
+          });
+          setPage((prev) => prev + 1);
+        }
+
+        setHasMore(data.recipes.length === 12);
+
+        // Fetch engagement data for new recipes
+        const recipeIds = data.recipes.map((r: Recipe) => r.id);
+        await fetchRecipeEngagement(recipeIds);
+      } catch (error) {
+        console.error('Error loading recipes:', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loading, page, difficultyFilter, timeFilter, sortOrder, fetchRecipeEngagement]
+  );
 
   useEffect(() => {
     loadRecipes(true);
@@ -226,7 +233,8 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     setSortOrder('newest');
   };
 
-  const hasActiveFilters = difficultyFilter !== 'all' || timeFilter !== 'any' || sortOrder !== 'newest';
+  const hasActiveFilters =
+    difficultyFilter !== 'all' || timeFilter !== 'any' || sortOrder !== 'newest';
 
   const handleDeleteClick = (recipe: Recipe) => {
     setRecipeToDelete(recipe);
@@ -284,9 +292,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
   const handleEditSuccess = (updatedRecipe: Recipe) => {
     // Update recipe in list
-    setRecipes((prev) =>
-      prev.map((r) => (r.id === updatedRecipe.id ? updatedRecipe : r))
-    );
+    setRecipes((prev) => prev.map((r) => (r.id === updatedRecipe.id ? updatedRecipe : r)));
 
     setSnackbar({
       open: true,
@@ -325,7 +331,7 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -411,7 +417,14 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
           borderColor: 'divider',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, md: 1 }, mb: { xs: 1.5, md: 2 } }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 0.75, md: 1 },
+            mb: { xs: 1.5, md: 2 },
+          }}
+        >
           <FilterList sx={{ color: 'text.primary', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
           <Typography
             variant="subtitle1"
@@ -434,7 +447,11 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
           )}
         </Box>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.5, md: 2 }} alignItems={{ xs: 'stretch', sm: 'center' }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 1.5, md: 2 }}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+        >
           <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
             <InputLabel>Difficulty</InputLabel>
             <Select
@@ -545,7 +562,11 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
       {/* End of Feed Message */}
       {!loading && !hasMore && recipes.length > 0 && (
         <Box sx={{ textAlign: 'center', py: { xs: 3, md: 4 } }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+          >
             You&apos;ve reached the end! 🍽️
           </Typography>
         </Box>
@@ -559,19 +580,14 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">
-          Delete selected recipe?
-        </DialogTitle>
+        <DialogTitle id="delete-dialog-title">Delete selected recipe?</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
             Recipe will be permanently removed from your account and all synced devices.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={handleDeleteCancel}
-            disabled={deleting}
-          >
+          <Button onClick={handleDeleteCancel} disabled={deleting}>
             Cancel
           </Button>
           <Button

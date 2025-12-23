@@ -11,20 +11,27 @@ interface Ingredient {
 
 // Normalize ingredient names for matching (case-insensitive, plural handling)
 function normalizeIngredientName(name: string): string {
-  return name.toLowerCase().trim()
+  return name
+    .toLowerCase()
+    .trim()
     .replace(/s$/, '') // Remove plural 's'
     .replace(/es$/, '') // Remove plural 'es'
     .replace(/[^a-z0-9]/g, ''); // Remove special characters
 }
 
 // Check if pantry item matches recipe ingredient
-function ingredientMatches(pantryItem: { name: string }, recipeIngredient: { name: string }): boolean {
+function ingredientMatches(
+  pantryItem: { name: string },
+  recipeIngredient: { name: string }
+): boolean {
   const normalizedPantry = normalizeIngredientName(pantryItem.name);
   const normalizedRecipe = normalizeIngredientName(recipeIngredient.name);
 
-  return normalizedPantry === normalizedRecipe ||
+  return (
+    normalizedPantry === normalizedRecipe ||
     normalizedPantry.includes(normalizedRecipe) ||
-    normalizedRecipe.includes(normalizedPantry);
+    normalizedRecipe.includes(normalizedPantry)
+  );
 }
 
 // GET - Match recipes with user's pantry
@@ -33,10 +40,7 @@ export async function GET(request: NextRequest) {
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -44,10 +48,7 @@ export async function GET(request: NextRequest) {
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Get user's pantry
@@ -104,7 +105,7 @@ export async function GET(request: NextRequest) {
       const missingIngredients: Ingredient[] = [];
 
       for (const recipeIngredient of recipeIngredients) {
-        const matched = pantry.items.some(pantryItem =>
+        const matched = pantry.items.some((pantryItem) =>
           ingredientMatches(pantryItem, recipeIngredient)
         );
 
@@ -158,9 +159,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error matching recipes:', error);
-    return NextResponse.json(
-      { error: 'Failed to match recipes' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to match recipes' }, { status: 500 });
   }
 }

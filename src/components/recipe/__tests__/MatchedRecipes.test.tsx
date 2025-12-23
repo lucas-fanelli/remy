@@ -9,8 +9,16 @@ import { AuthProvider } from '@/contexts/AuthContext';
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,
@@ -37,11 +45,7 @@ jest.mock('@/contexts/AuthContext', () => ({
 const mockTheme = createTheme();
 
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 describe('MatchedRecipes Component', () => {
@@ -55,7 +59,7 @@ describe('MatchedRecipes Component', () => {
   });
 
   it('should render null during loading state', () => {
-    mockFetch.mockImplementation(() => new Promise(() => { }));
+    mockFetch.mockImplementation(() => new Promise(() => {}));
 
     const { container } = renderWithProviders(<MatchedRecipes />);
 
@@ -354,7 +358,7 @@ describe('MatchedRecipes Component', () => {
   });
 
   it('should handle fetch error gracefully', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
@@ -367,7 +371,10 @@ describe('MatchedRecipes Component', () => {
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     });
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading matched recipes:', expect.any(Error));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Error loading matched recipes:',
+      expect.any(Error)
+    );
     consoleErrorSpy.mockRestore();
   });
 
@@ -523,7 +530,7 @@ describe('MatchedRecipes Component', () => {
     beforeEach(() => {
       originalMatchMedia = window.matchMedia;
       // Mock mobile viewport (width < 600px triggers sm breakpoint)
-      window.matchMedia = jest.fn().mockImplementation(query => ({
+      window.matchMedia = jest.fn().mockImplementation((query) => ({
         matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
         media: query,
         onchange: null,

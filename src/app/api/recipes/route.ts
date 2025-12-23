@@ -105,11 +105,13 @@ export async function GET(request: NextRequest) {
       caption: recipe.caption,
       createdAt: recipe.createdAt,
       updatedAt: recipe.updatedAt,
-      author: recipe.user ? {
-        username: recipe.user.username,
-        fullName: recipe.user.fullName,
-        avatar: recipe.user.avatar,
-      } : undefined,
+      author: recipe.user
+        ? {
+            username: recipe.user.username,
+            fullName: recipe.user.fullName,
+            avatar: recipe.user.avatar,
+          }
+        : undefined,
       averageRating: recipe.averageRating,
       totalRatings: recipe.reviewCount,
       likeCount: recipe._count.likes,
@@ -123,10 +125,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching recipes:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch recipes' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 });
   }
 }
 
@@ -138,10 +137,7 @@ export async function POST(request: NextRequest) {
     // Get token from Authorization header
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
     const token = authHeader.substring(7);
@@ -150,10 +146,7 @@ export async function POST(request: NextRequest) {
     // Verify token and get user ID
     const payload = await tokenService.verify(token);
     if (!payload || !payload.userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }
 
     // Parse request body
@@ -167,26 +160,17 @@ export async function POST(request: NextRequest) {
     const recipeService = container.getRecipeService();
     const recipe = await recipeService.createRecipe(recipeData);
 
-    return NextResponse.json(
-      { recipe, message: 'Recipe created successfully' },
-      { status: 201 }
-    );
+    return NextResponse.json({ recipe, message: 'Recipe created successfully' }, { status: 201 });
   } catch (error) {
     console.error('Error creating recipe:', error);
 
     if (error instanceof Error) {
       // Validation errors
       if (error.message.includes('validation failed')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }
 
-    return NextResponse.json(
-      { error: 'Failed to create recipe' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create recipe' }, { status: 500 });
   }
 }

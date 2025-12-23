@@ -8,8 +8,16 @@ import Post from '../Post';
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,

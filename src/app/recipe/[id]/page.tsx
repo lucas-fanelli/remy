@@ -85,7 +85,11 @@ export default function RecipeDetailPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error',
+  });
   const [likeLoading, setLikeLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [cookedLoading, setCookedLoading] = useState(false);
@@ -93,8 +97,6 @@ export default function RecipeDetailPage() {
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
   const isOwner = user && recipe && user.id === recipe.userId;
-
-
 
   // Sync like/save status from query to local state
   useEffect(() => {
@@ -136,7 +138,7 @@ export default function RecipeDetailPage() {
       const response = await fetch(`/api/recipes/${recipeId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -156,7 +158,7 @@ export default function RecipeDetailPage() {
       setSnackbar({
         open: true,
         message: err instanceof Error ? err.message : 'Failed to delete recipe',
-        severity: 'error'
+        severity: 'error',
       });
       setDeleteDialogOpen(false);
     } finally {
@@ -175,7 +177,7 @@ export default function RecipeDetailPage() {
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -208,7 +210,7 @@ export default function RecipeDetailPage() {
       const response = await fetch(`/api/recipes/${recipeId}/save`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -252,7 +254,11 @@ export default function RecipeDetailPage() {
 
   const handleMarkAsCooked = async () => {
     if (!token) {
-      setSnackbar({ open: true, message: 'Please login to mark recipes as cooked', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: 'Please login to mark recipes as cooked',
+        severity: 'error',
+      });
       return;
     }
 
@@ -262,7 +268,7 @@ export default function RecipeDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           postId: recipeId,
@@ -314,7 +320,11 @@ export default function RecipeDetailPage() {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
       <Box
-        sx={{ minHeight: '100vh', pb: { xs: 10, sm: 11, md: 4 }, backgroundColor: 'background.default' }}
+        sx={{
+          minHeight: '100vh',
+          pb: { xs: 10, sm: 11, md: 4 },
+          backgroundColor: 'background.default',
+        }}
       >
         {/* Spacer for fixed AppBar - Material Design pattern */}
         <Toolbar />
@@ -329,10 +339,17 @@ export default function RecipeDetailPage() {
         {/* Error state */}
         {(error || (!loading && !recipe)) && (
           <Container maxWidth="md" sx={{ py: { xs: 3, md: 4 }, px: { xs: 2, md: 3 } }}>
-            <Alert severity="error" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}>
+            <Alert
+              severity="error"
+              sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}
+            >
               {error || 'Recipe not found'}
             </Alert>
-            <Button onClick={handleBack} startIcon={<ArrowBack />} size={isMobile ? 'large' : 'medium'}>
+            <Button
+              onClick={handleBack}
+              startIcon={<ArrowBack />}
+              size={isMobile ? 'large' : 'medium'}
+            >
               Go Back
             </Button>
           </Container>
@@ -412,7 +429,7 @@ export default function RecipeDetailPage() {
 
                 {/* Rating Display */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 1.5, md: 2 } }}>
-                  {(recipe.averageRating !== undefined && recipe.averageRating > 0) ? (
+                  {recipe.averageRating !== undefined && recipe.averageRating > 0 ? (
                     <>
                       <Rating
                         value={recipe.averageRating}
@@ -425,21 +442,25 @@ export default function RecipeDetailPage() {
                         color="text.secondary"
                         sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
                       >
-                        {recipe.averageRating.toFixed(1)} ({recipe.totalRatings} {recipe.totalRatings === 1 ? 'review' : 'reviews'})
+                        {recipe.averageRating.toFixed(1)} ({recipe.totalRatings}{' '}
+                        {recipe.totalRatings === 1 ? 'review' : 'reviews'})
                       </Typography>
                     </>
                   ) : (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ fontStyle: 'italic' }}
-                    >
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                       No ratings yet
                     </Typography>
                   )}
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap', mb: { xs: 1.5, md: 2 } }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: { xs: 0.5, md: 1 },
+                    flexWrap: 'wrap',
+                    mb: { xs: 1.5, md: 2 },
+                  }}
+                >
                   <Chip
                     label={recipe.difficulty}
                     color={getDifficultyColor(recipe.difficulty) as any}
@@ -481,8 +502,8 @@ export default function RecipeDetailPage() {
                     mb: { xs: 2, md: 3 },
                     cursor: 'pointer',
                     '&:hover': {
-                      opacity: 0.8
-                    }
+                      opacity: 0.8,
+                    },
                   }}
                   onClick={() => router.push(`/profile/${recipe.author?.username}`)}
                 >
@@ -494,10 +515,22 @@ export default function RecipeDetailPage() {
                     {recipe.author.username.charAt(0).toUpperCase()}
                   </Avatar>
                   <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', fontSize: { xs: '0.9375rem', md: '1rem' } }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 600,
+                        lineHeight: 1.2,
+                        color: 'text.primary',
+                        fontSize: { xs: '0.9375rem', md: '1rem' },
+                      }}
+                    >
                       {recipe.author.fullName || recipe.author.username}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                    >
                       @{recipe.author.username}
                     </Typography>
                   </Box>
@@ -505,12 +538,25 @@ export default function RecipeDetailPage() {
               )}
 
               {/* Description */}
-              <Typography variant="body1" color="text.secondary" paragraph sx={{ fontSize: { xs: '0.9375rem', sm: '1rem', md: '1.1rem' } }}>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                paragraph
+                sx={{ fontSize: { xs: '0.9375rem', sm: '1rem', md: '1.1rem' } }}
+              >
                 {recipe.description}
               </Typography>
 
               {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 }, my: { xs: 2, md: 3 }, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: { xs: 1, md: 2 },
+                  my: { xs: 2, md: 3 },
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <IconButton
                     onClick={handleLike}
@@ -521,7 +567,11 @@ export default function RecipeDetailPage() {
                     {liked ? <Favorite /> : <FavoriteBorder />}
                   </IconButton>
                   {likesCount > 0 && (
-                    <Typography variant="body2" fontWeight={600} sx={{ color: 'text.primary', fontSize: { xs: '0.875rem', md: '1rem' } }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      sx={{ color: 'text.primary', fontSize: { xs: '0.875rem', md: '1rem' } }}
+                    >
                       {likesCount}
                     </Typography>
                   )}
@@ -594,28 +644,71 @@ export default function RecipeDetailPage() {
               <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
               {/* Time Breakdown */}
-              <Box sx={{ display: 'flex', gap: { xs: 2, sm: 3, md: 4 }, mb: { xs: 2, md: 3 }, flexWrap: 'wrap' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: { xs: 2, sm: 3, md: 4 },
+                  mb: { xs: 2, md: 3 },
+                  flexWrap: 'wrap',
+                }}
+              >
                 <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
+                  >
                     PREP TIME
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      fontSize: { xs: '1.125rem', md: '1.25rem' },
+                    }}
+                  >
                     {recipe.prepTime} min
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
+                  >
                     COOK TIME
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      fontSize: { xs: '1.125rem', md: '1.25rem' },
+                    }}
+                  >
                     {recipe.cookingTime} min
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
+                  >
                     TOTAL TIME
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      fontSize: { xs: '1.125rem', md: '1.25rem' },
+                    }}
+                  >
                     {totalTime} min
                   </Typography>
                 </Box>
@@ -644,7 +737,10 @@ export default function RecipeDetailPage() {
                         '&::marker': { color: 'primary.main' },
                       }}
                     >
-                      <strong>{ingredient.amount} {ingredient.unit}</strong> {ingredient.name}
+                      <strong>
+                        {ingredient.amount} {ingredient.unit}
+                      </strong>{' '}
+                      {ingredient.name}
                     </Box>
                   ))}
                 </Box>
@@ -693,7 +789,9 @@ export default function RecipeDetailPage() {
                               cursor: 'pointer',
                               '&:hover .zoom-icon': { opacity: 1 },
                             }}
-                            onClick={() => handleImageClick(instruction.image!, `Step ${instruction.step}`)}
+                            onClick={() =>
+                              handleImageClick(instruction.image!, `Step ${instruction.step}`)
+                            }
                           >
                             <Box
                               component="img"
@@ -742,10 +840,13 @@ export default function RecipeDetailPage() {
                 transition={{ duration: 0.5, delay: 0.4 }}
                 sx={{ mb: 3 }}
               >
-                <Paper sx={{
-                  p: 3,
-                  backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'
-                }}>
+                <Paper
+                  sx={{
+                    p: 3,
+                    backgroundColor: (theme) =>
+                      theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
+                  }}
+                >
                   <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
                     &ldquo;{recipe.caption}&rdquo;
                   </Typography>
@@ -759,7 +860,11 @@ export default function RecipeDetailPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
             >
-              <CommentsSection recipeId={recipeId} recipeAuthorId={recipe.userId} onImageClick={handleImageClick} />
+              <CommentsSection
+                recipeId={recipeId}
+                recipeAuthorId={recipe.userId}
+                onImageClick={handleImageClick}
+              />
             </MotionBox>
           </Container>
         )}
@@ -773,14 +878,12 @@ export default function RecipeDetailPage() {
         />
 
         {/* Delete Confirmation Dialog */}
-        <Dialog
-          open={deleteDialogOpen}
-          onClose={() => !deleting && setDeleteDialogOpen(false)}
-        >
+        <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
           <DialogTitle>Delete Recipe?</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete &ldquo;{recipe?.title}&rdquo;? This action cannot be undone.
+              Are you sure you want to delete &ldquo;{recipe?.title}&rdquo;? This action cannot be
+              undone.
             </DialogContentText>
           </DialogContent>
           <DialogActions>
@@ -799,7 +902,10 @@ export default function RecipeDetailPage() {
           autoHideDuration={6000}
           onClose={() => setSnackbar({ ...snackbar, open: false })}
         >
-          <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+          <Alert
+            severity={snackbar.severity}
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+          >
             {snackbar.message}
           </Alert>
         </Snackbar>

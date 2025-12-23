@@ -156,7 +156,6 @@ export class RecipeRepository implements IRecipeRepository {
     return posts.map(this.mapToRecipe);
   }
 
-
   async getByDifficulty(difficulty: string, limit = 20, offset = 0): Promise<Recipe[]> {
     const posts = await this.prisma.post.findMany({
       where: { difficulty },
@@ -202,11 +201,13 @@ export class RecipeRepository implements IRecipeRepository {
       ingredients: (post.ingredients as Ingredient[]) || [],
       instructions: (post.instructions as Instruction[]) || [],
       caption: post.caption || undefined,
-      author: post.user ? {
-        username: post.user.username,
-        fullName: post.user.fullName || undefined,
-        avatar: post.user.avatar || undefined,
-      } : undefined,
+      author: post.user
+        ? {
+            username: post.user.username,
+            fullName: post.user.fullName || undefined,
+            avatar: post.user.avatar || undefined,
+          }
+        : undefined,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
     };

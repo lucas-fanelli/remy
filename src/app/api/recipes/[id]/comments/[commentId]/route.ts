@@ -13,10 +13,7 @@ export async function PATCH(
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -24,20 +21,14 @@ export async function PATCH(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const body = await request.json();
     const { text, rating } = body;
 
     if (!text || text.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Comment text is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
     }
 
     // Check if comment exists and user owns it
@@ -46,17 +37,11 @@ export async function PATCH(
     });
 
     if (!existingComment) {
-      return NextResponse.json(
-        { error: 'Comment not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
 
     if (existingComment.userId !== payload.userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized to edit this comment' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized to edit this comment' }, { status: 403 });
     }
 
     // Update comment
@@ -79,10 +64,7 @@ export async function PATCH(
     // If rating provided, upsert rating separately
     if (rating !== undefined) {
       if (rating < 1 || rating > 5) {
-        return NextResponse.json(
-          { error: 'Rating must be between 1 and 5' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
       }
 
       await prisma.rating.upsert({
@@ -139,10 +121,7 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Error updating comment:', error);
-    return NextResponse.json(
-      { error: 'Failed to update comment' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 });
   }
 }
 
@@ -157,10 +136,7 @@ export async function DELETE(
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -168,10 +144,7 @@ export async function DELETE(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Check if comment exists and user owns it
@@ -180,17 +153,11 @@ export async function DELETE(
     });
 
     if (!existingComment) {
-      return NextResponse.json(
-        { error: 'Comment not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
 
     if (existingComment.userId !== payload.userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized to delete this comment' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
     }
 
     // Delete the comment
@@ -203,9 +170,6 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('Error deleting comment:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete comment' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
   }
 }

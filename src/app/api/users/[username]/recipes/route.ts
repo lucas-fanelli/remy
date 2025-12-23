@@ -13,10 +13,7 @@ export async function GET(
     // Get user
     const user = await userService.getUserByUsername(username);
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Get user's recipes with counts
@@ -51,9 +48,6 @@ export async function GET(
     return NextResponse.json({ recipes: formattedRecipes });
   } catch (error) {
     console.error('Error fetching user recipes:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch recipes' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 });
   }
 }

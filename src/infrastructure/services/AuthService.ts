@@ -1,10 +1,5 @@
 import { User, Role } from '@prisma/client';
-import {
-  IAuthService,
-  RegisterDTO,
-  LoginDTO,
-  AuthResponse,
-} from '@/domain/services/IAuthService';
+import { IAuthService, RegisterDTO, LoginDTO, AuthResponse } from '@/domain/services/IAuthService';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import { ITokenService } from '@/domain/services/ITokenService';
@@ -16,14 +11,14 @@ export class AuthService implements IAuthService {
     private readonly userRepository: IUserRepository,
     private readonly passwordService: IPasswordService,
     private readonly tokenService: ITokenService
-  ) { }
+  ) {}
 
   /**
    * Check if email should be auto-promoted to admin based on ADMIN_EMAILS env var
    */
   private isAdminEmail(email: string): boolean {
     const adminEmails = process.env.ADMIN_EMAILS || '';
-    const emailList = adminEmails.split(',').map(e => e.trim().toLowerCase());
+    const emailList = adminEmails.split(',').map((e) => e.trim().toLowerCase());
     return emailList.includes(email.toLowerCase());
   }
 
@@ -44,7 +39,9 @@ export class AuthService implements IAuthService {
     // Validate username format
     const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/;
     if (!usernameRegex.test(data.username)) {
-      throw new Error('Username must be 3-30 characters and contain only letters, numbers, and underscores');
+      throw new Error(
+        'Username must be 3-30 characters and contain only letters, numbers, and underscores'
+      );
     }
 
     // Check if user already exists
@@ -97,10 +94,7 @@ export class AuthService implements IAuthService {
     }
 
     // Verify password
-    const isPasswordValid = await this.passwordService.compare(
-      data.password,
-      user.password
-    );
+    const isPasswordValid = await this.passwordService.compare(data.password, user.password);
 
     if (!isPasswordValid) {
       throw new Error('Invalid credentials');
@@ -144,11 +138,7 @@ export class AuthService implements IAuthService {
     return userWithoutPassword;
   }
 
-  async changePassword(
-    userId: string,
-    oldPassword: string,
-    newPassword: string
-  ): Promise<void> {
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
     // Validate new password
     if (!this.passwordService.validate(newPassword)) {
       throw new Error(
@@ -163,10 +153,7 @@ export class AuthService implements IAuthService {
     }
 
     // Verify old password
-    const isOldPasswordValid = await this.passwordService.compare(
-      oldPassword,
-      user.password
-    );
+    const isOldPasswordValid = await this.passwordService.compare(oldPassword, user.password);
 
     if (!isOldPasswordValid) {
       throw new Error('Invalid old password');

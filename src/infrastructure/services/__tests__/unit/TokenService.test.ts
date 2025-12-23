@@ -36,7 +36,7 @@ describe('TokenService - Unit Tests', () => {
 
       const token1 = tokenService.generate(payload);
       // Wait 1 second to ensure different iat
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       const token2 = tokenService.generate(payload);
 
       // Tokens will be different due to iat (issued at) claim

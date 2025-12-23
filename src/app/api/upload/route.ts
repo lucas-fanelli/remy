@@ -14,23 +14,20 @@ export async function POST(request: NextRequest) {
     console.log('[Upload] FormData parsed');
     const file = formData.get('file') as File;
 
-    console.log('[Upload] File from formData:', file ? `${file.name} (${file.type}, ${file.size} bytes)` : 'null');
+    console.log(
+      '[Upload] File from formData:',
+      file ? `${file.name} (${file.type}, ${file.size} bytes)` : 'null'
+    );
 
     if (!file) {
       console.error('[Upload] No file in formData');
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     // Check if file is actually a File instance
     if (!(file instanceof File)) {
       console.error('[Upload] File is not a File instance:', typeof file);
-      return NextResponse.json(
-        { error: 'Invalid file object' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid file object' }, { status: 400 });
     }
 
     // Validate file type
@@ -46,10 +43,7 @@ export async function POST(request: NextRequest) {
     // Validate file size (5MB max)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 5MB.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
     }
 
     // Convert file to buffer

@@ -6,22 +6,22 @@ export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: BRANDING.colors.primary,    // #673AB7 - Rich purple
-      light: '#D1C4E9',                  // Light purple
-      dark: BRANDING.colors.secondary,   // #512DA8 - Deep purple
+      main: BRANDING.colors.primary, // #673AB7 - Rich purple
+      light: '#D1C4E9', // Light purple
+      dark: BRANDING.colors.secondary, // #512DA8 - Deep purple
     },
     secondary: {
-      main: BRANDING.colors.accent,      // #FFC107 - Golden yellow
-      light: '#FFD54F',                  // Light yellow
-      dark: '#FFA000',                   // Dark yellow/amber
+      main: BRANDING.colors.accent, // #FFC107 - Golden yellow
+      light: '#FFD54F', // Light yellow
+      dark: '#FFA000', // Dark yellow/amber
     },
     background: {
-      default: '#FAFAFA',                // Light gray (clean background)
-      paper: '#FFFFFF',                  // White surfaces
+      default: '#FAFAFA', // Light gray (clean background)
+      paper: '#FFFFFF', // White surfaces
     },
     text: {
-      primary: '#212121',                // Almost black (high contrast)
-      secondary: '#757575',              // Medium gray
+      primary: '#212121', // Almost black (high contrast)
+      secondary: '#757575', // Medium gray
     },
   },
   typography: {

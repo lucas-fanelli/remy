@@ -12,8 +12,16 @@ configure({ asyncUtilTimeout: 250 });
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,
@@ -72,11 +80,7 @@ const mockTheme = createTheme();
 const renderWithProviders = (component: React.ReactElement) => {
   let result: any;
   act(() => {
-    result = render(
-      <ThemeProvider theme={mockTheme}>
-        {component}
-      </ThemeProvider>
-    );
+    result = render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
   });
   return result;
 };
@@ -120,14 +124,14 @@ describe('RecipeFeed Component', () => {
 
     while (previousCallCount !== currentCallCount && attempts < maxAttempts) {
       previousCallCount = currentCallCount;
-      await act(async () => { });
+      await act(async () => {});
       currentCallCount = mockFetch.mock.calls.length;
       attempts++;
     }
 
     // Final flush to ensure all state updates complete
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   });
 
@@ -157,29 +161,35 @@ describe('RecipeFeed Component', () => {
 
   // Helper to wait for all fetch calls including engagement data
   const waitForAllFetches = async (expectedCalls: number) => {
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(expectedCalls);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(mockFetch).toHaveBeenCalledTimes(expectedCalls);
+      },
+      { timeout: 3000 }
+    );
     // Additional flush to ensure all state updates from fetches complete
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   };
 
   // Helper to wait for component loading to complete
   const waitForLoadingComplete = async (container: HTMLElement) => {
     // Wait for any content to appear (loading returns null now)
-    await waitFor(() => {
-      expect(screen.queryByText('Discover Recipes')).toBeInTheDocument();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Discover Recipes')).toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
     // Additional flush to ensure all state updates complete
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   };
 
   it('should render loading state initially as null content', () => {
-    mockFetch.mockImplementation(() => new Promise(() => { }));
+    mockFetch.mockImplementation(() => new Promise(() => {}));
 
     const { container } = renderWithProviders(<RecipeFeed />);
 
@@ -199,7 +209,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should handle fetch failure gracefully', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
     renderWithProviders(<RecipeFeed />);
@@ -460,19 +470,20 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(easyOption);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('difficulty=easy')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('difficulty=easy'));
     });
 
     // Wait for all skeleton loaders to disappear (indicates async operations completed)
-    await waitFor(() => {
-      const skeletons = screen.queryAllByTestId('recipe-skeleton');
-      expect(skeletons.length).toBe(0);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const skeletons = screen.queryAllByTestId('recipe-skeleton');
+        expect(skeletons.length).toBe(0);
+      },
+      { timeout: 3000 }
+    );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should filter by max time', async () => {
@@ -493,19 +504,20 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(under30Option);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('maxTime=30')
-      );
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('maxTime=30'));
     });
 
     // Wait for all skeleton loaders to disappear (indicates async operations completed)
-    await waitFor(() => {
-      const skeletons = screen.queryAllByTestId('recipe-skeleton');
-      expect(skeletons.length).toBe(0);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const skeletons = screen.queryAllByTestId('recipe-skeleton');
+        expect(skeletons.length).toBe(0);
+      },
+      { timeout: 3000 }
+    );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should show clear filters button when filters are active', async () => {
@@ -537,13 +549,16 @@ describe('RecipeFeed Component', () => {
     });
 
     // Wait for all skeleton loaders to disappear (indicates async operations completed)
-    await waitFor(() => {
-      const skeletons = screen.queryAllByTestId('recipe-skeleton');
-      expect(skeletons.length).toBe(0);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const skeletons = screen.queryAllByTestId('recipe-skeleton');
+        expect(skeletons.length).toBe(0);
+      },
+      { timeout: 3000 }
+    );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should clear all filters when clear button is clicked', async () => {
@@ -584,13 +599,16 @@ describe('RecipeFeed Component', () => {
     });
 
     // Wait for all skeleton loaders to disappear (indicates async operations completed)
-    await waitFor(() => {
-      const skeletons = screen.queryAllByTestId('recipe-skeleton');
-      expect(skeletons.length).toBe(0);
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        const skeletons = screen.queryAllByTestId('recipe-skeleton');
+        expect(skeletons.length).toBe(0);
+      },
+      { timeout: 3000 }
+    );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should delete recipe successfully', async () => {
@@ -625,7 +643,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should handle delete error', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
     setupSuccessfulFetch();
 
@@ -676,7 +694,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should handle like error gracefully', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
     setupSuccessfulFetch();
 
@@ -752,7 +770,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should handle engagement fetch error', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     // Mock initial recipe fetch
     mockFetch.mockResolvedValueOnce({
@@ -873,14 +891,16 @@ describe('RecipeFeed Component', () => {
       expect(screen.getByText('Recipe 13')).toBeInTheDocument();
 
       // Wait for all skeleton loaders to disappear (indicates async operations completed)
-      await waitFor(() => {
-        const skeletons = screen.queryAllByTestId('recipe-skeleton');
-        expect(skeletons.length).toBe(0);
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          const skeletons = screen.queryAllByTestId('recipe-skeleton');
+          expect(skeletons.length).toBe(0);
+        },
+        { timeout: 3000 }
+      );
 
       // Flush all pending promises to prevent act() warnings
-      await act(async () => {
-      });
+      await act(async () => {});
     });
 
     it('should handle scroll event conditions (lines 180-185) - branch coverage', async () => {
@@ -910,7 +930,10 @@ describe('RecipeFeed Component', () => {
       // Scroll near bottom - should not load more since hasMore = false
       Object.defineProperty(window, 'innerHeight', { writable: true, value: 800 });
       Object.defineProperty(window, 'scrollY', { writable: true, value: 5000 });
-      Object.defineProperty(document.documentElement, 'scrollHeight', { writable: true, value: 6000 });
+      Object.defineProperty(document.documentElement, 'scrollHeight', {
+        writable: true,
+        value: 6000,
+      });
 
       fireEvent.scroll(window);
 
@@ -972,7 +995,7 @@ describe('RecipeFeed Component', () => {
           expect.objectContaining({
             method: 'POST',
             headers: expect.objectContaining({
-              'Authorization': 'Bearer test-token',
+              Authorization: 'Bearer test-token',
             }),
           })
         );
@@ -1006,22 +1029,22 @@ describe('RecipeFeed Component', () => {
 
     it('should prevent concurrent loadRecipes calls - line 133', async () => {
       // Mock a slow API response to keep loading state true
-      mockFetch.mockImplementation(() =>
-        new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({
-              ok: true,
-              json: async () => ({ recipes: [mockRecipe] }),
-            });
-          }, 1000);
-        })
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve({
+                ok: true,
+                json: async () => ({ recipes: [mockRecipe] }),
+              });
+            }, 1000);
+          })
       );
 
       renderWithProviders(<RecipeFeed />);
 
       // Wait a bit to ensure loadRecipes is called and loading is true
-      await act(async () => {
-      });
+      await act(async () => {});
 
       // Mock fetch should only be called once (initial load)
       // Even if filters change while loading, it shouldn't trigger another fetch
@@ -1032,7 +1055,7 @@ describe('RecipeFeed Component', () => {
     });
 
     it('should throw error when recipe fetch fails - line 150', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Mock fetch to return ok: false
       mockFetch.mockResolvedValueOnce({
@@ -1044,10 +1067,7 @@ describe('RecipeFeed Component', () => {
 
       // Wait for error to be logged
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Error loading recipes:',
-          expect.any(Error)
-        );
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading recipes:', expect.any(Error));
       });
 
       consoleErrorSpy.mockRestore();
@@ -1076,15 +1096,14 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(confirmButton);
 
       // Should not make delete API call without token
-      await act(async () => {
-      });
+      await act(async () => {});
 
       // No new fetch calls should have been made
       expect(mockFetch.mock.calls.length).toBe(initialFetchCallCount);
     });
 
     it('should throw error with custom message when delete fails - lines 224-225', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
       setupSuccessfulFetch();
 
@@ -1115,10 +1134,7 @@ describe('RecipeFeed Component', () => {
         expect(screen.getByText('Recipe not found')).toBeInTheDocument();
       });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error deleting recipe:',
-        expect.any(Error)
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error deleting recipe:', expect.any(Error));
 
       consoleErrorSpy.mockRestore();
     });
@@ -1168,7 +1184,7 @@ describe('RecipeFeed Component', () => {
     });
 
     it('should show non-Error exception fallback message - lines 237-241', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
       setupSuccessfulFetch();
 
@@ -1280,7 +1296,7 @@ describe('RecipeFeed Component', () => {
       // Mock mobile viewport
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: query.includes('max-width: 600px'),
           media: query,
           onchange: null,
@@ -1312,7 +1328,7 @@ describe('RecipeFeed Component', () => {
       // Mock mobile viewport
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: query.includes('max-width: 600px'),
           media: query,
           onchange: null,
@@ -1362,12 +1378,10 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(under60Option);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('maxTime=60')
-        );
+        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('maxTime=60'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
 
     it('should filter by over60 time - line 152', async () => {
@@ -1388,12 +1402,10 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(over60Option);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('minTime=60')
-        );
+        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('minTime=60'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
   });
 
@@ -1417,12 +1429,10 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(highestRatedOption);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('sort=rating_desc')
-        );
+        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('sort=rating_desc'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
 
     it('should sort by most reviewed - line 155', async () => {
@@ -1443,19 +1453,17 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(mostReviewedOption);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('sort=most_reviewed')
-        );
+        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('sort=most_reviewed'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
   });
 
   // ==================== DELETE ERROR FALLBACK (line 234) ====================
   describe('Delete Error Fallback - line 234', () => {
     it('should show fallback error message when server returns no error field - line 234', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
       setupSuccessfulFetch();
 
@@ -1495,7 +1503,7 @@ describe('RecipeFeed Component', () => {
 
     beforeEach(() => {
       originalMatchMedia = window.matchMedia;
-      window.matchMedia = jest.fn().mockImplementation(query => ({
+      window.matchMedia = jest.fn().mockImplementation((query) => ({
         matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
         media: query,
         onchange: null,
@@ -1528,12 +1536,19 @@ describe('RecipeFeed Component', () => {
     it('should not load recipes twice when already loading - line 133', async () => {
       const localMockOnCreateRecipe = jest.fn();
       // Set up a delayed fetch to simulate loading state
-      mockFetch.mockImplementationOnce(() => new Promise(resolve => {
-        setTimeout(() => resolve({
-          ok: true,
-          json: async () => ({ recipes: mockRecipes, total: 2 }),
-        }), 500);
-      }));
+      mockFetch.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  json: async () => ({ recipes: mockRecipes, total: 2 }),
+                }),
+              500
+            );
+          })
+      );
 
       renderWithProviders(<RecipeFeed onCreateRecipe={localMockOnCreateRecipe} />);
 

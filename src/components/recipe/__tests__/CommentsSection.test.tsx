@@ -19,8 +19,16 @@ jest.mock('@/contexts/AuthContext', () => ({
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,
@@ -31,11 +39,7 @@ jest.mock('framer-motion', () => {
 const mockTheme = createTheme();
 
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 const mockComment = {
@@ -97,7 +101,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should handle API error when fetching comments', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
     renderWithProviders(<CommentsSection recipeId="recipe1" />);
@@ -110,7 +114,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should show loading state while fetching comments', () => {
-    mockFetch.mockImplementation(() => new Promise(() => { }));
+    mockFetch.mockImplementation(() => new Promise(() => {}));
 
     const { container } = renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -366,7 +370,7 @@ describe('CommentsSection Component', () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer valid-token',
+              Authorization: 'Bearer valid-token',
             },
             body: JSON.stringify({
               text: 'This is a test comment',
@@ -404,9 +408,7 @@ describe('CommentsSection Component', () => {
 
       // Find and click 4-star rating
       const ratingInputs = screen.getAllByRole('radio', { hidden: true });
-      const fourStarRating = ratingInputs.find((input) =>
-        input.getAttribute('value') === '4'
-      );
+      const fourStarRating = ratingInputs.find((input) => input.getAttribute('value') === '4');
       if (fourStarRating) {
         fireEvent.click(fourStarRating);
       }
@@ -439,7 +441,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle comment submission error', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
 
@@ -519,7 +521,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle network error during submission gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
 
@@ -723,9 +725,24 @@ describe('CommentsSection Component', () => {
     it('should display "Creator" badge for multiple author comments', async () => {
       const authorId = 'author123';
       const comments = [
-        { ...mockComment, id: '1', user: { id: authorId, username: 'author', avatar: '/avatar.jpg' }, text: 'Author comment 1' },
-        { ...mockComment, id: '2', user: { id: 'user456', username: 'user', avatar: '/avatar.jpg' }, text: 'User comment' },
-        { ...mockComment, id: '3', user: { id: authorId, username: 'author', avatar: '/avatar.jpg' }, text: 'Author comment 2' },
+        {
+          ...mockComment,
+          id: '1',
+          user: { id: authorId, username: 'author', avatar: '/avatar.jpg' },
+          text: 'Author comment 1',
+        },
+        {
+          ...mockComment,
+          id: '2',
+          user: { id: 'user456', username: 'user', avatar: '/avatar.jpg' },
+          text: 'User comment',
+        },
+        {
+          ...mockComment,
+          id: '3',
+          user: { id: authorId, username: 'author', avatar: '/avatar.jpg' },
+          text: 'Author comment 2',
+        },
       ];
 
       mockFetch.mockResolvedValue({
@@ -774,7 +791,7 @@ describe('CommentsSection Component', () => {
 
       // Should show more options button (MoreVertIcon)
       const allButtons = screen.getAllByRole('button');
-      const moreButton = allButtons.find(btn => {
+      const moreButton = allButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -803,7 +820,7 @@ describe('CommentsSection Component', () => {
       // Should not show more options button for other users' comments
       // Check specifically for the MoreVertIcon button which is the edit/delete action button
       const allButtons = screen.getAllByRole('button');
-      const moreVertButton = allButtons.find(btn => {
+      const moreVertButton = allButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -831,7 +848,7 @@ describe('CommentsSection Component', () => {
 
       // Click more options button
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -870,7 +887,7 @@ describe('CommentsSection Component', () => {
 
       // Click more options button
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -917,7 +934,7 @@ describe('CommentsSection Component', () => {
 
       // Enter edit mode
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -967,7 +984,7 @@ describe('CommentsSection Component', () => {
 
       // Enter edit mode
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1008,7 +1025,7 @@ describe('CommentsSection Component', () => {
           expect.objectContaining({
             method: 'PATCH',
             headers: expect.objectContaining({
-              'Authorization': 'Bearer valid-token',
+              Authorization: 'Bearer valid-token',
             }),
           })
         );
@@ -1049,7 +1066,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1102,7 +1119,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu and click delete
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1175,7 +1192,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu - find by MoreVertIcon
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1215,7 +1232,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle edit comment exception - lines 187-189', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
         token: 'test-token',
@@ -1243,7 +1260,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu - find by MoreVertIcon
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1310,7 +1327,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu - find by MoreVertIcon
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1348,7 +1365,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle delete comment exception - lines 226-228', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
         token: 'test-token',
@@ -1376,7 +1393,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu - find by MoreVertIcon
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1441,7 +1458,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu - find by MoreVertIcon
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1503,7 +1520,7 @@ describe('CommentsSection Component', () => {
 
       // Open menu - find by MoreVertIcon
       const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find(btn => {
+      const moreButton = moreButtons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
       });
@@ -1616,7 +1633,7 @@ describe('CommentsSection Component', () => {
 
     it('should handle image upload failure (lines 121-132)', async () => {
       // Spy on console.error to verify it's called and prevent console output leak
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       mockFetch
         .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
@@ -1648,10 +1665,7 @@ describe('CommentsSection Component', () => {
       });
 
       // Verify console.error was called (this is the expected behavior)
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error uploading image:',
-        expect.any(Error)
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error uploading image:', expect.any(Error));
 
       consoleErrorSpy.mockRestore();
     });
@@ -1698,7 +1712,8 @@ describe('CommentsSection Component', () => {
         // Wait for preview to appear
         await waitFor(() => {
           // Image preview should be visible
-          const removeButton = screen.queryByRole('button', { name: /remove/i }) ||
+          const removeButton =
+            screen.queryByRole('button', { name: /remove/i }) ||
             screen.queryByRole('button', { name: '' });
           // If remove button exists, click it
           if (removeButton) {
@@ -1739,9 +1754,9 @@ describe('CommentsSection Component', () => {
       });
 
       // Open menu and click edit
-      const moreButtons = screen.getAllByRole('button', { name: '' }).filter(btn =>
-        btn.querySelector('[data-testid="MoreVertIcon"]')
-      );
+      const moreButtons = screen
+        .getAllByRole('button', { name: '' })
+        .filter((btn) => btn.querySelector('[data-testid="MoreVertIcon"]'));
 
       if (moreButtons.length > 0) {
         fireEvent.click(moreButtons[0]);
@@ -1781,9 +1796,7 @@ describe('CommentsSection Component', () => {
       });
 
       const mockOnImageClick = jest.fn();
-      renderWithProviders(
-        <CommentsSection recipeId="recipe1" onImageClick={mockOnImageClick} />
-      );
+      renderWithProviders(<CommentsSection recipeId="recipe1" onImageClick={mockOnImageClick} />);
 
       await waitFor(() => {
         expect(screen.getByText('Comment with image')).toBeInTheDocument();
@@ -1791,8 +1804,8 @@ describe('CommentsSection Component', () => {
 
       // Find and click the image
       const images = document.querySelectorAll('img');
-      const commentImage = Array.from(images).find(img =>
-        img.getAttribute('src') === 'https://example.com/comment-image.jpg'
+      const commentImage = Array.from(images).find(
+        (img) => img.getAttribute('src') === 'https://example.com/comment-image.jpg'
       );
 
       if (commentImage) {
@@ -1865,9 +1878,7 @@ describe('CommentsSection Component', () => {
 
       // Verify upload API was called
       await waitFor(() => {
-        const uploadCalls = mockFetch.mock.calls.filter(
-          (call: any) => call[0] === '/api/upload'
-        );
+        const uploadCalls = mockFetch.mock.calls.filter((call: any) => call[0] === '/api/upload');
         expect(uploadCalls.length).toBeGreaterThan(0);
       });
     });
@@ -1899,7 +1910,9 @@ describe('CommentsSection Component', () => {
 
       // Find and click remove button (Close icon)
       const removeButtons = screen.getAllByRole('button');
-      const closeButton = removeButtons.find(btn => btn.querySelector('[data-testid="CloseIcon"]'));
+      const closeButton = removeButtons.find((btn) =>
+        btn.querySelector('[data-testid="CloseIcon"]')
+      );
 
       if (closeButton) {
         fireEvent.click(closeButton);
@@ -1921,7 +1934,7 @@ describe('CommentsSection Component', () => {
         json: async () => ({ comments: [] }),
       });
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -2038,9 +2051,9 @@ describe('CommentsSection Component', () => {
       });
 
       // Open menu and click edit
-      const moreButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('[data-testid="MoreVertIcon"]')
-      );
+      const moreButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="MoreVertIcon"]'));
       if (moreButtons.length > 0) {
         fireEvent.click(moreButtons[0]);
 
@@ -2089,9 +2102,9 @@ describe('CommentsSection Component', () => {
       });
 
       // Open menu
-      const moreButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('[data-testid="MoreVertIcon"]')
-      );
+      const moreButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="MoreVertIcon"]'));
       if (moreButtons.length > 0) {
         fireEvent.click(moreButtons[0]);
 
@@ -2133,9 +2146,9 @@ describe('CommentsSection Component', () => {
       });
 
       // Open menu
-      const moreButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('[data-testid="MoreVertIcon"]')
-      );
+      const moreButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="MoreVertIcon"]'));
       if (moreButtons.length > 0) {
         fireEvent.click(moreButtons[0]);
 

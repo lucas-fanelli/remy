@@ -3,10 +3,7 @@ import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
 // GET - Check if recipe is saved
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
 
@@ -30,10 +27,7 @@ export async function GET(
     });
 
     if (!recipe) {
-      return NextResponse.json(
-        { error: 'Recipe not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
     // Check if user has saved this recipe
@@ -54,20 +48,14 @@ export async function GET(
 }
 
 // POST - Toggle save status
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
 
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -75,10 +63,7 @@ export async function POST(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Check if recipe exists
@@ -87,10 +72,7 @@ export async function POST(
     });
 
     if (!recipe) {
-      return NextResponse.json(
-        { error: 'Recipe not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
     // Check if already saved
@@ -129,9 +111,6 @@ export async function POST(
     }
   } catch (error) {
     console.error('Error toggling save:', error);
-    return NextResponse.json(
-      { error: 'Failed to save recipe' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to save recipe' }, { status: 500 });
   }
 }

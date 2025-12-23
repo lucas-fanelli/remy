@@ -1,6 +1,11 @@
 import { IRecipeService } from '@/domain/services/IRecipeService';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
-import { Recipe, CreateRecipeDTO, UpdateRecipeDTO, RecipeSearchOptions } from '@/domain/types/recipe';
+import {
+  Recipe,
+  CreateRecipeDTO,
+  UpdateRecipeDTO,
+  RecipeSearchOptions,
+} from '@/domain/types/recipe';
 
 /**
  * Recipe Service - handles business logic for recipes
@@ -62,7 +67,11 @@ export class RecipeService implements IRecipeService {
     return this.recipeRepository.getRecent(limit, offset);
   }
 
-  async getRecipesByDifficulty(difficulty: string, limit?: number, offset?: number): Promise<Recipe[]> {
+  async getRecipesByDifficulty(
+    difficulty: string,
+    limit?: number,
+    offset?: number
+  ): Promise<Recipe[]> {
     return this.recipeRepository.getByDifficulty(difficulty, limit, offset);
   }
 
@@ -125,7 +134,10 @@ export class RecipeService implements IRecipeService {
           errors.push(`Ingredient ${index + 1}: name is required`);
         }
         // Allow empty amount for "to taste" ingredients
-        if (ingredient.unit !== 'to taste' && (!ingredient.amount || ingredient.amount.trim().length === 0)) {
+        if (
+          ingredient.unit !== 'to taste' &&
+          (!ingredient.amount || ingredient.amount.trim().length === 0)
+        ) {
           errors.push(`Ingredient ${index + 1}: amount is required`);
         }
         if (!ingredient.unit || ingredient.unit.trim().length === 0) {

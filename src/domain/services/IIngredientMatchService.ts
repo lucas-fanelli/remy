@@ -16,24 +16,15 @@ export interface IIngredientMatchService {
   /**
    * Calculate match percentage for a specific recipe
    */
-  calculateMatchPercentage(
-    recipeIngredients: string[],
-    userIngredients: string[]
-  ): number;
+  calculateMatchPercentage(recipeIngredients: string[], userIngredients: string[]): number;
 
   /**
    * Get missing ingredients for a recipe
    */
-  getMissingIngredients(
-    recipeIngredients: string[],
-    userIngredients: string[]
-  ): string[];
+  getMissingIngredients(recipeIngredients: string[], userIngredients: string[]): string[];
 
   /**
    * Get matched ingredients for a recipe
    */
-  getMatchedIngredients(
-    recipeIngredients: string[],
-    userIngredients: string[]
-  ): string[];
+  getMatchedIngredients(recipeIngredients: string[], userIngredients: string[]): string[];
 }

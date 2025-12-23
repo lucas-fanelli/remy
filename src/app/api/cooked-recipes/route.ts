@@ -91,12 +91,16 @@ export async function POST(request: NextRequest) {
 
     // Remove recipe ingredients from pantry
     if (pantry && recipe.ingredients) {
-      const recipeIngredients = recipe.ingredients as Array<{ name: string; amount: string; unit: string }>;
+      const recipeIngredients = recipe.ingredients as Array<{
+        name: string;
+        amount: string;
+        unit: string;
+      }>;
 
       for (const ingredient of recipeIngredients) {
         // Find matching pantry item (case-insensitive name match)
         const pantryItem = pantry.items.find(
-          item => item.name.toLowerCase() === ingredient.name.toLowerCase()
+          (item) => item.name.toLowerCase() === ingredient.name.toLowerCase()
         );
 
         if (pantryItem) {
@@ -156,10 +160,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      cookedRecipe,
-      message: 'Recipe marked as cooked and ingredients removed from pantry',
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        cookedRecipe,
+        message: 'Recipe marked as cooked and ingredients removed from pantry',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error marking recipe as cooked:', error);
     return NextResponse.json({ error: 'Failed to mark recipe as cooked' }, { status: 500 });

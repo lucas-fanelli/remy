@@ -6,51 +6,45 @@ import prisma from '@/lib/database/prisma';
  * PATCH /api/notifications/[id]
  * Mark a single notification as read
  */
-export async function PATCH(
-    request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
-) {
-    try {
-        const { id: notificationId } = await params;
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id: notificationId } = await params;
 
-        // Extract and validate token
-        const token = request.headers.get('authorization')?.split(' ')[1];
+    // Extract and validate token
+    const token = request.headers.get('authorization')?.split(' ')[1];
 
-        if (!token) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        // Use TokenService from container to verify token
-        const tokenService = container.getTokenService();
-        const decoded = tokenService.verify(token);
-        if (!decoded) {
-            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-        }
-
-        // Verify the notification belongs to this user and update it
-        const notification = await prisma.notification.findFirst({
-            where: {
-                id: notificationId,
-                recipientId: decoded.userId,
-            },
-        });
-
-        if (!notification) {
-            return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-        }
-
-        // Mark as read
-        await prisma.notification.update({
-            where: { id: notificationId },
-            data: { isRead: true },
-        });
-
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error('Error marking notification as read:', error);
-        return NextResponse.json(
-            { error: 'Failed to mark notification as read' },
-            { status: 500 }
-        );
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Use TokenService from container to verify token
+    const tokenService = container.getTokenService();
+    const decoded = tokenService.verify(token);
+    if (!decoded) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Verify the notification belongs to this user and update it
+    const notification = await prisma.notification.findFirst({
+      where: {
+        id: notificationId,
+        recipientId: decoded.userId,
+      },
+    });
+
+    if (!notification) {
+      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+    }
+
+    // Mark as read
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 });
+  }
 }

@@ -8,10 +8,7 @@ export async function GET(request: NextRequest) {
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -19,10 +16,7 @@ export async function GET(request: NextRequest) {
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Get or create user's pantry
@@ -30,10 +24,7 @@ export async function GET(request: NextRequest) {
       where: { userId: payload.userId },
       include: {
         items: {
-          orderBy: [
-            { category: 'asc' },
-            { name: 'asc' },
-          ],
+          orderBy: [{ category: 'asc' }, { name: 'asc' }],
         },
       },
     });
@@ -59,10 +50,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching pantry:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch pantry' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch pantry' }, { status: 500 });
   }
 }
 
@@ -72,10 +60,7 @@ export async function POST(request: NextRequest) {
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -83,10 +68,7 @@ export async function POST(request: NextRequest) {
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -94,24 +76,15 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!name || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Item name is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Item name is required' }, { status: 400 });
     }
 
     if (!quantity || quantity <= 0) {
-      return NextResponse.json(
-        { error: 'Quantity must be greater than 0' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Quantity must be greater than 0' }, { status: 400 });
     }
 
     if (!unit || unit.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Unit is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Unit is required' }, { status: 400 });
     }
 
     // Get or create user's pantry
@@ -138,15 +111,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      item,
-      message: 'Item added to pantry successfully',
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        item,
+        message: 'Item added to pantry successfully',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error adding pantry item:', error);
-    return NextResponse.json(
-      { error: 'Failed to add item to pantry' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to add item to pantry' }, { status: 500 });
   }
 }

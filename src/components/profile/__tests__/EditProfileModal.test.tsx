@@ -252,7 +252,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should show error when API request fails', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -348,7 +348,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should handle avatar upload error - non-ok response', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -382,7 +382,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should handle avatar upload error - without specific error message', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -439,19 +439,25 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/upload/avatar', expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Authorization': 'Bearer mock-token',
-          }),
-        }));
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/upload/avatar',
+          expect.objectContaining({
+            method: 'POST',
+            headers: expect.objectContaining({
+              Authorization: 'Bearer mock-token',
+            }),
+          })
+        );
       });
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
-          method: 'PUT',
-          body: expect.stringContaining('https://example.com/new-avatar.jpg'),
-        }));
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/users/profile',
+          expect.objectContaining({
+            method: 'PUT',
+            body: expect.stringContaining('https://example.com/new-avatar.jpg'),
+          })
+        );
       });
 
       await waitFor(() => {
@@ -544,15 +550,18 @@ describe('EditProfileModal', () => {
 
       const fullNameInput = screen.getByLabelText(/full name/i);
       await user.clear(fullNameInput);
-      await user.type(fullNameInput, '   ');  // Only whitespace
+      await user.type(fullNameInput, '   '); // Only whitespace
 
       const saveButton = screen.getByRole('button', { name: /save changes/i });
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
-          body: expect.stringContaining('"fullName":null'),
-        }));
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/users/profile',
+          expect.objectContaining({
+            body: expect.stringContaining('"fullName":null'),
+          })
+        );
       });
     });
 
@@ -567,15 +576,18 @@ describe('EditProfileModal', () => {
 
       const bioInput = screen.getByLabelText(/bio/i);
       await user.clear(bioInput);
-      await user.type(bioInput, '   ');  // Only whitespace
+      await user.type(bioInput, '   '); // Only whitespace
 
       const saveButton = screen.getByRole('button', { name: /save changes/i });
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
-          body: expect.stringContaining('"bio":null'),
-        }));
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/users/profile',
+          expect.objectContaining({
+            body: expect.stringContaining('"bio":null'),
+          })
+        );
       });
     });
 
@@ -590,15 +602,18 @@ describe('EditProfileModal', () => {
 
       const websiteInput = screen.getByLabelText(/website/i);
       await user.clear(websiteInput);
-      await user.type(websiteInput, '   ');  // Only whitespace
+      await user.type(websiteInput, '   '); // Only whitespace
 
       const saveButton = screen.getByRole('button', { name: /save changes/i });
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
-          body: expect.stringContaining('"website":null'),
-        }));
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/users/profile',
+          expect.objectContaining({
+            body: expect.stringContaining('"website":null'),
+          })
+        );
       });
     });
 
@@ -613,22 +628,25 @@ describe('EditProfileModal', () => {
 
       const fullNameInput = screen.getByLabelText(/full name/i);
       await user.clear(fullNameInput);
-      await user.type(fullNameInput, '  John Doe  ');  // With surrounding whitespace
+      await user.type(fullNameInput, '  John Doe  '); // With surrounding whitespace
 
       const saveButton = screen.getByRole('button', { name: /save changes/i });
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
-          body: expect.stringContaining('"fullName":"John Doe"'),
-        }));
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/users/profile',
+          expect.objectContaining({
+            body: expect.stringContaining('"fullName":"John Doe"'),
+          })
+        );
       });
     });
   });
 
   describe('Error Handling - Lines 150-161', () => {
     it('should throw Error with custom message when response not ok - line 150', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -649,7 +667,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should throw Error with fallback message when error field missing - line 150', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -669,9 +687,9 @@ describe('EditProfileModal', () => {
     });
 
     it('should handle non-Error exceptions - line 161', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockRejectedValueOnce('String error');  // Non-Error exception
+      mockFetch.mockRejectedValueOnce('String error'); // Non-Error exception
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -686,7 +704,7 @@ describe('EditProfileModal', () => {
     });
 
     it('should log error to console on update failure - line 160', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
       const testError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(testError);
@@ -854,9 +872,12 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', expect.objectContaining({
-          body: expect.stringContaining('"avatar":null'),
-        }));
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/users/profile',
+          expect.objectContaining({
+            body: expect.stringContaining('"avatar":null'),
+          })
+        );
       });
     });
   });
@@ -867,7 +888,7 @@ describe('EditProfileModal', () => {
     beforeEach(() => {
       originalMatchMedia = window.matchMedia;
       // Mock mobile viewport (width < 600px triggers sm breakpoint)
-      window.matchMedia = jest.fn().mockImplementation(query => ({
+      window.matchMedia = jest.fn().mockImplementation((query) => ({
         matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
         media: query,
         onchange: null,

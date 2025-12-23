@@ -13,10 +13,7 @@ export async function POST(request: NextRequest) {
     // Authentication
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized - No token provided' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
     const token = authHeader.substring(7);
@@ -24,10 +21,7 @@ export async function POST(request: NextRequest) {
     const payload = await tokenService.verify(token);
 
     if (!payload || !payload.userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }
 
     // Parse request body
@@ -48,13 +42,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      userIngredients = pantry.ingredients.map(ing => ing.name);
+      userIngredients = pantry.ingredients.map((ing) => ing.name);
     }
     // Option 2: Use provided ingredients
     else if (ingredients && Array.isArray(ingredients)) {
       userIngredients = ingredients;
-    }
-    else {
+    } else {
       return NextResponse.json(
         { error: 'Either provide ingredients or set usePantry=true' },
         { status: 400 }
@@ -62,10 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (userIngredients.length === 0) {
-      return NextResponse.json(
-        { error: 'No ingredients provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No ingredients provided' }, { status: 400 });
     }
 
     // Build filters
@@ -82,9 +72,9 @@ export async function POST(request: NextRequest) {
     );
 
     // Group matches by category
-    const perfectMatches = matches.filter(m => m.hasAllIngredients);
-    const highMatches = matches.filter(m => !m.hasAllIngredients && m.matchPercentage >= 80);
-    const goodMatches = matches.filter(m => m.matchPercentage >= 60 && m.matchPercentage < 80);
+    const perfectMatches = matches.filter((m) => m.hasAllIngredients);
+    const highMatches = matches.filter((m) => !m.hasAllIngredients && m.matchPercentage >= 80);
+    const goodMatches = matches.filter((m) => m.matchPercentage >= 60 && m.matchPercentage < 80);
 
     return NextResponse.json({
       totalMatches: matches.length,
@@ -106,7 +96,6 @@ export async function POST(request: NextRequest) {
       },
       allMatches: matches.slice(0, 30), // Return top 30 overall
     });
-
   } catch (error) {
     console.error('Error suggesting recipes:', error);
     return NextResponse.json(

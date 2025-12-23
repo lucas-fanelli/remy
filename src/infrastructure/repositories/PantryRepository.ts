@@ -51,10 +51,8 @@ export class PantryRepository implements IPantryRepository {
     }
 
     // Merge new ingredients with existing ones (avoid duplicates)
-    const existingNames = new Set(pantry.ingredients.map(i => i.name.toLowerCase()));
-    const newIngredients = ingredients.filter(
-      i => !existingNames.has(i.name.toLowerCase())
-    );
+    const existingNames = new Set(pantry.ingredients.map((i) => i.name.toLowerCase()));
+    const newIngredients = ingredients.filter((i) => !existingNames.has(i.name.toLowerCase()));
 
     const updatedIngredients = [...pantry.ingredients, ...newIngredients];
 
@@ -67,9 +65,9 @@ export class PantryRepository implements IPantryRepository {
       throw new Error('Pantry not found');
     }
 
-    const namesToRemove = new Set(ingredientNames.map(n => n.toLowerCase()));
+    const namesToRemove = new Set(ingredientNames.map((n) => n.toLowerCase()));
     const remainingIngredients = pantry.ingredients.filter(
-      i => !namesToRemove.has(i.name.toLowerCase())
+      (i) => !namesToRemove.has(i.name.toLowerCase())
     );
 
     return this.update(userId, remainingIngredients);

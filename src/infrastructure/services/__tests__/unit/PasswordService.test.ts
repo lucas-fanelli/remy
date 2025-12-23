@@ -62,12 +62,7 @@ describe('PasswordService - Unit Tests', () => {
 
   describe('validate', () => {
     it('should return true for valid password', () => {
-      const validPasswords = [
-        'Test1234',
-        'Password123',
-        'SecurePass1',
-        'MyP@ssw0rd',
-      ];
+      const validPasswords = ['Test1234', 'Password123', 'SecurePass1', 'MyP@ssw0rd'];
 
       validPasswords.forEach((password) => {
         expect(passwordService.validate(password)).toBe(true);

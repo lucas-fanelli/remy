@@ -12,7 +12,6 @@ jest.mock('@/contexts/ToastContext');
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockUseToast = useToast as jest.MockedFunction<typeof useToast>;
 
-
 describe('ChangePasswordDialog', () => {
   let mockShowSuccess: jest.Mock;
   let mockShowError: jest.Mock;
@@ -59,7 +58,6 @@ describe('ChangePasswordDialog', () => {
     mockFetch.mockClear();
   });
 
-
   describe('Dialog Rendering', () => {
     it('should not render when open is false', async () => {
       render(<ChangePasswordDialog open={false} onClose={mockOnClose} />);
@@ -85,9 +83,7 @@ describe('ChangePasswordDialog', () => {
     it('should render info alert with password requirements', async () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      expect(
-        screen.getByText(/Your password must be at least 8 characters/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Your password must be at least 8 characters/i)).toBeInTheDocument();
     });
 
     it('should render cancel and submit buttons', async () => {
@@ -150,7 +146,9 @@ describe('ChangePasswordDialog', () => {
     it('should toggle confirm password visibility', async () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i) as HTMLInputElement;
+      const confirmPasswordInput = screen.getByLabelText(
+        /confirm new password/i
+      ) as HTMLInputElement;
       expect(confirmPasswordInput.type).toBe('password');
 
       const toggleButtons = screen.getAllByRole('button');
@@ -383,7 +381,7 @@ describe('ChangePasswordDialog', () => {
 
       // Wait for all async state updates to complete (setSaving(false) in finally block)
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
 
@@ -412,7 +410,7 @@ describe('ChangePasswordDialog', () => {
 
       // Wait for all async state updates to complete (setSaving(false) in finally block)
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
 
@@ -481,13 +479,16 @@ describe('ChangePasswordDialog', () => {
       expect(cancelButton).toBeDisabled();
 
       // Wait for async operation to complete and state to update
-      await waitFor(() => {
-        expect(mockShowSuccess).toHaveBeenCalled();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(mockShowSuccess).toHaveBeenCalled();
+        },
+        { timeout: 5000 }
+      );
 
       // Wait for all async state updates to complete (setSaving(false) in finally block)
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
   });
@@ -524,17 +525,17 @@ describe('ChangePasswordDialog', () => {
 
       // Wait for all state updates to complete
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       await act(async () => {
         rerender(<ChangePasswordDialog open={false} onClose={mockOnClose} />);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       await act(async () => {
         rerender(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       const currentPasswordInputAfter = screen.getByLabelText(/current password/i);
@@ -542,7 +543,7 @@ describe('ChangePasswordDialog', () => {
 
       // Final cleanup to ensure all state updates complete
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
 
@@ -559,9 +560,9 @@ describe('ChangePasswordDialog', () => {
       fireEvent.change(confirmPasswordInput, { target: { value: 'NewPass123' } });
 
       // Toggle password visibility
-      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
-        btn.querySelector('[data-testid="VisibilityIcon"]')
-      );
+      const visibilityButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="VisibilityIcon"]'));
       if (visibilityButtons[0]) fireEvent.click(visibilityButtons[0]);
 
       // Trigger validation errors
@@ -587,14 +588,14 @@ describe('ChangePasswordDialog', () => {
       expect(mockOnClose).toHaveBeenCalled();
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
   });
 
   describe('Error Handling - Lines 136-143', () => {
     it('should throw Error with custom message when response not ok - line 136', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid current password' }),
@@ -619,14 +620,14 @@ describe('ChangePasswordDialog', () => {
       });
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       consoleErrorSpy.mockRestore();
     });
 
     it('should throw Error with fallback message when error field missing - line 136', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({}),
@@ -650,14 +651,14 @@ describe('ChangePasswordDialog', () => {
       });
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       consoleErrorSpy.mockRestore();
     });
 
     it('should handle non-Error exceptions - line 143', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockFetch.mockRejectedValueOnce('String error');
 
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
@@ -678,14 +679,14 @@ describe('ChangePasswordDialog', () => {
       });
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       consoleErrorSpy.mockRestore();
     });
 
     it('should log error to console on failure - line 142', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testError = new Error('Network error');
       mockFetch.mockRejectedValueOnce(testError);
 
@@ -707,7 +708,7 @@ describe('ChangePasswordDialog', () => {
       });
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
       consoleErrorSpy.mockRestore();
@@ -740,7 +741,7 @@ describe('ChangePasswordDialog', () => {
       });
 
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
   });
@@ -754,9 +755,9 @@ describe('ChangePasswordDialog', () => {
       expect(currentPasswordInput.type).toBe('password');
 
       // Verify visibility toggle button exists in InputProps endAdornment
-      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
-        btn.querySelector('[data-testid="VisibilityIcon"]')
-      );
+      const visibilityButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="VisibilityIcon"]'));
       expect(visibilityButtons.length).toBeGreaterThan(0);
     });
 
@@ -768,40 +769,42 @@ describe('ChangePasswordDialog', () => {
       expect(newPasswordInput.type).toBe('password');
 
       // Verify all three visibility toggle buttons exist
-      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
-        btn.querySelector('[data-testid="VisibilityIcon"]')
-      );
+      const visibilityButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="VisibilityIcon"]'));
       expect(visibilityButtons.length).toBeGreaterThanOrEqual(3);
     });
 
     it('should render confirm password field with correct size and InputProps - lines 270-277', () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const confirmPasswordInput = screen.getByLabelText(/confirm new password/i) as HTMLInputElement;
+      const confirmPasswordInput = screen.getByLabelText(
+        /confirm new password/i
+      ) as HTMLInputElement;
       expect(confirmPasswordInput).toBeInTheDocument();
       expect(confirmPasswordInput.type).toBe('password');
 
       // Verify third visibility toggle exists for confirm password
-      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
-        btn.querySelector('[data-testid="VisibilityIcon"]')
-      );
+      const visibilityButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="VisibilityIcon"]'));
       expect(visibilityButtons[2]).toBeInTheDocument();
     });
 
     it('should show VisibilityOff icon when password is visible - lines 220, 250, 280', async () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const visibilityButtons = screen.getAllByRole('button').filter((btn) =>
-        btn.querySelector('[data-testid="VisibilityIcon"]')
-      );
+      const visibilityButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="VisibilityIcon"]'));
 
       if (visibilityButtons[0]) {
         fireEvent.click(visibilityButtons[0]);
 
         await waitFor(() => {
-          const visibilityOffButtons = screen.getAllByRole('button').filter((btn) =>
-            btn.querySelector('[data-testid="VisibilityOffIcon"]')
-          );
+          const visibilityOffButtons = screen
+            .getAllByRole('button')
+            .filter((btn) => btn.querySelector('[data-testid="VisibilityOffIcon"]'));
           expect(visibilityOffButtons.length).toBeGreaterThan(0);
         });
       }
@@ -814,7 +817,7 @@ describe('ChangePasswordDialog', () => {
     beforeEach(() => {
       originalMatchMedia = window.matchMedia;
       // Mock mobile viewport (width < 600px triggers sm breakpoint)
-      window.matchMedia = jest.fn().mockImplementation(query => ({
+      window.matchMedia = jest.fn().mockImplementation((query) => ({
         matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
         media: query,
         onchange: null,
@@ -859,29 +862,36 @@ describe('ChangePasswordDialog', () => {
     it('should render mobile-sized close button - line 188', async () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const closeButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('[data-testid="CloseIcon"]')
-      );
+      const closeButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="CloseIcon"]'));
       expect(closeButtons.length).toBeGreaterThan(0);
     });
 
     it('should render mobile-sized visibility toggle buttons - lines 217, 247, 277', async () => {
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 
-      const visibilityButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('[data-testid="VisibilityIcon"]')
-      );
+      const visibilityButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="VisibilityIcon"]'));
       expect(visibilityButtons.length).toBe(3);
     });
 
     it('should show mobile-sized CircularProgress when saving - line 314', async () => {
       // Delay the fetch to keep saving state active
-      mockFetch.mockImplementationOnce(() => new Promise(resolve =>
-        setTimeout(() => resolve({
-          ok: true,
-          json: async () => ({ success: true }),
-        }), 1000)
-      ));
+      mockFetch.mockImplementationOnce(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  json: async () => ({ success: true }),
+                }),
+              1000
+            )
+          )
+      );
 
       render(<ChangePasswordDialog open={true} onClose={mockOnClose} />);
 

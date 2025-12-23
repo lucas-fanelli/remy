@@ -168,7 +168,9 @@ describe('PantryRepository', () => {
       const existingPantry = {
         id: 'pantry-1',
         userId,
-        ingredients: [{ name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() }],
+        ingredients: [
+          { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
+        ],
         updatedAt: new Date(),
       };
 
@@ -193,7 +195,9 @@ describe('PantryRepository', () => {
       const existingPantry = {
         id: 'pantry-1',
         userId,
-        ingredients: [{ name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() }],
+        ingredients: [
+          { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
+        ],
         updatedAt: new Date(),
       };
 
@@ -261,7 +265,9 @@ describe('PantryRepository', () => {
       const existingPantry = {
         id: 'pantry-1',
         userId,
-        ingredients: [{ name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() }],
+        ingredients: [
+          { name: 'tomato', category: IngredientCategory.VEGETABLE, addedAt: new Date() },
+        ],
         updatedAt: new Date(),
       };
 
@@ -281,9 +287,9 @@ describe('PantryRepository', () => {
     it('should throw error if pantry not found', async () => {
       (mockPrisma.userPantry.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(
-        repository.removeIngredients(userId, ['tomato'])
-      ).rejects.toThrow('Pantry not found');
+      await expect(repository.removeIngredients(userId, ['tomato'])).rejects.toThrow(
+        'Pantry not found'
+      );
     });
   });
 

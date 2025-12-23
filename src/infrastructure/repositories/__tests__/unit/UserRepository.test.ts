@@ -325,10 +325,7 @@ describe('UserRepository - Unit Tests', () => {
       expect(result).toBe(true);
       expect(prismaMock.user.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [
-            { email: 'test@example.com' },
-            { username: 'otheruser' },
-          ],
+          OR: [{ email: 'test@example.com' }, { username: 'otheruser' }],
         },
       });
     });
@@ -356,10 +353,7 @@ describe('UserRepository - Unit Tests', () => {
 
       expect(prismaMock.user.findFirst).toHaveBeenCalledWith({
         where: {
-          OR: [
-            { email: 'test@example.com' },
-            { username: 'testuser' },
-          ],
+          OR: [{ email: 'test@example.com' }, { username: 'testuser' }],
         },
       });
     });

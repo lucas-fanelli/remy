@@ -22,9 +22,7 @@ const mockTheme = createTheme();
 const renderWithProviders = (component: React.ReactElement) => {
   return render(
     <ThemeProvider theme={mockTheme}>
-      <AuthProvider>
-        {component}
-      </AuthProvider>
+      <AuthProvider>{component}</AuthProvider>
     </ThemeProvider>
   );
 };
@@ -122,7 +120,9 @@ describe('RegisterForm Component', () => {
   it('should show password helper text', () => {
     renderWithProviders(<RegisterForm onSwitchToLogin={mockOnSwitchToLogin} />);
 
-    expect(screen.getByText(/password must contain uppercase, lowercase, and number/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/password must contain uppercase, lowercase, and number/i)
+    ).toBeInTheDocument();
   });
 
   it('should show terms and policy text', () => {

@@ -140,7 +140,13 @@ export default function Post({
                 pointerEvents: 'none',
               }}
             >
-              <Favorite sx={{ fontSize: 100, color: 'white', filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))' }} />
+              <Favorite
+                sx={{
+                  fontSize: 100,
+                  color: 'white',
+                  filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.5))',
+                }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -155,11 +161,7 @@ export default function Post({
                 animate={liked ? { scale: [1, 1.3, 1] } : {}}
                 transition={{ duration: 0.3 }}
               >
-                {liked ? (
-                  <Favorite sx={{ color: 'error.main' }} />
-                ) : (
-                  <FavoriteBorder />
-                )}
+                {liked ? <Favorite sx={{ color: 'error.main' }} /> : <FavoriteBorder />}
               </motion.div>
             </IconButton>
           </motion.div>
@@ -186,11 +188,7 @@ export default function Post({
 
       {/* Content */}
       <CardContent sx={{ pt: 0 }}>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
           <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
             {likes.toLocaleString()} likes
           </Typography>
@@ -245,11 +243,7 @@ export default function Post({
                 variant="standard"
               />
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <IconButton
-                  size="small"
-                  onClick={handleComment}
-                  disabled={!comment.trim()}
-                >
+                <IconButton size="small" onClick={handleComment} disabled={!comment.trim()}>
                   <Send fontSize="small" />
                 </IconButton>
               </motion.div>

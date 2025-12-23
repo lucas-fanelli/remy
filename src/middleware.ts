@@ -15,7 +15,12 @@ function getRateLimitKey(request: NextRequest): string {
   return `ratelimit:${ip}`;
 }
 
-function checkRateLimit(key: string): { allowed: boolean; limit: number; remaining: number; resetTime: number } {
+function checkRateLimit(key: string): {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  resetTime: number;
+} {
   const now = Date.now();
   const record = rateLimitMap.get(key);
 
@@ -89,10 +94,7 @@ export function middleware(request: NextRequest) {
   if (origin && (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development')) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
-    response.headers.set(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, OPTIONS, PATCH'
-    );
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     response.headers.set(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, X-Requested-With'
@@ -107,9 +109,11 @@ export function middleware(request: NextRequest) {
   // Apply rate limiting to API routes only
   if (request.nextUrl.pathname.startsWith('/api')) {
     // Skip rate limiting and special handling for these routes
-    if (request.nextUrl.pathname === '/api/health' ||
-        request.nextUrl.pathname === '/api/ready' ||
-        request.nextUrl.pathname === '/api/upload') {
+    if (
+      request.nextUrl.pathname === '/api/health' ||
+      request.nextUrl.pathname === '/api/ready' ||
+      request.nextUrl.pathname === '/api/upload'
+    ) {
       return response;
     }
 

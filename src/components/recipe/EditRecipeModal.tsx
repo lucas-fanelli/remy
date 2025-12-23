@@ -34,7 +34,13 @@ import {
   Check,
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Recipe, UpdateRecipeDTO, Ingredient, Instruction, DifficultyLevel } from '@/domain/types/recipe';
+import {
+  Recipe,
+  UpdateRecipeDTO,
+  Ingredient,
+  Instruction,
+  DifficultyLevel,
+} from '@/domain/types/recipe';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageUpload from '@/components/common/ImageUpload';
 
@@ -50,11 +56,27 @@ interface EditRecipeModalProps {
 const steps = ['Recipe Info', 'Ingredients', 'Instructions', 'Review'];
 
 const commonUnits = [
-  'cups', 'tbsp', 'tsp', 'g', 'kg', 'oz', 'lb',
-  'ml', 'L', 'pieces', 'pinch', 'to taste', 'whole'
+  'cups',
+  'tbsp',
+  'tsp',
+  'g',
+  'kg',
+  'oz',
+  'lb',
+  'ml',
+  'L',
+  'pieces',
+  'pinch',
+  'to taste',
+  'whole',
 ];
 
-export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: EditRecipeModalProps) {
+export default function EditRecipeModal({
+  open,
+  recipe,
+  onClose,
+  onSuccess,
+}: EditRecipeModalProps) {
   const { token } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -90,28 +112,43 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
       setServings(recipe.servings);
       setDifficulty(recipe.difficulty);
       setCaption(recipe.caption || '');
-      setIngredients(recipe.ingredients.length > 0 ? recipe.ingredients : [{ name: '', amount: '', unit: '' }]);
-      setInstructions(recipe.instructions.length > 0 ? recipe.instructions : [{ step: 1, description: '', image: '' }]);
+      setIngredients(
+        recipe.ingredients.length > 0 ? recipe.ingredients : [{ name: '', amount: '', unit: '' }]
+      );
+      setInstructions(
+        recipe.instructions.length > 0
+          ? recipe.instructions
+          : [{ step: 1, description: '', image: '' }]
+      );
     }
   }, [recipe]);
 
   const canProceed = () => {
     switch (activeStep) {
       case 0:
-        return title.trim() !== '' &&
-               description.trim() !== '' &&
-               imageUrl.trim() !== '' &&
-               typeof cookingTime === 'number' && cookingTime > 0 &&
-               typeof prepTime === 'number' && prepTime >= 0 &&
-               typeof servings === 'number' && servings > 0;
+        return (
+          title.trim() !== '' &&
+          description.trim() !== '' &&
+          imageUrl.trim() !== '' &&
+          typeof cookingTime === 'number' &&
+          cookingTime > 0 &&
+          typeof prepTime === 'number' &&
+          prepTime >= 0 &&
+          typeof servings === 'number' &&
+          servings > 0
+        );
       case 1:
-        return ingredients.length > 0 && ingredients.every(ing =>
-          ing.name.trim() !== '' &&
-          ing.unit.trim() !== '' &&
-          (ing.unit === 'to taste' || ing.amount.trim() !== '')
+        return (
+          ingredients.length > 0 &&
+          ingredients.every(
+            (ing) =>
+              ing.name.trim() !== '' &&
+              ing.unit.trim() !== '' &&
+              (ing.unit === 'to taste' || ing.amount.trim() !== '')
+          )
         );
       case 2:
-        return instructions.every(inst => inst.description.trim() !== '');
+        return instructions.every((inst) => inst.description.trim() !== '');
       default:
         return true;
     }
@@ -167,7 +204,11 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
     }
   };
 
-  const handleInstructionChange = (index: number, field: keyof Instruction, value: string | number) => {
+  const handleInstructionChange = (
+    index: number,
+    field: keyof Instruction,
+    value: string | number
+  ) => {
     const newInstructions = [...instructions];
     newInstructions[index] = { ...newInstructions[index], [field]: value };
     setInstructions(newInstructions);
@@ -188,11 +229,13 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         prepTime: typeof prepTime === 'number' ? prepTime : 15,
         servings: typeof servings === 'number' ? servings : 4,
         difficulty,
-        ingredients: ingredients.filter(i =>
-          i.name.trim() !== '' && i.unit.trim() !== '' &&
-          (i.unit === 'to taste' || i.amount.trim() !== '')
+        ingredients: ingredients.filter(
+          (i) =>
+            i.name.trim() !== '' &&
+            i.unit.trim() !== '' &&
+            (i.unit === 'to taste' || i.amount.trim() !== '')
         ),
-        instructions: instructions.filter(i => i.description.trim() !== ''),
+        instructions: instructions.filter((i) => i.description.trim() !== ''),
         caption: caption.trim() === '' ? null : caption,
       };
 
@@ -200,7 +243,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updateData),
       });
@@ -254,12 +297,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
               autoComplete="off"
             />
 
-            <ImageUpload
-              value={imageUrl}
-              onChange={setImageUrl}
-              label="Recipe Image"
-              required
-            />
+            <ImageUpload value={imageUrl} onChange={setImageUrl} label="Recipe Image" required />
 
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
@@ -267,7 +305,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                   label="Cooking Time (minutes)"
                   type="number"
                   value={cookingTime}
-                  onChange={(e) => setCookingTime(e.target.value === '' ? '' : Number(e.target.value))}
+                  onChange={(e) =>
+                    setCookingTime(e.target.value === '' ? '' : Number(e.target.value))
+                  }
                   fullWidth
                   required
                   inputProps={{ min: 1, max: 720 }}
@@ -334,18 +374,23 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Select &quot;to taste&quot; for ingredients without specific amounts. Amount is optional for &quot;to taste&quot; ingredients.
+              Select &quot;to taste&quot; for ingredients without specific amounts. Amount is
+              optional for &quot;to taste&quot; ingredients.
             </Typography>
 
             {ingredients.map((ingredient, index) => (
               <Card key={index} variant="outlined">
-                <CardContent sx={{ p: { xs: 1.5, md: 2 }, '&:last-child': { pb: { xs: 1.5, md: 2 } } }}>
-                  <Box sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', sm: 'row' },
-                    gap: { xs: 1, md: 2 },
-                    alignItems: { xs: 'stretch', sm: 'flex-start' }
-                  }}>
+                <CardContent
+                  sx={{ p: { xs: 1.5, md: 2 }, '&:last-child': { pb: { xs: 1.5, md: 2 } } }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      gap: { xs: 1, md: 2 },
+                      alignItems: { xs: 'stretch', sm: 'flex-start' },
+                    }}
+                  >
                     <TextField
                       label="Ingredient"
                       value={ingredient.name}
@@ -355,7 +400,10 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                       placeholder="e.g., Tomatoes"
                       size="small"
                       autoComplete="off"
-                      error={ingredient.name === '' && (ingredient.amount !== '' || ingredient.unit !== '')}
+                      error={
+                        ingredient.name === '' &&
+                        (ingredient.amount !== '' || ingredient.unit !== '')
+                      }
                     />
                     <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
                       <TextField
@@ -367,10 +415,19 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                         size="small"
                         sx={{ width: { xs: '100px', sm: '100px' } }}
                         autoComplete="off"
-                        error={ingredient.amount === '' && ingredient.name !== '' && ingredient.unit !== 'to taste'}
+                        error={
+                          ingredient.amount === '' &&
+                          ingredient.name !== '' &&
+                          ingredient.unit !== 'to taste'
+                        }
                         disabled={ingredient.unit === 'to taste'}
                       />
-                      <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 120 } }} required error={!ingredient.unit && ingredient.name !== ''}>
+                      <FormControl
+                        size="small"
+                        sx={{ minWidth: { xs: 120, sm: 120 } }}
+                        required
+                        error={!ingredient.unit && ingredient.name !== ''}
+                      >
                         <InputLabel>Unit</InputLabel>
                         <Select
                           value={ingredient.unit}
@@ -378,7 +435,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                           onChange={(e) => handleIngredientChange(index, 'unit', e.target.value)}
                         >
                           {commonUnits.map((unit) => (
-                            <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                            <MenuItem key={unit} value={unit}>
+                              {unit}
+                            </MenuItem>
                           ))}
                         </Select>
                       </FormControl>
@@ -417,13 +476,23 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
 
             {instructions.map((instruction, index) => (
               <Card key={index} variant="outlined">
-                <CardContent sx={{ p: { xs: 2, md: 2.5 }, '&:last-child': { pb: { xs: 2, md: 2.5 } } }}>
-                  <Box sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <CardContent
+                  sx={{ p: { xs: 2, md: 2.5 }, '&:last-child': { pb: { xs: 2, md: 2.5 } } }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
                       <Chip
                         label={`Step ${instruction.step}`}
                         color="primary"
@@ -441,7 +510,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
                     <TextField
                       label="Instruction"
                       value={instruction.description}
-                      onChange={(e) => handleInstructionChange(index, 'description', e.target.value)}
+                      onChange={(e) =>
+                        handleInstructionChange(index, 'description', e.target.value)
+                      }
                       fullWidth
                       required
                       multiline
@@ -477,21 +548,33 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
       case 3:
         return (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Alert severity="info">
-              Review your changes before updating
-            </Alert>
+            <Alert severity="info">Review your changes before updating</Alert>
 
             <Box>
-              <Typography variant="h6" gutterBottom>Recipe Info</Typography>
-              <Typography><strong>Title:</strong> {title}</Typography>
-              <Typography><strong>Description:</strong> {description}</Typography>
-              <Typography><strong>Time:</strong> {prepTime}min prep + {cookingTime}min cook</Typography>
-              <Typography><strong>Servings:</strong> {servings}</Typography>
-              <Typography><strong>Difficulty:</strong> {difficulty}</Typography>
+              <Typography variant="h6" gutterBottom>
+                Recipe Info
+              </Typography>
+              <Typography>
+                <strong>Title:</strong> {title}
+              </Typography>
+              <Typography>
+                <strong>Description:</strong> {description}
+              </Typography>
+              <Typography>
+                <strong>Time:</strong> {prepTime}min prep + {cookingTime}min cook
+              </Typography>
+              <Typography>
+                <strong>Servings:</strong> {servings}
+              </Typography>
+              <Typography>
+                <strong>Difficulty:</strong> {difficulty}
+              </Typography>
             </Box>
 
             <Box>
-              <Typography variant="h6" gutterBottom>Ingredients ({ingredients.length})</Typography>
+              <Typography variant="h6" gutterBottom>
+                Ingredients ({ingredients.length})
+              </Typography>
               <Box component="ul" sx={{ pl: 2 }}>
                 {ingredients.map((ing, i) => (
                   <li key={i}>
@@ -502,7 +585,9 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
             </Box>
 
             <Box>
-              <Typography variant="h6" gutterBottom>Instructions ({instructions.length} steps)</Typography>
+              <Typography variant="h6" gutterBottom>
+                Instructions ({instructions.length} steps)
+              </Typography>
               <Box component="ol" sx={{ pl: 2 }}>
                 {instructions.map((inst, i) => (
                   <li key={i}>{inst.description}</li>
@@ -525,7 +610,7 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
       fullWidth
       fullScreen={isMobile}
       PaperProps={{
-        sx: { maxHeight: isMobile ? '100vh' : '90vh' }
+        sx: { maxHeight: isMobile ? '100vh' : '90vh' },
       }}
     >
       <DialogTitle sx={{ pb: { xs: 1, md: 2 } }}>
@@ -591,13 +676,15 @@ export default function EditRecipeModal({ open, recipe, onClose, onSuccess }: Ed
           </AnimatePresence>
 
           {/* Navigation Buttons */}
-          <Box sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-            justifyContent: 'space-between',
-            gap: { xs: 1, sm: 0 },
-            mt: { xs: 3, md: 4 }
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column-reverse', sm: 'row' },
+              justifyContent: 'space-between',
+              gap: { xs: 1, sm: 0 },
+              mt: { xs: 3, md: 4 },
+            }}
+          >
             <Button
               onClick={activeStep === 0 ? handleClose : handleBack}
               startIcon={activeStep === 0 ? undefined : <ArrowBack />}

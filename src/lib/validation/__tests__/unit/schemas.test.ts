@@ -249,7 +249,9 @@ describe('Validation Schemas - Unit Tests', () => {
       };
 
       const result = updateProfileSchema.parse(validData);
-      expect(result.avatar).toBe('https://res.cloudinary.com/demo/image/upload/v1234567890/avatars/abc123.jpg');
+      expect(result.avatar).toBe(
+        'https://res.cloudinary.com/demo/image/upload/v1234567890/avatars/abc123.jpg'
+      );
     });
 
     it('should accept avatar as absolute URL', () => {

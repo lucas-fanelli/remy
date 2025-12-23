@@ -102,8 +102,6 @@ export default function Navigation() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [mounted, setMounted] = useState(false);
 
-
-
   // Notification states
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -198,7 +196,7 @@ export default function Navigation() {
     try {
       const response = await fetch('/api/notifications', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -235,11 +233,6 @@ export default function Navigation() {
     return () => clearInterval(interval);
   }, [token, fetchNotifications]);
 
-
-
-
-
-
   // Notification handlers
   const handleNotificationsOpen = (event: React.MouseEvent<HTMLElement>) => {
     setNotificationsAnchorEl(event.currentTarget);
@@ -257,14 +250,12 @@ export default function Navigation() {
       const response = await fetch('/api/notifications', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((notif) => ({ ...notif, isRead: true }))
-        );
+        setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
         setUnreadNotifications(0);
       }
     } catch (error) {
@@ -315,16 +306,14 @@ export default function Navigation() {
         const response = await fetch(`/api/notifications/${notification.id}`, {
           method: 'PATCH',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
         if (response.ok) {
           // Update local state to mark as read
           setNotifications((prev) =>
-            prev.map((n) =>
-              n.id === notification.id ? { ...n, isRead: true } : n
-            )
+            prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
           );
           setUnreadNotifications((prev) => Math.max(0, prev - 1));
         }
@@ -349,7 +338,7 @@ export default function Navigation() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });
@@ -374,9 +363,7 @@ export default function Navigation() {
   const generateBreadcrumbs = () => {
     const pathSegments = pathname.split('/').filter((segment) => segment !== '');
 
-    const breadcrumbs = [
-      { label: 'Home', href: '/' }
-    ];
+    const breadcrumbs = [{ label: 'Home', href: '/' }];
 
     let currentPath = '';
     pathSegments.forEach((segment, index) => {
@@ -417,13 +404,15 @@ export default function Navigation() {
           boxShadow: 'none',
         }}
       >
-        <Toolbar sx={{
-          justifyContent: 'space-between',
-          maxWidth: { xs: '100%', md: '935px', lg: '1200px' },
-          width: '100%',
-          margin: '0 auto',
-          px: { xs: 1, sm: 2, md: 3 }
-        }}>
+        <Toolbar
+          sx={{
+            justifyContent: 'space-between',
+            maxWidth: { xs: '100%', md: '935px', lg: '1200px' },
+            width: '100%',
+            margin: '0 auto',
+            px: { xs: 1, sm: 2, md: 3 },
+          }}
+        >
           {/* Left Side - Logo */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
             <motion.div
@@ -448,9 +437,12 @@ export default function Navigation() {
                     fontFamily: BRANDING.font,
                     fontSize: { xs: '18px', sm: '20px', md: '24px' },
                     fontWeight: 600,
-                    color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : BRANDING.colors.primary,
+                    color: (theme) =>
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.primary.main
+                        : BRANDING.colors.primary,
                     cursor: 'pointer',
-                    display: { xs: isSmallDesktop ? 'none' : 'block', lg: 'block' }
+                    display: { xs: isSmallDesktop ? 'none' : 'block', lg: 'block' },
                   }}
                   onClick={() => router.push('/')}
                 >
@@ -461,15 +453,17 @@ export default function Navigation() {
           </Box>
 
           {/* Animated Search Bar */}
-          <Box sx={{
-            position: 'relative',
-            flex: { xs: 0, sm: '0 1 auto', md: 1 },
-            mx: { xs: 0, sm: 1, md: 2 },
-            maxWidth: 500,
-            display: { xs: 'none', md: 'block' }
-          }}>
+          <Box
+            sx={{
+              position: 'relative',
+              flex: { xs: 0, sm: '0 1 auto', md: 1 },
+              mx: { xs: 0, sm: 1, md: 2 },
+              maxWidth: 500,
+              display: { xs: 'none', md: 'block' },
+            }}
+          >
             <PersistentSearchBar
-              placeholder={isSmallDesktop ? "Search..." : "Search recipes, ingredients..."}
+              placeholder={isSmallDesktop ? 'Search...' : 'Search recipes, ingredients...'}
               showSuggestions={true}
             />
           </Box>
@@ -485,10 +479,12 @@ export default function Navigation() {
                     size={isSmallDesktop ? 'small' : 'medium'}
                     sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
                   >
-                    <Icon sx={{
-                      color: activeTab === item.id ? 'text.primary' : 'text.secondary',
-                      fontSize: { sm: '1.25rem', md: '1.5rem' }
-                    }} />
+                    <Icon
+                      sx={{
+                        color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                        fontSize: { sm: '1.25rem', md: '1.5rem' },
+                      }}
+                    />
                   </IconButton>
                 </motion.div>
               );
@@ -504,11 +500,11 @@ export default function Navigation() {
               </IconButton>
             </motion.div>
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <IconButton
-                onClick={handleMenuOpen}
-                size={isSmallDesktop ? 'small' : 'medium'}
-              >
-                <Avatar sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }} src={user?.avatar || undefined}>
+              <IconButton onClick={handleMenuOpen} size={isSmallDesktop ? 'small' : 'medium'}>
+                <Avatar
+                  sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }}
+                  src={user?.avatar || undefined}
+                >
                   {user?.username?.charAt(0).toUpperCase()}
                 </Avatar>
               </IconButton>
@@ -542,51 +538,79 @@ export default function Navigation() {
           horizontal: 'right',
         }}
       >
-        {user ? [
-          // Authenticated user menu
-          <MenuItem key="username" disabled>
-            <strong>@{user.username}</strong>
-          </MenuItem>,
-          <Divider key="divider1" />,
-          <MenuItem key="profile" onClick={() => { router.push(`/profile/${user.username}`); handleMenuClose(); }}>
-            <ListItemIcon>
-              <Person fontSize="small" />
-            </ListItemIcon>
-            Profile
-          </MenuItem>,
-          <MenuItem key="settings" onClick={() => { router.push('/settings'); handleMenuClose(); }}>
-            <ListItemIcon>
-              <Settings fontSize="small" />
-            </ListItemIcon>
-            Settings
-          </MenuItem>,
-          ...(isAdmin ? [
-            <MenuItem key="admin" onClick={() => { router.push('/admin'); handleMenuClose(); }}>
-              <ListItemIcon>
-                <AdminPanelSettings fontSize="small" />
-              </ListItemIcon>
-              Admin
-            </MenuItem>
-          ] : []),
-          <MenuItem key="logout" onClick={handleLogout}>
-            <ListItemIcon>
-              <Logout fontSize="small" />
-            </ListItemIcon>
-            Logout
-          </MenuItem>
-        ] : [
-          // Guest menu
-          <MenuItem key="guest" disabled>
-            <strong>Guest</strong>
-          </MenuItem>,
-          <Divider key="divider2" />,
-          <MenuItem key="signin" onClick={() => { router.push('/auth'); handleMenuClose(); }}>
-            <ListItemIcon>
-              <Login fontSize="small" />
-            </ListItemIcon>
-            Sign In
-          </MenuItem>
-        ]}
+        {user
+          ? [
+              // Authenticated user menu
+              <MenuItem key="username" disabled>
+                <strong>@{user.username}</strong>
+              </MenuItem>,
+              <Divider key="divider1" />,
+              <MenuItem
+                key="profile"
+                onClick={() => {
+                  router.push(`/profile/${user.username}`);
+                  handleMenuClose();
+                }}
+              >
+                <ListItemIcon>
+                  <Person fontSize="small" />
+                </ListItemIcon>
+                Profile
+              </MenuItem>,
+              <MenuItem
+                key="settings"
+                onClick={() => {
+                  router.push('/settings');
+                  handleMenuClose();
+                }}
+              >
+                <ListItemIcon>
+                  <Settings fontSize="small" />
+                </ListItemIcon>
+                Settings
+              </MenuItem>,
+              ...(isAdmin
+                ? [
+                    <MenuItem
+                      key="admin"
+                      onClick={() => {
+                        router.push('/admin');
+                        handleMenuClose();
+                      }}
+                    >
+                      <ListItemIcon>
+                        <AdminPanelSettings fontSize="small" />
+                      </ListItemIcon>
+                      Admin
+                    </MenuItem>,
+                  ]
+                : []),
+              <MenuItem key="logout" onClick={handleLogout}>
+                <ListItemIcon>
+                  <Logout fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>,
+            ]
+          : [
+              // Guest menu
+              <MenuItem key="guest" disabled>
+                <strong>Guest</strong>
+              </MenuItem>,
+              <Divider key="divider2" />,
+              <MenuItem
+                key="signin"
+                onClick={() => {
+                  router.push('/auth');
+                  handleMenuClose();
+                }}
+              >
+                <ListItemIcon>
+                  <Login fontSize="small" />
+                </ListItemIcon>
+                Sign In
+              </MenuItem>,
+            ]}
       </Menu>
 
       {/* Notifications Dropdown Menu */}
@@ -614,7 +638,17 @@ export default function Navigation() {
           },
         }}
       >
-        <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{
+            px: 2,
+            py: 1.5,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             Notifications
           </Typography>
@@ -675,13 +709,21 @@ export default function Navigation() {
                     }
                     secondary={
                       mounted ? (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.75rem' }}
+                        >
                           {formatDistanceToNow(new Date(notification.createdAt), {
                             addSuffix: true,
                           })}
                         </Typography>
                       ) : (
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: '0.75rem' }}
+                        >
                           {new Date(notification.createdAt).toLocaleDateString()}
                         </Typography>
                       )
@@ -750,7 +792,10 @@ export default function Navigation() {
                   fontFamily: BRANDING.font,
                   fontSize: { xs: '16px', sm: '20px' },
                   fontWeight: 600,
-                  color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : BRANDING.colors.primary,
+                  color: (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? theme.palette.primary.main
+                      : BRANDING.colors.primary,
                 }}
               >
                 {BRANDING.name}
@@ -777,11 +822,13 @@ export default function Navigation() {
           boxShadow: 'none',
         }}
       >
-        <Toolbar sx={{
-          justifyContent: 'space-around',
-          minHeight: { xs: 56, sm: 64 },
-          px: { xs: 0.5, sm: 2 }
-        }}>
+        <Toolbar
+          sx={{
+            justifyContent: 'space-around',
+            minHeight: { xs: 56, sm: 64 },
+            px: { xs: 0.5, sm: 2 },
+          }}
+        >
           {mobileNavItems.map((item) => {
             const Icon = activeTab === item.id ? item.activeIcon : item.icon;
             return (
@@ -791,21 +838,22 @@ export default function Navigation() {
                   size="small"
                   sx={{ p: { xs: 0.5, sm: 1 } }}
                 >
-                  <Icon sx={{
-                    color: activeTab === item.id ? 'text.primary' : 'text.secondary',
-                    fontSize: { xs: '1.25rem', sm: '1.5rem' }
-                  }} />
+                  <Icon
+                    sx={{
+                      color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                      fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                    }}
+                  />
                 </IconButton>
               </motion.div>
             );
           })}
           <motion.div whileTap={{ scale: 0.9 }}>
-            <IconButton
-              size="small"
-              sx={{ p: { xs: 0.5, sm: 1 } }}
-              onClick={handleProfileClick}
-            >
-              <Avatar sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }} src={user?.avatar || undefined}>
+            <IconButton size="small" sx={{ p: { xs: 0.5, sm: 1 } }} onClick={handleProfileClick}>
+              <Avatar
+                sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }}
+                src={user?.avatar || undefined}
+              >
                 {user?.username?.charAt(0).toUpperCase()}
               </Avatar>
             </IconButton>
@@ -820,15 +868,30 @@ export default function Navigation() {
         PaperProps={{
           sx: {
             backgroundColor: (theme) => theme.palette.background.paper,
-          }
+          },
         }}
       >
-        <Box sx={{ width: { xs: 280, sm: 320 }, height: '100%', display: 'flex', flexDirection: 'column' }} role="presentation">
+        <Box
+          sx={{
+            width: { xs: 280, sm: 320 },
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+          role="presentation"
+        >
           {/* Main content */}
           <List>
             <ListItem
               sx={{ py: 2, cursor: !user ? 'pointer' : 'default' }}
-              onClick={!user ? () => { router.push('/auth'); setDrawerOpen(false); } : undefined}
+              onClick={
+                !user
+                  ? () => {
+                      router.push('/auth');
+                      setDrawerOpen(false);
+                    }
+                  : undefined
+              }
             >
               <ListItemIcon>
                 <Avatar
@@ -938,7 +1001,11 @@ export default function Navigation() {
                 sx={{ py: { xs: 1.5, sm: 2 } }}
               >
                 <ListItemIcon>
-                  {mode === 'dark' ? <LightMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} /> : <DarkMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />}
+                  {mode === 'dark' ? (
+                    <LightMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                  ) : (
+                    <DarkMode sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+                  )}
                 </ListItemIcon>
                 <ListItemText
                   primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
@@ -979,11 +1046,16 @@ export default function Navigation() {
                       sx={{ py: { xs: 1.5, sm: 2 } }}
                     >
                       <ListItemIcon>
-                        <AdminPanelSettings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, color: 'warning.main' }} />
+                        <AdminPanelSettings
+                          sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, color: 'warning.main' }}
+                        />
                       </ListItemIcon>
                       <ListItemText
                         primary="Admin"
-                        primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' }, color: 'warning.main' }}
+                        primaryTypographyProps={{
+                          fontSize: { xs: '1rem', sm: '1.125rem' },
+                          color: 'warning.main',
+                        }}
                       />
                     </ListItemButton>
                   </ListItem>
@@ -1107,7 +1179,9 @@ export default function Navigation() {
         fullWidth
         fullScreen={isMobile}
       >
-        <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Create New Recipe</DialogTitle>
+        <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
+          Create New Recipe
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: { xs: 1, md: 2 } }}>
             <CreateRecipeForm

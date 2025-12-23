@@ -33,19 +33,12 @@ export async function GET(request: NextRequest) {
 
     // Use service layer to get notifications
     const notificationService = container.getNotificationService();
-    const result = await notificationService.getUserNotifications(
-      decoded.userId,
-      limit,
-      offset
-    );
+    const result = await notificationService.getUserNotifications(decoded.userId, limit, offset);
 
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching notifications:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch notifications' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
   }
 }
 
@@ -76,9 +69,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error marking notifications as read:', error);
-    return NextResponse.json(
-      { error: 'Failed to mark notifications as read' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to mark notifications as read' }, { status: 500 });
   }
 }

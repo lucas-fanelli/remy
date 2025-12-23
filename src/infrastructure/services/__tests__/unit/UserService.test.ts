@@ -92,9 +92,9 @@ describe('UserService - Unit Tests', () => {
         website: 'invalid-url',
       };
 
-      await expect(
-        userService.updateProfile('user-123', updateData)
-      ).rejects.toThrow('Invalid website URL');
+      await expect(userService.updateProfile('user-123', updateData)).rejects.toThrow(
+        'Invalid website URL'
+      );
     });
 
     it('should accept valid website URL', async () => {
@@ -115,9 +115,9 @@ describe('UserService - Unit Tests', () => {
         bio: 'a'.repeat(301),
       };
 
-      await expect(
-        userService.updateProfile('user-123', updateData)
-      ).rejects.toThrow('Bio must be 300 characters or less');
+      await expect(userService.updateProfile('user-123', updateData)).rejects.toThrow(
+        'Bio must be 300 characters or less'
+      );
     });
 
     it('should accept bio with exactly 300 characters', async () => {
@@ -196,10 +196,7 @@ describe('UserService - Unit Tests', () => {
 
   describe('searchUsers', () => {
     it('should search users by username', async () => {
-      const mockUsers = [
-        mockUser,
-        { ...mockUser, id: 'user-456', username: 'testuser2' },
-      ];
+      const mockUsers = [mockUser, { ...mockUser, id: 'user-456', username: 'testuser2' }];
       mockUserRepository.findMany = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await userService.searchUsers('test', 10);
@@ -209,10 +206,7 @@ describe('UserService - Unit Tests', () => {
     });
 
     it('should search users by full name', async () => {
-      const mockUsers = [
-        mockUser,
-        { ...mockUser, id: 'user-456', fullName: 'Test Another' },
-      ];
+      const mockUsers = [mockUser, { ...mockUser, id: 'user-456', fullName: 'Test Another' }];
       mockUserRepository.findMany = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await userService.searchUsers('test', 10);

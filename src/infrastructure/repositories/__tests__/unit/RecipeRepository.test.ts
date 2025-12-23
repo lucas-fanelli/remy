@@ -20,11 +20,11 @@ describe('RecipeRepository - Unit Tests', () => {
     difficulty: 'easy',
     ingredients: [
       { name: 'Tomato', amount: '2', unit: 'pieces' },
-      { name: 'Pasta', amount: '200', unit: 'grams' }
+      { name: 'Pasta', amount: '200', unit: 'grams' },
     ] as any,
     instructions: [
       { step: 1, description: 'Boil water' },
-      { step: 2, description: 'Cook pasta' }
+      { step: 2, description: 'Cook pasta' },
     ] as any,
     dietaryTags: [],
     calories: null,
@@ -69,11 +69,11 @@ describe('RecipeRepository - Unit Tests', () => {
         difficulty: 'easy',
         ingredients: [
           { name: 'Tomato', amount: '2', unit: 'pieces' },
-          { name: 'Pasta', amount: '200', unit: 'grams' }
+          { name: 'Pasta', amount: '200', unit: 'grams' },
         ],
         instructions: [
           { step: 1, description: 'Boil water' },
-          { step: 2, description: 'Cook pasta' }
+          { step: 2, description: 'Cook pasta' },
         ],
         caption: 'Delicious homemade pasta',
       };

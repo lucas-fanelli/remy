@@ -13,10 +13,7 @@ export async function POST(
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -24,20 +21,14 @@ export async function POST(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const userService = container.getUserService();
     const userToUnfollow = await userService.getUserByUsername(username);
 
     if (!userToUnfollow) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Delete follow relationship
@@ -49,10 +40,7 @@ export async function POST(
     });
 
     if (result.count === 0) {
-      return NextResponse.json(
-        { error: 'Not following this user' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Not following this user' }, { status: 400 });
     }
 
     // Delete the follow notification
@@ -62,9 +50,6 @@ export async function POST(
     return NextResponse.json({ success: true, message: 'Unfollowed successfully' });
   } catch (error) {
     console.error('Error unfollowing user:', error);
-    return NextResponse.json(
-      { error: 'Failed to unfollow user' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to unfollow user' }, { status: 500 });
   }
 }

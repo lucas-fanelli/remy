@@ -17,13 +17,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  CheckCircle,
-  Circle,
-  Restaurant,
-  ShoppingCart,
-  Kitchen,
-} from '@mui/icons-material';
+import { CheckCircle, Circle, Restaurant, ShoppingCart, Kitchen } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -72,7 +66,7 @@ export default function MatchedRecipes() {
       setLoading(true);
       const response = await fetch('/api/recipes/match', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -116,7 +110,9 @@ export default function MatchedRecipes() {
   if (!pantryItemsCount || pantryItemsCount === 0) {
     return (
       <Card sx={{ p: { xs: 3, sm: 4, md: 6 }, textAlign: 'center', mb: { xs: 3, md: 4 } }}>
-        <Kitchen sx={{ fontSize: { xs: 60, md: 80 }, color: 'text.secondary', mb: { xs: 1.5, md: 2 } }} />
+        <Kitchen
+          sx={{ fontSize: { xs: 60, md: 80 }, color: 'text.secondary', mb: { xs: 1.5, md: 2 } }}
+        />
         <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           Your pantry is empty
         </Typography>
@@ -154,8 +150,16 @@ export default function MatchedRecipes() {
         >
           Recipes Based on Your Pantry
         </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
-          You have <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>{pantryItemsCount} ingredients</Typography> in your pantry
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+        >
+          You have{' '}
+          <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            {pantryItemsCount} ingredients
+          </Typography>{' '}
+          in your pantry
         </Typography>
       </Box>
 
@@ -168,13 +172,17 @@ export default function MatchedRecipes() {
       >
         <Tab
           icon={!isMobile ? <CheckCircle /> : undefined}
-          label={isMobile ? `Ready (${readyToCook.length})` : `Ready to Cook (${readyToCook.length})`}
+          label={
+            isMobile ? `Ready (${readyToCook.length})` : `Ready to Cook (${readyToCook.length})`
+          }
           iconPosition="start"
           sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
         />
         <Tab
           icon={!isMobile ? <Circle /> : undefined}
-          label={isMobile ? `Almost (${almostThere.length})` : `Almost There (${almostThere.length})`}
+          label={
+            isMobile ? `Almost (${almostThere.length})` : `Almost There (${almostThere.length})`
+          }
           iconPosition="start"
           sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
         />
@@ -184,8 +192,12 @@ export default function MatchedRecipes() {
       {activeTab === 0 && (
         <Box>
           {readyToCook.length === 0 ? (
-            <Alert severity="info" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-              No recipes match 100% with your pantry yet. Check the &ldquo;Almost There&rdquo; tab for recipes you&apos;re close to making!
+            <Alert
+              severity="info"
+              sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+            >
+              No recipes match 100% with your pantry yet. Check the &ldquo;Almost There&rdquo; tab
+              for recipes you&apos;re close to making!
             </Alert>
           ) : (
             <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
@@ -219,15 +231,25 @@ export default function MatchedRecipes() {
                         label="100% Match"
                         color="success"
                         size="small"
-                        sx={{ mb: { xs: 0.75, md: 1 }, fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
+                        sx={{
+                          mb: { xs: 0.75, md: 1 },
+                          fontSize: { xs: '0.7rem', md: '0.8125rem' },
+                        }}
                       />
-                      <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}>
+                      <Typography
+                        variant="h6"
+                        gutterBottom
+                        sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}
+                      >
                         {recipe.title}
                       </Typography>
                       <Typography
                         variant="body2"
                         color="text.secondary"
-                        sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                        sx={{
+                          mb: { xs: 1.5, md: 2 },
+                          fontSize: { xs: '0.8125rem', md: '0.875rem' },
+                        }}
                       >
                         {recipe.description}
                       </Typography>
@@ -259,7 +281,10 @@ export default function MatchedRecipes() {
       {activeTab === 1 && (
         <Box>
           {almostThere.length === 0 ? (
-            <Alert severity="info" sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+            <Alert
+              severity="info"
+              sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+            >
               No recipes are close to matching. Add more ingredients to your pantry!
             </Alert>
           ) : (
@@ -290,14 +315,26 @@ export default function MatchedRecipes() {
                     />
                     <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
                       <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 0.75, md: 1 }, gap: 1 }}>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: { xs: 0.75, md: 1 },
+                            gap: 1,
+                          }}
+                        >
                           <Chip
                             label={`${recipe.matchPercentage}% Match`}
                             color={recipe.matchPercentage >= 80 ? 'warning' : 'default'}
                             size="small"
                             sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
                           />
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
+                          >
                             {recipe.matchedIngredients}/{recipe.totalIngredients} ingredients
                           </Typography>
                         </Box>
@@ -307,13 +344,20 @@ export default function MatchedRecipes() {
                           sx={{ height: { xs: 5, md: 6 }, borderRadius: 1 }}
                         />
                       </Box>
-                      <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}>
+                      <Typography
+                        variant="h6"
+                        gutterBottom
+                        sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}
+                      >
                         {recipe.title}
                       </Typography>
                       <Typography
                         variant="body2"
                         color="text.secondary"
-                        sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                        sx={{
+                          mb: { xs: 1.5, md: 2 },
+                          fontSize: { xs: '0.8125rem', md: '0.875rem' },
+                        }}
                       >
                         {recipe.description}
                       </Typography>
@@ -323,7 +367,7 @@ export default function MatchedRecipes() {
                           color="error"
                           sx={{ fontWeight: 600, fontSize: { xs: '0.7rem', md: '0.75rem' } }}
                         >
-                          Missing: {recipe.missingIngredients.map(ing => ing.name).join(', ')}
+                          Missing: {recipe.missingIngredients.map((ing) => ing.name).join(', ')}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>

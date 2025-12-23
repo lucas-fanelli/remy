@@ -4,7 +4,17 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState } from 'react';
-import { Box, Container, useTheme, useMediaQuery, Dialog, DialogTitle, DialogContent, Toolbar, Typography } from '@mui/material';
+import {
+  Box,
+  Container,
+  useTheme,
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Toolbar,
+  Typography,
+} from '@mui/material';
 import { useRouter } from 'next/navigation';
 import RecipeFeed from '@/components/recipe/RecipeFeed';
 import CreateRecipeForm from '@/components/recipe/CreateRecipeForm';
@@ -34,7 +44,7 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });
@@ -64,7 +74,10 @@ export default function Home() {
         <Toolbar />
 
         {/* Main Content */}
-        <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 10, sm: 11, md: 4 }, px: { xs: 2, md: 3 } }}>
+        <Container
+          maxWidth="lg"
+          sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 10, sm: 11, md: 4 }, px: { xs: 2, md: 3 } }}
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -77,13 +90,15 @@ export default function Home() {
             <Box sx={{ my: { xs: 4, md: 6 } }} />
 
             {/* All Recipes Feed */}
-            <RecipeFeed onCreateRecipe={() => {
-              if (!isAuthenticated) {
-                router.push('/auth');
-                return;
-              }
-              setCreateDialogOpen(true);
-            }} />
+            <RecipeFeed
+              onCreateRecipe={() => {
+                if (!isAuthenticated) {
+                  router.push('/auth');
+                  return;
+                }
+                setCreateDialogOpen(true);
+              }}
+            />
           </motion.div>
         </Container>
 
@@ -95,7 +110,9 @@ export default function Home() {
           fullWidth
           fullScreen={isMobile}
         >
-          <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>Create New Recipe</DialogTitle>
+          <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
+            Create New Recipe
+          </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: { xs: 1, md: 2 } }}>
               <CreateRecipeForm

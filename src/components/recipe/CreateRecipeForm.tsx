@@ -44,8 +44,19 @@ interface CreateRecipeFormProps {
 const steps = ['Recipe Info', 'Ingredients', 'Instructions', 'Review'];
 
 const commonUnits = [
-  'cups', 'tbsp', 'tsp', 'g', 'kg', 'oz', 'lb',
-  'mL', 'L', 'pieces', 'pinch', 'to taste', 'whole'
+  'cups',
+  'tbsp',
+  'tsp',
+  'g',
+  'kg',
+  'oz',
+  'lb',
+  'mL',
+  'L',
+  'pieces',
+  'pinch',
+  'to taste',
+  'whole',
 ];
 
 export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFormProps) {
@@ -77,20 +88,27 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
   const canProceed = () => {
     switch (activeStep) {
       case 0: // Recipe Info
-        return title.trim() !== '' &&
-               description.trim() !== '' &&
-               description.length <= 500 &&
-               imageUrl.trim() !== '' &&
-               typeof cookingTime === 'number' && cookingTime > 0 &&
-               typeof prepTime === 'number' && prepTime >= 0 &&
-               typeof servings === 'number' && servings > 0;
+        return (
+          title.trim() !== '' &&
+          description.trim() !== '' &&
+          description.length <= 500 &&
+          imageUrl.trim() !== '' &&
+          typeof cookingTime === 'number' &&
+          cookingTime > 0 &&
+          typeof prepTime === 'number' &&
+          prepTime >= 0 &&
+          typeof servings === 'number' &&
+          servings > 0
+        );
       case 1: // Ingredients
-        return ingredients.some(i => i.name.trim() !== '') &&
-               ingredients.filter(i => i.name.trim()).every(i =>
-                 i.unit.trim() !== '' && (i.unit === 'to taste' || i.amount.trim() !== '')
-               );
+        return (
+          ingredients.some((i) => i.name.trim() !== '') &&
+          ingredients
+            .filter((i) => i.name.trim())
+            .every((i) => i.unit.trim() !== '' && (i.unit === 'to taste' || i.amount.trim() !== ''))
+        );
       case 2: // Instructions
-        return instructions.some(i => i.description.trim() !== '');
+        return instructions.some((i) => i.description.trim() !== '');
       default:
         return true;
     }
@@ -102,7 +120,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
       setError('');
     } else {
       if (activeStep === 0) {
-        setError('Please fill in all required fields: title, description (max 500 chars), image, and time/servings');
+        setError(
+          'Please fill in all required fields: title, description (max 500 chars), image, and time/servings'
+        );
       } else if (activeStep === 1) {
         setError('Please add at least one ingredient with name, amount, and unit');
       } else if (activeStep === 2) {
@@ -169,11 +189,13 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         servings: typeof servings === 'number' ? servings : 4,
         difficulty,
         caption,
-        ingredients: ingredients.filter(i =>
-          i.name.trim() !== '' && i.unit.trim() !== '' &&
-          (i.unit === 'to taste' || i.amount.trim() !== '')
+        ingredients: ingredients.filter(
+          (i) =>
+            i.name.trim() !== '' &&
+            i.unit.trim() !== '' &&
+            (i.unit === 'to taste' || i.amount.trim() !== '')
         ),
-        instructions: instructions.filter(i => i.description.trim()),
+        instructions: instructions.filter((i) => i.description.trim()),
         userId: '', // Will be set by the API from session
       };
 
@@ -271,7 +293,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   type="number"
                   label="Cooking Time (min)"
                   value={cookingTime}
-                  onChange={(e) => setCookingTime(e.target.value === '' ? '' : Number(e.target.value))}
+                  onChange={(e) =>
+                    setCookingTime(e.target.value === '' ? '' : Number(e.target.value))
+                  }
                   required
                   autoComplete="off"
                   InputLabelProps={{ shrink: cookingTime !== '' }}
@@ -315,14 +339,25 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             exit={{ opacity: 0, x: -20 }}
           >
             <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
-              <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
+              >
                 Ingredients
               </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                Add all ingredients with amounts and units (e.g., &ldquo;2 cups flour&rdquo;, &ldquo;1 tsp salt&rdquo;)
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                gutterBottom
+                sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+              >
+                Add all ingredients with amounts and units (e.g., &ldquo;2 cups flour&rdquo;,
+                &ldquo;1 tsp salt&rdquo;)
               </Typography>
               <Alert severity="info" sx={{ mt: 1, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                💡 Tip: Select &quot;to taste&quot; as unit for ingredients without specific amounts (like salt, pepper). Amount field is optional for &quot;to taste&quot; ingredients.
+                💡 Tip: Select &quot;to taste&quot; as unit for ingredients without specific amounts
+                (like salt, pepper). Amount field is optional for &quot;to taste&quot; ingredients.
               </Alert>
             </Box>
 
@@ -338,7 +373,10 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       onChange={(e) => updateIngredient(index, 'name', e.target.value)}
                       placeholder="e.g., All-purpose flour"
                       autoComplete="off"
-                      error={ingredient.name === '' && (ingredient.amount !== '' || ingredient.unit !== '')}
+                      error={
+                        ingredient.name === '' &&
+                        (ingredient.amount !== '' || ingredient.unit !== '')
+                      }
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>
@@ -350,12 +388,20 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       onChange={(e) => updateIngredient(index, 'amount', e.target.value)}
                       placeholder="2"
                       autoComplete="off"
-                      error={ingredient.amount === '' && ingredient.name !== '' && ingredient.unit !== 'to taste'}
+                      error={
+                        ingredient.amount === '' &&
+                        ingredient.name !== '' &&
+                        ingredient.unit !== 'to taste'
+                      }
                       disabled={ingredient.unit === 'to taste'}
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>
-                    <FormControl fullWidth size="small" error={!ingredient.unit && ingredient.name !== ''}>
+                    <FormControl
+                      fullWidth
+                      size="small"
+                      error={!ingredient.unit && ingredient.name !== ''}
+                    >
                       <InputLabel>Unit *</InputLabel>
                       <Select
                         value={ingredient.unit}
@@ -363,7 +409,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                         label="Unit *"
                       >
                         {commonUnits.map((unit) => (
-                          <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                          <MenuItem key={unit} value={unit}>
+                            {unit}
+                          </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -403,10 +451,19 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             exit={{ opacity: 0, x: -20 }}
           >
             <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
-              <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+              <Typography
+                variant="h6"
+                gutterBottom
+                sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
+              >
                 Cooking Instructions
               </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                gutterBottom
+                sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+              >
                 Break down the cooking process into clear steps
               </Typography>
             </Box>
@@ -414,7 +471,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             {instructions.map((instruction, index) => (
               <Card key={index} sx={{ mb: { xs: 1.5, md: 2 }, p: { xs: 2, md: 2.5 } }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box
+                    sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  >
                     <Chip
                       label={`Step ${instruction.step}`}
                       color="primary"
@@ -472,13 +531,21 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+            <Typography
+              variant="h6"
+              gutterBottom
+              sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
+            >
               Review Your Recipe
             </Typography>
 
             <Card sx={{ mb: { xs: 1.5, md: 2 } }}>
               <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-                <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}
+                >
                   {title}
                 </Typography>
                 <Typography
@@ -489,37 +556,73 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                   {description}
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, mb: { xs: 1.5, md: 2 }, flexWrap: 'wrap' }}>
-                  <Chip label={difficulty} size="small" color="primary" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
-                  <Chip label={`${Number(prepTime) + Number(cookingTime)} min total`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
-                  <Chip label={`${servings} servings`} size="small" sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }} />
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: { xs: 0.5, md: 1 },
+                    mb: { xs: 1.5, md: 2 },
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Chip
+                    label={difficulty}
+                    size="small"
+                    color="primary"
+                    sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
+                  />
+                  <Chip
+                    label={`${Number(prepTime) + Number(cookingTime)} min total`}
+                    size="small"
+                    sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
+                  />
+                  <Chip
+                    label={`${servings} servings`}
+                    size="small"
+                    sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
+                  />
                 </Box>
 
-                <Typography variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
-                  Ingredients ({ingredients.filter(i => i.name).length})
+                <Typography
+                  variant="subtitle2"
+                  gutterBottom
+                  sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}
+                >
+                  Ingredients ({ingredients.filter((i) => i.name).length})
                 </Typography>
                 <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
-                  {ingredients.filter(i => i.name).map((ing, i) => (
-                    <Typography key={i} variant="body2" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                      • {ing.amount} {ing.unit} {ing.name}
-                    </Typography>
-                  ))}
+                  {ingredients
+                    .filter((i) => i.name)
+                    .map((ing, i) => (
+                      <Typography
+                        key={i}
+                        variant="body2"
+                        sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                      >
+                        • {ing.amount} {ing.unit} {ing.name}
+                      </Typography>
+                    ))}
                 </Box>
 
-                <Typography variant="subtitle2" gutterBottom sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
-                  Instructions ({instructions.filter(i => i.description).length} steps)
+                <Typography
+                  variant="subtitle2"
+                  gutterBottom
+                  sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}
+                >
+                  Instructions ({instructions.filter((i) => i.description).length} steps)
                 </Typography>
                 <Box>
-                  {instructions.filter(i => i.description).map((inst, i) => (
-                    <Typography
-                      key={i}
-                      variant="body2"
-                      paragraph
-                      sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
-                    >
-                      {inst.step}. {inst.description}
-                    </Typography>
-                  ))}
+                  {instructions
+                    .filter((i) => i.description)
+                    .map((inst, i) => (
+                      <Typography
+                        key={i}
+                        variant="body2"
+                        paragraph
+                        sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                      >
+                        {inst.step}. {inst.description}
+                      </Typography>
+                    ))}
                 </Box>
               </CardContent>
             </Card>
@@ -568,17 +671,17 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
         </Alert>
       )}
 
-      <AnimatePresence mode="wait">
-        {renderStepContent()}
-      </AnimatePresence>
+      <AnimatePresence mode="wait">{renderStepContent()}</AnimatePresence>
 
-      <Box sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column-reverse', sm: 'row' },
-        justifyContent: 'space-between',
-        gap: { xs: 1, sm: 0 },
-        mt: { xs: 3, md: 4 }
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          justifyContent: 'space-between',
+          gap: { xs: 1, sm: 0 },
+          mt: { xs: 3, md: 4 },
+        }}
+      >
         <Button
           startIcon={<ArrowBack />}
           onClick={activeStep === 0 ? onCancel : handleBack}

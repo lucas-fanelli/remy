@@ -32,11 +32,7 @@ describe('AuthService - Unit Tests', () => {
     mockPasswordService = mockDeep<IPasswordService>();
     mockTokenService = mockDeep<ITokenService>();
 
-    authService = new AuthService(
-      mockUserRepository,
-      mockPasswordService,
-      mockTokenService
-    );
+    authService = new AuthService(mockUserRepository, mockPasswordService, mockTokenService);
   });
 
   describe('register', () => {
@@ -87,9 +83,7 @@ describe('AuthService - Unit Tests', () => {
 
       mockPasswordService.validate = jest.fn().mockReturnValue(true);
 
-      await expect(authService.register(registerData)).rejects.toThrow(
-        'Invalid email format'
-      );
+      await expect(authService.register(registerData)).rejects.toThrow('Invalid email format');
     });
 
     it('should throw error for invalid username format', async () => {
@@ -180,9 +174,7 @@ describe('AuthService - Unit Tests', () => {
 
       mockUserRepository.findByEmail = jest.fn().mockResolvedValue(null);
 
-      await expect(authService.login(loginData)).rejects.toThrow(
-        'Invalid credentials'
-      );
+      await expect(authService.login(loginData)).rejects.toThrow('Invalid credentials');
     });
 
     it('should throw error for incorrect password', async () => {
@@ -194,9 +186,7 @@ describe('AuthService - Unit Tests', () => {
       mockUserRepository.findByEmail = jest.fn().mockResolvedValue(mockUser);
       mockPasswordService.compare = jest.fn().mockResolvedValue(false);
 
-      await expect(authService.login(loginData)).rejects.toThrow(
-        'Invalid credentials'
-      );
+      await expect(authService.login(loginData)).rejects.toThrow('Invalid credentials');
     });
 
     it('should promote user to admin if email is in ADMIN_EMAILS', async () => {
@@ -211,7 +201,9 @@ describe('AuthService - Unit Tests', () => {
 
       mockUserRepository.findByEmail = jest.fn().mockResolvedValue(userNotAdmin);
       mockPasswordService.compare = jest.fn().mockResolvedValue(true);
-      mockUserRepository.updateRole = jest.fn().mockResolvedValue({ ...userNotAdmin, role: 'ADMIN' });
+      mockUserRepository.updateRole = jest
+        .fn()
+        .mockResolvedValue({ ...userNotAdmin, role: 'ADMIN' });
       mockTokenService.generate = jest.fn().mockReturnValue('jwt_token');
 
       const result = await authService.login(loginData);
@@ -283,10 +275,7 @@ describe('AuthService - Unit Tests', () => {
 
       await authService.changePassword(userId, oldPassword, newPassword);
 
-      expect(mockUserRepository.updatePassword).toHaveBeenCalledWith(
-        userId,
-        'new_hashed_password'
-      );
+      expect(mockUserRepository.updatePassword).toHaveBeenCalledWith(userId, 'new_hashed_password');
     });
 
     it('should throw error for invalid new password', async () => {
@@ -296,9 +285,9 @@ describe('AuthService - Unit Tests', () => {
 
       mockPasswordService.validate = jest.fn().mockReturnValue(false);
 
-      await expect(
-        authService.changePassword(userId, oldPassword, newPassword)
-      ).rejects.toThrow('Password must be at least 8 characters long');
+      await expect(authService.changePassword(userId, oldPassword, newPassword)).rejects.toThrow(
+        'Password must be at least 8 characters long'
+      );
     });
 
     it('should throw error if user not found', async () => {
@@ -309,9 +298,9 @@ describe('AuthService - Unit Tests', () => {
       mockPasswordService.validate = jest.fn().mockReturnValue(true);
       mockUserRepository.findById = jest.fn().mockResolvedValue(null);
 
-      await expect(
-        authService.changePassword(userId, oldPassword, newPassword)
-      ).rejects.toThrow('User not found');
+      await expect(authService.changePassword(userId, oldPassword, newPassword)).rejects.toThrow(
+        'User not found'
+      );
     });
 
     it('should throw error for incorrect old password', async () => {
@@ -323,9 +312,9 @@ describe('AuthService - Unit Tests', () => {
       mockUserRepository.findById = jest.fn().mockResolvedValue(mockUser);
       mockPasswordService.compare = jest.fn().mockResolvedValue(false);
 
-      await expect(
-        authService.changePassword(userId, oldPassword, newPassword)
-      ).rejects.toThrow('Invalid old password');
+      await expect(authService.changePassword(userId, oldPassword, newPassword)).rejects.toThrow(
+        'Invalid old password'
+      );
     });
   });
 
@@ -369,15 +358,19 @@ describe('AuthService - Unit Tests', () => {
       mockPasswordService.validate = jest.fn().mockReturnValue(true);
       mockUserRepository.exists = jest.fn().mockResolvedValue(false);
       mockPasswordService.hash = jest.fn().mockResolvedValue('hashed_password');
-      mockUserRepository.create = jest.fn().mockResolvedValue({ ...mockUser, email: 'notadmin@example.com', role: 'USER' });
+      mockUserRepository.create = jest
+        .fn()
+        .mockResolvedValue({ ...mockUser, email: 'notadmin@example.com', role: 'USER' });
       mockTokenService.generate = jest.fn().mockReturnValue('jwt_token');
 
       const result = await authService.register(registerData);
 
       expect(result.user.role).toBe('USER');
-      expect(mockUserRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        role: 'USER',
-      }));
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: 'USER',
+        })
+      );
 
       process.env.ADMIN_EMAILS = originalEnv;
     });
@@ -411,9 +404,11 @@ describe('AuthService - Unit Tests', () => {
       await authService.register(registerData);
 
       // Verify user was created with ADMIN role
-      expect(mockUserRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-        role: 'ADMIN',
-      }));
+      expect(mockUserRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          role: 'ADMIN',
+        })
+      );
 
       process.env.ADMIN_EMAILS = originalEnv;
     });

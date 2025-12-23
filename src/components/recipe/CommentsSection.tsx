@@ -52,7 +52,11 @@ interface CommentsSectionProps {
   onImageClick?: (url: string, alt: string) => void;
 }
 
-export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick }: CommentsSectionProps) {
+export default function CommentsSection({
+  recipeId,
+  recipeAuthorId,
+  onImageClick,
+}: CommentsSectionProps) {
   const { user, token } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -137,7 +141,7 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           text: commentText.trim(),
@@ -149,8 +153,8 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
       if (response.ok) {
         const data = await response.json();
         // Prevent duplicate keys by checking if comment already exists
-        setComments(prevComments => {
-          const exists = prevComments.some(c => c.id === data.comment.id);
+        setComments((prevComments) => {
+          const exists = prevComments.some((c) => c.id === data.comment.id);
           if (exists) return prevComments;
           return [data.comment, ...prevComments];
         });
@@ -243,7 +247,7 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           text: editText.trim(),
@@ -253,7 +257,7 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
 
       if (response.ok) {
         const data = await response.json();
-        setComments(comments.map(c => c.id === commentId ? data.comment : c));
+        setComments(comments.map((c) => (c.id === commentId ? data.comment : c)));
         handleCancelEdit();
       } else {
         const errorData = await response.json();
@@ -286,12 +290,12 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
       const response = await fetch(`/api/recipes/${recipeId}/comments/${commentToDelete}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (response.ok) {
-        setComments(comments.filter(c => c.id !== commentToDelete));
+        setComments(comments.filter((c) => c.id !== commentToDelete));
         setDeleteDialogOpen(false);
         setCommentToDelete(null);
       } else {
@@ -325,7 +329,14 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
       {user ? (
         <Card sx={{ mb: { xs: 2, md: 3 } }}>
           <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1.5, md: 2 }, mb: { xs: 1.5, md: 2 } }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: { xs: 1.5, md: 2 },
+                mb: { xs: 1.5, md: 2 },
+              }}
+            >
               <Avatar
                 src={user.avatar || undefined}
                 sx={{
@@ -394,16 +405,22 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                   style={{ display: 'none' }}
                 />
 
-                <Box sx={{
-                  mt: { xs: 1.5, md: 2 },
-                  display: 'flex',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  alignItems: { xs: 'stretch', sm: 'center' },
-                  justifyContent: 'space-between',
-                  gap: { xs: 1.5, sm: 0 },
-                }}>
+                <Box
+                  sx={{
+                    mt: { xs: 1.5, md: 2 },
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
+                    justifyContent: 'space-between',
+                    gap: { xs: 1.5, sm: 0 },
+                  }}
+                >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                    >
                       Rate this recipe:
                     </Typography>
                     <Rating
@@ -429,7 +446,9 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                     </IconButton>
                     <Button
                       variant="contained"
-                      endIcon={uploadingImage ? <CircularProgress size={16} color="inherit" /> : <Send />}
+                      endIcon={
+                        uploadingImage ? <CircularProgress size={16} color="inherit" /> : <Send />
+                      }
                       onClick={handleSubmitComment}
                       disabled={!commentText.trim() || submitting || uploadingImage}
                       fullWidth={isMobile}
@@ -440,7 +459,10 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                   </Box>
                 </Box>
                 {error && (
-                  <Alert severity="error" sx={{ mt: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                  <Alert
+                    severity="error"
+                    sx={{ mt: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                  >
                     {error}
                   </Alert>
                 )}
@@ -449,20 +471,30 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
           </CardContent>
         </Card>
       ) : (
-        <Alert severity="info" sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+        <Alert
+          severity="info"
+          sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+        >
           Please login to leave a comment
         </Alert>
       )}
 
       {/* Comments List */}
-      {loading ? (
-        null
-      ) : comments.length === 0 ? (
+      {loading ? null : comments.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: { xs: 4, md: 6 } }}>
-          <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+          <Typography
+            variant="h6"
+            color="text.secondary"
+            gutterBottom
+            sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
+          >
             No comments yet
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+          >
             Be the first to share your thoughts!
           </Typography>
         </Box>
@@ -489,15 +521,28 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                       {comment.user.username.charAt(0).toUpperCase()}
                     </Avatar>
                     <Box sx={{ flex: 1 }}>
-                      <Box sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'space-between',
-                        mb: { xs: 0.5, md: 0.75 },
-                        gap: 1,
-                      }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
-                          <Typography variant="subtitle2" fontWeight={600} sx={{ fontSize: { xs: '0.875rem', md: '0.9375rem' } }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          justifyContent: 'space-between',
+                          mb: { xs: 0.5, md: 0.75 },
+                          gap: 1,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: { xs: 0.5, md: 1 },
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            fontWeight={600}
+                            sx={{ fontSize: { xs: '0.875rem', md: '0.9375rem' } }}
+                          >
                             {comment.user.username}
                           </Typography>
                           {recipeAuthorId && comment.user.id === recipeAuthorId && (
@@ -506,10 +551,18 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                               size="small"
                               color="primary"
                               icon={<Person sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }} />}
-                              sx={{ height: { xs: 18, md: 20 }, fontSize: { xs: '0.65rem', md: '0.7rem' }, fontWeight: 600 }}
+                              sx={{
+                                height: { xs: 18, md: 20 },
+                                fontSize: { xs: '0.65rem', md: '0.7rem' },
+                                fontWeight: 600,
+                              }}
                             />
                           )}
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
+                          >
                             • {formatDate(comment.createdAt)}
                           </Typography>
                         </Box>
@@ -519,7 +572,10 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                             onClick={(e) => handleMenuOpen(comment.id, e)}
                             sx={{ ml: { xs: 0, sm: 1 }, mt: -1 }}
                           >
-                            <MoreVert fontSize="small" sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+                            <MoreVert
+                              fontSize="small"
+                              sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}
+                            />
                           </IconButton>
                         )}
                       </Box>
@@ -537,16 +593,22 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                             disabled={submitting}
                             sx={{ mb: { xs: 1, md: 1.5 } }}
                           />
-                          <Box sx={{
-                            display: 'flex',
-                            flexDirection: { xs: 'column', sm: 'row' },
-                            alignItems: { xs: 'stretch', sm: 'center' },
-                            justifyContent: 'space-between',
-                            gap: { xs: 1.5, sm: 0 },
-                            mb: { xs: 0.75, md: 1 },
-                          }}>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              flexDirection: { xs: 'column', sm: 'row' },
+                              alignItems: { xs: 'stretch', sm: 'center' },
+                              justifyContent: 'space-between',
+                              gap: { xs: 1.5, sm: 0 },
+                              mb: { xs: 0.75, md: 1 },
+                            }}
+                          >
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+                              >
                                 Rating:
                               </Typography>
                               <Rating
@@ -602,7 +664,12 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                               component="img"
                               src={comment.imageUrl}
                               alt={`Photo by ${comment.user.username}`}
-                              onClick={() => onImageClick?.(comment.imageUrl!, `Photo by ${comment.user.username}`)}
+                              onClick={() =>
+                                onImageClick?.(
+                                  comment.imageUrl!,
+                                  `Photo by ${comment.user.username}`
+                                )
+                              }
                               sx={{
                                 mt: 1.5,
                                 maxWidth: '100%',
@@ -613,10 +680,12 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                                 border: '1px solid',
                                 borderColor: 'divider',
                                 transition: 'transform 0.2s',
-                                '&:hover': onImageClick ? {
-                                  transform: 'scale(1.02)',
-                                  boxShadow: 2,
-                                } : {},
+                                '&:hover': onImageClick
+                                  ? {
+                                      transform: 'scale(1.02)',
+                                      boxShadow: 2,
+                                    }
+                                  : {},
                               }}
                             />
                           )}
@@ -637,7 +706,10 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
                       </ListItemIcon>
                       <ListItemText>Edit</ListItemText>
                     </MenuItem>
-                    <MenuItem onClick={() => handleDeleteClick(comment.id)} sx={{ color: 'error.main' }}>
+                    <MenuItem
+                      onClick={() => handleDeleteClick(comment.id)}
+                      sx={{ color: 'error.main' }}
+                    >
                       <ListItemIcon>
                         <Delete fontSize="small" color="error" />
                       </ListItemIcon>
@@ -659,19 +731,14 @@ export default function CommentsSection({ recipeId, recipeAuthorId, onImageClick
         aria-labelledby="delete-comment-dialog-title"
         aria-describedby="delete-comment-dialog-description"
       >
-        <DialogTitle id="delete-comment-dialog-title">
-          Delete selected comment?
-        </DialogTitle>
+        <DialogTitle id="delete-comment-dialog-title">Delete selected comment?</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-comment-dialog-description">
             Comment will be permanently removed from your account and all synced devices
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button
-            onClick={handleDeleteCancel}
-            disabled={deleting}
-          >
+          <Button onClick={handleDeleteCancel} disabled={deleting}>
             Cancel
           </Button>
           <Button

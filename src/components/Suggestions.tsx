@@ -12,10 +12,25 @@ interface Suggestion {
 }
 
 const suggestions: Suggestion[] = [
-  { id: '1', username: 'sarah_designs', avatar: '/avatar9.jpg', subtitle: 'Followed by user1 + 2 more' },
-  { id: '2', username: 'alex_photos', avatar: '/avatar10.jpg', subtitle: 'Followed by user2 + 3 more' },
+  {
+    id: '1',
+    username: 'sarah_designs',
+    avatar: '/avatar9.jpg',
+    subtitle: 'Followed by user1 + 2 more',
+  },
+  {
+    id: '2',
+    username: 'alex_photos',
+    avatar: '/avatar10.jpg',
+    subtitle: 'Followed by user2 + 3 more',
+  },
   { id: '3', username: 'mike_codes', avatar: '/avatar11.jpg', subtitle: 'New to Recipe Sharing' },
-  { id: '4', username: 'emma_art', avatar: '/avatar12.jpg', subtitle: 'Followed by user3 + 1 more' },
+  {
+    id: '4',
+    username: 'emma_art',
+    avatar: '/avatar12.jpg',
+    subtitle: 'Followed by user3 + 1 more',
+  },
   { id: '5', username: 'david_music', avatar: '/avatar13.jpg', subtitle: 'Followed by user4' },
 ];
 
@@ -31,30 +46,30 @@ export default function Suggestions() {
 
     try {
       // Set loading state
-      setLoadingState(prev => ({ ...prev, [username]: true }));
+      setLoadingState((prev) => ({ ...prev, [username]: true }));
 
       // Optimistically update UI
-      setFollowingState(prev => ({ ...prev, [username]: !isCurrentlyFollowing }));
+      setFollowingState((prev) => ({ ...prev, [username]: !isCurrentlyFollowing }));
 
       const endpoint = isCurrentlyFollowing ? 'unfollow' : 'follow';
       const response = await fetch(`/api/users/${username}/${endpoint}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
         // Revert on error
-        setFollowingState(prev => ({ ...prev, [username]: isCurrentlyFollowing }));
+        setFollowingState((prev) => ({ ...prev, [username]: isCurrentlyFollowing }));
         console.error('Follow/unfollow failed');
       }
     } catch (error) {
       // Revert on error
-      setFollowingState(prev => ({ ...prev, [username]: isCurrentlyFollowing }));
+      setFollowingState((prev) => ({ ...prev, [username]: isCurrentlyFollowing }));
       console.error('Error toggling follow:', error);
     } finally {
-      setLoadingState(prev => ({ ...prev, [username]: false }));
+      setLoadingState((prev) => ({ ...prev, [username]: false }));
     }
   };
 
@@ -133,7 +148,11 @@ export default function Suggestions() {
                   disabled={loadingState[suggestion.username]}
                   sx={{ textTransform: 'none', fontWeight: 600, fontSize: '12px' }}
                 >
-                  {loadingState[suggestion.username] ? '...' : followingState[suggestion.username] ? 'Following' : 'Follow'}
+                  {loadingState[suggestion.username]
+                    ? '...'
+                    : followingState[suggestion.username]
+                      ? 'Following'
+                      : 'Follow'}
                 </Button>
               </motion.div>
             </Box>
@@ -143,10 +162,18 @@ export default function Suggestions() {
 
       {/* Footer */}
       <Box sx={{ mt: 4 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '11px', lineHeight: 1.5 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: '11px', lineHeight: 1.5 }}
+        >
           About · Help · Press · API · Jobs · Privacy · Terms · Locations · Language · Meta Verified
         </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, fontSize: '11px' }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', mt: 2, fontSize: '11px' }}
+        >
           © 2025 RECIPE SHARING APP
         </Typography>
       </Box>

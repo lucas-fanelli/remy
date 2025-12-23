@@ -171,7 +171,7 @@ describe('ThemeContext', () => {
     );
 
     // Wait for useEffect to complete (50ms delay in source + buffer)
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Toggle theme after isInitialLoad becomes false
     fireEvent.click(screen.getByText('Toggle Theme'));

@@ -22,9 +22,7 @@ const mockTheme = createTheme();
 const renderWithProviders = (component: React.ReactElement) => {
   return render(
     <ThemeProvider theme={mockTheme}>
-      <AuthProvider>
-        {component}
-      </AuthProvider>
+      <AuthProvider>{component}</AuthProvider>
     </ThemeProvider>
   );
 };
@@ -98,7 +96,7 @@ describe('LoginForm Component', () => {
   });
 
   it('should show loading state during login', async () => {
-    mockFetch.mockImplementation(() => new Promise(() => { })); // Never resolves
+    mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
 
     renderWithProviders(<LoginForm onSwitchToRegister={mockOnSwitchToRegister} />);
 
@@ -191,10 +189,13 @@ describe('LoginForm Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      }));
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/auth/login',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
     });
   });
 });

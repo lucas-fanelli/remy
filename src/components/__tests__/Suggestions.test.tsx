@@ -15,8 +15,16 @@ jest.mock('@/contexts/AuthContext', () => ({
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,
@@ -27,11 +35,7 @@ jest.mock('framer-motion', () => {
 const mockTheme = createTheme();
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 describe('Suggestions Component', () => {
@@ -126,7 +130,7 @@ describe('Suggestions Component', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
-            'Authorization': 'Bearer mock-token',
+            Authorization: 'Bearer mock-token',
           }),
         })
       );

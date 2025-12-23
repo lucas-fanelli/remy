@@ -12,10 +12,7 @@ export async function GET(
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -23,28 +20,19 @@ export async function GET(
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     const userService = container.getUserService();
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if requesting user is the profile owner
     if (user.id !== payload.userId) {
-      return NextResponse.json(
-        { error: 'Forbidden' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Get saved recipes
@@ -83,9 +71,6 @@ export async function GET(
     return NextResponse.json({ recipes: formattedRecipes });
   } catch (error) {
     console.error('Error fetching saved recipes:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch saved recipes' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch saved recipes' }, { status: 500 });
   }
 }

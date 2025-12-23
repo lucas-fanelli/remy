@@ -3,28 +3,25 @@ import { container } from '@/lib/container/container';
 import { requireAdmin, isAdminAuthError } from '@/lib/auth/requireAdmin';
 
 interface RouteParams {
-    params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-    const authResult = await requireAdmin(request);
+  const authResult = await requireAdmin(request);
 
-    if (isAdminAuthError(authResult)) {
-        return authResult;
-    }
+  if (isAdminAuthError(authResult)) {
+    return authResult;
+  }
 
-    try {
-        const { id } = await params;
+  try {
+    const { id } = await params;
 
-        const adminService = container.getAdminService();
-        await adminService.deleteRecipe(id);
+    const adminService = container.getAdminService();
+    await adminService.deleteRecipe(id);
 
-        return NextResponse.json({ message: 'Recipe deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting recipe:', error);
-        return NextResponse.json(
-            { error: 'Failed to delete recipe' },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({ message: 'Recipe deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting recipe:', error);
+    return NextResponse.json({ error: 'Failed to delete recipe' }, { status: 500 });
+  }
 }

@@ -54,7 +54,15 @@ export default function SettingsPage() {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const { isInstalled, isRunningStandalone, isIOSSafari, isDesktopChrome, promptAvailable, triggerInstall, openApp } = usePwa();
+  const {
+    isInstalled,
+    isRunningStandalone,
+    isIOSSafari,
+    isDesktopChrome,
+    promptAvailable,
+    triggerInstall,
+    openApp,
+  } = usePwa();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -92,7 +100,7 @@ export default function SettingsPage() {
               component="h1"
               sx={{
                 color: 'text.primary',
-                fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' }
+                fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' },
               }}
             >
               Settings
@@ -116,7 +124,13 @@ export default function SettingsPage() {
           sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
-            <Palette sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            <Palette
+              sx={{
+                mr: { xs: 0.75, md: 1 },
+                color: 'primary.main',
+                fontSize: { xs: '1.25rem', md: '1.5rem' },
+              }}
+            />
             <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
               Appearance
             </Typography>
@@ -125,11 +139,7 @@ export default function SettingsPage() {
 
           <FormControlLabel
             control={
-              <Switch
-                checked={mode === 'dark'}
-                onChange={handleThemeToggle}
-                color="primary"
-              />
+              <Switch checked={mode === 'dark'} onChange={handleThemeToggle} color="primary" />
             }
             label={
               <Box>
@@ -157,7 +167,13 @@ export default function SettingsPage() {
           sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
-            <Security sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            <Security
+              sx={{
+                mr: { xs: 0.75, md: 1 },
+                color: 'primary.main',
+                fontSize: { xs: '1.25rem', md: '1.5rem' },
+              }}
+            />
             <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
               Privacy & Security
             </Typography>
@@ -179,7 +195,7 @@ export default function SettingsPage() {
                 px: { xs: 0, md: 2 },
                 '&:hover': {
                   backgroundColor: 'action.hover',
-                }
+                },
               }}
             >
               <ListItemIcon>
@@ -187,7 +203,9 @@ export default function SettingsPage() {
               </ListItemIcon>
               <ListItemText
                 primary={
-                  <Typography sx={{ fontSize: { xs: '0.9375rem', md: '1rem' }, color: 'text.primary' }}>
+                  <Typography
+                    sx={{ fontSize: { xs: '0.9375rem', md: '1rem' }, color: 'text.primary' }}
+                  >
                     Change Password
                   </Typography>
                 }
@@ -214,7 +232,13 @@ export default function SettingsPage() {
           sx={{ p: { xs: 2, md: 3 }, mb: { xs: 2, md: 3 } }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1.5, md: 2 } }}>
-            <PhoneIphone sx={{ mr: { xs: 0.75, md: 1 }, color: 'primary.main', fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
+            <PhoneIphone
+              sx={{
+                mr: { xs: 0.75, md: 1 },
+                color: 'primary.main',
+                fontSize: { xs: '1.25rem', md: '1.5rem' },
+              }}
+            />
             <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
               Install App
             </Typography>
@@ -280,7 +304,8 @@ export default function SettingsPage() {
                 Install Remy&apos;s on your home screen for a faster, native-like experience.
               </Typography>
               <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                Tap the <strong>Share</strong> button in Safari, then select <strong>&quot;Add to Home Screen&quot;</strong>.
+                Tap the <strong>Share</strong> button in Safari, then select{' '}
+                <strong>&quot;Add to Home Screen&quot;</strong>.
               </Alert>
             </>
           ) : isDesktopChrome ? (
@@ -294,7 +319,8 @@ export default function SettingsPage() {
                 Install Remy&apos;s on your home screen for a faster, native-like experience.
               </Typography>
               <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                Click the <strong>install icon</strong> in your browser&apos;s address bar to install.
+                Click the <strong>install icon</strong> in your browser&apos;s address bar to
+                install.
               </Alert>
             </>
           ) : (
@@ -321,7 +347,10 @@ export default function SettingsPage() {
         </MotionPaper>
 
         {/* Info Alert */}
-        <Alert severity="info" sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
+        <Alert
+          severity="info"
+          sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
+        >
           These are basic settings for V1. More options will be added in future updates!
         </Alert>
       </Container>

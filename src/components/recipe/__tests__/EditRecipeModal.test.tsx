@@ -13,8 +13,16 @@ configure({ asyncUtilTimeout: 50 });
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,
@@ -27,9 +35,7 @@ jest.mock('../../common/ImageUpload', () => {
   return function MockImageUpload({ onChange, value }: any) {
     return (
       <div>
-        <button onClick={() => onChange('https://example.com/image.jpg')}>
-          Upload Image
-        </button>
+        <button onClick={() => onChange('https://example.com/image.jpg')}>Upload Image</button>
         {value && <div>Image: {value}</div>}
       </div>
     );
@@ -69,11 +75,7 @@ const mockRecipe: Recipe = {
 };
 
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 describe('EditRecipeModal Component', () => {
@@ -227,7 +229,6 @@ describe('EditRecipeModal Component', () => {
     expect(screen.getByLabelText(/recipe title/i)).toBeInTheDocument();
   });
 
-
   it('should update servings field', () => {
     renderWithProviders(
       <EditRecipeModal
@@ -373,9 +374,9 @@ describe('EditRecipeModal Component', () => {
     expect(ingredientsBefore).toHaveLength(2);
 
     // Remove second ingredient
-    const deleteButtons = screen.getAllByRole('button', { name: '' }).filter(btn =>
-      btn.querySelector('[data-testid="DeleteIcon"]')
-    );
+    const deleteButtons = screen
+      .getAllByRole('button', { name: '' })
+      .filter((btn) => btn.querySelector('[data-testid="DeleteIcon"]'));
     fireEvent.click(deleteButtons[1]);
 
     // Should now have 1 ingredient
@@ -409,9 +410,9 @@ describe('EditRecipeModal Component', () => {
     });
 
     // Delete button should be disabled
-    const deleteButton = screen.getAllByRole('button', { name: '' }).find(btn =>
-      btn.querySelector('[data-testid="DeleteIcon"]')
-    );
+    const deleteButton = screen
+      .getAllByRole('button', { name: '' })
+      .find((btn) => btn.querySelector('[data-testid="DeleteIcon"]'));
     expect(deleteButton).toBeDisabled();
   });
 
@@ -559,9 +560,9 @@ describe('EditRecipeModal Component', () => {
     expect(instructionsBefore).toHaveLength(2);
 
     // Remove second instruction
-    const deleteButtons = screen.getAllByRole('button', { name: '' }).filter(btn =>
-      btn.querySelector('[data-testid="DeleteIcon"]')
-    );
+    const deleteButtons = screen
+      .getAllByRole('button', { name: '' })
+      .filter((btn) => btn.querySelector('[data-testid="DeleteIcon"]'));
     fireEvent.click(deleteButtons[1]);
 
     // Should now have 1 instruction
@@ -596,9 +597,9 @@ describe('EditRecipeModal Component', () => {
     });
 
     // Delete button should be disabled
-    const deleteButton = screen.getAllByRole('button', { name: '' }).find(btn =>
-      btn.querySelector('[data-testid="DeleteIcon"]')
-    );
+    const deleteButton = screen
+      .getAllByRole('button', { name: '' })
+      .find((btn) => btn.querySelector('[data-testid="DeleteIcon"]'));
     expect(deleteButton).toBeDisabled();
   });
 
@@ -804,9 +805,9 @@ describe('EditRecipeModal Component', () => {
       />
     );
 
-    const closeButton = screen.getAllByRole('button', { name: '' }).find(btn =>
-      btn.querySelector('[data-testid="CloseIcon"]')
-    );
+    const closeButton = screen
+      .getAllByRole('button', { name: '' })
+      .find((btn) => btn.querySelector('[data-testid="CloseIcon"]'));
     fireEvent.click(closeButton!);
 
     expect(mockOnClose).toHaveBeenCalled();
@@ -836,9 +837,9 @@ describe('EditRecipeModal Component', () => {
     expect(instructionsBefore).toHaveLength(2);
 
     // Get all delete buttons by looking for DeleteIcon
-    const deleteButtons = screen.getAllByRole('button', { name: '' }).filter(btn =>
-      btn.querySelector('[data-testid="DeleteIcon"]')
-    );
+    const deleteButtons = screen
+      .getAllByRole('button', { name: '' })
+      .filter((btn) => btn.querySelector('[data-testid="DeleteIcon"]'));
 
     // Ensure we have delete buttons before attempting to click
     expect(deleteButtons.length).toBeGreaterThan(0);

@@ -88,23 +88,21 @@ export function validateEnvironment(): EnvConfig {
   // Production-specific validations
   if (process.env.NODE_ENV === 'production') {
     // Check for insecure secrets
-    const insecureSecrets = [
-      'your-super-secret',
-      'change-this',
-      'secret',
-      'password',
-      'test',
-    ];
+    const insecureSecrets = ['your-super-secret', 'change-this', 'secret', 'password', 'test'];
 
     const jwtSecret = process.env.JWT_SECRET?.toLowerCase() || '';
     const nextAuthSecret = process.env.NEXTAUTH_SECRET?.toLowerCase() || '';
 
     for (const insecure of insecureSecrets) {
       if (jwtSecret.includes(insecure)) {
-        errors.push('JWT_SECRET appears to be insecure. Use a strong, random secret in production.');
+        errors.push(
+          'JWT_SECRET appears to be insecure. Use a strong, random secret in production.'
+        );
       }
       if (nextAuthSecret.includes(insecure)) {
-        errors.push('NEXTAUTH_SECRET appears to be insecure. Use a strong, random secret in production.');
+        errors.push(
+          'NEXTAUTH_SECRET appears to be insecure. Use a strong, random secret in production.'
+        );
       }
     }
 

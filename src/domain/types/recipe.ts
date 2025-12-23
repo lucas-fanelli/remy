@@ -24,8 +24,8 @@ export interface Recipe {
   userId: string;
 
   // Recipe details
-  cookingTime: number;  // in minutes
-  prepTime: number;     // in minutes
+  cookingTime: number; // in minutes
+  prepTime: number; // in minutes
   servings: number;
   difficulty: DifficultyLevel;
   ingredients: Ingredient[];

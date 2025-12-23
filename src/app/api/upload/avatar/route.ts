@@ -13,10 +13,7 @@ export async function POST(request: NextRequest) {
     // Get authorization token
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.replace('Bearer ', '');
@@ -24,10 +21,7 @@ export async function POST(request: NextRequest) {
     const payload = tokenService.verify(token);
 
     if (!payload) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Check Content-Type header
@@ -43,10 +37,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('avatar') as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     // Validate file type
@@ -85,9 +76,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error uploading avatar:', error);
-    return NextResponse.json(
-      { error: 'Failed to upload avatar' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to upload avatar' }, { status: 500 });
   }
 }

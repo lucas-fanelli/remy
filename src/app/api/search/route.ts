@@ -9,10 +9,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q');
 
     if (!query || query.trim().length === 0) {
-      return NextResponse.json(
-        { error: 'Search query is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
     }
 
     const userService = container.get<IUserService>('IUserService');
@@ -47,7 +44,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Get ratings for each recipe
-    const recipeIds = recipes.map(r => r.id);
+    const recipeIds = recipes.map((r) => r.id);
     const ratings = await prisma.rating.groupBy({
       by: ['postId'],
       where: { postId: { in: recipeIds } },
@@ -56,13 +53,18 @@ export async function GET(request: NextRequest) {
     });
 
     // Create ratings map
-    const ratingsMap = new Map(ratings.map(r => [r.postId, {
-      averageRating: r._avg.rating || 0,
-      totalRatings: r._count.rating || 0,
-    }]));
+    const ratingsMap = new Map(
+      ratings.map((r) => [
+        r.postId,
+        {
+          averageRating: r._avg.rating || 0,
+          totalRatings: r._count.rating || 0,
+        },
+      ])
+    );
 
     // Format recipes response
-    const formattedRecipes = recipes.map(recipe => ({
+    const formattedRecipes = recipes.map((recipe) => ({
       id: recipe.id,
       title: recipe.title,
       description: recipe.description,
@@ -87,9 +89,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Search error:', error);
-    return NextResponse.json(
-      { error: 'Failed to perform search' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to perform search' }, { status: 500 });
   }
 }

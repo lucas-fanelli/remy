@@ -72,7 +72,7 @@ export class PantryService implements IPantryService {
       },
     });
 
-    return ingredients.map(i => i.name);
+    return ingredients.map((i) => i.name);
   }
 
   async categorizeIngredient(name: string): Promise<string> {
@@ -112,29 +112,17 @@ export class PantryService implements IPantryService {
     }
 
     // Proteins
-    if (
-      /chicken|beef|pork|fish|salmon|tuna|shrimp|turkey|lamb|tofu|egg|bacon/i.test(
-        nameLower
-      )
-    ) {
+    if (/chicken|beef|pork|fish|salmon|tuna|shrimp|turkey|lamb|tofu|egg|bacon/i.test(nameLower)) {
       return IngredientCategory.PROTEIN;
     }
 
     // Dairy
-    if (
-      /milk|cheese|butter|cream|yogurt|sour cream|mozzarella|parmesan|cheddar/i.test(
-        nameLower
-      )
-    ) {
+    if (/milk|cheese|butter|cream|yogurt|sour cream|mozzarella|parmesan|cheddar/i.test(nameLower)) {
       return IngredientCategory.DAIRY;
     }
 
     // Grains
-    if (
-      /rice|pasta|bread|flour|oat|wheat|quinoa|barley|noodle|tortilla/i.test(
-        nameLower
-      )
-    ) {
+    if (/rice|pasta|bread|flour|oat|wheat|quinoa|barley|noodle|tortilla/i.test(nameLower)) {
       return IngredientCategory.GRAIN;
     }
 
@@ -148,18 +136,12 @@ export class PantryService implements IPantryService {
     }
 
     // Condiments & Sauces
-    if (
-      /oil|vinegar|sauce|ketchup|mustard|mayo|soy sauce|honey|sugar|syrup/i.test(
-        nameLower
-      )
-    ) {
+    if (/oil|vinegar|sauce|ketchup|mustard|mayo|soy sauce|honey|sugar|syrup/i.test(nameLower)) {
       return IngredientCategory.CONDIMENT;
     }
 
     // Baking
-    if (
-      /baking powder|baking soda|yeast|vanilla|cocoa|chocolate/i.test(nameLower)
-    ) {
+    if (/baking powder|baking soda|yeast|vanilla|cocoa|chocolate/i.test(nameLower)) {
       return IngredientCategory.BAKING;
     }
 

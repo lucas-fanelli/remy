@@ -38,7 +38,7 @@ export default function LoadingBar() {
           height: 3,
           '& .MuiLinearProgress-bar': {
             transition: 'transform 0.4s linear',
-          }
+          },
         }}
       />
     </Box>

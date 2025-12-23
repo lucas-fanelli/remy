@@ -10,10 +10,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import {
-  Delete,
-  Image as ImageIcon,
-} from '@mui/icons-material';
+import { Delete, Image as ImageIcon } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
 const MotionCard = motion.create(Card);
@@ -182,7 +179,9 @@ export default function ImageUpload({
               </>
             ) : (
               <>
-                <ImageIcon sx={{ fontSize: compact ? 40 : 64, color: 'text.disabled', mb: compact ? 1 : 2 }} />
+                <ImageIcon
+                  sx={{ fontSize: compact ? 40 : 64, color: 'text.disabled', mb: compact ? 1 : 2 }}
+                />
                 <Typography variant={compact ? 'body2' : 'body1'} gutterBottom color="text.primary">
                   Click to upload an image
                 </Typography>

@@ -15,11 +15,7 @@ jest.mock('next/navigation', () => ({
 const mockTheme = createTheme();
 
 const renderWithTheme = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 const mockUsers = [
@@ -29,9 +25,27 @@ const mockUsers = [
 ];
 
 const mockRecipes = [
-  { id: 'r1', title: 'Test Recipe 1', description: 'A delicious test recipe', imageUrl: '/recipe1.jpg', cuisine: 'Italian' },
-  { id: 'r2', title: 'Test Recipe 2', description: 'Another amazing recipe', imageUrl: '/recipe2.jpg', cuisine: 'Mexican' },
-  { id: 'r3', title: 'Test Recipe 3', description: 'Third recipe', imageUrl: '/recipe3.jpg', cuisine: 'Chinese' },
+  {
+    id: 'r1',
+    title: 'Test Recipe 1',
+    description: 'A delicious test recipe',
+    imageUrl: '/recipe1.jpg',
+    cuisine: 'Italian',
+  },
+  {
+    id: 'r2',
+    title: 'Test Recipe 2',
+    description: 'Another amazing recipe',
+    imageUrl: '/recipe2.jpg',
+    cuisine: 'Mexican',
+  },
+  {
+    id: 'r3',
+    title: 'Test Recipe 3',
+    description: 'Third recipe',
+    imageUrl: '/recipe3.jpg',
+    cuisine: 'Chinese',
+  },
 ];
 
 describe('SearchResults Component', () => {
@@ -68,7 +82,13 @@ describe('SearchResults Component', () => {
 
   it('should show "Search query" button as first item when results exist', () => {
     renderWithTheme(
-      <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={mockUsers}
+        recipes={[]}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     expect(screen.getByText('Search "test"')).toBeInTheDocument();
@@ -77,7 +97,13 @@ describe('SearchResults Component', () => {
 
   it('should navigate to full search results page when "Search query" is clicked', () => {
     renderWithTheme(
-      <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={mockUsers}
+        recipes={[]}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     const searchButton = screen.getByText('Search "test"');
@@ -89,7 +115,13 @@ describe('SearchResults Component', () => {
 
   it('should prioritize users and limit to 3 results', () => {
     renderWithTheme(
-      <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={mockUsers}
+        recipes={[]}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     // Should show all 3 users
@@ -100,7 +132,13 @@ describe('SearchResults Component', () => {
 
   it('should show recipes when fewer than 3 users exist', () => {
     renderWithTheme(
-      <SearchResults query="test" users={[mockUsers[0]]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={[mockUsers[0]]}
+        recipes={mockRecipes}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     // Should show 1 user + 2 recipes (total 3 results)
@@ -112,7 +150,13 @@ describe('SearchResults Component', () => {
 
   it('should show only recipes when no users exist', () => {
     renderWithTheme(
-      <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={[]}
+        recipes={mockRecipes}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     // Should show 3 recipes
@@ -123,7 +167,13 @@ describe('SearchResults Component', () => {
 
   it('should navigate to user profile when user is clicked', () => {
     renderWithTheme(
-      <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={mockUsers}
+        recipes={[]}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     const userItem = screen.getByText('testuser1');
@@ -135,7 +185,13 @@ describe('SearchResults Component', () => {
 
   it('should navigate to recipe when recipe is clicked', () => {
     renderWithTheme(
-      <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={[]}
+        recipes={mockRecipes}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     const recipeItem = screen.getByText('Test Recipe 1');
@@ -147,7 +203,13 @@ describe('SearchResults Component', () => {
 
   it('should show correct total of 4 items (search button + 3 results)', () => {
     renderWithTheme(
-      <SearchResults query="test" users={mockUsers} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+      <SearchResults
+        query="test"
+        users={mockUsers}
+        recipes={mockRecipes}
+        loading={false}
+        onClose={mockOnClose}
+      />
     );
 
     // Search button + 3 users (prioritized)
@@ -162,7 +224,13 @@ describe('SearchResults Component', () => {
   describe('Desktop Rendering - Branch Coverage', () => {
     it('should show user email on desktop - line 175', () => {
       renderWithTheme(
-        <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+        <SearchResults
+          query="test"
+          users={mockUsers}
+          recipes={[]}
+          loading={false}
+          onClose={mockOnClose}
+        />
       );
 
       // Both username and email should be visible on desktop
@@ -172,7 +240,13 @@ describe('SearchResults Component', () => {
 
     it('should show recipe description on desktop - lines 218-220', () => {
       renderWithTheme(
-        <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+        <SearchResults
+          query="test"
+          users={[]}
+          recipes={mockRecipes}
+          loading={false}
+          onClose={mockOnClose}
+        />
       );
 
       // Recipe title and description should be visible on desktop
@@ -184,13 +258,20 @@ describe('SearchResults Component', () => {
       const longDescriptionRecipe = {
         id: 'r-long',
         title: 'Long Description Recipe',
-        description: 'This is a very long description that exceeds the fifty character limit and should be truncated',
+        description:
+          'This is a very long description that exceeds the fifty character limit and should be truncated',
         imageUrl: '/recipe-long.jpg',
-        cuisine: 'French'
+        cuisine: 'French',
       };
 
       renderWithTheme(
-        <SearchResults query="test" users={[]} recipes={[longDescriptionRecipe]} loading={false} onClose={mockOnClose} />
+        <SearchResults
+          query="test"
+          users={[]}
+          recipes={[longDescriptionRecipe]}
+          loading={false}
+          onClose={mockOnClose}
+        />
       );
 
       // Should show truncated description with ellipsis (first 50 chars + "...")
@@ -205,11 +286,17 @@ describe('SearchResults Component', () => {
         title: 'Short Recipe',
         description: 'A brief description',
         imageUrl: '/recipe-short.jpg',
-        cuisine: 'Italian'
+        cuisine: 'Italian',
       };
 
       renderWithTheme(
-        <SearchResults query="test" users={[]} recipes={[shortDescriptionRecipe]} loading={false} onClose={mockOnClose} />
+        <SearchResults
+          query="test"
+          users={[]}
+          recipes={[shortDescriptionRecipe]}
+          loading={false}
+          onClose={mockOnClose}
+        />
       );
 
       // Should show full description without ellipsis
@@ -224,7 +311,7 @@ describe('SearchResults Component', () => {
     beforeEach(() => {
       originalMatchMedia = window.matchMedia;
       // Mock mobile viewport (width < 600px triggers sm breakpoint)
-      window.matchMedia = jest.fn().mockImplementation(query => ({
+      window.matchMedia = jest.fn().mockImplementation((query) => ({
         matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
         media: query,
         onchange: null,
@@ -242,7 +329,13 @@ describe('SearchResults Component', () => {
 
     it('should hide user email on mobile - line 161', () => {
       renderWithTheme(
-        <SearchResults query="test" users={mockUsers} recipes={[]} loading={false} onClose={mockOnClose} />
+        <SearchResults
+          query="test"
+          users={mockUsers}
+          recipes={[]}
+          loading={false}
+          onClose={mockOnClose}
+        />
       );
 
       // Username should still be visible
@@ -252,7 +345,13 @@ describe('SearchResults Component', () => {
 
     it('should hide recipe description on mobile - line 205-207', () => {
       renderWithTheme(
-        <SearchResults query="test" users={[]} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+        <SearchResults
+          query="test"
+          users={[]}
+          recipes={mockRecipes}
+          loading={false}
+          onClose={mockOnClose}
+        />
       );
 
       // Recipe title should still be visible
@@ -262,7 +361,13 @@ describe('SearchResults Component', () => {
 
     it('should render mobile-sized list items - lines 120-156', () => {
       renderWithTheme(
-        <SearchResults query="test" users={mockUsers} recipes={mockRecipes} loading={false} onClose={mockOnClose} />
+        <SearchResults
+          query="test"
+          users={mockUsers}
+          recipes={mockRecipes}
+          loading={false}
+          onClose={mockOnClose}
+        />
       );
 
       // Users should still be visible

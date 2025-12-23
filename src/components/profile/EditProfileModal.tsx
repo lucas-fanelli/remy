@@ -17,10 +17,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  PhotoCamera,
-} from '@mui/icons-material';
+import { Close as CloseIcon, PhotoCamera } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -114,7 +111,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         const uploadResponse = await fetch('/api/upload/avatar', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: formDataUpload,
         });
@@ -133,7 +130,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           fullName: formData.fullName.trim() || null,
@@ -179,13 +176,19 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         },
       }}
     >
-      <DialogTitle sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        pb: { xs: 1, md: 2 }
-      }}>
-        <Typography component="span" variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          pb: { xs: 1, md: 2 },
+        }}
+      >
+        <Typography
+          component="span"
+          variant="h6"
+          sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
+        >
           Edit Profile
         </Typography>
         <IconButton onClick={onClose} size={isMobile ? 'small' : 'medium'}>
@@ -196,7 +199,14 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
       <form onSubmit={handleSubmit}>
         <DialogContent sx={{ px: { xs: 2, md: 3 } }}>
           {/* Avatar Section */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: { xs: 2, md: 3 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              mb: { xs: 2, md: 3 },
+            }}
+          >
             <Avatar
               src={avatarPreview}
               sx={{
@@ -234,10 +244,12 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
                 mt: 1,
                 textAlign: 'center',
                 fontSize: { xs: '0.7rem', md: '0.75rem' },
-                px: { xs: 2, md: 0 }
+                px: { xs: 2, md: 0 },
               }}
             >
-              {avatarFile ? 'New photo selected - will be uploaded when you save' : 'Click to change your profile photo'}
+              {avatarFile
+                ? 'New photo selected - will be uploaded when you save'
+                : 'Click to change your profile photo'}
             </Typography>
           </Box>
 
@@ -302,11 +314,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
 
           <FormControlLabel
             control={
-              <Switch
-                checked={formData.isPrivate}
-                onChange={handleSwitchChange}
-                color="primary"
-              />
+              <Switch checked={formData.isPrivate} onChange={handleSwitchChange} color="primary" />
             }
             label={
               <Box>
@@ -319,12 +327,14 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
           />
         </DialogContent>
 
-        <DialogActions sx={{
-          px: { xs: 2, md: 3 },
-          pb: { xs: 2, md: 3 },
-          flexDirection: { xs: 'column-reverse', sm: 'row' },
-          gap: { xs: 1, sm: 0 }
-        }}>
+        <DialogActions
+          sx={{
+            px: { xs: 2, md: 3 },
+            pb: { xs: 2, md: 3 },
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
+            gap: { xs: 1, sm: 0 },
+          }}
+        >
           <Button
             onClick={onClose}
             disabled={saving}

@@ -88,21 +88,21 @@ export default function FollowingPage() {
     const isCurrentlyFollowing = followingState[targetUsername] || false;
 
     try {
-      setFollowingState(prev => ({ ...prev, [targetUsername]: !isCurrentlyFollowing }));
+      setFollowingState((prev) => ({ ...prev, [targetUsername]: !isCurrentlyFollowing }));
 
       const endpoint = isCurrentlyFollowing ? 'unfollow' : 'follow';
       const response = await fetch(`/api/users/${targetUsername}/${endpoint}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        setFollowingState(prev => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
+        setFollowingState((prev) => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
       }
     } catch (error) {
-      setFollowingState(prev => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
+      setFollowingState((prev) => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
       console.error('Error toggling follow:', error);
     }
   };

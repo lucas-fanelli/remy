@@ -30,10 +30,7 @@ export class UserService implements IUserService {
     return userWithoutPassword;
   }
 
-  async updateProfile(
-    userId: string,
-    data: UpdateUserProfileDTO
-  ): Promise<UserPublicProfile> {
+  async updateProfile(userId: string, data: UpdateUserProfileDTO): Promise<UserPublicProfile> {
     // Validate website URL if provided
     if (data.website) {
       try {

@@ -14,8 +14,16 @@ jest.mock('@mui/material/useMediaQuery', () => jest.fn(() => false));
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,
@@ -28,9 +36,7 @@ jest.mock('../../common/ImageUpload', () => {
   return function MockImageUpload({ onChange, value }: any) {
     return (
       <div>
-        <button onClick={() => onChange('https://example.com/image.jpg')}>
-          Upload Image
-        </button>
+        <button onClick={() => onChange('https://example.com/image.jpg')}>Upload Image</button>
         {value && <div>Image: {value}</div>}
       </div>
     );
@@ -41,11 +47,7 @@ const mockTheme = createTheme();
 
 // Simplified renderWithProviders - CreateRecipeForm doesn't need AuthProvider
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(
-    <ThemeProvider theme={mockTheme}>
-      {component}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
 describe('CreateRecipeForm Component', () => {
@@ -547,7 +549,7 @@ describe('CreateRecipeForm Component', () => {
 
     // Wait for all async state updates to complete (setLoading(false) in finally block)
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   });
 
@@ -561,19 +563,21 @@ describe('CreateRecipeForm Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /create recipe/i }));
 
     await waitFor(() => {
-      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Test Recipe',
-        description: 'Test Description',
-        servings: 4,
-        prepTime: 15,
-        cookingTime: 30,
-        imageUrl: 'https://example.com/image.jpg',
-      }));
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Test Recipe',
+          description: 'Test Description',
+          servings: 4,
+          prepTime: 15,
+          cookingTime: 30,
+          imageUrl: 'https://example.com/image.jpg',
+        })
+      );
     });
 
     // Wait for all async state updates to complete (setLoading(false) in finally block)
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   });
 
@@ -632,16 +636,16 @@ describe('CreateRecipeForm Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /create recipe/i }));
 
     await waitFor(() => {
-      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
-        ingredients: expect.arrayContaining([
-          expect.objectContaining({ name: 'Flour' })
-        ])
-      }));
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredients: expect.arrayContaining([expect.objectContaining({ name: 'Flour' })]),
+        })
+      );
     });
 
     // Wait for all async state updates to complete (setLoading(false) in finally block)
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   });
 
@@ -684,16 +688,18 @@ describe('CreateRecipeForm Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /create recipe/i }));
 
     await waitFor(() => {
-      expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
-        instructions: expect.arrayContaining([
-          expect.objectContaining({ description: 'Mix well' })
-        ])
-      }));
+      expect(mockOnSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          instructions: expect.arrayContaining([
+            expect.objectContaining({ description: 'Mix well' }),
+          ]),
+        })
+      );
     });
 
     // Wait for all async state updates to complete (setLoading(false) in finally block)
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
   });
 
@@ -719,7 +725,11 @@ describe('CreateRecipeForm Component', () => {
       // Click next without filling required fields (tests line 99-100 branch)
       fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-      expect(screen.getByText(/please fill in all required fields: title, description \(max 500 chars\), image, and time\/servings/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /please fill in all required fields: title, description \(max 500 chars\), image, and time\/servings/i
+        )
+      ).toBeInTheDocument();
     });
 
     it('should show error when clicking next on step 1 without ingredient unit - branch coverage', async () => {
@@ -735,7 +745,9 @@ describe('CreateRecipeForm Component', () => {
       // Click next without setting unit
       fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-      expect(screen.getByText(/please add at least one ingredient with name, amount, and unit/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/please add at least one ingredient with name, amount, and unit/i)
+      ).toBeInTheDocument();
     });
 
     it('should show error when clicking next on step 2 without instructions - branch coverage', async () => {
@@ -771,7 +783,7 @@ describe('CreateRecipeForm Component', () => {
       // Get all delete buttons (filter for buttons with DeleteIcon)
       const allButtons = screen.getAllByRole('button');
       const deleteButtons = allButtons.filter(
-        btn => btn.querySelector('svg[data-testid="DeleteIcon"]') !== null
+        (btn) => btn.querySelector('svg[data-testid="DeleteIcon"]') !== null
       );
 
       // Remove the middle instruction (index 1) - this tests lines 135-138
@@ -806,7 +818,7 @@ describe('CreateRecipeForm Component', () => {
 
       // Wait for all async state updates to complete (setLoading(false) in finally block)
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
 
@@ -827,7 +839,7 @@ describe('CreateRecipeForm Component', () => {
 
       // Wait for all async state updates to complete (setLoading(false) in finally block)
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
   });
@@ -858,9 +870,9 @@ describe('CreateRecipeForm Component', () => {
       expect(ingredientInputs.length).toBe(2);
 
       // Find delete buttons (testing line 118 - removeIngredient)
-      const deleteButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('svg[data-testid="DeleteIcon"]')
-      );
+      const deleteButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('svg[data-testid="DeleteIcon"]'));
 
       // Click the first delete button
       fireEvent.click(deleteButtons[0]);
@@ -894,9 +906,10 @@ describe('CreateRecipeForm Component', () => {
 
       // Find difficulty select (line 237)
       const selects = screen.getAllByRole('combobox');
-      const difficultySelect = selects.find(select =>
-        select.getAttribute('id')?.includes('difficulty') ||
-        select.parentElement?.textContent?.includes('Difficulty')
+      const difficultySelect = selects.find(
+        (select) =>
+          select.getAttribute('id')?.includes('difficulty') ||
+          select.parentElement?.textContent?.includes('Difficulty')
       );
 
       if (difficultySelect) {
@@ -963,14 +976,14 @@ describe('CreateRecipeForm Component', () => {
 
       // Should filter out empty ingredients and instructions (lines 162-163)
       await waitFor(() => {
-        expect(mockOnSubmit).toHaveBeenCalledWith(expect.objectContaining({
-          ingredients: expect.arrayContaining([
-            expect.objectContaining({ name: 'Flour' })
-          ]),
-          instructions: expect.arrayContaining([
-            expect.objectContaining({ description: 'Mix ingredients' })
-          ])
-        }));
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            ingredients: expect.arrayContaining([expect.objectContaining({ name: 'Flour' })]),
+            instructions: expect.arrayContaining([
+              expect.objectContaining({ description: 'Mix ingredients' }),
+            ]),
+          })
+        );
       });
 
       // Verify only non-empty items were included
@@ -980,7 +993,7 @@ describe('CreateRecipeForm Component', () => {
 
       // Wait for all async state updates to complete (setLoading(false) in finally block)
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
     });
 
@@ -1005,7 +1018,9 @@ describe('CreateRecipeForm Component', () => {
 
       // Should show error because no ingredient has a name
       await waitFor(() => {
-        expect(screen.getByText(/please add at least one ingredient with name, amount, and unit/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/please add at least one ingredient with name, amount, and unit/i)
+        ).toBeInTheDocument();
       });
     });
 
@@ -1028,7 +1043,9 @@ describe('CreateRecipeForm Component', () => {
 
       // Should show validation error
       await waitFor(() => {
-        expect(screen.getByText(/please add at least one ingredient with name, amount, and unit/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/please add at least one ingredient with name, amount, and unit/i)
+        ).toBeInTheDocument();
       });
     });
 
@@ -1074,7 +1091,7 @@ describe('CreateRecipeForm Component', () => {
       // Mock mobile viewport
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: query.includes('max-width') || query.includes('(max-width: 600px)'),
           media: query,
           onchange: null,
@@ -1115,7 +1132,7 @@ describe('CreateRecipeForm Component', () => {
       // The mobile delete button is shown on mobile with DeleteIcon
       // We'll find it by looking for buttons with the delete icon (MUI renders as svg)
       const allButtons = screen.getAllByRole('button');
-      const deleteButtons = allButtons.filter(btn => {
+      const deleteButtons = allButtons.filter((btn) => {
         const svg = btn.querySelector('svg[data-testid="DeleteIcon"]');
         return svg !== null;
       });
@@ -1135,7 +1152,7 @@ describe('CreateRecipeForm Component', () => {
       // Restore matchMedia
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: false,
           media: query,
           onchange: null,

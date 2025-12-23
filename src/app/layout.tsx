@@ -81,16 +81,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={nunito.variable}>
       <head>
         <meta name="theme-color" content="#000000" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -195,9 +194,7 @@ export default function RootLayout({
                 <AuthProvider>
                   <PwaProvider>
                     <MotionProvider>
-                      <LayoutWrapper>
-                        {children}
-                      </LayoutWrapper>
+                      <LayoutWrapper>{children}</LayoutWrapper>
                       <InstallPrompt />
                     </MotionProvider>
                   </PwaProvider>

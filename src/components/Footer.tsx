@@ -16,14 +16,7 @@ import {
   useTheme,
   Tooltip,
 } from '@mui/material';
-import {
-  LightMode,
-  DarkMode,
-  YouTube,
-  Email,
-  Close,
-  Info,
-} from '@mui/icons-material';
+import { LightMode, DarkMode, YouTube, Email, Close, Info } from '@mui/icons-material';
 import { useThemeMode } from '@/contexts/ThemeContext';
 
 export default function Footer() {
@@ -46,9 +39,10 @@ export default function Footer() {
     setFormData({ name: '', email: '', subject: '' });
   };
 
-  const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
-  };
+  const handleInputChange =
+    (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   const handleSendEmail = () => {
     const mailtoLink = `mailto:lucasarielfanelli@hotmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
@@ -134,11 +128,7 @@ export default function Footer() {
             </IconButton>
           </Tooltip>
           <Tooltip title={mode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
-            <IconButton
-              onClick={toggleTheme}
-              size="small"
-              sx={{ color: 'text.secondary' }}
-            >
+            <IconButton onClick={toggleTheme} size="small" sx={{ color: 'text.secondary' }}>
               {mode === 'dark' ? <LightMode /> : <DarkMode />}
             </IconButton>
           </Tooltip>
@@ -157,8 +147,12 @@ export default function Footer() {
           },
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6" component="span">Contact</Typography>
+        <DialogTitle
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+        >
+          <Typography variant="h6" component="span">
+            Contact
+          </Typography>
           <IconButton onClick={handleCloseContact} size="small">
             <Close />
           </IconButton>

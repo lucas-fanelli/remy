@@ -9,7 +9,7 @@ import {
 // Concrete implementation of IUserRepository
 // Single Responsibility Principle: Only handles user data access
 export class UserRepository implements IUserRepository {
-  constructor(private readonly prisma: PrismaClient) { }
+  constructor(private readonly prisma: PrismaClient) {}
 
   async create(data: CreateUserDTO): Promise<User> {
     return this.prisma.user.create({

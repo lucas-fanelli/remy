@@ -13,10 +13,7 @@ export async function GET(
     // Get user
     const user = await userService.getUserByUsername(username);
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Get stats
@@ -33,9 +30,6 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching user stats:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch stats' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
   }
 }

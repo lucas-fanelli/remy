@@ -26,7 +26,9 @@ function TestComponentWithActions() {
   return (
     <div>
       <button onClick={() => login('testuser', 'password123')}>Login</button>
-      <button onClick={() => register('test@example.com', 'testuser', 'password123', 'Test User')}>Register</button>
+      <button onClick={() => register('test@example.com', 'testuser', 'password123', 'Test User')}>
+        Register
+      </button>
       <button onClick={logout}>Logout</button>
       <button onClick={() => updateProfile({ fullName: 'Updated Name' })}>Update Profile</button>
     </div>
@@ -152,11 +154,10 @@ describe('AuthContext', () => {
         updatedAt: new Date(),
       };
 
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: { token: 'new-token', user: mockUser } }),
-        });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { token: 'new-token', user: mockUser } }),
+      });
 
       const { rerender } = render(
         <AuthProvider>
@@ -294,9 +295,13 @@ describe('AuthContext', () => {
 
         return (
           <div>
-            <div data-testid="auth-status">{isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</div>
+            <div data-testid="auth-status">
+              {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+            </div>
             <div data-testid="user-name">{user?.fullName || 'No Name'}</div>
-            <button onClick={() => updateProfile({ fullName: 'Updated Name' })}>Update Profile</button>
+            <button onClick={() => updateProfile({ fullName: 'Updated Name' })}>
+              Update Profile
+            </button>
           </div>
         );
       }
@@ -664,15 +669,23 @@ describe('AuthContext', () => {
       );
 
       // Wait for user to be loaded
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
+        },
+        { timeout: 2000 }
+      );
 
       fireEvent.click(screen.getByText('Update'));
 
-      await waitFor(() => {
-        expect(screen.getByTestId('error-message')).toHaveTextContent('Error: Profile update not allowed');
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('error-message')).toHaveTextContent(
+            'Error: Profile update not allowed'
+          );
+        },
+        { timeout: 2000 }
+      );
     });
 
     it('should handle update profile error without custom message - fallback lines 136-137', async () => {
@@ -734,16 +747,21 @@ describe('AuthContext', () => {
       );
 
       // Wait for user to be loaded
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
+        },
+        { timeout: 2000 }
+      );
 
       fireEvent.click(screen.getByText('Update'));
 
-      await waitFor(() => {
-        expect(screen.getByTestId('error-message')).toHaveTextContent('Error: Update failed');
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('error-message')).toHaveTextContent('Error: Update failed');
+        },
+        { timeout: 2000 }
+      );
     });
-
   });
 });

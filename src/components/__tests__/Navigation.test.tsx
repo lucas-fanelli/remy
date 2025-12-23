@@ -20,8 +20,16 @@ jest.mock('@/contexts/AuthContext', () => ({
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
   mockMotion.create = (component: any) => component;
-  mockMotion.div = ({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any) =>
-    <div {...props}>{children}</div>;
+  mockMotion.div = ({
+    children,
+    initial,
+    animate,
+    exit,
+    transition,
+    whileHover,
+    whileTap,
+    ...props
+  }: any) => <div {...props}>{children}</div>;
 
   return {
     motion: mockMotion,
@@ -109,7 +117,7 @@ jest.mock('../search/PersistentSearchBar', () => {
   return function MockPersistentSearchBar({ placeholder }: { placeholder?: string }) {
     return (
       <div data-testid="persistent-search-bar">
-        <input placeholder={placeholder || "Search..."} aria-label="Search recipes" />
+        <input placeholder={placeholder || 'Search...'} aria-label="Search recipes" />
       </div>
     );
   };
@@ -121,9 +129,7 @@ const renderWithProviders = (component: React.ReactElement) => {
   return render(
     <ThemeProvider theme={mockTheme}>
       <CustomThemeProvider>
-        <AuthProvider>
-          {component}
-        </AuthProvider>
+        <AuthProvider>{component}</AuthProvider>
       </CustomThemeProvider>
     </ThemeProvider>
   );
@@ -202,12 +208,6 @@ describe('Navigation Component', () => {
       expect(screen.getByText('Profile')).toBeInTheDocument();
     });
   });
-
-
-
-
-
-
 
   it('should handle tab clicks', () => {
     renderWithProviders(<Navigation />);
@@ -300,7 +300,11 @@ describe('Navigation Component', () => {
     const navButtons = screen.getAllByRole('button');
     // The pantry button should be one of the navigation items
     // We'll click it and verify navigation
-    const pantryButton = navButtons.find(btn => btn.getAttribute('aria-label') === 'Pantry' || btn.querySelector('[data-testid="KitchenIcon"]'));
+    const pantryButton = navButtons.find(
+      (btn) =>
+        btn.getAttribute('aria-label') === 'Pantry' ||
+        btn.querySelector('[data-testid="KitchenIcon"]')
+    );
 
     if (pantryButton) {
       fireEvent.click(pantryButton);
@@ -369,10 +373,6 @@ describe('Navigation Component', () => {
     });
   });
 
-
-
-
-
   it('should render badge with notifications count', async () => {
     // Mock fetch for notifications API
     global.fetch = jest.fn(() =>
@@ -398,10 +398,6 @@ describe('Navigation Component', () => {
     const brandName = screen.getAllByText(/Remy/i);
     expect(brandName.length).toBeGreaterThan(0);
   });
-
-
-
-
 
   // NOTE: Theme toggle tests removed - Theme toggle moved to Footer component
 
@@ -456,14 +452,12 @@ describe('Navigation Component', () => {
     });
   });
 
-
-
   it('should click brand name to navigate home', () => {
     renderWithProviders(<Navigation />);
 
     const brandNames = screen.getAllByText(/Remy/i);
     // Click the brand text (not the image)
-    const brandText = brandNames.find(el => el.tagName !== 'IMG');
+    const brandText = brandNames.find((el) => el.tagName !== 'IMG');
     if (brandText) {
       fireEvent.click(brandText);
       expect(mockPush).toHaveBeenCalledWith('/');
@@ -575,9 +569,12 @@ describe('Navigation Component', () => {
     fireEvent.change(searchInput, { target: { value: 'test' } });
 
     // Search should still work even with failed response
-    await waitFor(() => {
-      expect(searchInput).toHaveValue('test');
-    }, { timeout: 500 });
+    await waitFor(
+      () => {
+        expect(searchInput).toHaveValue('test');
+      },
+      { timeout: 500 }
+    );
   });
 
   // Notification Dropdown Tests (lines 636-695, 780)
@@ -606,7 +603,7 @@ describe('Navigation Component', () => {
       // Mock mobile viewport
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: query.includes('max-width'), // Simulate mobile
           media: query,
           onchange: null,
@@ -624,7 +621,7 @@ describe('Navigation Component', () => {
 
       // Find and click the menu icon button (hamburger menu)
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -644,7 +641,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -689,7 +686,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -709,7 +706,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -730,7 +727,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -768,7 +765,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -934,7 +931,7 @@ describe('Navigation Component', () => {
           '/api/notifications',
           expect.objectContaining({
             headers: {
-              'Authorization': 'Bearer mock-jwt-token',
+              Authorization: 'Bearer mock-jwt-token',
             },
           })
         );
@@ -943,7 +940,7 @@ describe('Navigation Component', () => {
 
     it('should handle failed notification fetch - line 209-211', async () => {
       // Suppress expected console.error for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // When fetch returns ok: false, component should gracefully handle it
       // by not setting any notifications (graceful degradation)
@@ -961,7 +958,7 @@ describe('Navigation Component', () => {
           '/api/notifications',
           expect.objectContaining({
             headers: {
-              'Authorization': 'Bearer mock-jwt-token',
+              Authorization: 'Bearer mock-jwt-token',
             },
           })
         );
@@ -989,7 +986,7 @@ describe('Navigation Component', () => {
 
     it('should handle notification fetch error - line 212-213', async () => {
       // Suppress expected console.error for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // When fetch throws an error, component should gracefully handle it
       const fetchError = new Error('Network error');
@@ -999,10 +996,7 @@ describe('Navigation Component', () => {
 
       // Wait for fetch to be called
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/notifications',
-          expect.anything()
-        );
+        expect(mockFetch).toHaveBeenCalledWith('/api/notifications', expect.anything());
       });
 
       // Component should still render without crashing (graceful error handling)
@@ -1065,7 +1059,7 @@ describe('Navigation Component', () => {
 
       // Find and click the notifications button (heart icon)
       const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find(btn =>
+      const notificationButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="FavoriteBorderIcon"]')
       );
 
@@ -1102,7 +1096,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find(btn =>
+      const notificationButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="FavoriteBorderIcon"]')
       );
 
@@ -1143,7 +1137,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find(btn =>
+      const notificationButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="FavoriteBorderIcon"]')
       );
 
@@ -1187,7 +1181,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find(btn =>
+      const notificationButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="FavoriteBorderIcon"]')
       );
 
@@ -1230,7 +1224,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find(btn =>
+      const notificationButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="FavoriteBorderIcon"]')
       );
 
@@ -1250,7 +1244,7 @@ describe('Navigation Component', () => {
           expect.objectContaining({
             method: 'POST',
             headers: {
-              'Authorization': 'Bearer mock-jwt-token',
+              Authorization: 'Bearer mock-jwt-token',
             },
           })
         );
@@ -1258,7 +1252,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle mark as read error - line 298-301', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const markReadError = new Error('Failed to mark as read');
 
       mockFetch
@@ -1278,7 +1272,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find(btn =>
+      const notificationButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="FavoriteBorderIcon"]')
       );
 
@@ -1292,7 +1286,10 @@ describe('Navigation Component', () => {
       fireEvent.click(markReadButton);
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error marking notifications as read:', markReadError);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Error marking notifications as read:',
+          markReadError
+        );
       });
 
       consoleErrorSpy.mockRestore();
@@ -1328,7 +1325,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find(btn =>
+      const notificationButton = buttons.find((btn) =>
         btn.querySelector('[data-testid="FavoriteBorderIcon"]')
       );
 
@@ -1357,7 +1354,7 @@ describe('Navigation Component', () => {
       // Ensure desktop mode by mocking matchMedia
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: false, // Desktop mode
           media: query,
           onchange: null,
@@ -1377,17 +1374,20 @@ describe('Navigation Component', () => {
 
       // Find and click the avatar button to open the menu (in desktop mode)
       const avatarButtons = screen.getAllByRole('button');
-      const avatarButton = avatarButtons.find(btn =>
-        btn.querySelector('.MuiAvatar-root')
-      ) || avatarButtons[avatarButtons.length - 1];
+      const avatarButton =
+        avatarButtons.find((btn) => btn.querySelector('.MuiAvatar-root')) ||
+        avatarButtons[avatarButtons.length - 1];
 
       fireEvent.click(avatarButton);
 
       // Wait for menu to open and find Profile text
-      await waitFor(() => {
-        const profileText = screen.queryByText('Profile');
-        expect(profileText).toBeInTheDocument();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          const profileText = screen.queryByText('Profile');
+          expect(profileText).toBeInTheDocument();
+        },
+        { timeout: 3000 }
+      );
 
       const profileMenuItem = screen.getByText('Profile');
       fireEvent.click(profileMenuItem);
@@ -1467,9 +1467,7 @@ describe('Navigation Component', () => {
 
       // Find and click the Create Recipe button (AddBox icon)
       const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find(btn =>
-        btn.querySelector('[data-testid="AddBoxIcon"]')
-      );
+      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
 
       expect(addButton).toBeDefined();
       fireEvent.click(addButton!);
@@ -1488,9 +1486,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find(btn =>
-        btn.querySelector('[data-testid="AddBoxIcon"]')
-      );
+      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
 
       fireEvent.click(addButton!);
 
@@ -1527,9 +1523,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find(btn =>
-        btn.querySelector('[data-testid="AddBoxIcon"]')
-      );
+      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
 
       fireEvent.click(addButton!);
 
@@ -1559,7 +1553,7 @@ describe('Navigation Component', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer mock-jwt-token`,
+            Authorization: `Bearer mock-jwt-token`,
           },
           body: JSON.stringify(createRecipeData),
         });
@@ -1568,7 +1562,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle recipe creation error - lines 365-377', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       mockFetch
         .mockResolvedValueOnce({
@@ -1587,9 +1581,7 @@ describe('Navigation Component', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find(btn =>
-        btn.querySelector('[data-testid="AddBoxIcon"]')
-      );
+      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
 
       fireEvent.click(addButton!);
 
@@ -1604,7 +1596,7 @@ describe('Navigation Component', () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer mock-jwt-token`,
+              Authorization: `Bearer mock-jwt-token`,
             },
             body: JSON.stringify({ title: 'Test' }),
           });
@@ -1617,10 +1609,7 @@ describe('Navigation Component', () => {
         }
       });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error creating recipe:',
-        expect.any(Error)
-      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating recipe:', expect.any(Error));
 
       consoleErrorSpy.mockRestore();
     });
@@ -1631,7 +1620,7 @@ describe('Navigation Component', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: query.includes('max-width'),
           media: query,
           onchange: null,
@@ -1654,9 +1643,7 @@ describe('Navigation Component', () => {
 
       // Find search button in mobile bottom nav
       const buttons = screen.getAllByRole('button');
-      const searchButton = buttons.find(btn =>
-        btn.querySelector('[data-testid="SearchIcon"]')
-      );
+      const searchButton = buttons.find((btn) => btn.querySelector('[data-testid="SearchIcon"]'));
 
       if (searchButton) {
         fireEvent.click(searchButton);
@@ -1677,9 +1664,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const searchButton = buttons.find(btn =>
-        btn.querySelector('[data-testid="SearchIcon"]')
-      );
+      const searchButton = buttons.find((btn) => btn.querySelector('[data-testid="SearchIcon"]'));
 
       if (searchButton) {
         fireEvent.click(searchButton);
@@ -1691,7 +1676,7 @@ describe('Navigation Component', () => {
 
         // Find close button in dialog AppBar (has aria-label="close")
         const allButtons = screen.getAllByRole('button');
-        const closeButton = allButtons.find(btn => btn.getAttribute('aria-label') === 'close');
+        const closeButton = allButtons.find((btn) => btn.getAttribute('aria-label') === 'close');
 
         if (closeButton) {
           fireEvent.click(closeButton);
@@ -1713,7 +1698,6 @@ describe('Navigation Component', () => {
       }
     });
 
-
     // NOTE: Mobile search dialog test removed - Navigation now uses PersistentSearchBar which handles search internally
   });
 
@@ -1722,7 +1706,7 @@ describe('Navigation Component', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
-        value: jest.fn().mockImplementation(query => ({
+        value: jest.fn().mockImplementation((query) => ({
           matches: query.includes('max-width'),
           media: query,
           onchange: null,
@@ -1739,7 +1723,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -1755,7 +1739,7 @@ describe('Navigation Component', () => {
       // Find the Home nav item in the drawer
       const allButtons = screen.getAllByRole('button');
       // Home button should be one of them containing "Home" text
-      const homeButton = allButtons.find(btn => btn.textContent?.includes('Home'));
+      const homeButton = allButtons.find((btn) => btn.textContent?.includes('Home'));
       expect(homeButton).toBeDefined();
 
       // Click the Home navigation button which should trigger handleTabClick and setDrawerOpen(false)
@@ -1780,7 +1764,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -1795,7 +1779,7 @@ describe('Navigation Component', () => {
 
       // Find Settings button
       const allButtons = screen.getAllByRole('button');
-      const settingsButton = allButtons.find(btn => btn.textContent?.includes('Settings'));
+      const settingsButton = allButtons.find((btn) => btn.textContent?.includes('Settings'));
       expect(settingsButton).toBeDefined();
 
       fireEvent.click(settingsButton!);
@@ -1819,7 +1803,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -1834,7 +1818,7 @@ describe('Navigation Component', () => {
 
       // Find Logout button
       const allButtons = screen.getAllByRole('button');
-      const logoutButton = allButtons.find(btn => btn.textContent?.includes('Logout'));
+      const logoutButton = allButtons.find((btn) => btn.textContent?.includes('Logout'));
       expect(logoutButton).toBeDefined();
 
       fireEvent.click(logoutButton!);
@@ -1847,7 +1831,15 @@ describe('Navigation Component', () => {
   describe('Additional Branch Coverage', () => {
     beforeEach(() => {
       mockUseAuth.mockReturnValue({
-        user: { id: '1', username: 'testuser', email: 'test@test.com', displayName: 'Test User', bio: null, profileImage: null, createdAt: new Date() },
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          displayName: 'Test User',
+          bio: null,
+          profileImage: null,
+          createdAt: new Date(),
+        },
         token: 'fake-token',
         isLoading: false,
         isAuthenticated: true,
@@ -1860,9 +1852,15 @@ describe('Navigation Component', () => {
 
     it('should render navigation with breadcrumbs generation for various paths - lines 381-411', () => {
       // Test breadcrumb generation for multiple pathnames to cover the function
-      const pathnames = ['/', '/pantry', '/settings', '/recipe/123e4567-e89b-12d3-a456-426614174000', '/profile/testuser'];
+      const pathnames = [
+        '/',
+        '/pantry',
+        '/settings',
+        '/recipe/123e4567-e89b-12d3-a456-426614174000',
+        '/profile/testuser',
+      ];
 
-      pathnames.forEach(path => {
+      pathnames.forEach((path) => {
         mockPathname = path;
         const { unmount } = renderWithProviders(<Navigation />);
 
@@ -1879,7 +1877,7 @@ describe('Navigation Component', () => {
 
       // In mobile view, find AddBox button in the bottom navigation
       const buttons = screen.getAllByRole('button');
-      const addButtons = buttons.filter(btn => {
+      const addButtons = buttons.filter((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'AddBoxIcon';
       });
@@ -1916,7 +1914,15 @@ describe('Navigation Component', () => {
 
       // Setup user with token for authenticated request
       mockUseAuth.mockReturnValue({
-        user: { id: '1', username: 'testuser', email: 'test@test.com', displayName: 'Test User', bio: null, profileImage: null, createdAt: new Date() },
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          displayName: 'Test User',
+          bio: null,
+          profileImage: null,
+          createdAt: new Date(),
+        },
         token: 'fake-token',
         isLoading: false,
         isAuthenticated: true,
@@ -1935,7 +1941,7 @@ describe('Navigation Component', () => {
 
       // Open create recipe dialog
       const buttons = screen.getAllByRole('button');
-      const addButtons = buttons.filter(btn => {
+      const addButtons = buttons.filter((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'AddBoxIcon';
       });
@@ -1958,7 +1964,7 @@ describe('Navigation Component', () => {
             method: 'POST',
             headers: expect.objectContaining({
               'Content-Type': 'application/json',
-              'Authorization': 'Bearer fake-token',
+              Authorization: 'Bearer fake-token',
             }),
           })
         );
@@ -1972,7 +1978,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle recipe creation failure - lines 363-376', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Mock failed recipe creation FIRST
       mockFetch.mockImplementation((url: string, options?: any) => {
@@ -1990,7 +1996,15 @@ describe('Navigation Component', () => {
 
       // Setup user with token
       mockUseAuth.mockReturnValue({
-        user: { id: '1', username: 'testuser', email: 'test@test.com', displayName: 'Test User', bio: null, profileImage: null, createdAt: new Date() },
+        user: {
+          id: '1',
+          username: 'testuser',
+          email: 'test@test.com',
+          displayName: 'Test User',
+          bio: null,
+          profileImage: null,
+          createdAt: new Date(),
+        },
         token: 'fake-token',
         isLoading: false,
         isAuthenticated: true,
@@ -2004,7 +2018,7 @@ describe('Navigation Component', () => {
 
       // Open create recipe dialog
       const buttons = screen.getAllByRole('button');
-      const addButtons = buttons.filter(btn => {
+      const addButtons = buttons.filter((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'AddBoxIcon';
       });
@@ -2019,9 +2033,12 @@ describe('Navigation Component', () => {
       fireEvent.click(submitButton);
 
       // Wait for error to be logged (line 374) AND caught by form
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating recipe:', expect.any(Error));
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating recipe:', expect.any(Error));
+        },
+        { timeout: 3000 }
+      );
 
       // Also check that the form displays the error
       await waitFor(() => {
@@ -2051,7 +2068,7 @@ describe('Navigation Component', () => {
       expect(banners2.length).toBeGreaterThan(0);
       unmount2();
 
-      // Test settings path - should show Home > Settings  
+      // Test settings path - should show Home > Settings
       mockPathname = '/settings';
       const { unmount: unmount3 } = renderWithProviders(<Navigation />);
       const banners3 = screen.getAllByRole('banner');
@@ -2115,7 +2132,7 @@ describe('Navigation Component', () => {
 
       // Open drawer - find menu button by SVG data-testid
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2160,7 +2177,7 @@ describe('Navigation Component', () => {
 
       // Open drawer - find menu button by SVG data-testid
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2200,7 +2217,7 @@ describe('Navigation Component', () => {
 
       // Open drawer - find menu button by SVG data-testid
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2237,7 +2254,7 @@ describe('Navigation Component', () => {
 
       // Open drawer - find menu button by SVG data-testid
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2289,7 +2306,7 @@ describe('Navigation Component', () => {
 
       // Open drawer
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2347,7 +2364,7 @@ describe('Navigation Component', () => {
 
       // Open drawer
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2404,9 +2421,7 @@ describe('Navigation Component', () => {
 
       // Click on avatar to open menu
       const avatars = screen.getAllByRole('button');
-      const avatarButton = avatars.find(btn =>
-        btn.querySelector('.MuiAvatar-root')
-      );
+      const avatarButton = avatars.find((btn) => btn.querySelector('.MuiAvatar-root'));
 
       if (avatarButton) {
         fireEvent.click(avatarButton);
@@ -2438,9 +2453,7 @@ describe('Navigation Component', () => {
 
       // Click on avatar to open menu
       const avatars = screen.getAllByRole('button');
-      const avatarButton = avatars.find(btn =>
-        btn.querySelector('.MuiAvatar-root')
-      );
+      const avatarButton = avatars.find((btn) => btn.querySelector('.MuiAvatar-root'));
 
       if (avatarButton) {
         fireEvent.click(avatarButton);
@@ -2472,9 +2485,7 @@ describe('Navigation Component', () => {
 
       // Click on guest avatar to open menu
       const avatars = screen.getAllByRole('button');
-      const avatarButton = avatars.find(btn =>
-        btn.querySelector('.MuiAvatar-root')
-      );
+      const avatarButton = avatars.find((btn) => btn.querySelector('.MuiAvatar-root'));
 
       if (avatarButton) {
         fireEvent.click(avatarButton);
@@ -2524,9 +2535,9 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       // Find home button in bottom nav
-      const homeButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('[data-testid="HomeIcon"]')
-      );
+      const homeButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="HomeIcon"]'));
 
       if (homeButtons.length > 0) {
         fireEvent.click(homeButtons[0]);
@@ -2550,9 +2561,9 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       // Find pantry button in bottom nav
-      const pantryButtons = screen.getAllByRole('button').filter(btn =>
-        btn.querySelector('[data-testid="KitchenIcon"]')
-      );
+      const pantryButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="KitchenIcon"]'));
 
       if (pantryButtons.length > 0) {
         fireEvent.click(pantryButtons[0]);
@@ -2596,7 +2607,7 @@ describe('Navigation Component', () => {
 
       // Open drawer
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2653,7 +2664,7 @@ describe('Navigation Component', () => {
 
       // Open drawer
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2715,7 +2726,9 @@ describe('Navigation Component', () => {
 
       // Find logo box and click
       const logoImages = screen.getAllByRole('img');
-      const logo = logoImages.find(img => img.getAttribute('alt')?.toLowerCase().includes('remy'));
+      const logo = logoImages.find((img) =>
+        img.getAttribute('alt')?.toLowerCase().includes('remy')
+      );
 
       if (logo) {
         const clickableBox = logo.closest('[style*="cursor: pointer"]') || logo.parentElement;
@@ -2762,7 +2775,7 @@ describe('Navigation Component', () => {
 
       // Open drawer
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });
@@ -2798,7 +2811,7 @@ describe('Navigation Component', () => {
 
       // Open drawer
       const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find(btn => {
+      const menuButton = buttons.find((btn) => {
         const svg = btn.querySelector('svg');
         return svg && svg.getAttribute('data-testid') === 'MenuIcon';
       });

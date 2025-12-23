@@ -2,251 +2,257 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-    Box,
-    Container,
-    Typography,
-    Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TablePagination,
-    IconButton,
-    CircularProgress,
-    Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogContentText,
-    DialogActions,
-    Tooltip,
-    useTheme,
+  Box,
+  Container,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  IconButton,
+  CircularProgress,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Tooltip,
+  useTheme,
 } from '@mui/material';
-import {
-    Delete,
-    ArrowBack,
-    Visibility,
-} from '@mui/icons-material';
+import { Delete, ArrowBack, Visibility } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminComment {
-    id: string;
-    text: string;
-    postId: string;
-    userId: string;
-    createdAt: string;
-    user: {
-        username: string;
-        email: string;
-    };
-    post: {
-        title: string | null;
-    };
+  id: string;
+  text: string;
+  postId: string;
+  userId: string;
+  createdAt: string;
+  user: {
+    username: string;
+    email: string;
+  };
+  post: {
+    title: string | null;
+  };
 }
 
 export default function AdminCommentsPage() {
-    const router = useRouter();
-    const theme = useTheme();
-    const { user, token, isAdmin, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+  const theme = useTheme();
+  const { user, token, isAdmin, isLoading: authLoading } = useAuth();
 
-    const [comments, setComments] = useState<AdminComment[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(20);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [selectedComment, setSelectedComment] = useState<AdminComment | null>(null);
-    const [actionLoading, setActionLoading] = useState(false);
+  const [comments, setComments] = useState<AdminComment[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedComment, setSelectedComment] = useState<AdminComment | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-    const fetchComments = useCallback(async () => {
-        if (!token) return;
+  const fetchComments = useCallback(async () => {
+    if (!token) return;
 
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({
-                page: String(page + 1),
-                limit: String(rowsPerPage),
-            });
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: String(page + 1),
+        limit: String(rowsPerPage),
+      });
 
-            const response = await fetch(`/api/admin/comments?${params}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+      const response = await fetch(`/api/admin/comments?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-            if (!response.ok) throw new Error('Failed to fetch comments');
+      if (!response.ok) throw new Error('Failed to fetch comments');
 
-            const data = await response.json();
-            setComments(data.comments);
-            setTotal(data.total);
-        } catch (error) {
-            console.error('Error fetching comments:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [token, page, rowsPerPage]);
-
-    useEffect(() => {
-        if (!authLoading && (!user || !isAdmin)) {
-            router.push('/');
-            return;
-        }
-        if (token && isAdmin) {
-            fetchComments();
-        }
-    }, [user, token, isAdmin, authLoading, router, fetchComments]);
-
-    const handleDeleteClick = (comment: AdminComment) => {
-        setSelectedComment(comment);
-        setDeleteDialogOpen(true);
-    };
-
-    const handleDelete = async () => {
-        if (!selectedComment || !token) return;
-
-        setActionLoading(true);
-        try {
-            const response = await fetch(`/api/admin/comments/${selectedComment.id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!response.ok) throw new Error('Failed to delete comment');
-
-            setDeleteDialogOpen(false);
-            fetchComments();
-        } catch (error) {
-            console.error('Error deleting comment:', error);
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    if (authLoading || (!isAdmin && !authLoading)) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                <CircularProgress />
-            </Box>
-        );
+      const data = await response.json();
+      setComments(data.comments);
+      setTotal(data.total);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    } finally {
+      setLoading(false);
     }
+  }, [token, page, rowsPerPage]);
 
+  useEffect(() => {
+    if (!authLoading && (!user || !isAdmin)) {
+      router.push('/');
+      return;
+    }
+    if (token && isAdmin) {
+      fetchComments();
+    }
+  }, [user, token, isAdmin, authLoading, router, fetchComments]);
+
+  const handleDeleteClick = (comment: AdminComment) => {
+    setSelectedComment(comment);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedComment || !token) return;
+
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/admin/comments/${selectedComment.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error('Failed to delete comment');
+
+      setDeleteDialogOpen(false);
+      fetchComments();
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (authLoading || (!isAdmin && !authLoading)) {
     return (
-        <Box
-            sx={{
-                minHeight: '100vh',
-                pt: { xs: 10, md: 12 },
-                pb: { xs: 10, md: 6 },
-                backgroundColor: theme.palette.background.default,
-            }}
-        >
-            <Container maxWidth="lg">
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-                    <IconButton onClick={() => router.push('/admin')}>
-                        <ArrowBack />
-                    </IconButton>
-                    <Typography variant="h4" fontWeight={700} color="text.primary">
-                        Manage Comments
-                    </Typography>
-                </Box>
-
-                {/* Comments Table */}
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Comment</TableCell>
-                                <TableCell>Author</TableCell>
-                                <TableCell>Recipe</TableCell>
-                                <TableCell>Date</TableCell>
-                                <TableCell align="right">Actions</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                                        <CircularProgress />
-                                    </TableCell>
-                                </TableRow>
-                            ) : comments.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                                        No comments found
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                comments.map((comment) => (
-                                    <TableRow key={comment.id} hover>
-                                        <TableCell sx={{ maxWidth: 400 }}>
-                                            <Typography color="text.primary" sx={{
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 2,
-                                                WebkitBoxOrient: 'vertical',
-                                            }}>
-                                                {comment.text}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography color="text.primary">{comment.user.username}</Typography>
-                                            <Typography variant="body2" color="text.secondary">{comment.user.email}</Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Typography color="text.primary" noWrap sx={{ maxWidth: 200 }}>
-                                                {comment.post.title || 'Untitled Recipe'}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>{new Date(comment.createdAt).toLocaleDateString()}</TableCell>
-                                        <TableCell align="right">
-                                            <Tooltip title="View Recipe">
-                                                <IconButton onClick={() => router.push(`/recipe/${comment.postId}`)} color="primary">
-                                                    <Visibility />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title="Delete Comment">
-                                                <IconButton onClick={() => handleDeleteClick(comment)} color="error">
-                                                    <Delete />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                    <TablePagination
-                        component="div"
-                        count={total}
-                        page={page}
-                        onPageChange={(_, newPage) => setPage(newPage)}
-                        rowsPerPage={rowsPerPage}
-                        onRowsPerPageChange={(e) => {
-                            setRowsPerPage(parseInt(e.target.value, 10));
-                            setPage(0);
-                        }}
-                        rowsPerPageOptions={[10, 20, 50]}
-                    />
-                </TableContainer>
-
-                {/* Delete Dialog */}
-                <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-                    <DialogTitle>Delete Comment</DialogTitle>
-                    <DialogContent>
-                        <DialogContentText>
-                            Are you sure you want to delete this comment by <strong>{selectedComment?.user.username}</strong>?
-                            This action cannot be undone.
-                        </DialogContentText>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleDelete} color="error" disabled={actionLoading}>
-                            {actionLoading ? <CircularProgress size={20} /> : 'Delete'}
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            </Container>
-        </Box>
+      <Box
+        sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
+      >
+        <CircularProgress />
+      </Box>
     );
+  }
+
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        pt: { xs: 10, md: 12 },
+        pb: { xs: 10, md: 6 },
+        backgroundColor: theme.palette.background.default,
+      }}
+    >
+      <Container maxWidth="lg">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+          <IconButton onClick={() => router.push('/admin')}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="h4" fontWeight={700} color="text.primary">
+            Manage Comments
+          </Typography>
+        </Box>
+
+        {/* Comments Table */}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Comment</TableCell>
+                <TableCell>Author</TableCell>
+                <TableCell>Recipe</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              ) : comments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    No comments found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                comments.map((comment) => (
+                  <TableRow key={comment.id} hover>
+                    <TableCell sx={{ maxWidth: 400 }}>
+                      <Typography
+                        color="text.primary"
+                        sx={{
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                        }}
+                      >
+                        {comment.text}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography color="text.primary">{comment.user.username}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {comment.user.email}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography color="text.primary" noWrap sx={{ maxWidth: 200 }}>
+                        {comment.post.title || 'Untitled Recipe'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{new Date(comment.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="View Recipe">
+                        <IconButton
+                          onClick={() => router.push(`/recipe/${comment.postId}`)}
+                          color="primary"
+                        >
+                          <Visibility />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete Comment">
+                        <IconButton onClick={() => handleDeleteClick(comment)} color="error">
+                          <Delete />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <TablePagination
+            component="div"
+            count={total}
+            page={page}
+            onPageChange={(_, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            rowsPerPageOptions={[10, 20, 50]}
+          />
+        </TableContainer>
+
+        {/* Delete Dialog */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+          <DialogTitle>Delete Comment</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete this comment by{' '}
+              <strong>{selectedComment?.user.username}</strong>? This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleDelete} color="error" disabled={actionLoading}>
+              {actionLoading ? <CircularProgress size={20} /> : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </Box>
+  );
 }

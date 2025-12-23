@@ -21,10 +21,12 @@ export class IngredientMatchService implements IIngredientMatchService {
 
     // Fetch all recipes (with filters if provided)
     const recipes = await this.recipeRepository.search({
-      filters: filters ? {
-        difficulty: filters.difficulty as any,
-        maxCookingTime: filters.maxCookingTime,
-      } : undefined,
+      filters: filters
+        ? {
+            difficulty: filters.difficulty as any,
+            maxCookingTime: filters.maxCookingTime,
+          }
+        : undefined,
       limit: 100, // Get more recipes for better matching
       sortBy: 'createdAt',
       sortOrder: 'desc',
@@ -34,18 +36,9 @@ export class IngredientMatchService implements IIngredientMatchService {
     const matches: RecipeMatch[] = recipes
       .map((recipe) => {
         const recipeIngredients = this.extractIngredientNames(recipe);
-        const matchPercentage = this.calculateMatchPercentage(
-          recipeIngredients,
-          ingredients
-        );
-        const missingIngredients = this.getMissingIngredients(
-          recipeIngredients,
-          ingredients
-        );
-        const matchedIngredients = this.getMatchedIngredients(
-          recipeIngredients,
-          ingredients
-        );
+        const matchPercentage = this.calculateMatchPercentage(recipeIngredients, ingredients);
+        const missingIngredients = this.getMissingIngredients(recipeIngredients, ingredients);
+        const matchedIngredients = this.getMatchedIngredients(recipeIngredients, ingredients);
 
         return {
           recipe,
@@ -69,10 +62,7 @@ export class IngredientMatchService implements IIngredientMatchService {
     return matches;
   }
 
-  calculateMatchPercentage(
-    recipeIngredients: string[],
-    userIngredients: string[]
-  ): number {
+  calculateMatchPercentage(recipeIngredients: string[], userIngredients: string[]): number {
     if (!recipeIngredients || recipeIngredients.length === 0) {
       return 0;
     }
@@ -92,10 +82,7 @@ export class IngredientMatchService implements IIngredientMatchService {
     return Math.round((matchCount / normalizedRecipe.length) * 100);
   }
 
-  getMissingIngredients(
-    recipeIngredients: string[],
-    userIngredients: string[]
-  ): string[] {
+  getMissingIngredients(recipeIngredients: string[], userIngredients: string[]): string[] {
     const normalizedUser = this.normalizeIngredients(userIngredients);
     const normalizedRecipe = this.normalizeIngredients(recipeIngredients);
 
@@ -111,10 +98,7 @@ export class IngredientMatchService implements IIngredientMatchService {
     return missing;
   }
 
-  getMatchedIngredients(
-    recipeIngredients: string[],
-    userIngredients: string[]
-  ): string[] {
+  getMatchedIngredients(recipeIngredients: string[], userIngredients: string[]): string[] {
     const normalizedUser = this.normalizeIngredients(userIngredients);
     const normalizedRecipe = this.normalizeIngredients(recipeIngredients);
 
@@ -153,7 +137,10 @@ export class IngredientMatchService implements IIngredientMatchService {
 
       // Remove common descriptors
       normalized = normalized
-        .replace(/\b(fresh|dried|frozen|canned|chopped|diced|minced|sliced|ground|whole|organic|raw)\b/gi, '')
+        .replace(
+          /\b(fresh|dried|frozen|canned|chopped|diced|minced|sliced|ground|whole|organic|raw)\b/gi,
+          ''
+        )
         .trim();
 
       // Remove multiple spaces

@@ -39,7 +39,13 @@ interface SearchResultsProps {
   onClose: () => void;
 }
 
-export default function SearchResults({ query, users, recipes, loading, onClose }: SearchResultsProps) {
+export default function SearchResults({
+  query,
+  users,
+  recipes,
+  loading,
+  onClose,
+}: SearchResultsProps) {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -84,11 +90,13 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
         boxShadow: 3,
       }}
     >
-      {loading ? (
-        null
-      ) : !hasResults ? (
+      {loading ? null : !hasResults ? (
         <Box sx={{ py: { xs: 2, md: 3 }, px: { xs: 1.5, md: 2 }, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
+          >
             No results found for &ldquo;{query}&rdquo;
           </Typography>
         </Box>
@@ -109,7 +117,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                   sx={{
                     bgcolor: 'primary.main',
                     width: { xs: 32, md: 40 },
-                    height: { xs: 32, md: 40 }
+                    height: { xs: 32, md: 40 },
                   }}
                 >
                   <Search sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
@@ -124,7 +132,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                   color: 'text.primary',
                 }}
                 secondaryTypographyProps={{
-                  fontSize: { xs: '0.75rem', md: '0.875rem' }
+                  fontSize: { xs: '0.75rem', md: '0.875rem' },
                 }}
               />
             </ListItemButton>
@@ -134,9 +142,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
           {limitedUsers.map((user) => (
             <React.Fragment key={user.id}>
               <Divider />
-              <ListItem
-                disablePadding
-              >
+              <ListItem disablePadding>
                 <ListItemButton
                   onClick={() => handleUserClick(user.username)}
                   sx={{
@@ -150,7 +156,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                       sx={{
                         bgcolor: 'primary.main',
                         width: { xs: 32, md: 40 },
-                        height: { xs: 32, md: 40 }
+                        height: { xs: 32, md: 40 },
                       }}
                     >
                       <Person sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
@@ -165,7 +171,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                       color: 'text.primary',
                     }}
                     secondaryTypographyProps={{
-                      fontSize: { xs: '0.75rem', md: '0.875rem' }
+                      fontSize: { xs: '0.75rem', md: '0.875rem' },
                     }}
                   />
                 </ListItemButton>
@@ -177,9 +183,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
           {limitedRecipes.map((recipe) => (
             <React.Fragment key={recipe.id}>
               <Divider />
-              <ListItem
-                disablePadding
-              >
+              <ListItem disablePadding>
                 <ListItemButton
                   onClick={() => handleRecipeClick(recipe.id)}
                   sx={{
@@ -194,7 +198,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                       sx={{
                         bgcolor: 'secondary.main',
                         width: { xs: 32, md: 40 },
-                        height: { xs: 32, md: 40 }
+                        height: { xs: 32, md: 40 },
                       }}
                     >
                       <Restaurant sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
@@ -202,9 +206,10 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                   </ListItemAvatar>
                   <ListItemText
                     primary={recipe.title}
-                    secondary={isMobile
-                      ? null
-                      : `${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
+                    secondary={
+                      isMobile
+                        ? null
+                        : `${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
                     }
                     primaryTypographyProps={{
                       fontWeight: 600,
@@ -212,7 +217,7 @@ export default function SearchResults({ query, users, recipes, loading, onClose 
                       color: 'text.primary',
                     }}
                     secondaryTypographyProps={{
-                      fontSize: { xs: '0.75rem', md: '0.875rem' }
+                      fontSize: { xs: '0.75rem', md: '0.875rem' },
                     }}
                   />
                 </ListItemButton>

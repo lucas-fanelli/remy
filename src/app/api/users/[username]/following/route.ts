@@ -27,10 +27,7 @@ export async function GET(
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Get following with user details
@@ -61,7 +58,7 @@ export async function GET(
         where: {
           followerId: currentUserId,
           followingId: {
-            in: following.map(f => f.following.id),
+            in: following.map((f) => f.following.id),
           },
         },
         select: {
@@ -69,13 +66,16 @@ export async function GET(
         },
       });
 
-      followingMap = followingRelations.reduce((acc, rel) => {
-        acc[rel.followingId] = true;
-        return acc;
-      }, {} as Record<string, boolean>);
+      followingMap = followingRelations.reduce(
+        (acc, rel) => {
+          acc[rel.followingId] = true;
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
     }
 
-    const followingList = following.map(f => ({
+    const followingList = following.map((f) => ({
       ...f.following,
       isFollowing: followingMap[f.following.id] || false,
     }));
@@ -83,9 +83,6 @@ export async function GET(
     return NextResponse.json({ following: followingList });
   } catch (error) {
     console.error('Error fetching following:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch following' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch following' }, { status: 500 });
   }
 }

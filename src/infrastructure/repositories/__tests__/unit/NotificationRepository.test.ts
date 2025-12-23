@@ -341,7 +341,9 @@ describe('NotificationRepository', () => {
         sender: null, // No sender data
       };
 
-      (mockPrisma.notification.findMany as jest.Mock).mockResolvedValue([mockNotificationWithoutSender]);
+      (mockPrisma.notification.findMany as jest.Mock).mockResolvedValue([
+        mockNotificationWithoutSender,
+      ]);
 
       const result = await repository.findByRecipientId('user1');
 

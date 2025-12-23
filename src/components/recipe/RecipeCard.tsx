@@ -126,10 +126,7 @@ export default function RecipeCard({
       }}
     >
       {/* Hero Image Container */}
-      <Box
-        sx={{ position: 'relative', overflow: 'hidden' }}
-        onClick={handleCardClick}
-      >
+      <Box sx={{ position: 'relative', overflow: 'hidden' }} onClick={handleCardClick}>
         <Box
           component="img"
           src={recipe.imageUrl}

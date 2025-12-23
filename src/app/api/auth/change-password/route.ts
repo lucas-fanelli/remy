@@ -19,11 +19,7 @@ export async function POST(request: NextRequest) {
     const authService = container.getAuthService();
 
     // Change password
-    await authService.changePassword(
-      user.id,
-      validatedData.oldPassword,
-      validatedData.newPassword
-    );
+    await authService.changePassword(user.id, validatedData.oldPassword, validatedData.newPassword);
 
     return ApiResponseHelper.success(null, 'Password changed successfully');
   } catch (error) {
@@ -32,9 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof ZodError) {
-      return ApiResponseHelper.badRequest(
-        error.errors.map((e) => e.message).join(', ')
-      );
+      return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
     if (error instanceof Error) {

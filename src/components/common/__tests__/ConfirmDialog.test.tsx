@@ -172,7 +172,7 @@ describe('ConfirmDialog', () => {
     // Mock useMediaQuery to return true (mobile)
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
-      value: jest.fn().mockImplementation(query => ({
+      value: jest.fn().mockImplementation((query) => ({
         matches: query === '(max-width:600px)',
         media: query,
         onchange: null,
@@ -202,7 +202,7 @@ describe('ConfirmDialog', () => {
 
     beforeEach(() => {
       originalMatchMedia = window.matchMedia;
-      window.matchMedia = jest.fn().mockImplementation(query => ({
+      window.matchMedia = jest.fn().mockImplementation((query) => ({
         matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
         media: query,
         onchange: null,

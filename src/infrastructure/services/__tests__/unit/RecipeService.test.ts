@@ -1,6 +1,11 @@
 import { RecipeService } from '../../RecipeService';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
-import { Recipe, CreateRecipeDTO, UpdateRecipeDTO, RecipeSearchOptions } from '@/domain/types/recipe';
+import {
+  Recipe,
+  CreateRecipeDTO,
+  UpdateRecipeDTO,
+  RecipeSearchOptions,
+} from '@/domain/types/recipe';
 import { mockDeep } from 'jest-mock-extended';
 
 describe('RecipeService - Unit Tests', () => {
@@ -19,11 +24,11 @@ describe('RecipeService - Unit Tests', () => {
     difficulty: 'easy',
     ingredients: [
       { name: 'Tomato', amount: '2', unit: 'pieces' },
-      { name: 'Pasta', amount: '200', unit: 'grams' }
+      { name: 'Pasta', amount: '200', unit: 'grams' },
     ],
     instructions: [
       { step: 1, description: 'Boil water' },
-      { step: 2, description: 'Cook pasta' }
+      { step: 2, description: 'Cook pasta' },
     ],
     caption: 'Delicious homemade pasta',
     createdAt: new Date(),
@@ -41,11 +46,11 @@ describe('RecipeService - Unit Tests', () => {
     difficulty: 'easy',
     ingredients: [
       { name: 'Tomato', amount: '2', unit: 'pieces' },
-      { name: 'Pasta', amount: '200', unit: 'grams' }
+      { name: 'Pasta', amount: '200', unit: 'grams' },
     ],
     instructions: [
       { step: 1, description: 'Boil water' },
-      { step: 2, description: 'Cook pasta' }
+      { step: 2, description: 'Cook pasta' },
     ],
     caption: 'Delicious homemade pasta',
   };
@@ -102,9 +107,7 @@ describe('RecipeService - Unit Tests', () => {
     it('should throw error for missing imageUrl', async () => {
       const invalidDTO = { ...validCreateDTO, imageUrl: '' };
 
-      await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
-        'Image URL is required'
-      );
+      await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow('Image URL is required');
     });
 
     it('should throw error for invalid cooking time (zero)', async () => {
@@ -182,7 +185,7 @@ describe('RecipeService - Unit Tests', () => {
     it('should throw error for ingredient missing name', async () => {
       const invalidDTO = {
         ...validCreateDTO,
-        ingredients: [{ name: '', amount: '2', unit: 'pieces' }]
+        ingredients: [{ name: '', amount: '2', unit: 'pieces' }],
       };
 
       await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
@@ -193,7 +196,7 @@ describe('RecipeService - Unit Tests', () => {
     it('should throw error for ingredient missing amount when unit is not "to taste"', async () => {
       const invalidDTO = {
         ...validCreateDTO,
-        ingredients: [{ name: 'Tomato', amount: '', unit: 'pieces' }]
+        ingredients: [{ name: 'Tomato', amount: '', unit: 'pieces' }],
       };
 
       await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
@@ -206,13 +209,13 @@ describe('RecipeService - Unit Tests', () => {
         ...validCreateDTO,
         ingredients: [
           { name: 'Salt', amount: '', unit: 'to taste' },
-          { name: 'Tomato', amount: '2', unit: 'pieces' }
-        ]
+          { name: 'Tomato', amount: '2', unit: 'pieces' },
+        ],
       };
 
       mockRecipeRepository.create = jest.fn().mockResolvedValue({
         ...mockRecipe,
-        ingredients: validDTO.ingredients
+        ingredients: validDTO.ingredients,
       });
 
       const result = await recipeService.createRecipe(validDTO);
@@ -224,7 +227,7 @@ describe('RecipeService - Unit Tests', () => {
     it('should throw error for ingredient missing unit', async () => {
       const invalidDTO = {
         ...validCreateDTO,
-        ingredients: [{ name: 'Tomato', amount: '2', unit: '' }]
+        ingredients: [{ name: 'Tomato', amount: '2', unit: '' }],
       };
 
       await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
@@ -243,7 +246,7 @@ describe('RecipeService - Unit Tests', () => {
     it('should throw error for instruction missing description', async () => {
       const invalidDTO = {
         ...validCreateDTO,
-        instructions: [{ step: 1, description: '' }]
+        instructions: [{ step: 1, description: '' }],
       };
 
       await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
@@ -256,8 +259,8 @@ describe('RecipeService - Unit Tests', () => {
         ...validCreateDTO,
         instructions: [
           { step: 1, description: 'First step' },
-          { step: 3, description: 'Wrong step number' }
-        ]
+          { step: 3, description: 'Wrong step number' },
+        ],
       };
 
       await expect(recipeService.createRecipe(invalidDTO)).rejects.toThrow(
@@ -295,7 +298,11 @@ describe('RecipeService - Unit Tests', () => {
       const result = await recipeService.getUserRecipes('user-123');
 
       expect(result).toEqual(recipes);
-      expect(mockRecipeRepository.findByUserId).toHaveBeenCalledWith('user-123', undefined, undefined);
+      expect(mockRecipeRepository.findByUserId).toHaveBeenCalledWith(
+        'user-123',
+        undefined,
+        undefined
+      );
     });
 
     it('should return user recipes with custom pagination', async () => {
@@ -378,17 +385,17 @@ describe('RecipeService - Unit Tests', () => {
     it('should throw error when recipe not found', async () => {
       mockRecipeRepository.findById = jest.fn().mockResolvedValue(null);
 
-      await expect(
-        recipeService.deleteRecipe('non-existent', 'user-123')
-      ).rejects.toThrow('Recipe not found');
+      await expect(recipeService.deleteRecipe('non-existent', 'user-123')).rejects.toThrow(
+        'Recipe not found'
+      );
     });
 
     it('should throw error when user is not the owner', async () => {
       mockRecipeRepository.findById = jest.fn().mockResolvedValue(mockRecipe);
 
-      await expect(
-        recipeService.deleteRecipe('recipe-123', 'different-user')
-      ).rejects.toThrow('Unauthorized: You can only delete your own recipes');
+      await expect(recipeService.deleteRecipe('recipe-123', 'different-user')).rejects.toThrow(
+        'Unauthorized: You can only delete your own recipes'
+      );
     });
   });
 

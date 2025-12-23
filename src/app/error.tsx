@@ -2,7 +2,11 @@
 
 import React, { useEffect } from 'react';
 import { Box, Button, Container, Typography, Paper } from '@mui/material';
-import { ErrorOutline as ErrorIcon, Refresh as RefreshIcon, Home as HomeIcon } from '@mui/icons-material';
+import {
+  ErrorOutline as ErrorIcon,
+  Refresh as RefreshIcon,
+  Home as HomeIcon,
+} from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 
 interface ErrorProps {
@@ -56,7 +60,8 @@ export default function Error({ error, reset }: ErrorProps) {
           </Typography>
 
           <Typography variant="body1" color="text.secondary" paragraph>
-            We encountered an unexpected error. Don&apos;t worry, our team has been notified and we&apos;re working on it.
+            We encountered an unexpected error. Don&apos;t worry, our team has been notified and
+            we&apos;re working on it.
           </Typography>
 
           {process.env.NODE_ENV === 'development' && (
@@ -82,20 +87,11 @@ export default function Error({ error, reset }: ErrorProps) {
           )}
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: 3 }}>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<RefreshIcon />}
-              onClick={reset}
-            >
+            <Button variant="contained" color="primary" startIcon={<RefreshIcon />} onClick={reset}>
               Try Again
             </Button>
 
-            <Button
-              variant="outlined"
-              startIcon={<HomeIcon />}
-              onClick={() => router.push('/')}
-            >
+            <Button variant="outlined" startIcon={<HomeIcon />} onClick={() => router.push('/')}>
               Go Home
             </Button>
           </Box>

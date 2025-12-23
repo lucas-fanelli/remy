@@ -17,17 +17,12 @@ export async function GET(request: NextRequest) {
     const userService = container.getUserService();
 
     // Search users
-    const users = await userService.searchUsers(
-      validatedData.query,
-      validatedData.limit
-    );
+    const users = await userService.searchUsers(validatedData.query, validatedData.limit);
 
     return ApiResponseHelper.success(users);
   } catch (error) {
     if (error instanceof ZodError) {
-      return ApiResponseHelper.badRequest(
-        error.errors.map((e) => e.message).join(', ')
-      );
+      return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
     console.error('Search users error:', error);

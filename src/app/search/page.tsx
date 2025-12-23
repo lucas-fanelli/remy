@@ -114,7 +114,10 @@ function SearchPageContent() {
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-      <Container maxWidth="lg" sx={{ pt: { xs: 9, sm: 10, md: 12 }, pb: { xs: 12, sm: 13, md: 4 } }}>
+      <Container
+        maxWidth="lg"
+        sx={{ pt: { xs: 9, sm: 10, md: 12 }, pb: { xs: 12, sm: 13, md: 4 } }}
+      >
         <Box sx={{ mb: 3 }}>
           <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom color="text.primary">
             Search Results
@@ -124,7 +127,9 @@ function SearchPageContent() {
           </Typography>
         </Box>
 
-        <Paper sx={{ mb: 3, width: 'fit-content', mx: 'auto', borderRadius: '20px', overflow: 'hidden' }}>
+        <Paper
+          sx={{ mb: 3, width: 'fit-content', mx: 'auto', borderRadius: '20px', overflow: 'hidden' }}
+        >
           <AnimatedTabs
             tabs={[
               { key: 0, label: `Recipes (${recipes.length})`, icon: <Restaurant /> },
@@ -135,9 +140,7 @@ function SearchPageContent() {
           />
         </Paper>
 
-        {loading ? (
-          null
-        ) : (
+        {loading ? null : (
           <TabPanelTransition activeKey={tabValue}>
             {/* Recipes Tab */}
             {tabValue === 0 && (
@@ -216,10 +219,7 @@ function SearchPageContent() {
                         >
                           <CardContent>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <Avatar
-                                src={user.avatar}
-                                sx={{ width: 56, height: 56 }}
-                              >
+                              <Avatar src={user.avatar} sx={{ width: 56, height: 56 }}>
                                 <Person />
                               </Avatar>
                               <Box sx={{ flexGrow: 1, minWidth: 0 }}>

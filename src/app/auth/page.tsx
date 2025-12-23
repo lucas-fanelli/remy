@@ -63,11 +63,7 @@ export default function AuthPage() {
           )}
 
           {/* Browse as Guest */}
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mt: 3 }}
-          >
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
             Just browsing?{' '}
             <Link
               component={NextLink}

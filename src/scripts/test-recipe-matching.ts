@@ -19,10 +19,25 @@ async function testRecipeMatching() {
   // Test Case 2: User with lots of ingredients
   console.log('📋 Test Case 2: Well-Stocked Pantry');
   const testPantry2 = [
-    'chicken breast', 'beef', 'salmon', 'egg', 'milk', 'butter',
-    'tomato', 'onion', 'garlic', 'carrot', 'bell pepper',
-    'pasta', 'rice', 'flour', 'sugar',
-    'olive oil', 'soy sauce', 'salt', 'pepper',
+    'chicken breast',
+    'beef',
+    'salmon',
+    'egg',
+    'milk',
+    'butter',
+    'tomato',
+    'onion',
+    'garlic',
+    'carrot',
+    'bell pepper',
+    'pasta',
+    'rice',
+    'flour',
+    'sugar',
+    'olive oil',
+    'soy sauce',
+    'salt',
+    'pepper',
   ];
   await findMatches(testPantry2);
 
@@ -31,8 +46,15 @@ async function testRecipeMatching() {
   // Test Case 3: Vegetarian pantry
   console.log('📋 Test Case 3: Vegetarian Pantry');
   const testPantry3 = [
-    'quinoa', 'chickpeas', 'sweet potato', 'kale', 'avocado',
-    'tahini', 'lemon', 'olive oil', 'cumin',
+    'quinoa',
+    'chickpeas',
+    'sweet potato',
+    'kale',
+    'avocado',
+    'tahini',
+    'lemon',
+    'olive oil',
+    'cumin',
   ];
   await findMatches(testPantry3);
 }
@@ -44,8 +66,8 @@ async function findMatches(pantryItems: string[]) {
   const recipes = await prisma.post.findMany({
     where: {
       ingredients: {
-        not: null as any
-      }
+        not: null as any,
+      },
     },
     select: {
       id: true,
@@ -91,9 +113,7 @@ async function findMatches(pantryItems: string[]) {
       }
     }
 
-    const matchPercentage = Math.round(
-      (matchedCount / recipeIngredients.length) * 100
-    );
+    const matchPercentage = Math.round((matchedCount / recipeIngredients.length) * 100);
 
     matches.push({
       title: recipe.title || 'Untitled',
@@ -109,34 +129,26 @@ async function findMatches(pantryItems: string[]) {
 
   // Categorize
   const readyToCook = matches.filter((m) => m.matchPercentage === 100);
-  const almostThere = matches.filter(
-    (m) => m.matchPercentage >= 70 && m.matchPercentage < 100
-  );
+  const almostThere = matches.filter((m) => m.matchPercentage >= 70 && m.matchPercentage < 100);
   const needMore = matches.filter((m) => m.matchPercentage < 70);
 
   // Display results
   console.log(`🟢 Ready to Cook (100% match): ${readyToCook.length} recipes`);
   readyToCook.forEach((recipe) => {
-    console.log(
-      `   ✓ ${recipe.title} (${recipe.difficulty}, ${recipe.cookingTime}min)`
-    );
+    console.log(`   ✓ ${recipe.title} (${recipe.difficulty}, ${recipe.cookingTime}min)`);
   });
 
-  console.log(
-    `\n🟡 Almost There (70-99% match): ${almostThere.length} recipes`
-  );
+  console.log(`\n🟡 Almost There (70-99% match): ${almostThere.length} recipes`);
   almostThere.slice(0, 5).forEach((recipe) => {
+    console.log(`   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.difficulty})`);
     console.log(
-      `   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.difficulty})`
+      `     Missing: ${recipe.missingIngredients.slice(0, 3).join(', ')}${recipe.missingIngredients.length > 3 ? '...' : ''}`
     );
-    console.log(`     Missing: ${recipe.missingIngredients.slice(0, 3).join(', ')}${recipe.missingIngredients.length > 3 ? '...' : ''}`);
   });
 
   console.log(`\n🔴 Need More Ingredients (<70% match): ${needMore.length} recipes`);
   needMore.slice(0, 3).forEach((recipe) => {
-    console.log(
-      `   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.difficulty})`
-    );
+    console.log(`   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.difficulty})`);
   });
 }
 
