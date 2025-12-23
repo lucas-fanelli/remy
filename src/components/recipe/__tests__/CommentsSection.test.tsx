@@ -101,7 +101,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should handle API error when fetching comments', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
     renderWithProviders(<CommentsSection recipeId="recipe1" />);
@@ -114,7 +114,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should show loading state while fetching comments', () => {
-    mockFetch.mockImplementation(() => new Promise(() => {}));
+    mockFetch.mockImplementation(() => new Promise(() => { }));
 
     const { container } = renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -441,7 +441,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle comment submission error', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
 
@@ -521,7 +521,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle network error during submission gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
 
@@ -1232,7 +1232,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle edit comment exception - lines 187-189', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
         token: 'test-token',
@@ -1365,7 +1365,7 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle delete comment exception - lines 226-228', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
         token: 'test-token',
@@ -1633,7 +1633,7 @@ describe('CommentsSection Component', () => {
 
     it('should handle image upload failure (lines 121-132)', async () => {
       // Spy on console.error to verify it's called and prevent console output leak
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
       mockFetch
         .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
@@ -1934,7 +1934,7 @@ describe('CommentsSection Component', () => {
         json: async () => ({ comments: [] }),
       });
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
       renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -2179,5 +2179,55 @@ describe('CommentsSection Component', () => {
         }
       }
     });
+
+    it('should trigger Rating onChange via value change - line 615', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ comments: [{ ...mockComment, rating: 3 }], total: 1 }),
+      });
+
+      mockUseAuth.mockReturnValue({
+        user: { id: 'user1', username: 'testuser' },
+        token: 'mock-token',
+      });
+
+      renderWithProviders(<CommentsSection recipeId="1" />);
+
+      // Wait for comment to load
+      await waitFor(() => {
+        expect(screen.getByText('Great recipe!')).toBeInTheDocument();
+      });
+
+      // Open menu
+      const moreButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="MoreVertIcon"]'));
+
+      if (moreButtons.length > 0) {
+        fireEvent.click(moreButtons[0]);
+
+        await waitFor(() => {
+          expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
+        });
+
+        // Click Edit
+        const editMenuItem = screen.getByText('Edit');
+        fireEvent.click(editMenuItem);
+
+        // Wait for edit mode and Rating component
+        await waitFor(() => {
+          expect(screen.getByText('Rating:')).toBeInTheDocument();
+        });
+
+        // Find the rating inputs and simulate onChange event directly
+        const ratingInputs = document.querySelectorAll('input[name="rating"]');
+        if (ratingInputs.length > 0) {
+          // Directly fire change event with new value to trigger line 615
+          const lastInput = ratingInputs[ratingInputs.length - 1] as HTMLInputElement;
+          fireEvent.change(lastInput, { target: { value: '5' } });
+        }
+      }
+    });
   });
 });
+

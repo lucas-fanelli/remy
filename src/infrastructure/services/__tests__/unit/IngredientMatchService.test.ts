@@ -401,5 +401,44 @@ describe('IngredientMatchService', () => {
       const userIngredients = ['tomatoes'];
       expect(service.calculateMatchPercentage(recipeIngredients, userIngredients)).toBe(100);
     });
+
+    it('should return true for word1 + s === word2 - line 184', () => {
+      // Directly test the exact branch: word1 + 's' === word2
+      const recipeIngredients = ['apple']; // word1
+      const userIngredients = ['apples']; // word2 = word1 + 's'
+      expect(service.calculateMatchPercentage(recipeIngredients, userIngredients)).toBe(100);
+
+      // Reverse: word2 + 's' === word1
+      const recipeIngredients2 = ['carrots']; // word1
+      const userIngredients2 = ['carrot']; // word2, word2 + 's' === word1
+      expect(service.calculateMatchPercentage(recipeIngredients2, userIngredients2)).toBe(100);
+    });
+
+    it('should return true for word1 + es === word2 - line 189', () => {
+      // Directly test the exact branch: word1 + 'es' === word2
+      const recipeIngredients = ['potato']; // word1
+      const userIngredients = ['potatoes']; // word2 = word1 + 'es'
+      expect(service.calculateMatchPercentage(recipeIngredients, userIngredients)).toBe(100);
+
+      // Reverse: word2 + 'es' === word1
+      const recipeIngredients2 = ['tomatoes']; // word1
+      const userIngredients2 = ['tomato']; // word2, word2 + 'es' === word1
+      expect(service.calculateMatchPercentage(recipeIngredients2, userIngredients2)).toBe(100);
+    });
+
+    it('should handle berry to berries plural - ies ending lines 193-197', () => {
+      // Test word1 ending in 'y' converting to 'ies'
+      const recipeIngredients = ['berry'];
+      const userIngredients = ['berries'];
+      expect(service.calculateMatchPercentage(recipeIngredients, userIngredients)).toBe(100);
+    });
+
+    it('should handle reverse berries to berry plural - ies ending lines 199-204', () => {
+      // Test word2 ending in 'y' converting to 'ies'
+      const recipeIngredients = ['berries'];
+      const userIngredients = ['berry'];
+      expect(service.calculateMatchPercentage(recipeIngredients, userIngredients)).toBe(100);
+    });
   });
 });
+
