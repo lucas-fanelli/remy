@@ -8,6 +8,7 @@ import {
   Home as HomeIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -21,10 +22,8 @@ export default function Error({ error, reset }: ErrorProps) {
     // Log error to console in development
     console.error('Application error:', error);
 
-    // TODO: In production, send to error tracking service (e.g., Sentry)
-    // if (process.env.NODE_ENV === 'production') {
-    //   logErrorToService(error);
-    // }
+    // Report error to Sentry
+    Sentry.captureException(error);
   }, [error]);
 
   return (
