@@ -32,6 +32,7 @@ import EditProfileModal from '@/components/profile/EditProfileModal';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
+import { getDifficultyColor } from '@/lib/utils/recipe';
 
 const MotionCard = motion.create(Card);
 const MotionBox = motion.create(Box);
@@ -66,19 +67,6 @@ interface ProfileStats {
   followersCount: number;
   followingCount: number;
 }
-
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty.toLowerCase()) {
-    case 'easy':
-      return 'success';
-    case 'medium':
-      return 'warning';
-    case 'hard':
-      return 'error';
-    default:
-      return 'default';
-  }
-};
 
 export default function ProfilePage() {
   const params = useParams();

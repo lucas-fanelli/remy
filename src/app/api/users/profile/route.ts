@@ -11,7 +11,12 @@ export async function PUT(request: NextRequest) {
     const user = await requireAuth(request);
 
     // Parse request body
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return ApiResponseHelper.badRequest('Invalid JSON body');
+    }
 
     // Validate input
     const validatedData = updateProfileSchema.parse(body);

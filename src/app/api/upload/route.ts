@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
+import { extractBearerToken } from '@/lib/utils/auth';
 import { validateImageMagicBytes } from '@/lib/utils/image-validation';
 
 // Disable body parsing for file uploads in Next.js 15
@@ -11,13 +12,11 @@ export const runtime = 'nodejs';
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const authToken = extractBearerToken(request);
+    if (!authToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const authToken = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(authToken);
 

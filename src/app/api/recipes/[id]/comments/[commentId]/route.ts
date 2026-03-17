@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MAX_COMMENT_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 // PATCH - Update a comment
 export async function PATCH(
@@ -11,13 +12,11 @@ export async function PATCH(
   try {
     const { id: recipeId, commentId } = await params;
 
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -158,13 +157,11 @@ export async function DELETE(
   try {
     const { id: recipeId, commentId } = await params;
 
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MAX_PANTRY_ITEMS, MAX_ITEM_NAME_LENGTH, MAX_QUANTITY } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 // GET - Get user's pantry with all items
 export async function GET(request: NextRequest) {
   try {
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -53,13 +52,11 @@ export async function GET(request: NextRequest) {
 // POST - Add item to pantry
 export async function POST(request: NextRequest) {
   try {
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -67,7 +64,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { name, quantity, unit, category, expiresAt, notes } = body;
 
     // Validation

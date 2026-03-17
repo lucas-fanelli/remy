@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 /**
  * GET /api/notifications
@@ -12,14 +13,11 @@ import { container } from '@/lib/container/container';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Extract and validate token
-    const token = request.headers.get('authorization')?.split(' ')[1];
-
+    const token = extractBearerToken(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Use TokenService from container to verify token
     const tokenService = container.getTokenService();
     const decoded = tokenService.verify(token);
     if (!decoded) {
@@ -48,14 +46,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Extract and validate token
-    const token = request.headers.get('authorization')?.split(' ')[1];
-
+    const token = extractBearerToken(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Use TokenService from container to verify token
     const tokenService = container.getTokenService();
     const decoded = tokenService.verify(token);
     if (!decoded) {

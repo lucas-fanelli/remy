@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 import { validateImageMagicBytes } from '@/lib/utils/image-validation';
 
 // Configure route to use Node.js runtime
@@ -11,13 +12,11 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

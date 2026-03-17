@@ -29,6 +29,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 import { Recipe } from '@/domain/types/recipe';
+import { getDifficultyColor } from '@/lib/utils/recipe';
 
 const MotionCard = motion.create(Card);
 
@@ -92,19 +93,6 @@ export default function RecipeCard({
     event.stopPropagation();
     handleMenuClose();
     onDelete?.();
-  };
-
-  const getDifficultyColor = (difficulty: string): 'success' | 'warning' | 'error' | 'default' => {
-    switch (difficulty) {
-      case 'easy':
-        return 'success';
-      case 'medium':
-        return 'warning';
-      case 'hard':
-        return 'error';
-      default:
-        return 'default';
-    }
   };
 
   return (

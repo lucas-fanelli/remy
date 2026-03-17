@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 import { ingredientMatches } from '@/lib/utils/ingredients';
 
 interface Ingredient {
@@ -13,13 +14,11 @@ interface Ingredient {
 // GET - Match recipes with user's pantry
 export async function GET(request: NextRequest) {
   try {
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

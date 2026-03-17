@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 export async function GET(
   request: NextRequest,
@@ -10,11 +11,10 @@ export async function GET(
     const { username } = await params;
 
     // Get authorization token (optional for viewing following)
-    const authHeader = request.headers.get('authorization');
+    const token = extractBearerToken(request);
     let currentUserId: string | null = null;
 
-    if (authHeader) {
-      const token = authHeader.substring(7);
+    if (token) {
       const tokenService = container.getTokenService();
       const payload = tokenService.verify(token);
       if (payload) {

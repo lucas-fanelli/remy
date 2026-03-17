@@ -48,6 +48,7 @@ import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe } from '@/domain/types/recipe';
 import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus } from '@/hooks/useRecipe';
+import { getDifficultyColor } from '@/lib/utils/recipe';
 
 const MotionBox = motion.create(Box);
 const MotionCard = motion.create(Card);
@@ -290,19 +291,6 @@ export default function RecipeDetailPage() {
       setSnackbar({ open: true, message: 'Failed to mark recipe as cooked', severity: 'error' });
     } finally {
       setCookedLoading(false);
-    }
-  };
-
-  const getDifficultyColor = (difficulty: string): 'success' | 'warning' | 'error' | 'default' => {
-    switch (difficulty) {
-      case 'easy':
-        return 'success';
-      case 'medium':
-        return 'warning';
-      case 'hard':
-        return 'error';
-      default:
-        return 'default';
     }
   };
 

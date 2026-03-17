@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
 
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -78,12 +77,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       where: { postId: recipeId },
     });
 
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ liked: false, likesCount });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

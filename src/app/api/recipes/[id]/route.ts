@@ -3,6 +3,7 @@ import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -38,13 +39,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params;
 
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
 
     // Verify token and get user ID
@@ -54,7 +53,32 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Parse request body
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    if (body.imageUrl) {
+      try {
+        const imgUrl = new URL(body.imageUrl);
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        if (
+          imgUrl.hostname !== 'res.cloudinary.com' ||
+          !cloudName ||
+          !imgUrl.pathname.startsWith(`/${cloudName}/`)
+        ) {
+          return NextResponse.json(
+            { error: 'Image must be uploaded through the app' },
+            { status: 400 }
+          );
+        }
+      } catch {
+        return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
+      }
+    }
+
     const updateData: UpdateRecipeDTO = body;
 
     // Update recipe using service (ownership check is done in service)
@@ -99,13 +123,11 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
 
     // Verify token and get user ID

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 /**
  * PATCH /api/notifications/[id]
@@ -10,14 +11,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id: notificationId } = await params;
 
-    // Extract and validate token
-    const token = request.headers.get('authorization')?.split(' ')[1];
-
+    const token = extractBearerToken(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Use TokenService from container to verify token
     const tokenService = container.getTokenService();
     const decoded = tokenService.verify(token);
     if (!decoded) {

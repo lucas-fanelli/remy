@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IngredientMatchFilters } from '@/domain/types/pantry';
 import { container } from '@/lib/container/container';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 /**
  * POST /api/recipes/suggest - Get recipe suggestions based on available ingredients
  */
 export async function POST(request: NextRequest) {
   try {
-    // Authentication
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

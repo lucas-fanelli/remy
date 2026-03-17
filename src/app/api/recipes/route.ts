@@ -3,6 +3,7 @@ import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 /**
  * GET /api/recipes - Fetch recipes with optional filters
@@ -146,13 +147,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
 
     // Verify token and get user ID
@@ -162,7 +161,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    if (body.imageUrl) {
+      try {
+        const imgUrl = new URL(body.imageUrl);
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        if (
+          imgUrl.hostname !== 'res.cloudinary.com' ||
+          !cloudName ||
+          !imgUrl.pathname.startsWith(`/${cloudName}/`)
+        ) {
+          return NextResponse.json(
+            { error: 'Image must be uploaded through the app' },
+            { status: 400 }
+          );
+        }
+      } catch {
+        return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
+      }
+    }
+
     const recipeData: CreateRecipeDTO = {
       ...body,
       userId: payload.userId, // Set userId from token

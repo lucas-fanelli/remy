@@ -20,21 +20,9 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getDifficultyColor } from '@/lib/utils/recipe';
 
 const MotionCard = motion.create(Card);
-
-const getDifficultyColor = (difficulty: string) => {
-  switch (difficulty.toLowerCase()) {
-    case 'easy':
-      return 'success';
-    case 'medium':
-      return 'warning';
-    case 'hard':
-      return 'error';
-    default:
-      return 'default';
-  }
-};
 
 interface MatchedRecipe {
   id: string;

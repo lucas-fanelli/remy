@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { INotificationService } from '@/domain/services/INotificationService';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 export async function POST(
   request: NextRequest,
@@ -10,13 +11,11 @@ export async function POST(
   try {
     const { username } = await params;
 
-    // Get authorization token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader) {
+    const token = extractBearerToken(request);
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

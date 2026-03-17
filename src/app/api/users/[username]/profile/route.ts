@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 /**
  * GET /api/users/[username]/profile - Combined profile endpoint
@@ -22,12 +23,11 @@ export async function GET(
     const { username } = await params;
 
     // Get authorization token (optional)
-    const authHeader = request.headers.get('authorization');
+    const token = extractBearerToken(request);
     let currentUserId: string | null = null;
 
-    if (authHeader) {
+    if (token) {
       try {
-        const token = authHeader.substring(7);
         const tokenService = container.getTokenService();
         const payload = tokenService.verify(token);
         if (payload) {
