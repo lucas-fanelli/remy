@@ -95,7 +95,12 @@ function detectRunningStandalone(): boolean {
 function isDismissedRecently(): boolean {
   if (typeof window === 'undefined') return true;
 
-  const dismissed = localStorage.getItem(DISMISS_KEY);
+  let dismissed: string | null = null;
+  try {
+    dismissed = localStorage.getItem(DISMISS_KEY);
+  } catch {
+    return false;
+  }
   if (!dismissed) return false;
 
   const dismissedTime = parseInt(dismissed, 10);
@@ -149,7 +154,7 @@ export function PwaProvider({ children }: PwaProviderProps) {
   const [isIOSSafari, setIsIOSSafari] = useState(false);
   const [isDesktopChrome, setIsDesktopChrome] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-  const [promptAvailable, setPromptAvailable] = useState(false);
+  const [, setPromptAvailable] = useState(false);
 
   // Use ref to track if we've already shown the prompt this mount
   const hasShownPrompt = useRef(false);
@@ -257,7 +262,11 @@ export function PwaProvider({ children }: PwaProviderProps) {
 
   // Dismiss the install prompt (stores for 7 days)
   const dismissInstallPrompt = useCallback(() => {
-    localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    try {
+      localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    } catch {
+      /* noop */
+    }
     markPromptShownThisSession();
     setShowInstallPrompt(false);
   }, []);
@@ -270,8 +279,16 @@ export function PwaProvider({ children }: PwaProviderProps) {
 
   // Reset dismissal (for testing or if user wants to see prompt again)
   const resetDismissal = useCallback(() => {
-    localStorage.removeItem(DISMISS_KEY);
-    sessionStorage.removeItem(PROMPT_SHOWN_KEY);
+    try {
+      localStorage.removeItem(DISMISS_KEY);
+    } catch {
+      /* noop */
+    }
+    try {
+      sessionStorage.removeItem(PROMPT_SHOWN_KEY);
+    } catch {
+      /* noop */
+    }
     hasShownPrompt.current = false;
     if (deferredPrompt || isIOSSafari) {
       setShowInstallPrompt(true);

@@ -187,9 +187,9 @@ export default function CommentsSection({
     if (!file) return;
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      setError('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
+      setError('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.');
       return;
     }
 

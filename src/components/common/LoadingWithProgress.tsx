@@ -1,5 +1,5 @@
 'use client';
-import { Box, LinearProgress } from '@mui/material';
+import { Box, LinearProgress, Typography } from '@mui/material';
 import React from 'react';
 
 interface LoadingWithProgressProps {
@@ -37,6 +37,11 @@ export default function LoadingWithProgress({
           },
         }}
       />
+      {message && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'center' }}>
+          {message}
+        </Typography>
+      )}
     </Box>
   );
 }

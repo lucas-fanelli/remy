@@ -87,12 +87,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    // Validate imageUrl if provided
+    // Validate imageUrl - only allow Cloudinary URLs (uploaded via our upload endpoint)
     if (imageUrl) {
       try {
         const url = new URL(imageUrl);
-        if (!['http:', 'https:'].includes(url.protocol)) {
-          return NextResponse.json({ error: 'Invalid image URL protocol' }, { status: 400 });
+        if (
+          !['http:', 'https:'].includes(url.protocol) ||
+          !url.hostname.includes('cloudinary.com')
+        ) {
+          return NextResponse.json(
+            { error: 'Image must be uploaded through the app' },
+            { status: 400 }
+          );
         }
       } catch {
         return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });

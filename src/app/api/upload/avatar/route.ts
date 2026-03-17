@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { validateImageMagicBytes } from '@/lib/utils/image-validation';
@@ -69,6 +69,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get existing avatar for cleanup
+    const existingUser = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { avatar: true },
+    });
+
     // Upload to Cloudinary
     const { url: avatarUrl } = await uploadToCloudinary(buffer, 'avatars');
 
@@ -77,6 +83,16 @@ export async function POST(request: NextRequest) {
       where: { id: payload.userId },
       data: { avatar: avatarUrl },
     });
+
+    // Clean up old avatar from Cloudinary
+    if (existingUser?.avatar?.includes('cloudinary.com')) {
+      try {
+        const match = existingUser.avatar.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
+        if (match) await deleteFromCloudinary(match[1]);
+      } catch {
+        // Old avatar cleanup failure is non-critical
+      }
+    }
 
     return NextResponse.json({
       url: avatarUrl,

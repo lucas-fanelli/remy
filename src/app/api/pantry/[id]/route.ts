@@ -46,6 +46,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Item name cannot be empty' }, { status: 400 });
     }
 
+    if (name !== undefined && name.length > 200) {
+      return NextResponse.json(
+        { error: 'Item name too long (max 200 characters)' },
+        { status: 400 }
+      );
+    }
+
     if (unit !== undefined && unit.trim().length === 0) {
       return NextResponse.json({ error: 'Unit cannot be empty' }, { status: 400 });
     }

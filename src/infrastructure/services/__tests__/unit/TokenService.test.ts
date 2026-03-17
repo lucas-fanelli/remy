@@ -253,28 +253,15 @@ describe('TokenService - Unit Tests', () => {
       process.env.JWT_EXPIRES_IN = originalExpiresIn;
     });
 
-    it('should use default fallback when both param and env are undefined - branch coverage', () => {
+    it('should throw when both param and env are undefined - branch coverage', () => {
       const originalSecret = process.env.JWT_SECRET;
-      const originalExpiresIn = process.env.JWT_EXPIRES_IN;
       delete process.env.JWT_SECRET;
-      delete process.env.JWT_EXPIRES_IN;
 
-      const service = new TokenService(undefined, undefined);
-      const payload: TokenPayload = {
-        userId: 'user-123',
-        email: 'test@example.com',
-        username: 'testuser',
-        role: 'USER',
-      };
-
-      const token = service.generate(payload);
-      const verified = service.verify(token);
-
-      expect(verified).toBeDefined();
-      expect(verified?.userId).toBe('user-123');
+      expect(() => new TokenService(undefined, undefined)).toThrow(
+        'JWT_SECRET environment variable must be configured'
+      );
 
       process.env.JWT_SECRET = originalSecret;
-      process.env.JWT_EXPIRES_IN = originalExpiresIn;
     });
   });
 });

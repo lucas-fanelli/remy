@@ -78,7 +78,7 @@ export default function Footer() {
             color: 'text.secondary',
           }}
         >
-          Lucas Fanelli
+          {BRANDING.creator.name}
         </Typography>
 
         {/* Center: Contact | About Us */}

@@ -7,7 +7,10 @@ export class TokenService implements ITokenService {
   private readonly expiresIn: string;
 
   constructor(secret?: string, expiresIn?: string) {
-    this.secret = secret || process.env.JWT_SECRET || 'default-secret-change-in-production';
+    this.secret = secret || process.env.JWT_SECRET || '';
+    if (!this.secret) {
+      throw new Error('JWT_SECRET environment variable must be configured');
+    }
     this.expiresIn = expiresIn || process.env.JWT_EXPIRES_IN || '7d';
   }
 

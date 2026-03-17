@@ -97,12 +97,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         });
         return NextResponse.json({ saved: true, message: 'Recipe saved successfully' });
       } catch (err: unknown) {
-        // Handle race condition - if already saved by concurrent request, unsave instead
+        // Handle race condition - if already saved by concurrent request, treat as idempotent save
         if (err instanceof Error && err.message.includes('Unique constraint')) {
-          await prisma.savedRecipe.deleteMany({
-            where: { userId: payload.userId, postId: recipeId },
-          });
-          return NextResponse.json({ saved: false, message: 'Recipe removed from saved' });
+          return NextResponse.json({ saved: true, message: 'Recipe already saved' });
         }
         throw err;
       }

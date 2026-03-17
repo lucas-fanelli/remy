@@ -188,8 +188,8 @@ export async function GET(
       likesCount: recipe._count.likes,
       commentsCount: recipe._count.comments,
       createdAt: recipe.createdAt,
-      averageRating: (recipe as any).averageRating ?? 0,
-      totalRatings: (recipe as any).reviewCount ?? 0,
+      averageRating: recipe.averageRating ?? 0,
+      totalRatings: recipe.reviewCount ?? 0,
     }));
 
     // Build response

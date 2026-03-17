@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get or create user's pantry
-    let pantry = await prisma.userPantry.findUnique({
+    const pantry = await prisma.userPantry.findUnique({
       where: { userId: payload.userId },
       include: {
         items: {
@@ -29,15 +29,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Create pantry if it doesn't exist
+    // Return empty pantry if none exists (don't create on GET)
     if (!pantry) {
-      pantry = await prisma.userPantry.create({
-        data: {
-          userId: payload.userId,
-        },
-        include: {
-          items: true,
-        },
+      return NextResponse.json({
+        pantry: { id: null, items: [], updatedAt: null },
       });
     }
 
@@ -77,6 +72,13 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!name || name.trim().length === 0) {
       return NextResponse.json({ error: 'Item name is required' }, { status: 400 });
+    }
+
+    if (name.length > 200) {
+      return NextResponse.json(
+        { error: 'Item name too long (max 200 characters)' },
+        { status: 400 }
+      );
     }
 
     if (quantity !== undefined && quantity !== null) {
