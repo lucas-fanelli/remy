@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q');
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0);
 
     if (!query || query.trim().length === 0) {
       return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
@@ -15,7 +17,7 @@ export async function GET(request: NextRequest) {
     const userService = container.get<IUserService>('IUserService');
 
     // Search users by username - strip email from public results
-    const users = (await userService.searchUsers(query.trim(), 100)).map(
+    const users = (await userService.searchUsers(query.trim(), limit)).map(
       ({ email, ...rest }) => rest
     );
 
@@ -27,7 +29,8 @@ export async function GET(request: NextRequest) {
           { description: { contains: query.trim(), mode: 'insensitive' } },
         ],
       },
-      take: 100,
+      take: limit,
+      skip: offset,
       orderBy: { createdAt: 'desc' },
       include: {
         user: {

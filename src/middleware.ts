@@ -28,6 +28,14 @@ function checkRateLimit(
   resetTime: number;
 } {
   const now = Date.now();
+
+  // Lazy cleanup: remove expired entries on access
+  if (rateLimitMap.size > 1000) {
+    for (const [k, v] of rateLimitMap.entries()) {
+      if (now > v.resetTime) rateLimitMap.delete(k);
+    }
+  }
+
   const record = rateLimitMap.get(key);
 
   if (!record || now > record.resetTime) {
@@ -53,16 +61,6 @@ function checkRateLimit(
     resetTime: record.resetTime,
   };
 }
-
-// Clean up old entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of rateLimitMap.entries()) {
-    if (now > record.resetTime) {
-      rateLimitMap.delete(key);
-    }
-  }
-}, 60 * 1000); // Clean up every minute
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
@@ -133,13 +131,14 @@ export async function middleware(request: NextRequest) {
             ['verify']
           );
           const signatureInput = encoder.encode(`${parts[0]}.${parts[1]}`);
-          const signature = Uint8Array.from(
-            atob(parts[2].replace(/-/g, '+').replace(/_/g, '/')),
-            (c) => c.charCodeAt(0)
-          );
+          const b64Sig = parts[2].replace(/-/g, '+').replace(/_/g, '/');
+          const paddedSig = b64Sig + '='.repeat((4 - (b64Sig.length % 4)) % 4);
+          const signature = Uint8Array.from(atob(paddedSig), (c) => c.charCodeAt(0));
           const valid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
           if (valid) {
-            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            const b64Payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+            const paddedPayload = b64Payload + '='.repeat((4 - (b64Payload.length % 4)) % 4);
+            const payload = JSON.parse(atob(paddedPayload));
             const now = Math.floor(Date.now() / 1000);
             isAdmin = payload.role === 'ADMIN' && (!payload.exp || payload.exp > now);
           }

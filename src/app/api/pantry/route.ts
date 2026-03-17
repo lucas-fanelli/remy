@@ -79,8 +79,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item name is required' }, { status: 400 });
     }
 
-    if (!quantity || quantity <= 0) {
-      return NextResponse.json({ error: 'Quantity must be greater than 0' }, { status: 400 });
+    if (
+      quantity === undefined ||
+      quantity === null ||
+      (typeof quantity === 'number' && quantity < 0)
+    ) {
+      return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
     }
 
     if (!unit || unit.trim().length === 0) {

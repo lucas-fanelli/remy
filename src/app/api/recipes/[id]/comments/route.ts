@@ -139,12 +139,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       });
 
-      // Create rating notification
-      const notificationService = container.getNotificationService();
-      await notificationService.createRatingNotification(payload.userId, recipeId, recipe.userId);
+      // Skip separate rating notification when it accompanies a comment
+      // The comment notification below is sufficient for the combined action
     }
 
-    // Create comment notification
+    // Create comment notification (covers both comment-only and comment+rating cases)
     const notificationService = container.getNotificationService();
     await notificationService.createCommentNotification(
       payload.userId,

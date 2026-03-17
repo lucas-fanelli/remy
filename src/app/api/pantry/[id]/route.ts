@@ -46,8 +46,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Item name cannot be empty' }, { status: 400 });
     }
 
-    if (quantity !== undefined && quantity <= 0) {
-      return NextResponse.json({ error: 'Quantity must be greater than 0' }, { status: 400 });
+    if (quantity !== undefined && typeof quantity === 'number' && quantity < 0) {
+      return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
     }
 
     if (unit !== undefined && unit.trim().length === 0) {

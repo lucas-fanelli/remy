@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { ingredientMatches } from '@/lib/utils/ingredients';
 
 // GET - Get user's cooked recipes
 export async function GET(request: NextRequest) {
@@ -108,10 +109,8 @@ export async function POST(request: NextRequest) {
         }>;
 
         for (const ingredient of recipeIngredients) {
-          // Find matching pantry item (case-insensitive name match)
-          const pantryItem = pantry.items.find(
-            (item) => item.name.toLowerCase() === ingredient.name.toLowerCase()
-          );
+          // Find matching pantry item using fuzzy ingredient matching
+          const pantryItem = pantry.items.find((item) => ingredientMatches(item, ingredient));
 
           if (pantryItem) {
             // Parse amounts - skip non-numeric amounts like "to taste" or "1/2"

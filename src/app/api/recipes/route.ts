@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
 
     // Parse query parameters
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0);
     const difficulty = searchParams.get('difficulty');
     const maxTime = searchParams.get('maxTime');
     const minTime = searchParams.get('minTime');

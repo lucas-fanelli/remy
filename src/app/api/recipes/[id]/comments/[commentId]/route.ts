@@ -102,23 +102,20 @@ export async function PATCH(
         });
       }
 
-      return updatedComment;
-    });
-
-    // Add rating to comment object for response
-    const ratingRecord = await prisma.rating.findUnique({
-      where: {
-        userId_postId: {
-          userId: payload.userId,
-          postId: recipeId,
+      // Fetch rating inside transaction for consistency
+      const ratingRecord = await tx.rating.findUnique({
+        where: {
+          userId_postId: {
+            userId: payload.userId,
+            postId: recipeId,
+          },
         },
-      },
+      });
+
+      return { ...updatedComment, rating: ratingRecord?.rating || null };
     });
 
-    const commentWithRating = {
-      ...comment,
-      rating: ratingRecord?.rating || null,
-    };
+    const commentWithRating = comment;
 
     return NextResponse.json({
       comment: commentWithRating,
@@ -165,28 +162,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
     }
 
-    // Delete rating, recalculate cached values, and delete comment atomically
-    const recipeId = existingComment.postId;
-    await prisma.$transaction(async (tx) => {
-      await tx.rating.deleteMany({
-        where: { userId: payload.userId, postId: recipeId },
-      });
-
-      const agg = await tx.rating.aggregate({
-        where: { postId: recipeId },
-        _avg: { rating: true },
-        _count: { rating: true },
-      });
-      await tx.post.update({
-        where: { id: recipeId },
-        data: {
-          averageRating: Math.round((agg._avg.rating || 0) * 10) / 10,
-          reviewCount: agg._count.rating || 0,
-        },
-      });
-
-      await tx.comment.delete({ where: { id: commentId } });
-    });
+    // Delete only the comment — ratings are separate entities and should persist
+    await prisma.comment.delete({ where: { id: commentId } });
 
     return NextResponse.json({
       message: 'Comment deleted successfully',

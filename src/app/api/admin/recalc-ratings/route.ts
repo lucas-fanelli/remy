@@ -12,56 +12,34 @@ export async function POST(request: NextRequest) {
     const authResult = await requireAdmin(request);
     if (isAdminAuthError(authResult)) return authResult;
 
-    // Aggregate all ratings in a single query
-    const ratingsByPost = await prisma.rating.groupBy({
-      by: ['postId'],
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
+    // Bulk update all recipes with aggregated ratings in a single SQL query
+    await prisma.$executeRaw`
+      UPDATE "Post" p
+      SET "averageRating" = COALESCE(r.avg_rating, 0),
+          "reviewCount" = COALESCE(r.cnt, 0)
+      FROM (
+        SELECT "postId",
+               ROUND(AVG("rating")::numeric, 1)::float as avg_rating,
+               COUNT(*)::int as cnt
+        FROM "Rating"
+        GROUP BY "postId"
+      ) r
+      WHERE p.id = r."postId"
+    `;
 
-    // Build a map of postId -> rating data
-    const ratingsMap = new Map(
-      ratingsByPost.map((r) => [
-        r.postId,
-        {
-          averageRating: Math.round((r._avg.rating || 0) * 10) / 10,
-          reviewCount: r._count.rating || 0,
-        },
-      ])
-    );
+    // Reset recipes with no ratings
+    await prisma.$executeRaw`
+      UPDATE "Post"
+      SET "averageRating" = 0, "reviewCount" = 0
+      WHERE id NOT IN (SELECT DISTINCT "postId" FROM "Rating")
+    `;
 
-    // Get all recipe IDs
-    const recipes = await prisma.post.findMany({
-      select: { id: true },
-    });
-
-    // Batch update recipes in chunks to avoid serverless timeouts
-    let updated = 0;
-    const errors: string[] = [];
-    const batchSize = 100;
-
-    for (let i = 0; i < recipes.length; i += batchSize) {
-      const batch = recipes.slice(i, i + batchSize);
-      try {
-        await prisma.$transaction(
-          batch.map((recipe) => {
-            const data = ratingsMap.get(recipe.id) || { averageRating: 0, reviewCount: 0 };
-            return prisma.post.update({ where: { id: recipe.id }, data });
-          })
-        );
-        updated += batch.length;
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        errors.push(`Batch starting at index ${i}: ${message}`);
-      }
-    }
+    const total = await prisma.post.count();
 
     return NextResponse.json({
       success: true,
-      message: `Recalculated ratings for ${updated} recipes`,
-      total: recipes.length,
-      updated,
-      errors: errors.length > 0 ? errors : undefined,
+      message: `Recalculated ratings for all recipes`,
+      total,
     });
   } catch (error: unknown) {
     console.error('Error recalculating ratings:', error);
