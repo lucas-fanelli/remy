@@ -106,11 +106,28 @@ export function middleware(request: NextRequest) {
     return new NextResponse(null, { status: 200, headers: response.headers });
   }
 
-  // Block admin pages server-side for unauthenticated users
+  // Block admin pages server-side for non-admin users
   if (request.nextUrl.pathname.startsWith('/admin')) {
     const authHeader = request.headers.get('authorization');
     const cookieToken = request.cookies.get('auth_token')?.value;
-    if (!authHeader && !cookieToken) {
+    const rawToken = authHeader?.replace('Bearer ', '') || cookieToken;
+
+    let isAdmin = false;
+    if (rawToken) {
+      try {
+        // Decode JWT payload (base64) to check role claim
+        // Full signature verification happens at the API level via requireAdmin
+        const payloadPart = rawToken.split('.')[1];
+        if (payloadPart) {
+          const payload = JSON.parse(atob(payloadPart));
+          isAdmin = payload.role === 'ADMIN';
+        }
+      } catch {
+        // Invalid token format
+      }
+    }
+
+    if (!isAdmin) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

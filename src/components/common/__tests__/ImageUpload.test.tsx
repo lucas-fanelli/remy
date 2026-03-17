@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import ImageUpload from '../ImageUpload';
 
 // Mock framer-motion
@@ -9,6 +9,11 @@ jest.mock('framer-motion', () => ({
   motion: {
     create: (component: any) => component,
   },
+}));
+
+// Mock AuthContext
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ token: 'test-token' }),
 }));
 
 const mockTheme = createTheme();

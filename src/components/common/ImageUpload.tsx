@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import React, { useState, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const MotionCard = motion.create(Card);
 
@@ -31,6 +32,7 @@ export default function ImageUpload({
   aspectRatio = 16 / 9,
   compact = false,
 }: ImageUploadProps) {
+  const { token } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -60,8 +62,14 @@ export default function ImageUpload({
       const formData = new FormData();
       formData.append('file', file);
 
+      const headers: HeadersInit = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers,
         body: formData,
       });
 

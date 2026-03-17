@@ -345,39 +345,6 @@ export default function Navigation() {
     }
   };
 
-  // Generate breadcrumbs based on current pathname
-  const _generateBreadcrumbs = () => {
-    const pathSegments = pathname.split('/').filter((segment) => segment !== '');
-
-    const breadcrumbs = [{ label: 'Home', href: '/' }];
-
-    let currentPath = '';
-    pathSegments.forEach((segment, _index) => {
-      currentPath += `/${segment}`;
-
-      // Capitalize and format segment
-      let label = segment.charAt(0).toUpperCase() + segment.slice(1);
-
-      // Custom labels for specific routes
-      if (segment === 'pantry') label = 'My Pantry';
-      if (segment === 'profile') label = 'Profile';
-      if (segment === 'recipe') label = 'Recipe';
-      if (segment === 'settings') label = 'Settings';
-
-      // For dynamic segments (like IDs), keep them short or fetch title if available
-      if (segment.match(/^[0-9a-f-]{36}$/)) {
-        label = 'Details';
-      }
-
-      breadcrumbs.push({
-        label,
-        href: currentPath,
-      });
-    });
-
-    return breadcrumbs;
-  };
-
   const renderDesktopNav = () => {
     return (
       <AppBar

@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { Person, Restaurant } from '@mui/icons-material';
 import {
   Container,
@@ -47,12 +45,6 @@ interface Recipe {
   };
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
 // Fallback loading component for Suspense
 function SearchPageFallback() {
   return null;
@@ -96,7 +88,7 @@ function SearchPageContent() {
     fetchResults();
   }, [query, router]);
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  const _handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 

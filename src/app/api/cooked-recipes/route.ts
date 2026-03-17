@@ -18,8 +18,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
+    const skip = (page - 1) * limit;
+
     const cookedRecipes = await prisma.cookedRecipe.findMany({
       where: { userId: payload.userId },
+      take: limit,
+      skip,
       include: {
         post: {
           select: {
@@ -81,16 +88,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
-    // Get user's pantry
-    const pantry = await prisma.userPantry.findUnique({
-      where: { userId: payload.userId },
-      include: {
-        items: true,
-      },
-    });
-
     // Remove recipe ingredients from pantry and create cooked recipe atomically
     const cookedRecipe = await prisma.$transaction(async (tx) => {
+      // Read pantry inside transaction to avoid stale data
+      const pantry = await tx.userPantry.findUnique({
+        where: { userId: payload.userId },
+        include: { items: true },
+      });
+
       if (pantry && recipe.ingredients) {
         const recipeIngredients = recipe.ingredients as Array<{
           name: string;

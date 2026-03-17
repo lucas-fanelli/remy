@@ -1,8 +1,5 @@
 'use client';
 
-// Force dynamic rendering for this page
-export const dynamic = 'force-dynamic';
-
 import { Box, Container, Typography, Link } from '@mui/material';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';

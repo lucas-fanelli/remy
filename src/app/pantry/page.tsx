@@ -1,8 +1,5 @@
 'use client';
 
-// Force dynamic rendering for this page since it uses useRouter
-export const dynamic = 'force-dynamic';
-
 import { Add, Edit, Delete, Kitchen, FilterList, Search } from '@mui/icons-material';
 import {
   Container,
@@ -55,7 +52,7 @@ const categories = ['vegetable', 'protein', 'dairy', 'grain', 'spice', 'fruit', 
 const units = ['g', 'kg', 'mL', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'];
 
 export default function PantryPage() {
-  const { user, token, isLoading: authLoading } = useAuth();
+  const { token, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);

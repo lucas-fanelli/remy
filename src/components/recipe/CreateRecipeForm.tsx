@@ -61,7 +61,6 @@ const commonUnits = [
 export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFormProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

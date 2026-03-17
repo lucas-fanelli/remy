@@ -39,7 +39,6 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
   const { showSuccess, showError } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ProfileForm>({

@@ -114,8 +114,14 @@ export default function CommentsSection({
           const formData = new FormData();
           formData.append('file', selectedImage);
 
+          const uploadHeaders: HeadersInit = {};
+          if (token) {
+            uploadHeaders['Authorization'] = `Bearer ${token}`;
+          }
+
           const uploadResponse = await fetch('/api/upload', {
             method: 'POST',
+            headers: uploadHeaders,
             body: formData,
           });
 

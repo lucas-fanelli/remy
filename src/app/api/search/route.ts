@@ -43,27 +43,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get ratings for each recipe
-    const recipeIds = recipes.map((r) => r.id);
-    const ratings = await prisma.rating.groupBy({
-      by: ['postId'],
-      where: { postId: { in: recipeIds } },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
-
-    // Create ratings map
-    const ratingsMap = new Map(
-      ratings.map((r) => [
-        r.postId,
-        {
-          averageRating: r._avg.rating || 0,
-          totalRatings: r._count.rating || 0,
-        },
-      ])
-    );
-
-    // Format recipes response
+    // Format recipes response - use cached rating values from post record
     const formattedRecipes = recipes.map((recipe) => ({
       id: recipe.id,
       title: recipe.title,
@@ -75,8 +55,8 @@ export async function GET(request: NextRequest) {
       servings: recipe.servings || 4,
       likeCount: recipe._count.likes,
       commentCount: recipe._count.comments,
-      averageRating: ratingsMap.get(recipe.id)?.averageRating || 0,
-      totalRatings: ratingsMap.get(recipe.id)?.totalRatings || 0,
+      averageRating: recipe.averageRating ?? 0,
+      totalRatings: recipe.reviewCount ?? 0,
       author: {
         username: recipe.user.username,
         avatar: recipe.user.avatar,

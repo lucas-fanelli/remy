@@ -1,8 +1,5 @@
 'use client';
 
-// Force dynamic rendering for this page
-export const dynamic = 'force-dynamic';
-
 import {
   Security,
   Palette,
@@ -47,10 +44,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
-  const { showSuccess, showInfo } = useToast();
+  const { showSuccess } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const {

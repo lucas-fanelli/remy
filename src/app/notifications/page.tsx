@@ -1,8 +1,5 @@
 'use client';
 
-// Force dynamic rendering for this page
-export const dynamic = 'force-dynamic';
-
 import { FavoriteBorder, PersonAdd, ChatBubbleOutline, Star } from '@mui/icons-material';
 import {
   Container,
