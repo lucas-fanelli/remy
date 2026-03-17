@@ -172,14 +172,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return newComment;
     });
 
-    // Create comment notification (covers both comment-only and comment+rating cases)
-    const notificationService = container.getNotificationService();
-    await notificationService.createCommentNotification(
-      payload.userId,
-      recipeId,
-      recipe.userId,
-      comment.id
-    );
+    // Create notification - non-critical, don't fail the request if this errors
+    try {
+      const notificationService = container.getNotificationService();
+      await notificationService.createCommentNotification(
+        payload.userId,
+        recipeId,
+        recipe.userId,
+        comment.id
+      );
+    } catch (notifError) {
+      console.warn('Failed to create comment notification:', notifError);
+    }
 
     // Add rating to comment object for response
     const commentWithRating = {

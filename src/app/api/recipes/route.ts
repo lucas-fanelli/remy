@@ -41,8 +41,14 @@ export async function GET(request: NextRequest) {
     // Time filtering - both maxTime and minTime can be applied together
     if (maxTime || minTime) {
       where.cookingTime = {};
-      if (maxTime) where.cookingTime.lte = parseInt(maxTime);
-      if (minTime) where.cookingTime.gte = parseInt(minTime);
+      if (maxTime) {
+        const parsed = parseInt(maxTime);
+        if (!isNaN(parsed)) where.cookingTime.lte = parsed;
+      }
+      if (minTime) {
+        const parsed = parseInt(minTime);
+        if (!isNaN(parsed)) where.cookingTime.gte = parsed;
+      }
     }
 
     if (userId) {

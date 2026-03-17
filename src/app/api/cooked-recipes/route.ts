@@ -119,9 +119,14 @@ export async function POST(request: NextRequest) {
           unit: string;
         }>;
 
+        const matchedPantryIds = new Set<string>();
+
         for (const ingredient of recipeIngredients) {
-          // Find matching pantry item using fuzzy ingredient matching
-          const pantryItem = pantry.items.find((item) => ingredientMatches(item, ingredient));
+          // Find matching pantry item (skip already-matched items to prevent double deduction)
+          const pantryItem = pantry.items.find(
+            (item) => !matchedPantryIds.has(item.id) && ingredientMatches(item, ingredient)
+          );
+          if (pantryItem) matchedPantryIds.add(pantryItem.id);
 
           if (pantryItem) {
             // Parse amounts - supports fractions like "1/2", skips "to taste"
@@ -213,8 +218,9 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cookedRecipeId = searchParams.get('id');
 
-    if (!cookedRecipeId) {
-      return NextResponse.json({ error: 'Cooked recipe ID is required' }, { status: 400 });
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!cookedRecipeId || !UUID_REGEX.test(cookedRecipeId)) {
+      return NextResponse.json({ error: 'Valid cooked recipe ID is required' }, { status: 400 });
     }
 
     // Verify ownership before deleting

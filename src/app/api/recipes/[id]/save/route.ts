@@ -86,9 +86,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     if (existingSave) {
-      await prisma.savedRecipe.delete({
-        where: { id: existingSave.id },
-      });
+      try {
+        await prisma.savedRecipe.delete({
+          where: { id: existingSave.id },
+        });
+      } catch (err: unknown) {
+        if (!(err instanceof Error && err.message.includes('Record to delete does not exist'))) {
+          throw err;
+        }
+      }
       return NextResponse.json({ saved: false, message: 'Recipe removed from saved' });
     } else {
       try {

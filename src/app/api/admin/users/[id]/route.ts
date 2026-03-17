@@ -60,13 +60,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (action === 'promote') {
       user = await adminService.promoteToAdmin(id);
-    } else if (action === 'demote') {
-      user = await adminService.demoteToUser(id);
     } else {
-      return NextResponse.json(
-        { error: 'Invalid action. Use "promote" or "demote"' },
-        { status: 400 }
-      );
+      user = await adminService.demoteToUser(id);
     }
 
     return NextResponse.json(user);

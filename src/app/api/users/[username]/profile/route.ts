@@ -59,6 +59,7 @@ export async function GET(
         },
         posts: {
           orderBy: { createdAt: 'desc' },
+          take: 50,
           select: {
             id: true,
             title: true,
