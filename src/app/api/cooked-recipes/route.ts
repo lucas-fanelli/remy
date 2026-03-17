@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { UUID_REGEX, MAX_NOTES_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { ingredientMatches, unitsMatch, parseAmount } from '@/lib/utils/ingredients';
@@ -76,13 +77,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { postId, rating, notes } = body;
 
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!postId || typeof postId !== 'string' || !UUID_REGEX.test(postId)) {
       return NextResponse.json({ error: 'Invalid recipe ID' }, { status: 400 });
     }
 
-    if (notes !== undefined && typeof notes === 'string' && notes.length > 5000) {
-      return NextResponse.json({ error: 'Notes must be 5000 characters or less' }, { status: 400 });
+    if (notes !== undefined && typeof notes === 'string' && notes.length > MAX_NOTES_LENGTH) {
+      return NextResponse.json(
+        { error: `Notes must be ${MAX_NOTES_LENGTH} characters or less` },
+        { status: 400 }
+      );
     }
 
     if (
@@ -218,7 +221,6 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const cookedRecipeId = searchParams.get('id');
 
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!cookedRecipeId || !UUID_REGEX.test(cookedRecipeId)) {
       return NextResponse.json({ error: 'Valid cooked recipe ID is required' }, { status: 400 });
     }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MAX_COMMENT_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
@@ -6,10 +7,15 @@ import prisma from '@/lib/database/prisma';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
+    const searchParams = request.nextUrl.searchParams;
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50));
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0);
 
-    // Get comments with user info
+    // Get comments with user info (paginated)
     const comments = await prisma.comment.findMany({
       where: { postId: recipeId },
+      take: limit,
+      skip: offset,
       include: {
         user: {
           select: {
@@ -72,7 +78,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
     }
 
-    if (text.length > 5000) {
+    if (text.length > MAX_COMMENT_LENGTH) {
       return NextResponse.json(
         { error: 'Comment text must be 5000 characters or less' },
         { status: 400 }
@@ -95,7 +101,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (
           !['http:', 'https:'].includes(url.protocol) ||
           url.hostname !== 'res.cloudinary.com' ||
-          (cloudName && !url.pathname.startsWith(`/${cloudName}/`))
+          !cloudName ||
+          !url.pathname.startsWith(`/${cloudName}/`)
         ) {
           return NextResponse.json(
             { error: 'Image must be uploaded through the app' },

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MAX_PANTRY_ITEMS, MAX_ITEM_NAME_LENGTH, MAX_QUANTITY } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
@@ -74,9 +75,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item name is required' }, { status: 400 });
     }
 
-    if (name.length > 200) {
+    if (name.length > MAX_ITEM_NAME_LENGTH) {
       return NextResponse.json(
-        { error: 'Item name too long (max 200 characters)' },
+        { error: `Item name too long (max ${MAX_ITEM_NAME_LENGTH} characters)` },
         { status: 400 }
       );
     }
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
       if (parsed < 0) {
         return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
       }
-      if (parsed > 999999) {
+      if (parsed > MAX_QUANTITY) {
         return NextResponse.json({ error: 'Quantity too large' }, { status: 400 });
       }
     }
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
     // Create pantry item with atomic limit check
     const item = await prisma.$transaction(async (tx) => {
       const itemCount = await tx.pantryItem.count({ where: { pantryId: pantry.id } });
-      if (itemCount >= 500) {
+      if (itemCount >= MAX_PANTRY_ITEMS) {
         throw new Error('PANTRY_LIMIT');
       }
       return tx.pantryItem.create({
@@ -137,7 +138,10 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof Error && error.message === 'PANTRY_LIMIT') {
-      return NextResponse.json({ error: 'Pantry item limit reached (500)' }, { status: 400 });
+      return NextResponse.json(
+        { error: `Pantry item limit reached (${MAX_PANTRY_ITEMS})` },
+        { status: 400 }
+      );
     }
     console.error('Error adding pantry item:', error);
     return NextResponse.json({ error: 'Failed to add item to pantry' }, { status: 500 });

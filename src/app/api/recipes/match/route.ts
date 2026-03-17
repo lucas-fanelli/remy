@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         ingredients: { not: Prisma.DbNull },
       },
       take: 100,
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         title: true,

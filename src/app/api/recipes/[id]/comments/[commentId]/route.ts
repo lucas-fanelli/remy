@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MAX_COMMENT_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
@@ -31,7 +32,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
     }
 
-    if (text.length > 5000) {
+    if (text.length > MAX_COMMENT_LENGTH) {
       return NextResponse.json(
         { error: 'Comment text must be 5000 characters or less' },
         { status: 400 }

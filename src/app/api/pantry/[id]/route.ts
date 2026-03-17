@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { MAX_ITEM_NAME_LENGTH, MAX_QUANTITY } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
@@ -46,7 +47,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Item name cannot be empty' }, { status: 400 });
     }
 
-    if (name !== undefined && name.length > 200) {
+    if (name !== undefined && name.length > MAX_ITEM_NAME_LENGTH) {
       return NextResponse.json(
         { error: 'Item name too long (max 200 characters)' },
         { status: 400 }
@@ -66,7 +67,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (parsed < 0) {
         return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
       }
-      if (parsed > 999999) {
+      if (parsed > MAX_QUANTITY) {
         return NextResponse.json({ error: 'Quantity too large' }, { status: 400 });
       }
     }
