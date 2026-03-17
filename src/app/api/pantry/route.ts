@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       data: {
         pantryId: pantry.id,
         name: name.trim(),
-        quantity: parseFloat(quantity),
+        quantity: quantity !== undefined && quantity !== null ? parseFloat(quantity) : 0,
         unit: unit.trim(),
         category: category?.trim() || null,
         expiresAt: expiresAt ? new Date(expiresAt) : null,

@@ -21,6 +21,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ message: 'Comment deleted successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
     console.error('Error deleting comment:', error);
     return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
   }

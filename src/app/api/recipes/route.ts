@@ -23,6 +23,10 @@ export async function GET(request: NextRequest) {
     // Build Prisma where clause
     const where: any = {};
 
+    if (query && query.length > 200) {
+      return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
+    }
+
     if (query) {
       where.OR = [
         { title: { contains: query, mode: 'insensitive' } },

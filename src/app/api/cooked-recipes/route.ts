@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { ingredientMatches, unitsMatch } from '@/lib/utils/ingredients';
+import { ingredientMatches, unitsMatch, parseAmount } from '@/lib/utils/ingredients';
 
 // GET - Get user's cooked recipes
 export async function GET(request: NextRequest) {
@@ -123,8 +123,8 @@ export async function POST(request: NextRequest) {
           const pantryItem = pantry.items.find((item) => ingredientMatches(item, ingredient));
 
           if (pantryItem) {
-            // Parse amounts - skip non-numeric amounts like "to taste" or "1/2"
-            const recipeAmount = parseFloat(ingredient.amount);
+            // Parse amounts - supports fractions like "1/2", skips "to taste"
+            const recipeAmount = parseAmount(ingredient.amount);
             if (isNaN(recipeAmount)) continue;
 
             const pantryQuantity = pantryItem.quantity;

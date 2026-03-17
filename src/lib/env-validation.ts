@@ -164,15 +164,6 @@ export function getEnvConfig(): EnvConfig {
   return validateEnvironment();
 }
 
-// Auto-validate on import (server-side only)
-if (typeof window === 'undefined') {
-  try {
-    validateEnvironment();
-  } catch (error) {
-    console.error(error);
-    // In production, fail fast so deployment catches missing config
-    if (process.env.NODE_ENV === 'production') {
-      throw error;
-    }
-  }
-}
+// NOTE: Call validateEnvironment() or getEnvConfig() explicitly at app startup.
+// Auto-validation on import was removed to prevent CI/CD build failures when
+// runtime-only secrets (DATABASE_URL, etc.) aren't available during build.

@@ -1,4 +1,21 @@
 /**
+ * Parse ingredient amount strings, including fractions like "1/2"
+ */
+export function parseAmount(amount: string): number {
+  const trimmed = amount.trim();
+  if (trimmed.includes('/')) {
+    const parts = trimmed.split('/');
+    if (parts.length === 2) {
+      const num = parseFloat(parts[0]);
+      const den = parseFloat(parts[1]);
+      if (!isNaN(num) && !isNaN(den) && den !== 0) return num / den;
+    }
+    return NaN;
+  }
+  return parseFloat(trimmed);
+}
+
+/**
  * Normalize ingredient names for matching (case-insensitive, basic plural handling)
  */
 export function normalizeIngredientName(name: string): string {

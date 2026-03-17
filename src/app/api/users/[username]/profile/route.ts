@@ -68,6 +68,8 @@ export async function GET(
             cookingTime: true,
             prepTime: true,
             servings: true,
+            averageRating: true,
+            reviewCount: true,
             createdAt: true,
             _count: {
               select: {
@@ -165,36 +167,15 @@ export async function GET(
         );
     }
 
-    // Get ratings for user's recipes in parallel with conditional queries
-    const recipeIds = user.posts.map((r) => r.id);
-    const ratingsPromise = prisma.rating.groupBy({
-      by: ['postId'],
-      where: { postId: { in: recipeIds } },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
-
-    // Run all queries in parallel with named results
-    const [isFollowingResult, savedRecipesResult, recipeRatings] = await Promise.all([
+    // Run conditional queries in parallel
+    const [isFollowingResult, savedRecipesResult] = await Promise.all([
       isFollowingPromise ?? Promise.resolve(undefined),
       savedRecipesPromise ?? Promise.resolve(undefined),
-      ratingsPromise,
     ]);
-    // Update variables from named results
     if (isFollowingResult !== undefined) isFollowing = isFollowingResult;
     if (savedRecipesResult !== undefined) savedRecipes = savedRecipesResult;
 
-    const recipeRatingsMap = new Map(
-      recipeRatings.map((r) => [
-        r.postId,
-        {
-          averageRating: r._avg.rating || 0,
-          totalRatings: r._count.rating || 0,
-        },
-      ])
-    );
-
-    // Format recipes
+    // Format recipes using cached rating values from post record
     const recipes = user.posts.map((recipe) => ({
       id: recipe.id,
       title: recipe.title,
@@ -207,8 +188,8 @@ export async function GET(
       likesCount: recipe._count.likes,
       commentsCount: recipe._count.comments,
       createdAt: recipe.createdAt,
-      averageRating: recipeRatingsMap.get(recipe.id)?.averageRating || 0,
-      totalRatings: recipeRatingsMap.get(recipe.id)?.totalRatings || 0,
+      averageRating: (recipe as any).averageRating ?? 0,
+      totalRatings: (recipe as any).reviewCount ?? 0,
     }));
 
     // Build response

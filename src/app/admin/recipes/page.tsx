@@ -126,7 +126,7 @@ export default function AdminRecipesPage() {
     }
   };
 
-  if (authLoading || (!isAdmin && !authLoading)) {
+  if (authLoading || !isAdmin) {
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
@@ -233,7 +233,7 @@ export default function AdminRecipesPage() {
                     </TableCell>
                     <TableCell align="center">{recipe._count?.likes || 0}</TableCell>
                     <TableCell align="center">{recipe._count?.comments || 0}</TableCell>
-                    <TableCell>{new Date(recipe.createdAt).toLocaleDateString('en-US')}</TableCell>
+                    <TableCell>{new Date(recipe.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Recipe">
                         <IconButton

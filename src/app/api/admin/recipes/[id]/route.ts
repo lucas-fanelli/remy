@@ -21,6 +21,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ message: 'Recipe deleted successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+    }
     console.error('Error deleting recipe:', error);
     return NextResponse.json({ error: 'Failed to delete recipe' }, { status: 500 });
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { validateImageMagicBytes } from '@/lib/utils/image-validation';
 
 // Configure route to use Node.js runtime
 export const runtime = 'nodejs';
@@ -60,23 +61,8 @@ export async function POST(request: NextRequest) {
 
     // Convert file to buffer and validate magic bytes
     const buffer = Buffer.from(await file.arrayBuffer());
-    const header = buffer.subarray(0, 12);
 
-    const isJpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
-    const isPng =
-      header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47;
-    const isGif = header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46;
-    const isWebp =
-      header[0] === 0x52 &&
-      header[1] === 0x49 &&
-      header[2] === 0x46 &&
-      header[3] === 0x46 &&
-      header[8] === 0x57 &&
-      header[9] === 0x45 &&
-      header[10] === 0x42 &&
-      header[11] === 0x50;
-
-    if (!isJpeg && !isPng && !isGif && !isWebp) {
+    if (!validateImageMagicBytes(buffer)) {
       return NextResponse.json(
         { error: 'Invalid file content. File does not match any allowed image format.' },
         { status: 400 }

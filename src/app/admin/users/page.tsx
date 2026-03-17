@@ -164,7 +164,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (authLoading || (!isAdmin && !authLoading)) {
+  if (authLoading || !isAdmin) {
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
@@ -286,7 +286,7 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell align="center">{u._count?.posts || 0}</TableCell>
                     <TableCell align="center">{u._count?.followers || 0}</TableCell>
-                    <TableCell>{new Date(u.createdAt).toLocaleDateString('en-US')}</TableCell>
+                    <TableCell>{new Date(u.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell align="right">
                       <Tooltip title={u.role === 'ADMIN' ? 'Demote to User' : 'Promote to Admin'}>
                         <IconButton

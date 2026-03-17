@@ -119,7 +119,7 @@ export default function AdminCommentsPage() {
     }
   };
 
-  if (authLoading || (!isAdmin && !authLoading)) {
+  if (authLoading || !isAdmin) {
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
@@ -201,7 +201,7 @@ export default function AdminCommentsPage() {
                         {comment.post.title || 'Untitled Recipe'}
                       </Typography>
                     </TableCell>
-                    <TableCell>{new Date(comment.createdAt).toLocaleDateString('en-US')}</TableCell>
+                    <TableCell>{new Date(comment.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Recipe">
                         <IconButton
