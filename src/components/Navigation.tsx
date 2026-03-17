@@ -1075,7 +1075,7 @@ export default function Navigation() {
             <Divider />
             <ListItem sx={{ py: 1, justifyContent: 'center' }}>
               <Typography variant="caption" color="text.secondary">
-                Lucas Fanelli
+                {BRANDING.creator.name}
               </Typography>
             </ListItem>
           </List>

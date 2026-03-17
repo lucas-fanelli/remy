@@ -59,9 +59,15 @@ export default function AdminRecipesPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<AdminRecipe | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const fetchRecipes = useCallback(async () => {
     if (!token) return;
@@ -72,7 +78,7 @@ export default function AdminRecipesPage() {
         page: String(page + 1),
         limit: String(rowsPerPage),
       });
-      if (search) params.append('search', search);
+      if (debouncedSearch) params.append('search', debouncedSearch);
 
       const response = await fetch(`/api/admin/recipes?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -88,7 +94,7 @@ export default function AdminRecipesPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, rowsPerPage, search]);
+  }, [token, page, rowsPerPage, debouncedSearch]);
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {

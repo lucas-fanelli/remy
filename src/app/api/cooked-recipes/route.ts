@@ -25,33 +25,36 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
     const skip = (page - 1) * limit;
 
-    const cookedRecipes = await prisma.cookedRecipe.findMany({
-      where: { userId: payload.userId },
-      take: limit,
-      skip,
-      include: {
-        post: {
-          select: {
-            id: true,
-            title: true,
-            imageUrl: true,
-            description: true,
-            difficulty: true,
-            cookingTime: true,
-            prepTime: true,
-            user: {
-              select: {
-                username: true,
-                avatar: true,
+    const [cookedRecipes, total] = await Promise.all([
+      prisma.cookedRecipe.findMany({
+        where: { userId: payload.userId },
+        take: limit,
+        skip,
+        include: {
+          post: {
+            select: {
+              id: true,
+              title: true,
+              imageUrl: true,
+              description: true,
+              difficulty: true,
+              cookingTime: true,
+              prepTime: true,
+              user: {
+                select: {
+                  username: true,
+                  avatar: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: { cookedAt: 'desc' },
-    });
+        orderBy: { cookedAt: 'desc' },
+      }),
+      prisma.cookedRecipe.count({ where: { userId: payload.userId } }),
+    ]);
 
-    return NextResponse.json({ cookedRecipes });
+    return NextResponse.json({ cookedRecipes, total });
   } catch (error) {
     console.error('Error fetching cooked recipes:', error);
     return NextResponse.json({ error: 'Failed to fetch cooked recipes' }, { status: 500 });
@@ -74,7 +77,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
     const { postId, rating, notes } = body;
 
     if (!postId || typeof postId !== 'string' || !UUID_REGEX.test(postId)) {

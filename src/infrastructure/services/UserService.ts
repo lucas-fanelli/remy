@@ -34,7 +34,10 @@ export class UserService implements IUserService {
     // Validate website URL if provided
     if (data.website) {
       try {
-        new URL(data.website);
+        const url = new URL(data.website);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          throw new Error('Website must use http or https protocol');
+        }
       } catch {
         throw new Error('Invalid website URL');
       }

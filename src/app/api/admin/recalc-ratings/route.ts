@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
       `;
 
       await tx.$executeRaw`
-        UPDATE "Post"
+        UPDATE "Post" p
         SET "averageRating" = 0, "reviewCount" = 0
-        WHERE id NOT IN (SELECT DISTINCT "postId" FROM "Rating")
+        WHERE NOT EXISTS (SELECT 1 FROM "Rating" r WHERE r."postId" = p.id)
       `;
     });
 

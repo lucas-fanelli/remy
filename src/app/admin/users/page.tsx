@@ -64,11 +64,17 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(20);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const fetchUsers = useCallback(async () => {
     if (!token) return;
@@ -79,7 +85,7 @@ export default function AdminUsersPage() {
         page: String(page + 1),
         limit: String(rowsPerPage),
       });
-      if (search) params.append('search', search);
+      if (debouncedSearch) params.append('search', debouncedSearch);
       if (roleFilter) params.append('role', roleFilter);
 
       const response = await fetch(`/api/admin/users?${params}`, {
@@ -96,7 +102,7 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, rowsPerPage, search, roleFilter]);
+  }, [token, page, rowsPerPage, debouncedSearch, roleFilter]);
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {

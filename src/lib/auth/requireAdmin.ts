@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
+import prisma from '@/lib/database/prisma';
 
 export interface AdminAuthResult {
   userId: string;
@@ -30,8 +31,13 @@ export async function requireAdmin(request: NextRequest): Promise<AdminAuthResul
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Check if user has admin role
-    if (payload.role !== 'ADMIN') {
+    // Verify current role from DB (JWT role could be stale after demotion)
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { role: true },
+    });
+
+    if (!user || user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
