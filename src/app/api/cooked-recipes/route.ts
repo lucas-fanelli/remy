@@ -105,20 +105,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already marked as cooked today (prevent duplicate deductions)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const existingCooked = await prisma.cookedRecipe.findFirst({
-      where: {
-        userId: payload.userId,
-        postId,
-        cookedAt: { gte: today },
-      },
-    });
-    if (existingCooked) {
-      return NextResponse.json({ error: 'Recipe already marked as cooked today' }, { status: 409 });
-    }
-
     // Verify the recipe exists and get its ingredients
     const recipe = await prisma.post.findUnique({
       where: { id: postId },
@@ -130,6 +116,16 @@ export async function POST(request: NextRequest) {
 
     // Remove recipe ingredients from pantry and create cooked recipe atomically
     const cookedRecipe = await prisma.$transaction(async (tx) => {
+      // Check for duplicate inside transaction to prevent race condition
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const existingCooked = await tx.cookedRecipe.findFirst({
+        where: { userId: payload.userId, postId, cookedAt: { gte: today } },
+      });
+      if (existingCooked) {
+        throw new Error('ALREADY_COOKED');
+      }
+
       // Read pantry inside transaction to avoid stale data
       const pantry = await tx.userPantry.findUnique({
         where: { userId: payload.userId },
@@ -218,6 +214,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'ALREADY_COOKED') {
+      return NextResponse.json({ error: 'Recipe already marked as cooked today' }, { status: 409 });
+    }
     console.error('Error marking recipe as cooked:', error);
     return NextResponse.json({ error: 'Failed to mark recipe as cooked' }, { status: 500 });
   }

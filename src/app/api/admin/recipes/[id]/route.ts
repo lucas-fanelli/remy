@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminAuthError } from '@/lib/auth/requireAdmin';
+import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 
 interface RouteParams {
@@ -15,6 +16,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   try {
     const { id } = await params;
+    if (!UUID_REGEX.test(id)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
 
     const adminService = container.getAdminService();
     await adminService.deleteRecipe(id);

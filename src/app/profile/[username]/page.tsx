@@ -488,7 +488,7 @@ export default function ProfilePage() {
                                   <Chip
                                     label={recipe.difficulty}
                                     size="small"
-                                    color={getDifficultyColor(recipe.difficulty) as any}
+                                    color={getDifficultyColor(recipe.difficulty)}
                                     sx={{
                                       textTransform: 'capitalize',
                                       color: 'white',
@@ -587,7 +587,7 @@ export default function ProfilePage() {
                                   <Chip
                                     label={recipe.difficulty}
                                     size="small"
-                                    color={getDifficultyColor(recipe.difficulty) as any}
+                                    color={getDifficultyColor(recipe.difficulty)}
                                     sx={{
                                       textTransform: 'capitalize',
                                       color: 'white',

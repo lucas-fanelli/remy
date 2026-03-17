@@ -255,6 +255,10 @@ export class AdminService implements IAdminService {
         where: { id: commentId },
       });
 
+      if (!comment) {
+        throw new Error('COMMENT_NOT_FOUND');
+      }
+
       await tx.comment.delete({
         where: { id: commentId },
       });

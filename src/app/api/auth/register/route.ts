@@ -7,7 +7,12 @@ import { registerSchema } from '@/lib/validation/schemas';
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return ApiResponseHelper.badRequest('Invalid JSON body');
+    }
 
     // Validate input
     const validatedData = registerSchema.parse(body);

@@ -120,7 +120,8 @@ export default function RecipeCard({
           src={recipe.imageUrl || '/placeholder-recipe.png'}
           alt={recipe.title}
           onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            if (!e.currentTarget.src.endsWith('/placeholder-recipe.png')) {
+            if (!e.currentTarget.dataset.fallback) {
+              e.currentTarget.dataset.fallback = 'true';
               e.currentTarget.src = '/placeholder-recipe.png';
             }
           }}

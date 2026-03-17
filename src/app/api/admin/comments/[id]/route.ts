@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminAuthError } from '@/lib/auth/requireAdmin';
+import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 
 interface RouteParams {
@@ -15,13 +16,20 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   try {
     const { id } = await params;
+    if (!UUID_REGEX.test(id)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
 
     const adminService = container.getAdminService();
     await adminService.deleteComment(id);
 
     return NextResponse.json({ message: 'Comment deleted successfully' });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
+    if (
+      error instanceof Error &&
+      (error.message === 'COMMENT_NOT_FOUND' ||
+        error.message.includes('Record to delete does not exist'))
+    ) {
       return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
     console.error('Error deleting comment:', error);

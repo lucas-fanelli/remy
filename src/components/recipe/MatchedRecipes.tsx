@@ -243,7 +243,7 @@ export default function MatchedRecipes() {
                         <Chip
                           label={recipe.difficulty}
                           size="small"
-                          color={getDifficultyColor(recipe.difficulty) as any}
+                          color={getDifficultyColor(recipe.difficulty)}
                           sx={{
                             fontSize: { xs: '0.7rem', md: '0.8125rem' },
                             textTransform: 'capitalize',
@@ -360,7 +360,7 @@ export default function MatchedRecipes() {
                         <Chip
                           label={recipe.difficulty}
                           size="small"
-                          color={getDifficultyColor(recipe.difficulty) as any}
+                          color={getDifficultyColor(recipe.difficulty)}
                           sx={{
                             fontSize: { xs: '0.7rem', md: '0.8125rem' },
                             textTransform: 'capitalize',
