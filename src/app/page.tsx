@@ -51,9 +51,9 @@ export default function Home() {
         throw new Error(error.error || 'Failed to create recipe');
       }
 
-      // Close dialog and invalidate recipe queries to refresh feed
+      // Invalidate recipe queries before closing to ensure fresh data
+      await queryClient.invalidateQueries({ queryKey: ['recipes'] });
       setCreateDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     } catch (error) {
       console.error('Error creating recipe:', error);
       throw error;

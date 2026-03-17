@@ -45,8 +45,11 @@ export async function PATCH(
     }
 
     // Validate rating before any writes
-    if (rating !== undefined && (rating < 1 || rating > 5)) {
-      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
+    if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
+      return NextResponse.json(
+        { error: 'Rating must be an integer between 1 and 5' },
+        { status: 400 }
+      );
     }
 
     // Update comment and rating atomically in a transaction

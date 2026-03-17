@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
-import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -122,17 +121,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
-    // Check ownership
-    if (recipe.userId !== payload.userId) {
-      return NextResponse.json(
-        { error: 'You do not have permission to delete this recipe' },
-        { status: 403 }
-      );
-    }
-
-    // Delete recipe from database first (skip service re-fetch since we already verified ownership)
+    // Delete recipe via service (performs atomic ownership check + delete)
     const imageUrl = recipe.imageUrl;
-    await prisma.post.delete({ where: { id } });
+    await recipeService.deleteRecipe(id, payload.userId);
 
     // Clean up Cloudinary image after successful DB deletion
     if (imageUrl && imageUrl.includes('cloudinary.com')) {

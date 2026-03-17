@@ -27,6 +27,46 @@ export function normalizeIngredientName(name: string): string {
 }
 
 /**
+ * Unit alias map for normalizing measurement units
+ */
+const UNIT_ALIASES: Record<string, string> = {
+  tbsp: 'tablespoon',
+  tbs: 'tablespoon',
+  tablespoons: 'tablespoon',
+  tsp: 'teaspoon',
+  teaspoons: 'teaspoon',
+  ml: 'milliliter',
+  milliliters: 'milliliter',
+  l: 'liter',
+  liters: 'liter',
+  oz: 'ounce',
+  ounces: 'ounce',
+  lb: 'pound',
+  lbs: 'pound',
+  pounds: 'pound',
+  g: 'gram',
+  grams: 'gram',
+  kg: 'kilogram',
+  kilograms: 'kilogram',
+  cups: 'cup',
+};
+
+/**
+ * Normalize a unit string using aliases
+ */
+export function normalizeUnit(unit: string): string {
+  const lower = unit.toLowerCase().trim();
+  return UNIT_ALIASES[lower] || lower;
+}
+
+/**
+ * Check if two units are compatible
+ */
+export function unitsMatch(a: string, b: string): boolean {
+  return normalizeUnit(a) === normalizeUnit(b);
+}
+
+/**
  * Check if pantry item matches recipe ingredient using fuzzy matching
  */
 export function ingredientMatches(

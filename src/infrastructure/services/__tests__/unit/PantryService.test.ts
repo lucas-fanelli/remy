@@ -58,7 +58,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['tomato']);
@@ -85,7 +86,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['carrot']);
@@ -112,7 +114,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['apple']);
@@ -139,7 +142,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['chicken']);
@@ -166,7 +170,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['milk']);
@@ -193,7 +198,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['rice']);
@@ -220,7 +226,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['oregano']);
@@ -256,6 +263,14 @@ describe('PantryService', () => {
         category: IngredientCategory.SPICE,
         createdAt: new Date(),
       });
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([
+        {
+          id: '1',
+          name: 'special-ingredient',
+          category: IngredientCategory.SPICE,
+          createdAt: new Date(),
+        },
+      ]);
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['special-ingredient']);
@@ -282,16 +297,15 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['new-ingredient']);
 
-      expect(mockPrisma.ingredient.create).toHaveBeenCalledWith({
-        data: {
-          name: 'new-ingredient',
-          category: IngredientCategory.OTHER,
-        },
+      expect(mockPrisma.ingredient.createMany).toHaveBeenCalledWith({
+        data: [{ name: 'new-ingredient', category: IngredientCategory.OTHER }],
+        skipDuplicates: true,
       });
     });
 
@@ -306,7 +320,8 @@ describe('PantryService', () => {
       };
 
       (mockPrisma.ingredient.findFirst as jest.Mock).mockResolvedValue(null);
-      (mockPrisma.ingredient.create as jest.Mock).mockResolvedValue({});
+      (mockPrisma.ingredient.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.ingredient.createMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockPantryRepository.addIngredients.mockResolvedValue(mockPantry);
 
       await service.addIngredients(userId, ['  tomato  ']);

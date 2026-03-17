@@ -223,14 +223,20 @@ export default function RecipeDetailPage() {
     }
   };
 
-  const handleShare = () => {
-    // TODO: Implement share functionality
+  const handleShare = async () => {
     if (navigator.share) {
       navigator.share({
         title: recipe?.title,
         text: recipe?.description,
         url: window.location.href,
       });
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setSnackbar({ open: true, message: 'Link copied to clipboard!', severity: 'success' });
+      } catch {
+        setSnackbar({ open: true, message: 'Failed to copy link', severity: 'error' });
+      }
     }
   };
 

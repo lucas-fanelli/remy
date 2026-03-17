@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { ingredientMatches } from '@/lib/utils/ingredients';
+import { ingredientMatches, unitsMatch } from '@/lib/utils/ingredients';
 
 // GET - Get user's cooked recipes
 export async function GET(request: NextRequest) {
@@ -80,8 +80,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Recipe ID is required' }, { status: 400 });
     }
 
-    if (rating !== undefined && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
-      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
+    if (
+      rating !== undefined &&
+      (typeof rating !== 'number' || !Number.isInteger(rating) || rating < 1 || rating > 5)
+    ) {
+      return NextResponse.json(
+        { error: 'Rating must be an integer between 1 and 5' },
+        { status: 400 }
+      );
     }
 
     // Verify the recipe exists and get its ingredients
@@ -119,10 +125,10 @@ export async function POST(request: NextRequest) {
 
             const pantryQuantity = pantryItem.quantity;
 
-            // Check if units match (basic comparison, case-insensitive)
-            const unitsMatch = pantryItem.unit.toLowerCase() === ingredient.unit.toLowerCase();
+            // Check if units match using alias normalization
+            const unitsCompatible = unitsMatch(pantryItem.unit, ingredient.unit);
 
-            if (unitsMatch) {
+            if (unitsCompatible) {
               const newQuantity = pantryQuantity - recipeAmount;
 
               if (newQuantity <= 0) {

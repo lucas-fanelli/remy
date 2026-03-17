@@ -170,6 +170,9 @@ if (typeof window === 'undefined') {
     validateEnvironment();
   } catch (error) {
     console.error(error);
-    // Log the error but don't kill the process - let the app handle it gracefully
+    // In production, fail fast so deployment catches missing config
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
+    }
   }
 }

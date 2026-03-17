@@ -54,6 +54,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unit cannot be empty' }, { status: 400 });
     }
 
+    // Validate quantity is a valid number if provided
+    if (quantity !== undefined) {
+      const parsed = parseFloat(quantity);
+      if (isNaN(parsed)) {
+        return NextResponse.json({ error: 'Quantity must be a valid number' }, { status: 400 });
+      }
+    }
+
     // Update item
     const updatedItem = await prisma.pantryItem.update({
       where: { id: itemId },

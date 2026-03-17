@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
     const search = searchParams.get('search') || undefined;
-    const role = searchParams.get('role') as Role | undefined;
+    const roleParam = searchParams.get('role');
+    const role =
+      roleParam && ['USER', 'ADMIN'].includes(roleParam) ? (roleParam as Role) : undefined;
 
     const adminService = container.getAdminService();
     const result = await adminService.getAllUsers({ page, limit, search, role });

@@ -158,8 +158,16 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   }, [hasMore, loadRecipes]);
 
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    let scrollTimeout: ReturnType<typeof setTimeout>;
+    const throttledScroll = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(handleScroll, 200);
+    };
+    window.addEventListener('scroll', throttledScroll);
+    return () => {
+      window.removeEventListener('scroll', throttledScroll);
+      clearTimeout(scrollTimeout);
+    };
   }, [handleScroll]);
 
   // Note: Removed visibilitychange handler that was resetting recipes on tab switch.

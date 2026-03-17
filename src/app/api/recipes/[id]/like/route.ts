@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
-    // Check if already liked
+    // Atomic like toggle using try/catch on unique constraint
     const existingLike = await prisma.like.findUnique({
       where: {
         postId_userId: {
@@ -39,49 +39,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
     });
 
+    const notificationService = container.getNotificationService();
+
     if (existingLike) {
       // Unlike
       await prisma.like.delete({
         where: { id: existingLike.id },
       });
-
-      // Delete the like notification
-      const notificationService = container.getNotificationService();
       await notificationService.deleteLikeNotification(payload.userId, recipeId, recipe.userId);
 
-      // Get updated count
-      const likesCount = await prisma.like.count({
-        where: { postId: recipeId },
-      });
-
-      return NextResponse.json({
-        liked: false,
-        likesCount,
-        message: 'Recipe unliked',
-      });
+      const likesCount = await prisma.like.count({ where: { postId: recipeId } });
+      return NextResponse.json({ liked: false, likesCount, message: 'Recipe unliked' });
     } else {
-      // Like
-      await prisma.like.create({
-        data: {
-          postId: recipeId,
-          userId: payload.userId,
-        },
-      });
+      try {
+        // Like - handle potential race condition with unique constraint
+        await prisma.like.create({
+          data: { postId: recipeId, userId: payload.userId },
+        });
+        await notificationService.createLikeNotification(payload.userId, recipeId, recipe.userId);
+      } catch (err: unknown) {
+        // If unique constraint violation (race condition), treat as already liked - idempotent
+        if (err instanceof Error && err.message.includes('Unique constraint')) {
+          const likesCount = await prisma.like.count({ where: { postId: recipeId } });
+          return NextResponse.json({ liked: true, likesCount, message: 'Recipe liked' });
+        }
+        throw err;
+      }
 
-      // Create like notification
-      const notificationService = container.getNotificationService();
-      await notificationService.createLikeNotification(payload.userId, recipeId, recipe.userId);
-
-      // Get updated count
-      const likesCount = await prisma.like.count({
-        where: { postId: recipeId },
-      });
-
-      return NextResponse.json({
-        liked: true,
-        likesCount,
-        message: 'Recipe liked',
-      });
+      const likesCount = await prisma.like.count({ where: { postId: recipeId } });
+      return NextResponse.json({ liked: true, likesCount, message: 'Recipe liked' });
     }
   } catch (error) {
     console.error('Error toggling like:', error);

@@ -28,17 +28,23 @@ function checkRateLimit(
   resetTime: number;
 } {
   const now = Date.now();
+  const record = rateLimitMap.get(key);
 
-  // Lazy cleanup: remove expired entries on access
+  // Clean up expired entry on access
+  if (record && now > record.resetTime) {
+    rateLimitMap.delete(key);
+  }
+
+  // Bulk cleanup when map grows too large
   if (rateLimitMap.size > 1000) {
     for (const [k, v] of rateLimitMap.entries()) {
       if (now > v.resetTime) rateLimitMap.delete(k);
     }
   }
 
-  const record = rateLimitMap.get(key);
+  const currentRecord = rateLimitMap.get(key);
 
-  if (!record || now > record.resetTime) {
+  if (!currentRecord) {
     // Create new window
     const resetTime = now + RATE_LIMIT_WINDOW;
     rateLimitMap.set(key, { count: 1, resetTime });
@@ -51,14 +57,14 @@ function checkRateLimit(
   }
 
   // Increment counter
-  record.count++;
-  rateLimitMap.set(key, record);
+  currentRecord.count++;
+  rateLimitMap.set(key, currentRecord);
 
   return {
-    allowed: record.count <= maxRequests,
+    allowed: currentRecord.count <= maxRequests,
     limit: maxRequests,
-    remaining: Math.max(0, maxRequests - record.count),
-    resetTime: record.resetTime,
+    remaining: Math.max(0, maxRequests - currentRecord.count),
+    resetTime: currentRecord.resetTime,
   };
 }
 

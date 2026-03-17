@@ -153,24 +153,20 @@ export class PantryService implements IPantryService {
    * Ensure ingredients exist in the master ingredient table
    */
   private async ensureIngredientsExist(ingredients: PantryIngredient[]): Promise<void> {
-    for (const ingredient of ingredients) {
-      const exists = await this.prisma.ingredient.findFirst({
-        where: {
-          name: {
-            equals: ingredient.name,
-            mode: 'insensitive',
-          },
-        },
-      });
+    if (ingredients.length === 0) return;
 
-      if (!exists) {
-        await this.prisma.ingredient.create({
-          data: {
-            name: ingredient.name,
-            category: ingredient.category,
-          },
-        });
-      }
+    const names = ingredients.map((i) => i.name);
+    const existing = await this.prisma.ingredient.findMany({
+      where: { name: { in: names, mode: 'insensitive' } },
+    });
+    const existingNames = new Set(existing.map((e) => e.name.toLowerCase()));
+    const toCreate = ingredients.filter((i) => !existingNames.has(i.name.toLowerCase()));
+
+    if (toCreate.length > 0) {
+      await this.prisma.ingredient.createMany({
+        data: toCreate.map((i) => ({ name: i.name, category: i.category })),
+        skipDuplicates: true,
+      });
     }
   }
 }

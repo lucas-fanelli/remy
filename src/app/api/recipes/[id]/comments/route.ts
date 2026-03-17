@@ -73,8 +73,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Validate rating if provided
-    if (rating !== undefined && (rating < 1 || rating > 5)) {
-      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
+    if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
+      return NextResponse.json(
+        { error: 'Rating must be an integer between 1 and 5' },
+        { status: 400 }
+      );
     }
 
     // Check if recipe exists
@@ -86,62 +89,61 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
-    // Create comment
-    const comment = await prisma.comment.create({
-      data: {
-        text: text.trim(),
-        imageUrl: imageUrl || null,
-        postId: recipeId,
-        userId: payload.userId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
+    // Create comment + optional rating atomically in a transaction
+    const comment = await prisma.$transaction(async (tx) => {
+      const newComment = await tx.comment.create({
+        data: {
+          text: text.trim(),
+          imageUrl: imageUrl || null,
+          postId: recipeId,
+          userId: payload.userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatar: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    // If rating provided, upsert rating separately
-    if (rating !== undefined) {
-      await prisma.rating.upsert({
-        where: {
-          userId_postId: {
+      if (rating !== undefined) {
+        await tx.rating.upsert({
+          where: {
+            userId_postId: {
+              userId: payload.userId,
+              postId: recipeId,
+            },
+          },
+          create: {
             userId: payload.userId,
             postId: recipeId,
+            rating,
           },
-        },
-        create: {
-          userId: payload.userId,
-          postId: recipeId,
-          rating,
-        },
-        update: {
-          rating,
-        },
-      });
+          update: {
+            rating,
+          },
+        });
 
-      // Recalculate and cache the recipe's average rating
-      const ratingAggregation = await prisma.rating.aggregate({
-        where: { postId: recipeId },
-        _avg: { rating: true },
-        _count: { rating: true },
-      });
+        const ratingAggregation = await tx.rating.aggregate({
+          where: { postId: recipeId },
+          _avg: { rating: true },
+          _count: { rating: true },
+        });
 
-      await prisma.post.update({
-        where: { id: recipeId },
-        data: {
-          averageRating: Math.round((ratingAggregation._avg.rating || 0) * 10) / 10,
-          reviewCount: ratingAggregation._count.rating || 0,
-        },
-      });
+        await tx.post.update({
+          where: { id: recipeId },
+          data: {
+            averageRating: Math.round((ratingAggregation._avg.rating || 0) * 10) / 10,
+            reviewCount: ratingAggregation._count.rating || 0,
+          },
+        });
+      }
 
-      // Skip separate rating notification when it accompanies a comment
-      // The comment notification below is sufficient for the combined action
-    }
+      return newComment;
+    });
 
     // Create comment notification (covers both comment-only and comment+rating cases)
     const notificationService = container.getNotificationService();
