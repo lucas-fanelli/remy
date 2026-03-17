@@ -9,14 +9,30 @@ interface Ingredient {
   unit: string;
 }
 
-// Normalize ingredient names for matching (case-insensitive, plural handling)
+// Normalize ingredient names for matching (case-insensitive, basic plural handling)
 function normalizeIngredientName(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/s$/, '') // Remove plural 's'
-    .replace(/es$/, '') // Remove plural 'es'
-    .replace(/[^a-z0-9]/g, ''); // Remove special characters
+  let normalized = name.toLowerCase().trim();
+  // Remove common plural suffixes (order matters: check longer suffixes first)
+  if (normalized.endsWith('ies') && normalized.length > 4) {
+    normalized = normalized.slice(0, -3) + 'y'; // berries -> berry
+  } else if (normalized.endsWith('ves') && normalized.length > 4) {
+    normalized = normalized.slice(0, -3) + 'f'; // halves -> half
+  } else if (
+    normalized.endsWith('ses') ||
+    normalized.endsWith('xes') ||
+    normalized.endsWith('zes') ||
+    normalized.endsWith('ches') ||
+    normalized.endsWith('shes')
+  ) {
+    normalized = normalized.slice(0, -2); // boxes -> box, dishes -> dish
+  } else if (normalized.endsWith('s') && !normalized.endsWith('ss') && normalized.length > 3) {
+    normalized = normalized.slice(0, -1); // tomatoes -> tomato, but not "stress" -> "stres"
+  }
+  // Replace non-alphanumeric except spaces with empty, then normalize whitespace
+  return normalized
+    .replace(/[^a-z0-9 ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // Check if pantry item matches recipe ingredient
@@ -66,11 +82,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get all recipes with ingredients
+    // Get recipes with ingredients (limited to prevent OOM)
     const recipes = await prisma.post.findMany({
       where: {
         ingredients: { not: Prisma.DbNull },
       },
+      take: 500,
       include: {
         _count: {
           select: {

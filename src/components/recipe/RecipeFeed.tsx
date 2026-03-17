@@ -36,12 +36,14 @@ interface RecipeFeedProps {
   onEditRecipe?: (recipe: Recipe) => void;
 }
 
-export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedProps) {
+export default function RecipeFeed({
+  onCreateRecipe,
+  onEditRecipe: _onEditRecipe,
+}: RecipeFeedProps) {
   const router = useRouter();
   const { user, token } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -77,59 +79,6 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     message: '',
     severity: 'info',
   });
-
-  // Fetch like and comment data for recipes
-  const fetchRecipeEngagement = useCallback(
-    async (recipeIds: string[]) => {
-      if (!recipeIds.length) return;
-
-      try {
-        // Fetch likes and comments in parallel for all recipes
-        const likePromises = recipeIds.map(async (id) => {
-          const headers: HeadersInit = {};
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-          const response = await fetch(`/api/recipes/${id}/like`, { headers });
-          if (response.ok) {
-            const data = await response.json();
-            return { id, data };
-          }
-          return { id, data: { liked: false, likesCount: 0 } };
-        });
-
-        const commentPromises = recipeIds.map(async (id) => {
-          const response = await fetch(`/api/recipes/${id}/comments`);
-          if (response.ok) {
-            const data = await response.json();
-            return { id, count: data.comments?.length || 0 };
-          }
-          return { id, count: 0 };
-        });
-
-        const [likeResults, commentResults] = await Promise.all([
-          Promise.all(likePromises),
-          Promise.all(commentPromises),
-        ]);
-
-        // Update state
-        const newLikes: Record<string, { liked: boolean; count: number }> = {};
-        likeResults.forEach(({ id, data }) => {
-          newLikes[id] = { liked: data.liked, count: data.likesCount };
-        });
-        setRecipeLikes((prev) => ({ ...prev, ...newLikes }));
-
-        const newComments: Record<string, number> = {};
-        commentResults.forEach(({ id, count }) => {
-          newComments[id] = count;
-        });
-        setRecipeComments((prev) => ({ ...prev, ...newComments }));
-      } catch (error) {
-        console.error('Error fetching recipe engagement:', error);
-      }
-    },
-    [token]
-  );
 
   const loadRecipes = useCallback(
     async (reset = false) => {
@@ -177,16 +126,22 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
 
         setHasMore(data.recipes.length === 12);
 
-        // Fetch engagement data for new recipes
-        const recipeIds = data.recipes.map((r: Recipe) => r.id);
-        await fetchRecipeEngagement(recipeIds);
+        // Use engagement data already included in the API response
+        const newLikes: Record<string, { liked: boolean; count: number }> = {};
+        const newComments: Record<string, number> = {};
+        data.recipes.forEach((r: any) => {
+          newLikes[r.id] = { liked: false, count: r.likeCount || 0 };
+          newComments[r.id] = r.commentCount || 0;
+        });
+        setRecipeLikes((prev) => ({ ...prev, ...newLikes }));
+        setRecipeComments((prev) => ({ ...prev, ...newComments }));
       } catch (error) {
         console.error('Error loading recipes:', error);
       } finally {
         setLoading(false);
       }
     },
-    [loading, page, difficultyFilter, timeFilter, sortOrder, fetchRecipeEngagement]
+    [loading, page, difficultyFilter, timeFilter, sortOrder]
   );
 
   useEffect(() => {
@@ -209,21 +164,9 @@ export default function RecipeFeed({ onCreateRecipe, onEditRecipe }: RecipeFeedP
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
-  // Refetch recipes when page becomes visible (e.g., user returns from recipe detail page)
-  // This ensures rating updates are reflected on the home page
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Only refetch if we already have recipes (component has mounted and loaded)
-        if (recipes.length > 0) {
-          loadRecipes(true);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [recipes.length, loadRecipes]);
+  // Note: Removed visibilitychange handler that was resetting recipes on tab switch.
+  // This caused loss of scroll position and loaded recipes. Rating updates are
+  // handled by React Query cache invalidation when navigating back.
 
   const clearFilters = () => {
     setDifficultyFilter('all');

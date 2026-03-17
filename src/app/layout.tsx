@@ -86,10 +86,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning className={nunito.variable}>
       <head>
         <meta name="theme-color" content="#000000" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-        />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -116,71 +113,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     document.documentElement.classList.remove('initial-load');
                   }, 100);
                 } catch (e) {}
-              })();
-            `,
-          }}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                // Google Translate DOM Mutation Patch
-                // Prevents React from crashing when Google Translate modifies the DOM
-                try {
-                  // Store original methods
-                  var originalRemoveChild = Node.prototype.removeChild;
-                  var originalInsertBefore = Node.prototype.insertBefore;
-
-                  // Patch removeChild to handle Google Translate mutations
-                  Node.prototype.removeChild = function(child) {
-                    // Check if the child is actually a child of this node
-                    if (this.contains(child)) {
-                      try {
-                        return originalRemoveChild.call(this, child);
-                      } catch (e) {
-                        // If removal fails, log it but don't crash
-                        if (e.name !== 'NotFoundError') {
-                          console.warn('removeChild failed:', e);
-                        }
-                        return child;
-                      }
-                    }
-                    // If not a child, just return the node without crashing
-                    return child;
-                  };
-
-                  // Patch insertBefore to handle Google Translate mutations
-                  Node.prototype.insertBefore = function(newNode, referenceNode) {
-                    // If referenceNode is null, append to end
-                    if (!referenceNode) {
-                      return originalInsertBefore.call(this, newNode, null);
-                    }
-
-                    // Check if referenceNode is actually a child of this node
-                    if (this.contains(referenceNode)) {
-                      try {
-                        return originalInsertBefore.call(this, newNode, referenceNode);
-                      } catch (e) {
-                        // If insertion fails, log it but don't crash
-                        if (e.name !== 'NotFoundError') {
-                          console.warn('insertBefore failed:', e);
-                        }
-                        // Fallback: append to end
-                        return originalInsertBefore.call(this, newNode, null);
-                      }
-                    }
-
-                    // If referenceNode is not a child, append to end
-                    return originalInsertBefore.call(this, newNode, null);
-                  };
-
-                  // Log successful patch (only in development)
-                  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-                    console.info('Google Translate DOM patch applied successfully');
-                  }
-                } catch (e) {
-                  console.error('Failed to apply Google Translate DOM patch:', e);
-                }
               })();
             `,
           }}

@@ -80,9 +80,13 @@ export function validateEnvironment(): EnvConfig {
     }
   }
 
-  // Validate DATABASE_URL format
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('postgresql://')) {
-    errors.push('DATABASE_URL must start with postgresql://');
+  // Validate DATABASE_URL format (both postgres:// and postgresql:// are valid)
+  if (
+    process.env.DATABASE_URL &&
+    !process.env.DATABASE_URL.startsWith('postgresql://') &&
+    !process.env.DATABASE_URL.startsWith('postgres://')
+  ) {
+    errors.push('DATABASE_URL must start with postgresql:// or postgres://');
   }
 
   // Production-specific validations
@@ -166,9 +170,6 @@ if (typeof window === 'undefined') {
     validateEnvironment();
   } catch (error) {
     console.error(error);
-    // In production, fail fast
-    if (process.env.NODE_ENV === 'production') {
-      process.exit(1);
-    }
+    // Log the error but don't kill the process - let the app handle it gracefully
   }
 }

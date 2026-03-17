@@ -197,17 +197,18 @@ describe('UserService - Unit Tests', () => {
   describe('searchUsers', () => {
     it('should search users by username', async () => {
       const mockUsers = [mockUser, { ...mockUser, id: 'user-456', username: 'testuser2' }];
-      mockUserRepository.findMany = jest.fn().mockResolvedValue(mockUsers);
+      mockUserRepository.search = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await userService.searchUsers('test', 10);
 
       expect(result).toBeDefined();
       expect(result.every((user) => !('password' in user))).toBe(true);
+      expect(mockUserRepository.search).toHaveBeenCalledWith('test', 10);
     });
 
     it('should search users by full name', async () => {
       const mockUsers = [mockUser, { ...mockUser, id: 'user-456', fullName: 'Test Another' }];
-      mockUserRepository.findMany = jest.fn().mockResolvedValue(mockUsers);
+      mockUserRepository.search = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await userService.searchUsers('test', 10);
 
@@ -216,7 +217,7 @@ describe('UserService - Unit Tests', () => {
 
     it('should be case insensitive', async () => {
       const mockUsers = [mockUser];
-      mockUserRepository.findMany = jest.fn().mockResolvedValue(mockUsers);
+      mockUserRepository.search = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await userService.searchUsers('TEST', 10);
 
@@ -224,12 +225,12 @@ describe('UserService - Unit Tests', () => {
     });
 
     it('should limit results', async () => {
-      const mockUsers = Array.from({ length: 20 }, (_, i) => ({
+      const mockUsers = Array.from({ length: 5 }, (_, i) => ({
         ...mockUser,
         id: `user-${i}`,
         username: `testuser${i}`,
       }));
-      mockUserRepository.findMany = jest.fn().mockResolvedValue(mockUsers);
+      mockUserRepository.search = jest.fn().mockResolvedValue(mockUsers);
 
       const result = await userService.searchUsers('test', 5);
 
@@ -237,7 +238,7 @@ describe('UserService - Unit Tests', () => {
     });
 
     it('should handle empty search results', async () => {
-      mockUserRepository.findMany = jest.fn().mockResolvedValue([]);
+      mockUserRepository.search = jest.fn().mockResolvedValue([]);
 
       const result = await userService.searchUsers('nonexistent', 10);
 
@@ -246,7 +247,7 @@ describe('UserService - Unit Tests', () => {
 
     it('should handle users without fullName', async () => {
       const userWithoutName = { ...mockUser, fullName: null };
-      mockUserRepository.findMany = jest.fn().mockResolvedValue([userWithoutName]);
+      mockUserRepository.search = jest.fn().mockResolvedValue([userWithoutName]);
 
       const result = await userService.searchUsers('test', 10);
 
@@ -255,7 +256,7 @@ describe('UserService - Unit Tests', () => {
 
     it('should handle users with undefined fullName - line 78', async () => {
       const userWithUndefinedName = { ...mockUser, fullName: undefined };
-      mockUserRepository.findMany = jest.fn().mockResolvedValue([userWithUndefinedName]);
+      mockUserRepository.search = jest.fn().mockResolvedValue([userWithUndefinedName]);
 
       const result = await userService.searchUsers('test', 10);
 
@@ -263,7 +264,7 @@ describe('UserService - Unit Tests', () => {
     });
 
     it('should use default limit when not provided - line 70', async () => {
-      mockUserRepository.findMany = jest.fn().mockResolvedValue([mockUser]);
+      mockUserRepository.search = jest.fn().mockResolvedValue([mockUser]);
 
       const result = await userService.searchUsers('test');
 
@@ -275,7 +276,7 @@ describe('UserService - Unit Tests', () => {
         ...mockUser,
         fullName: undefined,
       };
-      mockUserRepository.findMany = jest.fn().mockResolvedValue([userWithoutFullName]);
+      mockUserRepository.search = jest.fn().mockResolvedValue([userWithoutFullName]);
 
       // Search by username should still work when fullName is undefined
       const result = await userService.searchUsers('test');
@@ -290,7 +291,7 @@ describe('UserService - Unit Tests', () => {
         ...mockUser,
         fullName: 'John Doe',
       };
-      mockUserRepository.findMany = jest.fn().mockResolvedValue([userWithFullName]);
+      mockUserRepository.search = jest.fn().mockResolvedValue([userWithFullName]);
 
       // Search by fullName should work
       const result = await userService.searchUsers('john');

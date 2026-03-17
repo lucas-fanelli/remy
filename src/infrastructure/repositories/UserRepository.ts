@@ -79,6 +79,19 @@ export class UserRepository implements IUserRepository {
     });
   }
 
+  async search(query: string, limit: number = 10): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: {
+        OR: [
+          { username: { contains: query, mode: 'insensitive' } },
+          { fullName: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async exists(email: string, username: string): Promise<boolean> {
     const user = await this.prisma.user.findFirst({
       where: {

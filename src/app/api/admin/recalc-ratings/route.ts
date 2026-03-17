@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin, isAdminAuthError } from '@/lib/auth/requireAdmin';
 import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/admin/recalc-ratings
  * Backfill all recipes with their calculated average ratings
- * DELETE THIS FILE AFTER USE
+ * Requires admin authentication
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireAdmin(request);
+    if (isAdminAuthError(authResult)) return authResult;
     // Get all recipes
     const recipes = await prisma.post.findMany({
       select: { id: true },

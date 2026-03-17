@@ -13,6 +13,7 @@ import {
   DialogContent,
   Toolbar,
 } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -25,8 +26,9 @@ import { CreateRecipeDTO } from '@/domain/types/recipe';
 export default function Home() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Return null during loading - the global LoadingBar shows progress
@@ -53,9 +55,9 @@ export default function Home() {
         throw new Error(error.error || 'Failed to create recipe');
       }
 
-      // Close dialog and refresh feed
+      // Close dialog and invalidate recipe queries to refresh feed
       setCreateDialogOpen(false);
-      window.location.reload(); // Refresh to show new recipe
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
     } catch (error) {
       console.error('Error creating recipe:', error);
       throw error;

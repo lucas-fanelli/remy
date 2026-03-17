@@ -26,6 +26,7 @@ interface ApiRecipe {
     description: string;
     image?: string;
   }>;
+  caption?: string;
   userId: string;
   user?: {
     id: string;

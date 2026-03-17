@@ -49,6 +49,7 @@ import {
   DialogContent,
   Slide,
 } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
@@ -79,11 +80,11 @@ export default function Navigation() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallDesktop = useMediaQuery(theme.breakpoints.down('lg'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout, token, isAdmin } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -93,7 +94,6 @@ export default function Navigation() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<null | HTMLElement>(null);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
 
   // Mobile dialog states
@@ -335,11 +335,10 @@ export default function Navigation() {
         throw new Error(error.error || 'Failed to create recipe');
       }
 
-      // Close dialog and navigate to home to show new recipe
+      // Close dialog and navigate to home, invalidate cache to refresh feed
       setCreateRecipeOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['recipes'] });
       router.push('/');
-      // Trigger a page reload to show the new recipe
-      window.location.reload();
     } catch (error) {
       console.error('Error creating recipe:', error);
       throw error;
@@ -347,13 +346,13 @@ export default function Navigation() {
   };
 
   // Generate breadcrumbs based on current pathname
-  const generateBreadcrumbs = () => {
+  const _generateBreadcrumbs = () => {
     const pathSegments = pathname.split('/').filter((segment) => segment !== '');
 
     const breadcrumbs = [{ label: 'Home', href: '/' }];
 
     let currentPath = '';
-    pathSegments.forEach((segment, index) => {
+    pathSegments.forEach((segment, _index) => {
       currentPath += `/${segment}`;
 
       // Capitalize and format segment

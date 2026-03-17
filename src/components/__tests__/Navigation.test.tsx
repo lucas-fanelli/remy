@@ -1,7 +1,8 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor, act, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider } from '@/contexts/ThemeContext';
 import Navigation from '../Navigation';
@@ -125,13 +126,19 @@ jest.mock('../search/PersistentSearchBar', () => {
 
 const mockTheme = createTheme();
 
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false } },
+});
+
 const renderWithProviders = (component: React.ReactElement) => {
   return render(
-    <ThemeProvider theme={mockTheme}>
-      <CustomThemeProvider>
-        <AuthProvider>{component}</AuthProvider>
-      </CustomThemeProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={mockTheme}>
+        <CustomThemeProvider>
+          <AuthProvider>{component}</AuthProvider>
+        </CustomThemeProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 };
 
@@ -940,7 +947,7 @@ describe('Navigation Component', () => {
 
     it('should handle failed notification fetch - line 209-211', async () => {
       // Suppress expected console.error for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // When fetch returns ok: false, component should gracefully handle it
       // by not setting any notifications (graceful degradation)
@@ -986,7 +993,7 @@ describe('Navigation Component', () => {
 
     it('should handle notification fetch error - line 212-213', async () => {
       // Suppress expected console.error for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // When fetch throws an error, component should gracefully handle it
       const fetchError = new Error('Network error');
@@ -1252,7 +1259,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle mark as read error - line 298-301', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const markReadError = new Error('Failed to mark as read');
 
       mockFetch
@@ -1562,7 +1569,7 @@ describe('Navigation Component', () => {
     });
 
     it('should handle recipe creation error - lines 365-377', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       mockFetch
         .mockResolvedValueOnce({
@@ -1932,11 +1939,6 @@ describe('Navigation Component', () => {
         updateProfile: jest.fn(),
       });
 
-      // Mock window.location.reload
-      const mockReload = jest.fn();
-      delete (window as any).location;
-      (window as any).location = { reload: mockReload, href: '' };
-
       renderWithProviders(<Navigation />);
 
       // Open create recipe dialog
@@ -1970,15 +1972,12 @@ describe('Navigation Component', () => {
         );
       });
 
-      // Verify router.push was called (line 370)
+      // Verify router.push was called to navigate home
       expect(mockPush).toHaveBeenCalledWith('/');
-
-      // Verify window.location.reload was called (line 372)
-      expect(mockReload).toHaveBeenCalled();
     });
 
     it('should handle recipe creation failure - lines 363-376', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Mock failed recipe creation FIRST
       mockFetch.mockImplementation((url: string, options?: any) => {
@@ -2951,8 +2950,7 @@ describe('Navigation Component', () => {
         await waitFor(
           () => {
             expect(
-              screen.queryByPlaceholderText(/search recipes/i) ||
-              screen.queryByRole('dialog')
+              screen.queryByPlaceholderText(/search recipes/i) || screen.queryByRole('dialog')
             ).toBeTruthy();
           },
           { timeout: 100 }
@@ -2982,4 +2980,3 @@ describe('Navigation Component', () => {
     });
   });
 });
-

@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import Post from '../Post';
 
 // Mock framer-motion - comprehensive mock supporting all patterns
@@ -246,7 +246,7 @@ describe('Post Component', () => {
     // Type a comment and press Enter
     const commentInput = screen.getByPlaceholderText(/add a comment/i);
     fireEvent.change(commentInput, { target: { value: 'Another comment' } });
-    fireEvent.keyPress(commentInput, { key: 'Enter', code: 'Enter', charCode: 13 });
+    fireEvent.keyDown(commentInput, { key: 'Enter', code: 'Enter' });
 
     // Comment should be added
     expect(screen.getByText(/Another comment/i)).toBeInTheDocument();

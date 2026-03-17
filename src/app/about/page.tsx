@@ -58,8 +58,8 @@ const features = [
 ];
 
 const techStack = [
-  'Next.js 16',
-  'React 19',
+  'Next.js',
+  'React',
   'TypeScript',
   'Material-UI',
   'Prisma',

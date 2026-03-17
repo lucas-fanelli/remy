@@ -1,5 +1,4 @@
 'use client';
-// @ts-nocheck
 
 // Force dynamic rendering for this page
 export const dynamic = 'force-dynamic';
@@ -50,10 +49,8 @@ import React, { useState, useEffect } from 'react';
 import CommentsSection from '@/components/recipe/CommentsSection';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus, ApiRecipe } from '@/hooks/useRecipe';
-
-// Use ApiRecipe as Recipe alias for this file
-type Recipe = ApiRecipe;
+import { Recipe as DomainRecipe } from '@/domain/types/recipe';
+import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus } from '@/hooks/useRecipe';
 
 const MotionBox = motion.create(Box);
 const MotionCard = motion.create(Card);
@@ -64,14 +61,12 @@ export default function RecipeDetailPage() {
   const { user, token } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const queryClient = useQueryClient();
 
   const recipeId = params.id as string;
 
   // React Query hooks - with keepPreviousData for smooth transitions
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: recipe, isLoading: loading, error: queryError } = useRecipe(recipeId) as any;
+  const { data: recipe, isLoading: loading, error: queryError } = useRecipe(recipeId);
   const { data: likeStatus } = useRecipeLikeStatus(recipeId, token);
   const { data: saveStatus } = useRecipeSaveStatus(recipeId, token);
 
@@ -120,7 +115,7 @@ export default function RecipeDetailPage() {
     setEditModalOpen(true);
   };
 
-  const handleEditSuccess = (updatedRecipe: Recipe) => {
+  const handleEditSuccess = (_updatedRecipe: DomainRecipe) => {
     // Invalidate the cache to refetch with updated data
     queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
     setSnackbar({ open: true, message: 'Recipe updated successfully!', severity: 'success' });
@@ -297,7 +292,7 @@ export default function RecipeDetailPage() {
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyColor = (difficulty: string): 'success' | 'warning' | 'error' | 'default' => {
     switch (difficulty) {
       case 'easy':
         return 'success';
@@ -463,7 +458,7 @@ export default function RecipeDetailPage() {
                 >
                   <Chip
                     label={recipe.difficulty}
-                    color={getDifficultyColor(recipe.difficulty) as any}
+                    color={getDifficultyColor(recipe.difficulty)}
                     size={isMobile ? 'small' : 'medium'}
                     sx={{
                       textTransform: 'capitalize',
@@ -727,22 +722,24 @@ export default function RecipeDetailPage() {
                   Ingredients
                 </Typography>
                 <Box component="ul" sx={{ pl: 2 }}>
-                  {recipe.ingredients.map((ingredient: any, index: number) => (
-                    <Box
-                      component="li"
-                      key={index}
-                      sx={{
-                        mb: 1.5,
-                        typography: 'body1',
-                        '&::marker': { color: 'primary.main' },
-                      }}
-                    >
-                      <strong>
-                        {ingredient.amount} {ingredient.unit}
-                      </strong>{' '}
-                      {ingredient.name}
-                    </Box>
-                  ))}
+                  {recipe.ingredients.map(
+                    (ingredient: { name: string; amount: string; unit: string }, index: number) => (
+                      <Box
+                        component="li"
+                        key={index}
+                        sx={{
+                          mb: 1.5,
+                          typography: 'body1',
+                          '&::marker': { color: 'primary.main' },
+                        }}
+                      >
+                        <strong>
+                          {ingredient.amount} {ingredient.unit}
+                        </strong>{' '}
+                        {ingredient.name}
+                      </Box>
+                    )
+                  )}
                 </Box>
               </CardContent>
             </MotionCard>
@@ -759,75 +756,80 @@ export default function RecipeDetailPage() {
                   Instructions
                 </Typography>
                 <Box>
-                  {recipe.instructions.map((instruction: any, index: number) => (
-                    <Box key={index} sx={{ mb: 3, display: 'flex', gap: 2 }}>
-                      <Box
-                        sx={{
-                          minWidth: 40,
-                          height: 40,
-                          borderRadius: '50%',
-                          backgroundColor: 'primary.main',
-                          color: 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: '1.1rem',
-                        }}
-                      >
-                        {instruction.step}
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
-                          {instruction.description}
-                        </Typography>
-                        {instruction.image && (
-                          <Box
-                            sx={{
-                              position: 'relative',
-                              maxWidth: 400,
-                              cursor: 'pointer',
-                              '&:hover .zoom-icon': { opacity: 1 },
-                            }}
-                            onClick={() =>
-                              handleImageClick(instruction.image!, `Step ${instruction.step}`)
-                            }
-                          >
+                  {recipe.instructions.map(
+                    (
+                      instruction: { step: number; description: string; image?: string },
+                      index: number
+                    ) => (
+                      <Box key={index} sx={{ mb: 3, display: 'flex', gap: 2 }}>
+                        <Box
+                          sx={{
+                            minWidth: 40,
+                            height: 40,
+                            borderRadius: '50%',
+                            backgroundColor: 'primary.main',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: '1.1rem',
+                          }}
+                        >
+                          {instruction.step}
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+                            {instruction.description}
+                          </Typography>
+                          {instruction.image && (
                             <Box
-                              component="img"
-                              src={instruction.image}
-                              alt={`Step ${instruction.step}`}
                               sx={{
-                                width: '100%',
-                                borderRadius: 2,
-                                mt: 2,
+                                position: 'relative',
+                                maxWidth: 400,
+                                cursor: 'pointer',
+                                '&:hover .zoom-icon': { opacity: 1 },
                               }}
-                            />
-                            <Box
-                              className="zoom-icon"
-                              sx={{
-                                position: 'absolute',
-                                top: 24,
-                                right: 8,
-                                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: 32,
-                                height: 32,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                opacity: 0,
-                                transition: 'opacity 0.3s',
-                              }}
+                              onClick={() =>
+                                handleImageClick(instruction.image!, `Step ${instruction.step}`)
+                              }
                             >
-                              <ZoomIn sx={{ fontSize: 20 }} />
+                              <Box
+                                component="img"
+                                src={instruction.image}
+                                alt={`Step ${instruction.step}`}
+                                sx={{
+                                  width: '100%',
+                                  borderRadius: 2,
+                                  mt: 2,
+                                }}
+                              />
+                              <Box
+                                className="zoom-icon"
+                                sx={{
+                                  position: 'absolute',
+                                  top: 24,
+                                  right: 8,
+                                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                                  color: 'white',
+                                  borderRadius: '50%',
+                                  width: 32,
+                                  height: 32,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  opacity: 0,
+                                  transition: 'opacity 0.3s',
+                                }}
+                              >
+                                <ZoomIn sx={{ fontSize: 20 }} />
+                              </Box>
                             </Box>
-                          </Box>
-                        )}
+                          )}
+                        </Box>
                       </Box>
-                    </Box>
-                  ))}
+                    )
+                  )}
                 </Box>
               </CardContent>
             </MotionCard>
@@ -872,7 +874,7 @@ export default function RecipeDetailPage() {
         {/* Edit Recipe Modal */}
         <EditRecipeModal
           open={editModalOpen}
-          recipe={recipe}
+          recipe={(recipe as unknown as DomainRecipe) ?? null}
           onClose={() => setEditModalOpen(false)}
           onSuccess={handleEditSuccess}
         />

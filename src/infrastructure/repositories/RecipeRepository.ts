@@ -201,6 +201,8 @@ export class RecipeRepository implements IRecipeRepository {
       ingredients: (post.ingredients as Ingredient[]) || [],
       instructions: (post.instructions as Instruction[]) || [],
       caption: post.caption || undefined,
+      averageRating: post.averageRating ?? undefined,
+      totalRatings: post.reviewCount ?? undefined,
       author: post.user
         ? {
             username: post.user.username,

@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, waitFor, fireEvent, act, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { AuthProvider } from '@/contexts/AuthContext';
 import RecipeFeed from '../RecipeFeed';
 
@@ -124,7 +124,7 @@ describe('RecipeFeed Component', () => {
 
     while (previousCallCount !== currentCallCount && attempts < maxAttempts) {
       previousCallCount = currentCallCount;
-      await act(async () => { });
+      await act(async () => {});
       currentCallCount = mockFetch.mock.calls.length;
       attempts++;
     }
@@ -136,26 +136,15 @@ describe('RecipeFeed Component', () => {
   });
 
   const setupSuccessfulFetch = (recipes = [mockRecipe]) => {
-    // Mock initial recipe fetch
+    // Mock recipe fetch - engagement data is now included in the response
+    const recipesWithEngagement = recipes.map((r) => ({
+      ...r,
+      likeCount: 0,
+      commentCount: 0,
+    }));
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ recipes }),
-    });
-
-    // Mock like fetch for each recipe
-    recipes.forEach(() => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ liked: false, likesCount: 0 }),
-      });
-    });
-
-    // Mock comments fetch for each recipe
-    recipes.forEach(() => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [] }),
-      });
+      json: async () => ({ recipes: recipesWithEngagement }),
     });
   };
 
@@ -189,7 +178,7 @@ describe('RecipeFeed Component', () => {
   };
 
   it('should render loading state initially as null content', () => {
-    mockFetch.mockImplementation(() => new Promise(() => { }));
+    mockFetch.mockImplementation(() => new Promise(() => {}));
 
     const { container } = renderWithProviders(<RecipeFeed />);
 
@@ -209,7 +198,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should handle fetch failure gracefully', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
     renderWithProviders(<RecipeFeed />);
@@ -483,7 +472,7 @@ describe('RecipeFeed Component', () => {
     );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should filter by max time', async () => {
@@ -517,7 +506,7 @@ describe('RecipeFeed Component', () => {
     );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should show clear filters button when filters are active', async () => {
@@ -558,7 +547,7 @@ describe('RecipeFeed Component', () => {
     );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should clear all filters when clear button is clicked', async () => {
@@ -608,7 +597,7 @@ describe('RecipeFeed Component', () => {
     );
 
     // Flush all pending promises to prevent act() warnings
-    await act(async () => { });
+    await act(async () => {});
   });
 
   it('should delete recipe successfully', async () => {
@@ -643,7 +632,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should handle delete error', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
     setupSuccessfulFetch();
 
@@ -694,7 +683,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should handle like error gracefully', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
     setupSuccessfulFetch();
 
@@ -717,23 +706,11 @@ describe('RecipeFeed Component', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should handle failed like engagement fetch', async () => {
-    // Mock initial recipe fetch
+  it('should handle recipes with missing engagement data gracefully', async () => {
+    // Mock recipe fetch with recipes that have no likeCount/commentCount
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ recipes: [mockRecipe] }),
-    });
-
-    // Mock like fetch failure
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({}),
-    });
-
-    // Mock comments fetch
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ comments: [] }),
     });
 
     renderWithProviders(<RecipeFeed />);
@@ -741,60 +718,10 @@ describe('RecipeFeed Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
     });
-  });
 
-  it('should handle failed comments engagement fetch', async () => {
-    // Mock initial recipe fetch
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ recipes: [mockRecipe] }),
-    });
-
-    // Mock like fetch
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ liked: false, likesCount: 0 }),
-    });
-
-    // Mock comments fetch failure
-    mockFetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({}),
-    });
-
-    renderWithProviders(<RecipeFeed />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
-    });
-  });
-
-  it('should handle engagement fetch error', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
-
-    // Mock initial recipe fetch
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ recipes: [mockRecipe] }),
-    });
-
-    // Mock like fetch error
-    mockFetch.mockRejectedValueOnce(new Error('Engagement fetch failed'));
-
-    renderWithProviders(<RecipeFeed />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
-    });
-
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error fetching recipe engagement:',
-        expect.any(Error)
-      );
-    });
-
-    consoleErrorSpy.mockRestore();
+    // Engagement data defaults to 0 when not present in the response
+    // Only 1 fetch call should be made (just the recipes endpoint)
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('should show snackbar with message', async () => {
@@ -818,34 +745,18 @@ describe('RecipeFeed Component', () => {
   // Branch Coverage Tests
   describe('Branch Coverage - Missing Lines', () => {
     it('should append recipes when loading more (lines 159-160) - branch coverage', async () => {
-      // Setup initial recipes
-      const recipe1 = { ...mockRecipe, id: '1', title: 'Recipe 1' };
-      const recipe2 = { ...mockRecipe, id: '2', title: 'Recipe 2' };
-
       // Mock initial fetch with 12 recipes (triggers hasMore = true)
       const initialRecipes = Array.from({ length: 12 }, (_, i) => ({
         ...mockRecipe,
         id: `${i + 1}`,
         title: `Recipe ${i + 1}`,
+        likeCount: 0,
+        commentCount: 0,
       }));
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ recipes: initialRecipes }),
-      });
-
-      // Mock engagement fetches for initial recipes
-      initialRecipes.forEach(() => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ liked: false, likesCount: 0 }),
-        });
-      });
-      initialRecipes.forEach(() => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ comments: [] }),
-        });
       });
 
       renderWithProviders(<RecipeFeed />);
@@ -859,24 +770,13 @@ describe('RecipeFeed Component', () => {
         ...mockRecipe,
         id: `${i + 13}`,
         title: `Recipe ${i + 13}`,
+        likeCount: 0,
+        commentCount: 0,
       }));
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ recipes: moreRecipes }),
-      });
-
-      moreRecipes.forEach(() => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ liked: false, likesCount: 0 }),
-        });
-      });
-      moreRecipes.forEach(() => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ comments: [] }),
-        });
       });
 
       // Trigger infinite scroll by scrolling
@@ -900,26 +800,12 @@ describe('RecipeFeed Component', () => {
       );
 
       // Flush all pending promises to prevent act() warnings
-      await act(async () => { });
+      await act(async () => {});
     });
 
     it('should handle scroll event conditions (lines 180-185) - branch coverage', async () => {
       // Test with no more recipes to load (hasMore = false)
-      const recipes = [mockRecipe]; // Less than 12 means hasMore will be false
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ recipes }),
-      });
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ liked: false, likesCount: 0 }),
-      });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [] }),
-      });
+      setupSuccessfulFetch();
 
       renderWithProviders(<RecipeFeed />);
 
@@ -1044,7 +930,7 @@ describe('RecipeFeed Component', () => {
       renderWithProviders(<RecipeFeed />);
 
       // Wait a bit to ensure loadRecipes is called and loading is true
-      await act(async () => { });
+      await act(async () => {});
 
       // Mock fetch should only be called once (initial load)
       // Even if filters change while loading, it shouldn't trigger another fetch
@@ -1055,7 +941,7 @@ describe('RecipeFeed Component', () => {
     });
 
     it('should throw error when recipe fetch fails - line 150', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Mock fetch to return ok: false
       mockFetch.mockResolvedValueOnce({
@@ -1096,14 +982,14 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(confirmButton);
 
       // Should not make delete API call without token
-      await act(async () => { });
+      await act(async () => {});
 
       // No new fetch calls should have been made
       expect(mockFetch.mock.calls.length).toBe(initialFetchCallCount);
     });
 
     it('should throw error with custom message when delete fails - lines 224-225', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
       setupSuccessfulFetch();
 
@@ -1184,7 +1070,7 @@ describe('RecipeFeed Component', () => {
     });
 
     it('should show non-Error exception fallback message - lines 237-241', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
       setupSuccessfulFetch();
 
@@ -1249,21 +1135,11 @@ describe('RecipeFeed Component', () => {
     it('should use default like state when recipe not in recipeLikes - lines 287-289', async () => {
       mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
 
-      // Mock recipe fetch with a recipe that won't have engagement data
+      // Mock recipe fetch - engagement data comes from the recipes API response
+      // Recipe without likeCount/commentCount will default to 0
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ recipes: [mockRecipe] }),
-      });
-
-      // Mock engagement fetch to fail so recipeLikes[recipeId] doesn't exist
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({}),
-      });
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [] }),
       });
 
       renderWithProviders(<RecipeFeed />);
@@ -1381,7 +1257,7 @@ describe('RecipeFeed Component', () => {
         expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('maxTime=60'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
 
     it('should filter by over60 time - line 152', async () => {
@@ -1405,7 +1281,7 @@ describe('RecipeFeed Component', () => {
         expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('minTime=60'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
   });
 
@@ -1432,7 +1308,7 @@ describe('RecipeFeed Component', () => {
         expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('sort=rating_desc'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
 
     it('should sort by most reviewed - line 155', async () => {
@@ -1456,14 +1332,14 @@ describe('RecipeFeed Component', () => {
         expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('sort=most_reviewed'));
       });
 
-      await act(async () => { });
+      await act(async () => {});
     });
   });
 
   // ==================== DELETE ERROR FALLBACK (line 234) ====================
   describe('Delete Error Fallback - line 234', () => {
     it('should show fallback error message when server returns no error field - line 234', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
       setupSuccessfulFetch();
 
@@ -1556,85 +1432,4 @@ describe('RecipeFeed Component', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
   });
-
-  // ==================== VISIBILITY CHANGE (lines 216-219) ====================
-  describe('Visibility Change - lines 216-219', () => {
-    it('should refetch recipes when page becomes visible with existing recipes - lines 216-219', async () => {
-      const localMockOnCreateRecipe = jest.fn();
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ recipes: [mockRecipe], total: 1 }),
-      });
-
-      renderWithProviders(<RecipeFeed onCreateRecipe={localMockOnCreateRecipe} />);
-
-      // Wait for initial load
-      await waitFor(() => {
-        expect(screen.getByTestId('recipe-card-1')).toBeInTheDocument();
-      });
-
-      // Reset mock to track subsequent calls
-      mockFetch.mockClear();
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ recipes: [mockRecipe], total: 1 }),
-      });
-
-      // Simulate visibility change - page becomes visible
-      act(() => {
-        Object.defineProperty(document, 'visibilityState', {
-          value: 'visible',
-          writable: true,
-        });
-        document.dispatchEvent(new Event('visibilitychange'));
-      });
-
-      // Should trigger a refetch since we have recipes
-      await waitFor(
-        () => {
-          expect(mockFetch).toHaveBeenCalled();
-        },
-        { timeout: 500 }
-      );
-    });
-
-    it('should not refetch when visibility changes but no recipes loaded - line 218', async () => {
-      const localMockOnCreateRecipe = jest.fn();
-      // Return empty recipes initially
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ recipes: [], total: 0 }),
-      });
-
-      renderWithProviders(<RecipeFeed onCreateRecipe={localMockOnCreateRecipe} />);
-
-      // Wait for initial load
-      await waitFor(() => {
-        expect(
-          screen.queryByText('No recipes found') || screen.queryByTestId('empty-state')
-        ).toBeTruthy();
-      });
-
-      // Reset mock
-      mockFetch.mockClear();
-
-      // Simulate visibility change
-      act(() => {
-        Object.defineProperty(document, 'visibilityState', {
-          value: 'visible',
-          writable: true,
-        });
-        document.dispatchEvent(new Event('visibilitychange'));
-      });
-
-      // Should NOT refetch since recipes.length is 0
-      await waitFor(
-        () => {
-          expect(mockFetch).not.toHaveBeenCalled();
-        },
-        { timeout: 100 }
-      );
-    });
-  });
 });
-

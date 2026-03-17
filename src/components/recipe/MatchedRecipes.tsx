@@ -53,7 +53,6 @@ export default function MatchedRecipes() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
   const [readyToCook, setReadyToCook] = useState<MatchedRecipe[]>([]);

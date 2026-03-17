@@ -43,6 +43,7 @@ export interface Recipe {
 
   // Rating information (optional, populated by API)
   averageRating?: number;
+  reviewCount?: number;
   totalRatings?: number;
 
   // Metadata

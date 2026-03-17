@@ -44,61 +44,66 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized to edit this comment' }, { status: 403 });
     }
 
-    // Update comment
-    const comment = await prisma.comment.update({
-      where: { id: commentId },
-      data: {
-        text: text.trim(),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
+    // Validate rating before any writes
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
+    }
+
+    // Update comment and rating atomically in a transaction
+    const comment = await prisma.$transaction(async (tx) => {
+      const updatedComment = await tx.comment.update({
+        where: { id: commentId },
+        data: {
+          text: text.trim(),
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatar: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    // If rating provided, upsert rating separately
-    if (rating !== undefined) {
-      if (rating < 1 || rating > 5) {
-        return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
-      }
-
-      await prisma.rating.upsert({
-        where: {
-          userId_postId: {
+      // If rating provided, upsert rating
+      if (rating !== undefined) {
+        await tx.rating.upsert({
+          where: {
+            userId_postId: {
+              userId: payload.userId,
+              postId: recipeId,
+            },
+          },
+          create: {
             userId: payload.userId,
             postId: recipeId,
+            rating,
           },
-        },
-        create: {
-          userId: payload.userId,
-          postId: recipeId,
-          rating,
-        },
-        update: {
-          rating,
-        },
-      });
+          update: {
+            rating,
+          },
+        });
 
-      // Recalculate and cache the recipe's average rating
-      const ratingAggregation = await prisma.rating.aggregate({
-        where: { postId: recipeId },
-        _avg: { rating: true },
-        _count: { rating: true },
-      });
+        // Recalculate and cache the recipe's average rating
+        const ratingAggregation = await tx.rating.aggregate({
+          where: { postId: recipeId },
+          _avg: { rating: true },
+          _count: { rating: true },
+        });
 
-      await prisma.post.update({
-        where: { id: recipeId },
-        data: {
-          averageRating: Math.round((ratingAggregation._avg.rating || 0) * 10) / 10,
-          reviewCount: ratingAggregation._count.rating || 0,
-        },
-      });
-    }
+        await tx.post.update({
+          where: { id: recipeId },
+          data: {
+            averageRating: Math.round((ratingAggregation._avg.rating || 0) * 10) / 10,
+            reviewCount: ratingAggregation._count.rating || 0,
+          },
+        });
+      }
+
+      return updatedComment;
+    });
 
     // Add rating to comment object for response
     const ratingRecord = await prisma.rating.findUnique({
@@ -131,7 +136,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
-    const { id: recipeId, commentId } = await params;
+    const { commentId } = await params;
 
     // Get authorization token
     const authHeader = request.headers.get('authorization');

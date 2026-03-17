@@ -106,6 +106,15 @@ export function middleware(request: NextRequest) {
     return new NextResponse(null, { status: 200, headers: response.headers });
   }
 
+  // Block admin pages server-side for unauthenticated users
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const authHeader = request.headers.get('authorization');
+    const cookieToken = request.cookies.get('auth_token')?.value;
+    if (!authHeader && !cookieToken) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
   // Apply rate limiting to API routes only
   if (request.nextUrl.pathname.startsWith('/api')) {
     // Skip rate limiting and special handling for these routes

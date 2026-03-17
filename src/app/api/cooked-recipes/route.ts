@@ -89,75 +89,75 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Remove recipe ingredients from pantry
-    if (pantry && recipe.ingredients) {
-      const recipeIngredients = recipe.ingredients as Array<{
-        name: string;
-        amount: string;
-        unit: string;
-      }>;
+    // Remove recipe ingredients from pantry and create cooked recipe atomically
+    const cookedRecipe = await prisma.$transaction(async (tx) => {
+      if (pantry && recipe.ingredients) {
+        const recipeIngredients = recipe.ingredients as Array<{
+          name: string;
+          amount: string;
+          unit: string;
+        }>;
 
-      for (const ingredient of recipeIngredients) {
-        // Find matching pantry item (case-insensitive name match)
-        const pantryItem = pantry.items.find(
-          (item) => item.name.toLowerCase() === ingredient.name.toLowerCase()
-        );
+        for (const ingredient of recipeIngredients) {
+          // Find matching pantry item (case-insensitive name match)
+          const pantryItem = pantry.items.find(
+            (item) => item.name.toLowerCase() === ingredient.name.toLowerCase()
+          );
 
-        if (pantryItem) {
-          // Parse amounts
-          const recipeAmount = parseFloat(ingredient.amount);
-          const pantryQuantity = pantryItem.quantity;
+          if (pantryItem) {
+            // Parse amounts
+            const recipeAmount = parseFloat(ingredient.amount);
+            const pantryQuantity = pantryItem.quantity;
 
-          // Check if units match (basic comparison, case-insensitive)
-          const unitsMatch = pantryItem.unit.toLowerCase() === ingredient.unit.toLowerCase();
+            // Check if units match (basic comparison, case-insensitive)
+            const unitsMatch = pantryItem.unit.toLowerCase() === ingredient.unit.toLowerCase();
 
-          if (unitsMatch && !isNaN(recipeAmount)) {
-            const newQuantity = pantryQuantity - recipeAmount;
+            if (unitsMatch && !isNaN(recipeAmount)) {
+              const newQuantity = pantryQuantity - recipeAmount;
 
-            if (newQuantity <= 0) {
-              // Delete item if quantity is depleted
-              await prisma.pantryItem.delete({
-                where: { id: pantryItem.id },
-              });
-            } else {
-              // Update quantity
-              await prisma.pantryItem.update({
-                where: { id: pantryItem.id },
-                data: { quantity: newQuantity },
-              });
+              if (newQuantity <= 0) {
+                await tx.pantryItem.delete({
+                  where: { id: pantryItem.id },
+                });
+              } else {
+                await tx.pantryItem.update({
+                  where: { id: pantryItem.id },
+                  data: { quantity: newQuantity },
+                });
+              }
             }
           }
         }
       }
-    }
 
-    // Create cooked recipe entry
-    const cookedRecipe = await prisma.cookedRecipe.create({
-      data: {
-        userId: payload.userId,
-        postId,
-        rating,
-        notes,
-      },
-      include: {
-        post: {
-          select: {
-            id: true,
-            title: true,
-            imageUrl: true,
-            description: true,
-            difficulty: true,
-            cookingTime: true,
-            prepTime: true,
-            user: {
-              select: {
-                username: true,
-                avatar: true,
+      // Create cooked recipe entry
+      return tx.cookedRecipe.create({
+        data: {
+          userId: payload.userId,
+          postId,
+          rating,
+          notes,
+        },
+        include: {
+          post: {
+            select: {
+              id: true,
+              title: true,
+              imageUrl: true,
+              description: true,
+              difficulty: true,
+              cookingTime: true,
+              prepTime: true,
+              user: {
+                select: {
+                  username: true,
+                  avatar: true,
+                },
               },
             },
           },
         },
-      },
+      });
     });
 
     return NextResponse.json(

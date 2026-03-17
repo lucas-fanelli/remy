@@ -65,18 +65,9 @@ export class UserService implements IUserService {
   }
 
   async searchUsers(query: string, limit: number = 10): Promise<UserPublicProfile[]> {
-    // This is a simplified implementation
-    // In production, you'd want to implement full-text search
-    const users = await this.userRepository.findMany(0, 100);
-    const filtered = users
-      .filter(
-        (user) =>
-          user.username.toLowerCase().includes(query.toLowerCase()) ||
-          user.fullName?.toLowerCase().includes(query.toLowerCase())
-      )
-      .slice(0, limit);
+    const users = await this.userRepository.search(query, limit);
 
-    return filtered.map((user) => {
+    return users.map((user) => {
       const { password: _, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
-import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -17,21 +16,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
-    // Aggregate ratings for this recipe
-    const ratingAggregation = await prisma.rating.aggregate({
-      where: { postId: id },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
-
-    const averageRating = ratingAggregation._avg.rating || 0;
-    const totalRatings = ratingAggregation._count.rating || 0;
-
+    // Use cached rating values from the post record
     return NextResponse.json({
       recipe: {
         ...recipe,
-        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
-        totalRatings,
+        averageRating: recipe.averageRating ?? 0,
+        totalRatings: recipe.reviewCount ?? 0,
       },
     });
   } catch (error) {
