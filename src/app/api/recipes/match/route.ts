@@ -11,6 +11,25 @@ interface Ingredient {
   unit: string;
 }
 
+interface MatchedRecipeData {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string;
+  difficulty: string | null;
+  cookingTime: number | null;
+  prepTime: number | null;
+  servings: number | null;
+  ingredients: Ingredient[];
+  matchPercentage: number;
+  matchedIngredients: number;
+  totalIngredients: number;
+  missingIngredients: Ingredient[];
+  likesCount: number;
+  commentsCount: number;
+  user: { id: string; username: string; avatar: string | null } | null;
+}
+
 // GET - Match recipes with user's pantry
 export async function GET(request: NextRequest) {
   try {
@@ -75,9 +94,9 @@ export async function GET(request: NextRequest) {
     });
 
     // Match recipes with pantry
-    const readyToCook: any[] = [];
-    const almostThere: any[] = [];
-    const needMore: any[] = [];
+    const readyToCook: MatchedRecipeData[] = [];
+    const almostThere: MatchedRecipeData[] = [];
+    const needMore: MatchedRecipeData[] = [];
 
     for (const recipe of recipes) {
       if (!recipe.ingredients || !Array.isArray(recipe.ingredients)) continue;
@@ -104,7 +123,7 @@ export async function GET(request: NextRequest) {
 
       const matchPercentage = (matchedCount / totalIngredients) * 100;
 
-      const recipeData = {
+      const recipeData: MatchedRecipeData = {
         id: recipe.id,
         title: recipe.title || 'Untitled Recipe',
         description: recipe.description,

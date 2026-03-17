@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') || 'newest';
 
     // Build Prisma where clause
-    const where: any = {};
+    const where: Prisma.PostWhereInput = {};
 
     if (query && query.length > MAX_SEARCH_QUERY_LENGTH) {
       return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine sort order based on sort parameter
-    let orderBy: any = { createdAt: 'desc' }; // Default: Newest
+    let orderBy: Prisma.PostOrderByWithRelationInput = { createdAt: 'desc' }; // Default: Newest
     switch (sort) {
       case 'rating_desc':
         orderBy = { averageRating: 'desc' };

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Post, Prisma, PrismaClient } from '@prisma/client';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
 import {
   Recipe,
@@ -7,6 +7,7 @@ import {
   RecipeSearchOptions,
   Ingredient,
   Instruction,
+  DifficultyLevel,
 } from '@/domain/types/recipe';
 
 /**
@@ -74,7 +75,7 @@ export class RecipeRepository implements IRecipeRepository {
       sortOrder = 'desc',
     } = options;
 
-    const where: any = {};
+    const where: Prisma.PostWhereInput = {};
 
     // Apply text search
     if (query) {
@@ -212,7 +213,11 @@ export class RecipeRepository implements IRecipeRepository {
   /**
    * Maps a Prisma Post to a Recipe domain model
    */
-  private mapToRecipe(post: any): Recipe {
+  private mapToRecipe(
+    post: Post & {
+      user?: { username: string; fullName: string | null; avatar: string | null } | null;
+    }
+  ): Recipe {
     return {
       id: post.id,
       title: post.title || '',
@@ -222,9 +227,9 @@ export class RecipeRepository implements IRecipeRepository {
       cookingTime: post.cookingTime || 0,
       prepTime: post.prepTime || 0,
       servings: post.servings || 0,
-      difficulty: post.difficulty || 'medium',
-      ingredients: (post.ingredients as Ingredient[]) || [],
-      instructions: (post.instructions as Instruction[]) || [],
+      difficulty: (post.difficulty as DifficultyLevel) || 'medium',
+      ingredients: (post.ingredients as unknown as Ingredient[]) || [],
+      instructions: (post.instructions as unknown as Instruction[]) || [],
       caption: post.caption || undefined,
       averageRating: post.averageRating ?? undefined,
       totalRatings: post.reviewCount ?? undefined,

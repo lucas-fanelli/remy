@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserPantry as PrismaUserPantry } from '@prisma/client';
 import { IPantryRepository } from '@/domain/repositories/IPantryRepository';
 import { UserPantry, PantryIngredient } from '@/domain/types/pantry';
 
@@ -92,11 +92,11 @@ export class PantryRepository implements IPantryRepository {
   /**
    * Map Prisma UserPantry to domain UserPantry
    */
-  private mapToUserPantry(pantry: any): UserPantry {
+  private mapToUserPantry(pantry: PrismaUserPantry): UserPantry {
     return {
       id: pantry.id,
       userId: pantry.userId,
-      ingredients: (pantry.ingredients as PantryIngredient[]) || [],
+      ingredients: (pantry.ingredients as unknown as PantryIngredient[]) || [],
       updatedAt: pantry.updatedAt,
     };
   }

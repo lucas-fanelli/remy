@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { Prisma, PrismaClient, Role } from '@prisma/client';
 import {
   IAdminService,
   AdminUser,
@@ -26,7 +26,7 @@ export class AdminService implements IAdminService {
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
 
     if (options?.search) {
       where.OR = [
@@ -144,7 +144,7 @@ export class AdminService implements IAdminService {
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.PostWhereInput = {};
 
     if (options?.search) {
       where.OR = [
@@ -208,7 +208,7 @@ export class AdminService implements IAdminService {
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.CommentWhereInput = {};
 
     if (options?.postId) {
       where.postId = options.postId;
