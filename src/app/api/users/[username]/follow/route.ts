@@ -16,7 +16,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -62,7 +62,8 @@ export async function POST(
     const notificationService = container.get<INotificationService>('INotificationService');
     await notificationService.createFollowNotification(payload.userId, userToFollow.id);
 
-    return NextResponse.json({ success: true, message: 'Followed successfully' });
+    const followersCount = await prisma.follow.count({ where: { followingId: userToFollow.id } });
+    return NextResponse.json({ success: true, message: 'Followed successfully', followersCount });
   } catch (error) {
     console.error('Error following user:', error);
     return NextResponse.json({ error: 'Failed to follow user' }, { status: 500 });

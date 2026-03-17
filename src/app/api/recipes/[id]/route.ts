@@ -128,12 +128,10 @@ export async function DELETE(
     // Clean up Cloudinary image after successful DB deletion
     if (imageUrl && imageUrl.includes('cloudinary.com')) {
       try {
-        const urlParts = imageUrl.split('/');
-        const uploadIndex = urlParts.indexOf('upload');
-        if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
-          const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
-          const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
-          await deleteFromCloudinary(publicId);
+        // Handle Cloudinary URLs with or without transformations
+        const match = imageUrl.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
+        if (match) {
+          await deleteFromCloudinary(match[1]);
         }
       } catch (fileError) {
         console.warn(`Failed to delete image from Cloudinary: ${fileError}`);

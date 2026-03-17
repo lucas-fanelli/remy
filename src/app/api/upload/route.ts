@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const authToken = authHeader.replace('Bearer ', '');
+    const authToken = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(authToken);
 

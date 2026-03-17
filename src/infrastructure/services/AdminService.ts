@@ -250,9 +250,30 @@ export class AdminService implements IAdminService {
   }
 
   async deleteComment(commentId: string): Promise<void> {
+    // Get comment to find associated recipe
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+    });
+
     await this.prisma.comment.delete({
       where: { id: commentId },
     });
+
+    // Recalculate cached rating for the recipe after comment deletion
+    if (comment?.postId) {
+      const agg = await this.prisma.rating.aggregate({
+        where: { postId: comment.postId },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+      await this.prisma.post.update({
+        where: { id: comment.postId },
+        data: {
+          averageRating: Math.round((agg._avg.rating || 0) * 10) / 10,
+          reviewCount: agg._count.rating || 0,
+        },
+      });
+    }
   }
 
   // ============ STATISTICS ============

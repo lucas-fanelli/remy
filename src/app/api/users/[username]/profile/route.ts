@@ -27,7 +27,7 @@ export async function GET(
 
     if (authHeader) {
       try {
-        const token = authHeader.replace('Bearer ', '');
+        const token = authHeader.substring(7);
         const tokenService = container.getTokenService();
         const payload = tokenService.verify(token);
         if (payload) {

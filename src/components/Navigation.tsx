@@ -216,10 +216,27 @@ export default function Navigation() {
 
     fetchNotifications();
 
-    // Poll for new notifications every 60 seconds
-    const interval = setInterval(fetchNotifications, 60000);
+    // Poll for new notifications every 60 seconds, pause when tab is hidden
+    let interval: ReturnType<typeof setInterval> | null = setInterval(fetchNotifications, 60000);
 
-    return () => clearInterval(interval);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      } else {
+        fetchNotifications();
+        interval = setInterval(fetchNotifications, 60000);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [token, fetchNotifications]);
 
   // Notification handlers

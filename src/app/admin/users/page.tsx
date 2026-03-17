@@ -286,7 +286,7 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell align="center">{u._count?.posts || 0}</TableCell>
                     <TableCell align="center">{u._count?.followers || 0}</TableCell>
-                    <TableCell>{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(u.createdAt).toLocaleDateString('en-US')}</TableCell>
                     <TableCell align="right">
                       <Tooltip title={u.role === 'ADMIN' ? 'Demote to User' : 'Promote to Admin'}>
                         <IconButton

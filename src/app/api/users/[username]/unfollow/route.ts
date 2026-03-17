@@ -16,7 +16,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -47,7 +47,8 @@ export async function POST(
     const notificationService = container.get<INotificationService>('INotificationService');
     await notificationService.deleteFollowNotification(payload.userId, userToUnfollow.id);
 
-    return NextResponse.json({ success: true, message: 'Unfollowed successfully' });
+    const followersCount = await prisma.follow.count({ where: { followingId: userToUnfollow.id } });
+    return NextResponse.json({ success: true, message: 'Unfollowed successfully', followersCount });
   } catch (error) {
     console.error('Error unfollowing user:', error);
     return NextResponse.json({ error: 'Failed to unfollow user' }, { status: 500 });

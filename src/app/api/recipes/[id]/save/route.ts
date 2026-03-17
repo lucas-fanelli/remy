@@ -13,7 +13,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ saved: false });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -86,28 +86,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     if (existingSave) {
-      // Unsave - delete the saved recipe
       await prisma.savedRecipe.delete({
         where: { id: existingSave.id },
       });
-
-      return NextResponse.json({
-        saved: false,
-        message: 'Recipe removed from saved',
-      });
+      return NextResponse.json({ saved: false, message: 'Recipe removed from saved' });
     } else {
-      // Save the recipe
-      await prisma.savedRecipe.create({
-        data: {
-          userId: payload.userId,
-          postId: recipeId,
-        },
-      });
-
-      return NextResponse.json({
-        saved: true,
-        message: 'Recipe saved successfully',
-      });
+      try {
+        await prisma.savedRecipe.create({
+          data: { userId: payload.userId, postId: recipeId },
+        });
+        return NextResponse.json({ saved: true, message: 'Recipe saved successfully' });
+      } catch (err: unknown) {
+        // Handle race condition - if already saved by concurrent request, unsave instead
+        if (err instanceof Error && err.message.includes('Unique constraint')) {
+          await prisma.savedRecipe.deleteMany({
+            where: { userId: payload.userId, postId: recipeId },
+          });
+          return NextResponse.json({ saved: false, message: 'Recipe removed from saved' });
+        }
+        throw err;
+      }
     }
   } catch (error) {
     console.error('Error toggling save:', error);

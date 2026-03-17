@@ -15,7 +15,7 @@ export async function GET(
       return NextResponse.json({ isFollowing: false });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

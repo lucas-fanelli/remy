@@ -201,7 +201,7 @@ export default function AdminCommentsPage() {
                         {comment.post.title || 'Untitled Recipe'}
                       </Typography>
                     </TableCell>
-                    <TableCell>{new Date(comment.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(comment.createdAt).toLocaleDateString('en-US')}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Recipe">
                         <IconButton

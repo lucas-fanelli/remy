@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10) || 50));
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
 
     // Use service layer to get notifications
     const notificationService = container.getNotificationService();

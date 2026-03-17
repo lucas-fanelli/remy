@@ -14,7 +14,7 @@ export async function GET(
     let currentUserId: string | null = null;
 
     if (authHeader) {
-      const token = authHeader.replace('Bearer ', '');
+      const token = authHeader.substring(7);
       const tokenService = container.getTokenService();
       const payload = tokenService.verify(token);
       if (payload) {

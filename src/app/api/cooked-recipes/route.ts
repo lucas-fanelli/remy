@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 
@@ -76,8 +76,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { postId, rating, notes } = body;
 
-    if (!postId) {
-      return NextResponse.json({ error: 'Recipe ID is required' }, { status: 400 });
+    if (!postId || typeof postId !== 'string' || postId.length > 36) {
+      return NextResponse.json({ error: 'Invalid recipe ID' }, { status: 400 });
+    }
+
+    if (notes !== undefined && typeof notes === 'string' && notes.length > 5000) {
+      return NextResponse.json({ error: 'Notes must be 5000 characters or less' }, { status: 400 });
     }
 
     if (
@@ -197,7 +201,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
     const payload = tokenService.verify(token);
 

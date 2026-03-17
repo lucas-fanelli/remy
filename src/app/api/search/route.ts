@@ -14,6 +14,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
     }
 
+    if (query.length > 200) {
+      return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
+    }
+
     const userService = container.get<IUserService>('IUserService');
 
     // Search users by username - strip email from public results
