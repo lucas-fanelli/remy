@@ -79,13 +79,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Item name is required' }, { status: 400 });
     }
 
-    if (
-      quantity !== undefined &&
-      quantity !== null &&
-      typeof quantity === 'number' &&
-      quantity < 0
-    ) {
-      return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
+    if (quantity !== undefined && quantity !== null) {
+      const parsed = parseFloat(quantity);
+      if (isNaN(parsed) || !isFinite(parsed)) {
+        return NextResponse.json({ error: 'Quantity must be a valid number' }, { status: 400 });
+      }
+      if (parsed < 0) {
+        return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
+      }
     }
 
     if (!unit || unit.trim().length === 0) {

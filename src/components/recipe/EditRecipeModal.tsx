@@ -63,7 +63,7 @@ const commonUnits = [
   'kg',
   'oz',
   'lb',
-  'ml',
+  'mL',
   'L',
   'pieces',
   'pinch',

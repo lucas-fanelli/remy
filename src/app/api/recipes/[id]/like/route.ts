@@ -42,11 +42,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const notificationService = container.getNotificationService();
 
     if (existingLike) {
-      // Unlike
-      await prisma.like.delete({
-        where: { id: existingLike.id },
-      });
-      await notificationService.deleteLikeNotification(payload.userId, recipeId, recipe.userId);
+      // Unlike - handle concurrent deletion gracefully
+      try {
+        await prisma.like.delete({
+          where: { id: existingLike.id },
+        });
+        await notificationService.deleteLikeNotification(payload.userId, recipeId, recipe.userId);
+      } catch (err: unknown) {
+        // Record already deleted by concurrent request - treat as successful unlike
+        if (!(err instanceof Error && err.message.includes('Record to delete does not exist'))) {
+          throw err;
+        }
+      }
 
       const likesCount = await prisma.like.count({ where: { postId: recipeId } });
       return NextResponse.json({ liked: false, likesCount, message: 'Recipe unliked' });

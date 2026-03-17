@@ -87,6 +87,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
+    // Validate imageUrl if provided
+    if (imageUrl) {
+      try {
+        const url = new URL(imageUrl);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          return NextResponse.json({ error: 'Invalid image URL protocol' }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
+      }
+    }
+
     // Check if recipe exists
     const recipe = await prisma.post.findUnique({
       where: { id: recipeId },

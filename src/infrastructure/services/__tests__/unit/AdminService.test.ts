@@ -395,8 +395,21 @@ describe('AdminService - Unit Tests', () => {
   });
 
   describe('deleteComment', () => {
-    it('should delete comment', async () => {
+    it('should delete comment and recalculate ratings', async () => {
+      prismaMock.comment.findUnique.mockResolvedValue({
+        ...mockComment,
+        postId: 'post-123',
+      } as any);
+      prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock));
       prismaMock.comment.delete.mockResolvedValue(mockComment as any);
+      prismaMock.rating.aggregate.mockResolvedValue({
+        _avg: { rating: 4.0 },
+        _count: { rating: 2 },
+        _sum: { rating: null },
+        _min: { rating: null },
+        _max: { rating: null },
+      } as any);
+      prismaMock.post.update.mockResolvedValue({} as any);
 
       await adminService.deleteComment('comment-123');
 

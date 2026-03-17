@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       where: {
         ingredients: { not: Prisma.DbNull },
       },
-      take: 200,
+      take: 100,
       select: {
         id: true,
         title: true,

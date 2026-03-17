@@ -53,7 +53,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     // Validate quantity: must be a valid non-negative number
     if (quantity !== undefined) {
       const parsed = parseFloat(quantity);
-      if (isNaN(parsed)) {
+      if (isNaN(parsed) || !isFinite(parsed)) {
         return NextResponse.json({ error: 'Quantity must be a valid number' }, { status: 400 });
       }
       if (parsed < 0) {

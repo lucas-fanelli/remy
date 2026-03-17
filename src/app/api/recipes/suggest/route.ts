@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7);
     const tokenService = container.getTokenService();
-    const payload = await tokenService.verify(token);
+    const payload = tokenService.verify(token);
 
     if (!payload || !payload.userId) {
       return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });

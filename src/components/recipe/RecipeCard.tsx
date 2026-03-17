@@ -132,7 +132,9 @@ export default function RecipeCard({
           src={recipe.imageUrl || '/placeholder-recipe.png'}
           alt={recipe.title}
           onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            e.currentTarget.src = '/placeholder-recipe.png';
+            if (!e.currentTarget.src.endsWith('/placeholder-recipe.png')) {
+              e.currentTarget.src = '/placeholder-recipe.png';
+            }
           }}
           sx={{
             width: '100%',

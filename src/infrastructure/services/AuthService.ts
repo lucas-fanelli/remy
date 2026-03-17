@@ -102,6 +102,9 @@ export class AuthService implements IAuthService {
 
     // Check if user should be promoted to admin (in case they registered before being added to ADMIN_EMAILS)
     if (this.isAdminEmail(user.email) && user.role !== 'ADMIN') {
+      console.warn(
+        `[AUTH] Auto-promoting user ${user.id} (${user.email}) to ADMIN role based on ADMIN_EMAILS config`
+      );
       await this.userRepository.updateRole(user.id, 'ADMIN');
       user.role = 'ADMIN';
     }

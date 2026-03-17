@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
       where.difficulty = difficulty;
     }
 
-    // Time filtering (uses cookingTime as primary, can add prepTime if needed)
-    if (maxTime) {
-      where.cookingTime = { lte: parseInt(maxTime) };
-    } else if (minTime) {
-      where.cookingTime = { gte: parseInt(minTime) };
+    // Time filtering - both maxTime and minTime can be applied together
+    if (maxTime || minTime) {
+      where.cookingTime = {};
+      if (maxTime) where.cookingTime.lte = parseInt(maxTime);
+      if (minTime) where.cookingTime.gte = parseInt(minTime);
     }
 
     if (userId) {
@@ -116,9 +116,12 @@ export async function GET(request: NextRequest) {
       commentCount: recipe._count.comments,
     }));
 
+    const total = await prisma.post.count({ where });
+
     return NextResponse.json({
       recipes: recipesWithRatings,
       count: recipesWithRatings.length,
+      total,
       hasMore: recipes.length === limit,
     });
   } catch (error) {
