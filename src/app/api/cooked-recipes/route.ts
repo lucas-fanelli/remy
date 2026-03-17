@@ -106,6 +106,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if already marked as cooked today (prevent duplicate deductions)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const existingCooked = await prisma.cookedRecipe.findFirst({
+      where: {
+        userId: payload.userId,
+        postId,
+        cookedAt: { gte: today },
+      },
+    });
+    if (existingCooked) {
+      return NextResponse.json({ error: 'Recipe already marked as cooked today' }, { status: 409 });
+    }
+
     // Verify the recipe exists and get its ingredients
     const recipe = await prisma.post.findUnique({
       where: { id: postId },

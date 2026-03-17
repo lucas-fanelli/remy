@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
+import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Build Prisma where clause
     const where: any = {};
 
-    if (query && query.length > 200) {
+    if (query && query.length > MAX_SEARCH_QUERY_LENGTH) {
       return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
     }
 

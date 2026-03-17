@@ -49,6 +49,7 @@ export async function GET(
         bio: true,
         avatar: true,
         website: true,
+        isPrivate: true,
         createdAt: true,
         _count: {
           select: {
@@ -88,6 +89,23 @@ export async function GET(
     }
 
     const isOwnProfile = currentUserId === user.id;
+
+    // Enforce privacy - return limited info for private profiles viewed by non-owners
+    if (user.isPrivate && !isOwnProfile) {
+      return NextResponse.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          avatar: user.avatar,
+          bio: user.bio,
+          isPrivate: true,
+        },
+        recipes: [],
+        isOwnProfile: false,
+        isPrivateProfile: true,
+      });
+    }
 
     // Build response with parallel queries for conditional data
     let isFollowing: boolean | undefined = undefined;

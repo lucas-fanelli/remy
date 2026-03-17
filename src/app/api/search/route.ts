@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IUserService } from '@/domain/services/IUserService';
+import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
     }
 
-    if (query.length > 200) {
+    if (query.length > MAX_SEARCH_QUERY_LENGTH) {
       return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
     }
 
