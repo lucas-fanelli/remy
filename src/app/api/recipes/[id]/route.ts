@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const tokenService = container.getTokenService();
 
     // Verify token and get user ID
-    const payload = await tokenService.verify(token);
+    const payload = tokenService.verify(token);
     if (!payload || !payload.userId) {
       return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }
@@ -108,7 +108,7 @@ export async function DELETE(
     const tokenService = container.getTokenService();
 
     // Verify token and get user ID
-    const payload = await tokenService.verify(token);
+    const payload = tokenService.verify(token);
     if (!payload || !payload.userId) {
       return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }

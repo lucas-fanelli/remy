@@ -46,19 +46,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Item name cannot be empty' }, { status: 400 });
     }
 
-    if (quantity !== undefined && typeof quantity === 'number' && quantity < 0) {
-      return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
-    }
-
     if (unit !== undefined && unit.trim().length === 0) {
       return NextResponse.json({ error: 'Unit cannot be empty' }, { status: 400 });
     }
 
-    // Validate quantity is a valid number if provided
+    // Validate quantity: must be a valid non-negative number
     if (quantity !== undefined) {
       const parsed = parseFloat(quantity);
       if (isNaN(parsed)) {
         return NextResponse.json({ error: 'Quantity must be a valid number' }, { status: 400 });
+      }
+      if (parsed < 0) {
+        return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
       }
     }
 

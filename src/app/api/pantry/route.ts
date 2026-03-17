@@ -80,9 +80,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (
-      quantity === undefined ||
-      quantity === null ||
-      (typeof quantity === 'number' && quantity < 0)
+      quantity !== undefined &&
+      quantity !== null &&
+      typeof quantity === 'number' &&
+      quantity < 0
     ) {
       return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
     }

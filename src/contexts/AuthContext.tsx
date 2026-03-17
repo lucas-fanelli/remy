@@ -28,6 +28,31 @@ type AuthContextType = {
   updateProfile: (data: Partial<User>) => Promise<void>;
 };
 
+// Safe localStorage wrapper for environments where it's unavailable (Safari private browsing)
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* noop */
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* noop */
+    }
+  },
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -37,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('auth_token');
+    const storedToken = safeStorage.getItem('auth_token');
     if (storedToken) {
       setToken(storedToken);
       fetchCurrentUser(storedToken);
@@ -59,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.data);
       } else {
         // Token invalid, clear it
-        localStorage.removeItem('auth_token');
+        safeStorage.removeItem('auth_token');
         setToken(null);
       }
     } catch (error) {
@@ -86,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     setUser(data.data.user);
     setToken(data.data.token);
-    localStorage.setItem('auth_token', data.data.token);
+    safeStorage.setItem('auth_token', data.data.token);
   };
 
   const register = async (email: string, username: string, password: string, fullName?: string) => {
@@ -106,13 +131,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     setUser(data.data.user);
     setToken(data.data.token);
-    localStorage.setItem('auth_token', data.data.token);
+    safeStorage.setItem('auth_token', data.data.token);
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('auth_token');
+    safeStorage.removeItem('auth_token');
   };
 
   const updateProfile = async (data: Partial<User>) => {

@@ -30,11 +30,19 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(request.nextUrl.searchParams.get('limit') || '50') || 50)
+    );
+    const offset = Math.max(0, parseInt(request.nextUrl.searchParams.get('offset') || '0') || 0);
+
     // Get following with user details
     const following = await prisma.follow.findMany({
       where: {
         followerId: user.id,
       },
+      take: limit,
+      skip: offset,
       include: {
         following: {
           select: {

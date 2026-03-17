@@ -122,6 +122,8 @@ export async function GET(
                 cookingTime: true,
                 prepTime: true,
                 servings: true,
+                averageRating: true,
+                reviewCount: true,
                 createdAt: true,
                 user: {
                   select: {
@@ -140,26 +142,8 @@ export async function GET(
           },
           orderBy: { createdAt: 'desc' },
         })
-        .then(async (saved) => {
-          // Get ratings for all saved recipe posts
-          const postIds = saved.map((s) => s.post.id);
-          const ratings = await prisma.rating.groupBy({
-            by: ['postId'],
-            where: { postId: { in: postIds } },
-            _avg: { rating: true },
-            _count: { rating: true },
-          });
-          const ratingsMap = new Map(
-            ratings.map((r) => [
-              r.postId,
-              {
-                averageRating: r._avg.rating || 0,
-                totalRatings: r._count.rating || 0,
-              },
-            ])
-          );
-
-          return saved.map((s) => ({
+        .then((saved) =>
+          saved.map((s) => ({
             id: s.post.id,
             title: s.post.title,
             description: s.post.description,
@@ -171,14 +155,14 @@ export async function GET(
             likesCount: s.post._count.likes,
             commentsCount: s.post._count.comments,
             createdAt: s.post.createdAt,
-            averageRating: ratingsMap.get(s.post.id)?.averageRating || 0,
-            totalRatings: ratingsMap.get(s.post.id)?.totalRatings || 0,
+            averageRating: s.post.averageRating ?? 0,
+            totalRatings: s.post.reviewCount ?? 0,
             author: {
               username: s.post.user.username,
               avatar: s.post.user.avatar,
             },
-          }));
-        });
+          }))
+        );
     }
 
     // Get ratings for user's recipes in parallel with conditional queries

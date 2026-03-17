@@ -129,8 +129,11 @@ export default function RecipeCard({
       <Box sx={{ position: 'relative', overflow: 'hidden' }} onClick={handleCardClick}>
         <Box
           component="img"
-          src={recipe.imageUrl}
+          src={recipe.imageUrl || '/placeholder-recipe.png'}
           alt={recipe.title}
+          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+            e.currentTarget.src = '/placeholder-recipe.png';
+          }}
           sx={{
             width: '100%',
             aspectRatio: '4/3',

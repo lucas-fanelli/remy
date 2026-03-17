@@ -37,7 +37,16 @@ export const updateProfileSchema = z.object({
   fullName: z.string().max(50, 'Full name must be at most 50 characters').nullable().optional(),
   bio: z.string().max(300, 'Bio must be at most 300 characters').nullable().optional(),
   avatar: z.string().nullable().optional(), // Allow any string path (relative or absolute URL)
-  website: z.string().url('Invalid website URL').or(z.literal('')).nullable().optional(),
+  website: z
+    .string()
+    .url('Invalid website URL')
+    .refine(
+      (url) => !url || /^https?:\/\//.test(url),
+      'Website must start with http:// or https://'
+    )
+    .or(z.literal(''))
+    .nullable()
+    .optional(),
   isPrivate: z.boolean().optional(),
 });
 

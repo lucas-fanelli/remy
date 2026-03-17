@@ -22,7 +22,7 @@ import TabPanelTransition from '@/components/ui/TabPanelTransition';
 interface User {
   id: string;
   username: string;
-  email: string;
+  fullName?: string | null;
   avatar?: string;
 }
 
@@ -215,7 +215,7 @@ function SearchPageContent() {
                                   {user.username}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" noWrap>
-                                  {user.email}
+                                  {user.fullName || `@${user.username}`}
                                 </Typography>
                               </Box>
                             </Box>

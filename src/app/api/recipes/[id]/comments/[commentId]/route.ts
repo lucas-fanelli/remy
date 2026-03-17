@@ -31,6 +31,13 @@ export async function PATCH(
       return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
     }
 
+    if (text.length > 5000) {
+      return NextResponse.json(
+        { error: 'Comment text must be 5000 characters or less' },
+        { status: 400 }
+      );
+    }
+
     // Check if comment exists and user owns it
     const existingComment = await prisma.comment.findUnique({
       where: { id: commentId },
@@ -38,6 +45,13 @@ export async function PATCH(
 
     if (!existingComment) {
       return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
+
+    if (existingComment.postId !== recipeId) {
+      return NextResponse.json(
+        { error: 'Comment does not belong to this recipe' },
+        { status: 400 }
+      );
     }
 
     if (existingComment.userId !== payload.userId) {
@@ -136,7 +150,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
-    const { commentId } = await params;
+    const { id: recipeId, commentId } = await params;
 
     // Get authorization token
     const authHeader = request.headers.get('authorization');
@@ -159,6 +173,13 @@ export async function DELETE(
 
     if (!existingComment) {
       return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    }
+
+    if (existingComment.postId !== recipeId) {
+      return NextResponse.json(
+        { error: 'Comment does not belong to this recipe' },
+        { status: 400 }
+      );
     }
 
     if (existingComment.userId !== payload.userId) {

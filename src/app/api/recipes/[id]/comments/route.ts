@@ -72,6 +72,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
     }
 
+    if (text.length > 5000) {
+      return NextResponse.json(
+        { error: 'Comment text must be 5000 characters or less' },
+        { status: 400 }
+      );
+    }
+
     // Validate rating if provided
     if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
       return NextResponse.json(

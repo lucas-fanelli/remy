@@ -10,6 +10,7 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX_REQUESTS = 100; // Max requests per window
 const AUTH_RATE_LIMIT_MAX_REQUESTS = 10; // Stricter limit for auth endpoints
+const UPLOAD_RATE_LIMIT_MAX_REQUESTS = 20; // Limit for file uploads
 
 function getRateLimitKey(request: NextRequest): string {
   // Use IP address for rate limiting
@@ -161,20 +162,22 @@ export async function middleware(request: NextRequest) {
 
   // Apply rate limiting to API routes only
   if (request.nextUrl.pathname.startsWith('/api')) {
-    // Skip rate limiting and special handling for these routes
-    if (
-      request.nextUrl.pathname === '/api/health' ||
-      request.nextUrl.pathname === '/api/ready' ||
-      request.nextUrl.pathname === '/api/upload'
-    ) {
+    // Skip rate limiting for health check routes only
+    if (request.nextUrl.pathname === '/api/health' || request.nextUrl.pathname === '/api/ready') {
       return response;
     }
 
     const isAuthEndpoint =
       request.nextUrl.pathname === '/api/auth/login' ||
       request.nextUrl.pathname === '/api/auth/register';
-    const rateLimitKey = getRateLimitKey(request) + (isAuthEndpoint ? ':auth' : '');
-    const maxRequests = isAuthEndpoint ? AUTH_RATE_LIMIT_MAX_REQUESTS : RATE_LIMIT_MAX_REQUESTS;
+    const isUploadEndpoint = request.nextUrl.pathname.startsWith('/api/upload');
+    const rateLimitSuffix = isAuthEndpoint ? ':auth' : isUploadEndpoint ? ':upload' : '';
+    const rateLimitKey = getRateLimitKey(request) + rateLimitSuffix;
+    const maxRequests = isAuthEndpoint
+      ? AUTH_RATE_LIMIT_MAX_REQUESTS
+      : isUploadEndpoint
+        ? UPLOAD_RATE_LIMIT_MAX_REQUESTS
+        : RATE_LIMIT_MAX_REQUESTS;
     const rateLimit = checkRateLimit(rateLimitKey, maxRequests);
 
     // Add rate limit headers
@@ -212,8 +215,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
-     * - api/upload (file upload endpoint)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/upload|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
