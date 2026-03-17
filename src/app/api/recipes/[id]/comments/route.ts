@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MAX_COMMENT_LENGTH } from '@/lib/constants';
+import { MAX_COMMENT_LENGTH, UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractBearerToken } from '@/lib/utils/auth';
@@ -58,6 +58,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { id: recipeId } = await params;
 
+    if (!UUID_REGEX.test(recipeId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
+
     const token = extractBearerToken(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -102,10 +106,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       try {
         const url = new URL(imageUrl);
         const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        if (!cloudName) {
+          return NextResponse.json({ error: 'Image upload not configured' }, { status: 500 });
+        }
         if (
           !['http:', 'https:'].includes(url.protocol) ||
           url.hostname !== 'res.cloudinary.com' ||
-          !cloudName ||
           !url.pathname.startsWith(`/${cloudName}/`)
         ) {
           return NextResponse.json(

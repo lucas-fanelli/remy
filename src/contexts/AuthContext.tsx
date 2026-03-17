@@ -28,31 +28,6 @@ type AuthContextType = {
   updateProfile: (data: Partial<User>) => Promise<void>;
 };
 
-// Safe localStorage wrapper for environments where it's unavailable (Safari private browsing)
-const safeStorage = {
-  getItem: (key: string): string | null => {
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  setItem: (key: string, value: string): void => {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      /* noop */
-    }
-  },
-  removeItem: (key: string): void => {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      /* noop */
-    }
-  },
-};
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -60,31 +35,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount
+  // Check auth status on mount via httpOnly cookie (sent automatically)
   useEffect(() => {
-    const storedToken = safeStorage.getItem('auth_token');
-    if (storedToken) {
-      setToken(storedToken);
-      fetchCurrentUser(storedToken);
-    } else {
-      setIsLoading(false);
-    }
+    fetchCurrentUser();
   }, []);
 
-  const fetchCurrentUser = async (authToken: string) => {
+  const fetchCurrentUser = async () => {
     try {
       const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
+        credentials: 'same-origin', // Include httpOnly cookies
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data.data);
+        // Token is in httpOnly cookie, keep in-memory reference for components that need it
+        setToken('cookie-auth');
       } else {
-        // Token invalid, clear it
-        safeStorage.removeItem('auth_token');
+        setUser(null);
         setToken(null);
       }
     } catch (error) {
@@ -100,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'same-origin',
       body: JSON.stringify({ emailOrUsername, password }),
     });
 
@@ -110,8 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     setUser(data.data.user);
+    // Token is set as httpOnly cookie by the server
+    // Keep in-memory reference for backward compatibility
     setToken(data.data.token);
-    safeStorage.setItem('auth_token', data.data.token);
   };
 
   const register = async (email: string, username: string, password: string, fullName?: string) => {
@@ -120,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'same-origin',
       body: JSON.stringify({ email, username, password, fullName }),
     });
 
@@ -131,13 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await response.json();
     setUser(data.data.user);
     setToken(data.data.token);
-    safeStorage.setItem('auth_token', data.data.token);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+    } catch {
+      // Continue with client-side cleanup even if server call fails
+    }
     setUser(null);
     setToken(null);
-    safeStorage.removeItem('auth_token');
   };
 
   const updateProfile = async (data: Partial<User>) => {
@@ -149,8 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
+      credentials: 'same-origin',
       body: JSON.stringify(data),
     });
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractBearerToken } from '@/lib/utils/auth';
@@ -10,6 +11,10 @@ import { extractBearerToken } from '@/lib/utils/auth';
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: notificationId } = await params;
+
+    if (!UUID_REGEX.test(notificationId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
 
     const token = extractBearerToken(request);
     if (!token) {

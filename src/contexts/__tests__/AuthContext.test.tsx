@@ -1,4 +1,4 @@
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent, cleanup } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import { AuthProvider, useAuth } from '../AuthContext';
@@ -39,7 +39,6 @@ describe('AuthContext', () => {
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    localStorage.clear();
     jest.clearAllMocks();
 
     // Mock fetch globally
@@ -65,7 +64,7 @@ describe('AuthContext', () => {
       });
     });
 
-    it('should set not authenticated when no token in localStorage', async () => {
+    it('should set not authenticated when cookie auth fails', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
       });
@@ -84,7 +83,7 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('token-data')).toHaveTextContent('No Token');
     });
 
-    it('should fetch current user when token exists in localStorage', async () => {
+    it('should fetch current user via cookie auth on mount', async () => {
       const mockUser = {
         id: 'user123',
         username: 'testuser',
@@ -94,8 +93,6 @@ describe('AuthContext', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-
-      localStorage.setItem('auth_token', 'test-token-123');
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -115,15 +112,11 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('user-data')).toHaveTextContent('testuser');
       expect(screen.getByTestId('token-data')).toHaveTextContent('Has Token');
       expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', {
-        headers: {
-          Authorization: 'Bearer test-token-123',
-        },
+        credentials: 'same-origin',
       });
     });
 
-    it('should clear invalid token from localStorage', async () => {
-      localStorage.setItem('auth_token', 'invalid-token');
-
+    it('should clear user when cookie auth returns not ok', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
       });
@@ -138,7 +131,7 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
       });
 
-      expect(localStorage.getItem('auth_token')).toBeNull();
+      expect(screen.getByTestId('token-data')).toHaveTextContent('No Token');
     });
   });
 
@@ -154,6 +147,11 @@ describe('AuthContext', () => {
         updatedAt: new Date(),
       };
 
+      // First call is /api/auth/me on mount (not authenticated)
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+      });
+      // Second call is /api/auth/login
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: { token: 'new-token', user: mockUser } }),
@@ -165,6 +163,11 @@ describe('AuthContext', () => {
         </AuthProvider>
       );
 
+      // Wait for initial auth check to finish
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+      });
+
       const loginButton = screen.getByText('Login');
       loginButton.click();
 
@@ -172,6 +175,7 @@ describe('AuthContext', () => {
         expect(mockFetch).toHaveBeenCalledWith('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({ emailOrUsername: 'testuser', password: 'password123' }),
         });
       });
@@ -183,10 +187,15 @@ describe('AuthContext', () => {
         </AuthProvider>
       );
 
-      expect(localStorage.getItem('auth_token')).toBe('new-token');
+      await waitFor(() => {
+        expect(screen.getByTestId('token-data')).toHaveTextContent('Has Token');
+      });
     });
 
     it('should throw error on failed login', async () => {
+      // Mount call
+      mockFetch.mockResolvedValueOnce({ ok: false });
+      // Login call
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid credentials' }),
@@ -209,18 +218,22 @@ describe('AuthContext', () => {
     });
   });
 
-  // Skipping this test for now - register function is tested in integration/API tests
-  // describe('Register', () => {
-  //   it('should successfully register user', async () => {
-  //   });
-  // });
-
   describe('Logout', () => {
     it('should clear user and token on logout', async () => {
-      localStorage.setItem('auth_token', 'test-token');
+      const mockUser = {
+        id: 'user123',
+        username: 'testuser',
+        email: 'test@example.com',
+        isVerified: true,
+        isPrivate: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-      mockFetch.mockResolvedValue({
-        ok: false,
+      // Mount call - authenticated
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockUser }),
       });
 
       const { rerender } = render(
@@ -230,7 +243,13 @@ describe('AuthContext', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toBeInTheDocument();
+        expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
+      });
+
+      // Mock the logout POST call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
       });
 
       rerender(
@@ -241,11 +260,9 @@ describe('AuthContext', () => {
 
       const logoutButton = screen.getByText('Logout');
 
-      act(() => {
+      await act(async () => {
         logoutButton.click();
       });
-
-      expect(localStorage.getItem('auth_token')).toBeNull();
 
       rerender(
         <AuthProvider>
@@ -255,6 +272,11 @@ describe('AuthContext', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
       });
     });
   });
@@ -277,17 +299,11 @@ describe('AuthContext', () => {
         fullName: 'Updated Name',
       };
 
-      localStorage.setItem('auth_token', 'test-token');
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: initialUser }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ data: updatedUser }),
-        });
+      // Mount call - authenticated
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: initialUser }),
+      });
 
       function TestComponentWithBoth() {
         const { user, isAuthenticated } = useAuth();
@@ -316,6 +332,12 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
       });
 
+      // Mock the update profile call
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: updatedUser }),
+      });
+
       const updateButton = screen.getByText('Update Profile');
       updateButton.click();
 
@@ -324,8 +346,8 @@ describe('AuthContext', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: 'Bearer test-token',
           },
+          credentials: 'same-origin',
           body: JSON.stringify({ fullName: 'Updated Name' }),
         });
       });
@@ -347,9 +369,8 @@ describe('AuthContext', () => {
   describe('Error Handling', () => {
     it('should handle fetch current user error and log to console', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      localStorage.setItem('auth_token', 'test-token');
 
-      // Mock fetch to throw error (line 64)
+      // Mock fetch to throw error
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
       render(
@@ -383,6 +404,9 @@ describe('AuthContext', () => {
         );
       };
 
+      // Mount call - not authenticated
+      mockFetch.mockResolvedValueOnce({ ok: false });
+      // Register call
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -399,13 +423,16 @@ describe('AuthContext', () => {
         </AuthProvider>
       );
 
+      // Wait for mount auth check to finish
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+      });
+
       fireEvent.click(screen.getByText('Register'));
 
       await waitFor(() => {
         expect(screen.getByText('User: newuser')).toBeInTheDocument();
       });
-
-      expect(localStorage.getItem('auth_token')).toBe('new-token-123');
     });
 
     it('should handle register error with custom message - branch coverage', async () => {
@@ -429,7 +456,9 @@ describe('AuthContext', () => {
         );
       };
 
-      // Branch: response.ok === false AND error.error exists
+      // Mount call
+      mockFetch.mockResolvedValueOnce({ ok: false });
+      // Register call - error with custom message
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Email already registered' }),
@@ -440,6 +469,11 @@ describe('AuthContext', () => {
           <TestRegisterComponent />
         </AuthProvider>
       );
+
+      // Wait for mount auth check
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+      });
 
       fireEvent.click(screen.getByText('Register'));
 
@@ -469,7 +503,9 @@ describe('AuthContext', () => {
         );
       };
 
-      // Branch: response.ok === false AND error.error does NOT exist (fallback)
+      // Mount call
+      mockFetch.mockResolvedValueOnce({ ok: false });
+      // Register call - error without custom message (fallback)
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({}),
@@ -480,6 +516,11 @@ describe('AuthContext', () => {
           <TestRegisterComponent />
         </AuthProvider>
       );
+
+      // Wait for mount auth check
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+      });
 
       fireEvent.click(screen.getByText('Register'));
 
@@ -511,7 +552,9 @@ describe('AuthContext', () => {
         );
       };
 
-      // Branch: response.ok === false AND error.error exists
+      // Mount call
+      mockFetch.mockResolvedValueOnce({ ok: false });
+      // Login call - error with custom message
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid password' }),
@@ -522,6 +565,11 @@ describe('AuthContext', () => {
           <TestLoginComponent />
         </AuthProvider>
       );
+
+      // Wait for mount auth check
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+      });
 
       fireEvent.click(screen.getByText('Login'));
 
@@ -551,7 +599,9 @@ describe('AuthContext', () => {
         );
       };
 
-      // Branch: response.ok === false AND error.error does NOT exist (fallback)
+      // Mount call
+      mockFetch.mockResolvedValueOnce({ ok: false });
+      // Login call - error without custom message (fallback)
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({}),
@@ -562,6 +612,11 @@ describe('AuthContext', () => {
           <TestLoginComponent />
         </AuthProvider>
       );
+
+      // Wait for mount auth check
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+      });
 
       fireEvent.click(screen.getByText('Login'));
 
@@ -593,6 +648,7 @@ describe('AuthContext', () => {
         );
       };
 
+      // Mount call - not authenticated
       mockFetch.mockResolvedValueOnce({
         ok: false,
       });
@@ -602,6 +658,11 @@ describe('AuthContext', () => {
           <TestUpdateComponent />
         </AuthProvider>
       );
+
+      // Wait for mount to finish
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+      });
 
       fireEvent.click(screen.getByText('Update'));
 
@@ -620,9 +681,6 @@ describe('AuthContext', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-
-      localStorage.clear();
-      localStorage.setItem('auth_token', 'test-token-custom');
 
       const TestUpdateComponent = () => {
         const { updateProfile, isAuthenticated } = useAuth();
@@ -646,7 +704,7 @@ describe('AuthContext', () => {
       };
 
       mockFetch.mockReset();
-      mockFetch.mockImplementation((url) => {
+      mockFetch.mockImplementation((url: string | URL | Request) => {
         const urlString = typeof url === 'string' ? url : url.toString();
         if (urlString.includes('/api/auth/me')) {
           return Promise.resolve({
@@ -699,9 +757,6 @@ describe('AuthContext', () => {
         updatedAt: new Date(),
       };
 
-      localStorage.clear();
-      localStorage.setItem('auth_token', 'test-token-fallback');
-
       const TestUpdateComponent = () => {
         const { updateProfile, isAuthenticated } = useAuth();
         const [error, setError] = React.useState('');
@@ -724,7 +779,7 @@ describe('AuthContext', () => {
       };
 
       mockFetch.mockReset();
-      mockFetch.mockImplementation((url) => {
+      mockFetch.mockImplementation((url: string | URL | Request) => {
         const urlString = typeof url === 'string' ? url : url.toString();
         if (urlString.includes('/api/auth/me')) {
           return Promise.resolve({

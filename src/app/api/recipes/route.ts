@@ -59,20 +59,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine sort order based on sort parameter
-    let orderBy: Prisma.PostOrderByWithRelationInput = { createdAt: 'desc' }; // Default: Newest
+    let orderBy: Prisma.PostOrderByWithRelationInput[] = [{ createdAt: 'desc' }, { id: 'asc' }]; // Default: Newest
     switch (sort) {
       case 'rating_desc':
-        orderBy = { averageRating: 'desc' };
+        orderBy = [{ averageRating: 'desc' }, { createdAt: 'desc' }];
         break;
       case 'rating_asc':
-        orderBy = { averageRating: 'asc' };
+        orderBy = [{ averageRating: 'asc' }, { createdAt: 'desc' }];
         break;
       case 'most_reviewed':
-        orderBy = { reviewCount: 'desc' };
+        orderBy = [{ reviewCount: 'desc' }, { createdAt: 'desc' }];
         break;
       case 'newest':
       default:
-        orderBy = { createdAt: 'desc' };
+        orderBy = [{ createdAt: 'desc' }, { id: 'asc' }];
         break;
     }
 

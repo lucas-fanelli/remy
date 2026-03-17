@@ -120,7 +120,9 @@ export async function middleware(request: NextRequest) {
   // Block admin pages server-side for non-admin users with HMAC signature verification
   if (request.nextUrl.pathname.startsWith('/admin')) {
     const authHeader = request.headers.get('authorization');
-    const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const cookieToken = request.cookies.get('auth_token')?.value;
+    const rawToken =
+      (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null) || cookieToken;
 
     let isAdmin = false;
     if (rawToken && process.env.JWT_SECRET) {

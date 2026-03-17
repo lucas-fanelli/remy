@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     const cookedRecipe = await prisma.$transaction(async (tx) => {
       // Check for duplicate inside transaction to prevent race condition
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       const existingCooked = await tx.cookedRecipe.findFirst({
         where: { userId: payload.userId, postId, cookedAt: { gte: today } },
       });

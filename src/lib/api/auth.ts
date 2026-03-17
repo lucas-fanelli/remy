@@ -1,20 +1,17 @@
 import { NextRequest } from 'next/server';
 import { container } from '@/lib/container/container';
+import { extractBearerToken } from '@/lib/utils/auth';
 
 export async function getCurrentUser(request: NextRequest) {
-  const authHeader = request.headers.get('authorization');
+  const token = extractBearerToken(request);
+  if (!token) return null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-
-  const token = authHeader.substring(7);
   const authService = container.getAuthService();
 
   try {
     const user = await authService.validateToken(token);
     return user;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

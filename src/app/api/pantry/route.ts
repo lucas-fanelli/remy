@@ -101,19 +101,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unit is required' }, { status: 400 });
     }
 
-    // Get or create user's pantry
-    let pantry = await prisma.userPantry.findUnique({
-      where: { userId: payload.userId },
-    });
-
-    if (!pantry) {
-      pantry = await prisma.userPantry.create({
-        data: { userId: payload.userId },
-      });
+    if (expiresAt !== undefined && expiresAt !== null) {
+      const parsedDate = new Date(expiresAt);
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid expiry date' }, { status: 400 });
+      }
     }
 
-    // Create pantry item with atomic limit check
+    // Get or create user's pantry and create item atomically
     const item = await prisma.$transaction(async (tx) => {
+      let pantry = await tx.userPantry.findUnique({
+        where: { userId: payload.userId },
+      });
+
+      if (!pantry) {
+        pantry = await tx.userPantry.create({
+          data: { userId: payload.userId },
+        });
+      }
+
       const itemCount = await tx.pantryItem.count({ where: { pantryId: pantry.id } });
       if (itemCount >= MAX_PANTRY_ITEMS) {
         throw new Error('PANTRY_LIMIT');

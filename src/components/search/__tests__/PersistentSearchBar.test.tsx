@@ -585,7 +585,10 @@ describe('PersistentSearchBar', () => {
 
       // Now fetch should have been called
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/search?q=pasta');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/search?q=pasta',
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        );
       });
     });
 
@@ -646,7 +649,10 @@ describe('PersistentSearchBar', () => {
       });
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/search?q=testquery');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/search?q=testquery',
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        );
       });
 
       // Component should not crash and should handle empty arrays gracefully

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractBearerToken } from '@/lib/utils/auth';
@@ -7,6 +8,10 @@ import { extractBearerToken } from '@/lib/utils/auth';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
+
+    if (!UUID_REGEX.test(recipeId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
 
     const token = extractBearerToken(request);
     if (!token) {
@@ -51,6 +56,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { id: recipeId } = await params;
 
+    if (!UUID_REGEX.test(recipeId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
+
     const token = extractBearerToken(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -72,41 +81,45 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
     }
 
-    // Check if already saved
-    const existingSave = await prisma.savedRecipe.findUnique({
-      where: {
-        userId_postId: {
-          userId: payload.userId,
-          postId: recipeId,
+    // Fully atomic save toggle inside a single interactive transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const existingSave = await tx.savedRecipe.findUnique({
+        where: {
+          userId_postId: {
+            userId: payload.userId,
+            postId: recipeId,
+          },
         },
-      },
-    });
+      });
 
-    if (existingSave) {
-      try {
-        await prisma.savedRecipe.delete({
-          where: { id: existingSave.id },
-        });
-      } catch (err: unknown) {
-        if (!(err instanceof Error && err.message.includes('Record to delete does not exist'))) {
+      if (existingSave) {
+        try {
+          await tx.savedRecipe.delete({
+            where: { id: existingSave.id },
+          });
+        } catch (err: unknown) {
+          if (!(err instanceof Error && err.message.includes('Record to delete does not exist'))) {
+            throw err;
+          }
+        }
+        return { saved: false, message: 'Recipe removed from saved' };
+      } else {
+        try {
+          await tx.savedRecipe.create({
+            data: { userId: payload.userId, postId: recipeId },
+          });
+          return { saved: true, message: 'Recipe saved successfully' };
+        } catch (err: unknown) {
+          // Handle race condition - if already saved by concurrent request, treat as idempotent save
+          if (err instanceof Error && err.message.includes('Unique constraint')) {
+            return { saved: true, message: 'Recipe already saved' };
+          }
           throw err;
         }
       }
-      return NextResponse.json({ saved: false, message: 'Recipe removed from saved' });
-    } else {
-      try {
-        await prisma.savedRecipe.create({
-          data: { userId: payload.userId, postId: recipeId },
-        });
-        return NextResponse.json({ saved: true, message: 'Recipe saved successfully' });
-      } catch (err: unknown) {
-        // Handle race condition - if already saved by concurrent request, treat as idempotent save
-        if (err instanceof Error && err.message.includes('Unique constraint')) {
-          return NextResponse.json({ saved: true, message: 'Recipe already saved' });
-        }
-        throw err;
-      }
-    }
+    });
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error toggling save:', error);
     return NextResponse.json({ error: 'Failed to save recipe' }, { status: 500 });

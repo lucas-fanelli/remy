@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MAX_ITEM_NAME_LENGTH, MAX_QUANTITY } from '@/lib/constants';
+import { MAX_ITEM_NAME_LENGTH, MAX_QUANTITY, UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractBearerToken } from '@/lib/utils/auth';
@@ -8,6 +8,10 @@ import { extractBearerToken } from '@/lib/utils/auth';
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: itemId } = await params;
+
+    if (!UUID_REGEX.test(itemId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
 
     const token = extractBearerToken(request);
     if (!token) {
@@ -76,6 +80,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    if (expiresAt !== undefined && expiresAt !== null) {
+      const parsedDate = new Date(expiresAt);
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Invalid expiry date' }, { status: 400 });
+      }
+    }
+
     // Update item
     const updatedItem = await prisma.pantryItem.update({
       where: { id: itemId },
@@ -106,6 +117,10 @@ export async function DELETE(
 ) {
   try {
     const { id: itemId } = await params;
+
+    if (!UUID_REGEX.test(itemId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
 
     const token = extractBearerToken(request);
     if (!token) {

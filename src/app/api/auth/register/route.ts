@@ -1,12 +1,12 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { ApiResponseHelper } from '@/lib/api/response';
 import { container } from '@/lib/container/container';
+import { setAuthCookie } from '@/lib/utils/cookies';
 import { registerSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse request body
     let body;
     try {
       body = await request.json();
@@ -14,16 +14,17 @@ export async function POST(request: NextRequest) {
       return ApiResponseHelper.badRequest('Invalid JSON body');
     }
 
-    // Validate input
     const validatedData = registerSchema.parse(body);
-
-    // Get auth service from container
     const authService = container.getAuthService();
-
-    // Register user
     const result = await authService.register(validatedData);
 
-    return ApiResponseHelper.created(result, 'User registered successfully');
+    // Set httpOnly cookie with the token
+    const response = NextResponse.json(
+      { success: true, data: result, message: 'User registered successfully' },
+      { status: 201 }
+    );
+    setAuthCookie(response, result.token);
+    return response;
   } catch (error) {
     if (error instanceof ZodError) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));

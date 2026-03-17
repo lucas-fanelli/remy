@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { AuthProvider } from '@/contexts/AuthContext';
 import LoginForm from '../LoginForm';
 
@@ -36,6 +36,8 @@ describe('LoginForm Component', () => {
     mockOnSwitchToRegister.mockClear();
     mockFetch = global.fetch as jest.Mock;
     mockFetch.mockClear();
+    // AuthProvider calls /api/auth/me on mount - mock it as not authenticated
+    mockFetch.mockResolvedValueOnce({ ok: false });
   });
 
   it('should render login form with all elements', () => {

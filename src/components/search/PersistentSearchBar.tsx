@@ -4,7 +4,6 @@ import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
 import {
   Box,
   Paper,
-  PaperProps,
   InputBase,
   IconButton,
   List,
@@ -19,19 +18,11 @@ import {
   useTheme,
   ClickAwayListener,
 } from '@mui/material';
-import { motion, AnimatePresence, MotionProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useMotionContext } from '@/contexts/MotionContext';
 
-// Strict Type: Paper + Motion + Polymorphic 'component' prop + form attributes
-type MotionPaperProps = PaperProps &
-  MotionProps & {
-    component?: React.ElementType;
-    onSubmit?: React.FormEventHandler<HTMLFormElement>;
-  };
-
-const MotionPaper = motion.create(Paper) as React.FC<MotionPaperProps>;
 const MotionBox = motion.create(Box);
 
 // Types for live search results
@@ -120,10 +111,14 @@ export default function PersistentSearchBar({
     // Set loading state
     setIsSearching(true);
 
+    const controller = new AbortController();
+
     // Debounce: wait 300ms after user stops typing
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
+          signal: controller.signal,
+        });
         if (response.ok) {
           const data = await response.json();
           setLiveResults({
@@ -132,6 +127,9 @@ export default function PersistentSearchBar({
           });
         }
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
         console.error('Search error:', error);
         setLiveResults({ users: [], recipes: [] });
       } finally {
@@ -139,11 +137,12 @@ export default function PersistentSearchBar({
       }
     }, 300);
 
-    // Cleanup on unmount
+    // Cleanup on unmount or query change
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+      controller.abort();
     };
   }, [query]);
 
@@ -217,21 +216,6 @@ export default function PersistentSearchBar({
   );
 
   // Animation variants for the container
-  const containerVariants = {
-    rest: {
-      scale: 1,
-      boxShadow:
-        theme.palette.mode === 'dark' ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
-    },
-    focused: {
-      scale: 1.02,
-      boxShadow:
-        theme.palette.mode === 'dark'
-          ? '0 4px 20px rgba(0,0,0,0.5)'
-          : '0 4px 20px rgba(0,0,0,0.15)',
-    },
-  };
-
   // Animation variants for dropdown
   const dropdownVariants = {
     hidden: {
