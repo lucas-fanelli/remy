@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { postId, rating, notes } = body;
 
-    if (!postId || typeof postId !== 'string' || postId.length > 36) {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!postId || typeof postId !== 'string' || !UUID_REGEX.test(postId)) {
       return NextResponse.json({ error: 'Invalid recipe ID' }, { status: 400 });
     }
 

@@ -50,14 +50,19 @@ export async function POST(
       return NextResponse.json({ error: 'Already following this user' }, { status: 400 });
     }
 
-    // Create follow relationship - handle race condition with unique constraint
+    // Atomic follow + count
     try {
-      await prisma.follow.create({
-        data: {
-          followerId: payload.userId,
-          followingId: userToFollow.id,
-        },
-      });
+      const [, followersCount] = await prisma.$transaction([
+        prisma.follow.create({
+          data: { followerId: payload.userId, followingId: userToFollow.id },
+        }),
+        prisma.follow.count({ where: { followingId: userToFollow.id } }),
+      ]);
+
+      const notificationService = container.get<INotificationService>('INotificationService');
+      await notificationService.createFollowNotification(payload.userId, userToFollow.id);
+
+      return NextResponse.json({ success: true, message: 'Followed successfully', followersCount });
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes('Unique constraint')) {
         const followersCount = await prisma.follow.count({
@@ -67,13 +72,6 @@ export async function POST(
       }
       throw err;
     }
-
-    // Create notification for the followed user
-    const notificationService = container.get<INotificationService>('INotificationService');
-    await notificationService.createFollowNotification(payload.userId, userToFollow.id);
-
-    const followersCount = await prisma.follow.count({ where: { followingId: userToFollow.id } });
-    return NextResponse.json({ success: true, message: 'Followed successfully', followersCount });
   } catch (error) {
     console.error('Error following user:', error);
     return NextResponse.json({ error: 'Failed to follow user' }, { status: 500 });

@@ -146,6 +146,31 @@ export class RecipeRepository implements IRecipeRepository {
     });
   }
 
+  async updateWhere(id: string, userId: string, data: UpdateRecipeDTO): Promise<Recipe> {
+    const post = await this.prisma.post.update({
+      where: { id, userId },
+      data: {
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl,
+        caption: data.caption,
+        cookingTime: data.cookingTime,
+        prepTime: data.prepTime,
+        servings: data.servings,
+        difficulty: data.difficulty,
+        ingredients: data.ingredients as any,
+        instructions: data.instructions as any,
+      },
+    });
+    return this.mapToRecipe(post);
+  }
+
+  async deleteWhere(id: string, userId: string): Promise<void> {
+    await this.prisma.post.delete({
+      where: { id, userId },
+    });
+  }
+
   async getRecent(limit = 20, offset = 0): Promise<Recipe[]> {
     const posts = await this.prisma.post.findMany({
       orderBy: { createdAt: 'desc' },

@@ -113,6 +113,7 @@ export async function GET(
       savedRecipesPromise = prisma.savedRecipe
         .findMany({
           where: { userId: currentUserId },
+          take: 50,
           include: {
             post: {
               select: {

@@ -42,39 +42,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const notificationService = container.getNotificationService();
 
     if (existingLike) {
-      // Unlike - handle concurrent deletion gracefully
+      // Unlike - atomic delete + count
       try {
-        await prisma.like.delete({
-          where: { id: existingLike.id },
-        });
+        const [, likesCount] = await prisma.$transaction([
+          prisma.like.delete({ where: { id: existingLike.id } }),
+          prisma.like.count({ where: { postId: recipeId } }),
+        ]);
         await notificationService.deleteLikeNotification(payload.userId, recipeId, recipe.userId);
+        return NextResponse.json({ liked: false, likesCount, message: 'Recipe unliked' });
       } catch (err: unknown) {
-        // Record already deleted by concurrent request - treat as successful unlike
-        if (!(err instanceof Error && err.message.includes('Record to delete does not exist'))) {
-          throw err;
+        if (err instanceof Error && err.message.includes('Record to delete does not exist')) {
+          const likesCount = await prisma.like.count({ where: { postId: recipeId } });
+          return NextResponse.json({ liked: false, likesCount, message: 'Recipe unliked' });
         }
+        throw err;
       }
-
-      const likesCount = await prisma.like.count({ where: { postId: recipeId } });
-      return NextResponse.json({ liked: false, likesCount, message: 'Recipe unliked' });
     } else {
+      // Like - atomic create + count
       try {
-        // Like - handle potential race condition with unique constraint
-        await prisma.like.create({
-          data: { postId: recipeId, userId: payload.userId },
-        });
+        const [, likesCount] = await prisma.$transaction([
+          prisma.like.create({ data: { postId: recipeId, userId: payload.userId } }),
+          prisma.like.count({ where: { postId: recipeId } }),
+        ]);
         await notificationService.createLikeNotification(payload.userId, recipeId, recipe.userId);
+        return NextResponse.json({ liked: true, likesCount, message: 'Recipe liked' });
       } catch (err: unknown) {
-        // If unique constraint violation (race condition), treat as already liked - idempotent
         if (err instanceof Error && err.message.includes('Unique constraint')) {
           const likesCount = await prisma.like.count({ where: { postId: recipeId } });
           return NextResponse.json({ liked: true, likesCount, message: 'Recipe liked' });
         }
         throw err;
       }
-
-      const likesCount = await prisma.like.count({ where: { postId: recipeId } });
-      return NextResponse.json({ liked: true, likesCount, message: 'Recipe liked' });
     }
   } catch (error) {
     console.error('Error toggling like:', error);

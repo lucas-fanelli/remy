@@ -344,18 +344,23 @@ describe('RecipeService - Unit Tests', () => {
 
     it('should update recipe successfully when user is owner', async () => {
       const updatedRecipe = { ...mockRecipe, ...updateDTO };
-      mockRecipeRepository.findById = jest.fn().mockResolvedValue(mockRecipe);
-      mockRecipeRepository.update = jest.fn().mockResolvedValue(updatedRecipe);
+      mockRecipeRepository.updateWhere = jest.fn().mockResolvedValue(updatedRecipe);
 
       const result = await recipeService.updateRecipe('recipe-123', 'user-123', updateDTO);
 
       expect(result.title).toBe('Updated Recipe');
-      expect(mockRecipeRepository.findById).toHaveBeenCalledWith('recipe-123');
-      expect(mockRecipeRepository.update).toHaveBeenCalledWith('recipe-123', updateDTO);
+      expect(mockRecipeRepository.updateWhere).toHaveBeenCalledWith(
+        'recipe-123',
+        'user-123',
+        updateDTO
+      );
     });
 
     it('should throw error when recipe not found', async () => {
-      mockRecipeRepository.findById = jest.fn().mockResolvedValue(null);
+      mockRecipeRepository.updateWhere = jest
+        .fn()
+        .mockRejectedValue(new Error('Record to update not found'));
+      mockRecipeRepository.exists = jest.fn().mockResolvedValue(false);
 
       await expect(
         recipeService.updateRecipe('non-existent', 'user-123', updateDTO)
@@ -363,7 +368,10 @@ describe('RecipeService - Unit Tests', () => {
     });
 
     it('should throw error when user is not the owner', async () => {
-      mockRecipeRepository.findById = jest.fn().mockResolvedValue(mockRecipe);
+      mockRecipeRepository.updateWhere = jest
+        .fn()
+        .mockRejectedValue(new Error('Record to update not found'));
+      mockRecipeRepository.exists = jest.fn().mockResolvedValue(true);
 
       await expect(
         recipeService.updateRecipe('recipe-123', 'different-user', updateDTO)
@@ -373,17 +381,18 @@ describe('RecipeService - Unit Tests', () => {
 
   describe('deleteRecipe', () => {
     it('should delete recipe successfully when user is owner', async () => {
-      mockRecipeRepository.findById = jest.fn().mockResolvedValue(mockRecipe);
-      mockRecipeRepository.delete = jest.fn().mockResolvedValue(undefined);
+      mockRecipeRepository.deleteWhere = jest.fn().mockResolvedValue(undefined);
 
       await recipeService.deleteRecipe('recipe-123', 'user-123');
 
-      expect(mockRecipeRepository.findById).toHaveBeenCalledWith('recipe-123');
-      expect(mockRecipeRepository.delete).toHaveBeenCalledWith('recipe-123');
+      expect(mockRecipeRepository.deleteWhere).toHaveBeenCalledWith('recipe-123', 'user-123');
     });
 
     it('should throw error when recipe not found', async () => {
-      mockRecipeRepository.findById = jest.fn().mockResolvedValue(null);
+      mockRecipeRepository.deleteWhere = jest
+        .fn()
+        .mockRejectedValue(new Error('Record to delete does not exist'));
+      mockRecipeRepository.exists = jest.fn().mockResolvedValue(false);
 
       await expect(recipeService.deleteRecipe('non-existent', 'user-123')).rejects.toThrow(
         'Recipe not found'
@@ -391,7 +400,10 @@ describe('RecipeService - Unit Tests', () => {
     });
 
     it('should throw error when user is not the owner', async () => {
-      mockRecipeRepository.findById = jest.fn().mockResolvedValue(mockRecipe);
+      mockRecipeRepository.deleteWhere = jest
+        .fn()
+        .mockRejectedValue(new Error('Record to delete does not exist'));
+      mockRecipeRepository.exists = jest.fn().mockResolvedValue(true);
 
       await expect(recipeService.deleteRecipe('recipe-123', 'different-user')).rejects.toThrow(
         'Unauthorized: You can only delete your own recipes'

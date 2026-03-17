@@ -43,6 +43,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const { action } = body;
 
+    if (!action || !['promote', 'demote'].includes(action)) {
+      return NextResponse.json(
+        { error: 'Invalid action. Must be "promote" or "demote"' },
+        { status: 400 }
+      );
+    }
+
     // Prevent admin from demoting themselves
     if (action === 'demote' && id === authResult.userId) {
       return NextResponse.json({ error: 'Cannot demote yourself' }, { status: 400 });

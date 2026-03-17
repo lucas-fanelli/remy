@@ -91,7 +91,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (imageUrl) {
       try {
         const url = new URL(imageUrl);
-        if (!['http:', 'https:'].includes(url.protocol) || url.hostname !== 'res.cloudinary.com') {
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        if (
+          !['http:', 'https:'].includes(url.protocol) ||
+          url.hostname !== 'res.cloudinary.com' ||
+          (cloudName && !url.pathname.startsWith(`/${cloudName}/`))
+        ) {
           return NextResponse.json(
             { error: 'Image must be uploaded through the app' },
             { status: 400 }

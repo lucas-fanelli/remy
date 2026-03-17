@@ -31,9 +31,19 @@ export interface IRecipeRepository {
   update(id: string, data: UpdateRecipeDTO): Promise<Recipe>;
 
   /**
+   * Update a recipe with atomic ownership check
+   */
+  updateWhere(id: string, userId: string, data: UpdateRecipeDTO): Promise<Recipe>;
+
+  /**
    * Delete a recipe
    */
   delete(id: string): Promise<void>;
+
+  /**
+   * Delete a recipe with atomic ownership check
+   */
+  deleteWhere(id: string, userId: string): Promise<void>;
 
   /**
    * Get recent recipes (feed)

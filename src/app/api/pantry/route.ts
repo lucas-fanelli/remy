@@ -109,23 +109,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check item limit
-    const itemCount = await prisma.pantryItem.count({ where: { pantryId: pantry.id } });
-    if (itemCount >= 500) {
-      return NextResponse.json({ error: 'Pantry item limit reached (500)' }, { status: 400 });
-    }
-
-    // Create pantry item
-    const item = await prisma.pantryItem.create({
-      data: {
-        pantryId: pantry.id,
-        name: name.trim(),
-        quantity: quantity !== undefined && quantity !== null ? parseFloat(quantity) : 0,
-        unit: unit.trim(),
-        category: category?.trim() || null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-        notes: notes?.trim() || null,
-      },
+    // Create pantry item with atomic limit check
+    const item = await prisma.$transaction(async (tx) => {
+      const itemCount = await tx.pantryItem.count({ where: { pantryId: pantry.id } });
+      if (itemCount >= 500) {
+        throw new Error('PANTRY_LIMIT');
+      }
+      return tx.pantryItem.create({
+        data: {
+          pantryId: pantry.id,
+          name: name.trim(),
+          quantity: quantity !== undefined && quantity !== null ? parseFloat(quantity) : 0,
+          unit: unit.trim(),
+          category: category?.trim() || null,
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+          notes: notes?.trim() || null,
+        },
+      });
     });
 
     return NextResponse.json(
@@ -136,6 +136,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'PANTRY_LIMIT') {
+      return NextResponse.json({ error: 'Pantry item limit reached (500)' }, { status: 400 });
+    }
     console.error('Error adding pantry item:', error);
     return NextResponse.json({ error: 'Failed to add item to pantry' }, { status: 500 });
   }

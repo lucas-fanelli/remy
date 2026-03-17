@@ -38,29 +38,33 @@ export class RecipeService implements IRecipeService {
   }
 
   async updateRecipe(id: string, userId: string, data: UpdateRecipeDTO): Promise<Recipe> {
-    // Check if recipe exists and belongs to user
-    const recipe = await this.recipeRepository.findById(id);
-    if (!recipe) {
-      throw new Error('Recipe not found');
+    // Atomic ownership check + update via where clause
+    try {
+      return await this.recipeRepository.updateWhere(id, userId, data);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes('Record to update not found')) {
+        const exists = await this.recipeRepository.exists(id);
+        throw new Error(
+          exists ? 'Unauthorized: You can only update your own recipes' : 'Recipe not found'
+        );
+      }
+      throw error;
     }
-    if (recipe.userId !== userId) {
-      throw new Error('Unauthorized: You can only update your own recipes');
-    }
-
-    return this.recipeRepository.update(id, data);
   }
 
   async deleteRecipe(id: string, userId: string): Promise<void> {
-    // Check if recipe exists and belongs to user
-    const recipe = await this.recipeRepository.findById(id);
-    if (!recipe) {
-      throw new Error('Recipe not found');
+    // Atomic ownership check + delete via where clause
+    try {
+      await this.recipeRepository.deleteWhere(id, userId);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
+        const exists = await this.recipeRepository.exists(id);
+        throw new Error(
+          exists ? 'Unauthorized: You can only delete your own recipes' : 'Recipe not found'
+        );
+      }
+      throw error;
     }
-    if (recipe.userId !== userId) {
-      throw new Error('Unauthorized: You can only delete your own recipes');
-    }
-
-    return this.recipeRepository.delete(id);
   }
 
   async getRecentRecipes(limit?: number, offset?: number): Promise<Recipe[]> {
