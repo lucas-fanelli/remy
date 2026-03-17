@@ -89,6 +89,9 @@ export async function POST(request: NextRequest) {
       if (parsed < 0) {
         return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
       }
+      if (parsed > 999999) {
+        return NextResponse.json({ error: 'Quantity too large' }, { status: 400 });
+      }
     }
 
     if (!unit || unit.trim().length === 0) {
@@ -104,6 +107,12 @@ export async function POST(request: NextRequest) {
       pantry = await prisma.userPantry.create({
         data: { userId: payload.userId },
       });
+    }
+
+    // Check item limit
+    const itemCount = await prisma.pantryItem.count({ where: { pantryId: pantry.id } });
+    if (itemCount >= 500) {
+      return NextResponse.json({ error: 'Pantry item limit reached (500)' }, { status: 400 });
     }
 
     // Create pantry item

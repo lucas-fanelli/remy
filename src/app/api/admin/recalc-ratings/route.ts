@@ -12,27 +12,28 @@ export async function POST(request: NextRequest) {
     const authResult = await requireAdmin(request);
     if (isAdminAuthError(authResult)) return authResult;
 
-    // Bulk update all recipes with aggregated ratings in a single SQL query
-    await prisma.$executeRaw`
-      UPDATE "Post" p
-      SET "averageRating" = COALESCE(r.avg_rating, 0),
-          "reviewCount" = COALESCE(r.cnt, 0)
-      FROM (
-        SELECT "postId",
-               ROUND(AVG("rating")::numeric, 1)::float as avg_rating,
-               COUNT(*)::int as cnt
-        FROM "Rating"
-        GROUP BY "postId"
-      ) r
-      WHERE p.id = r."postId"
-    `;
+    // Atomic bulk update within a transaction
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        UPDATE "Post" p
+        SET "averageRating" = COALESCE(r.avg_rating, 0),
+            "reviewCount" = COALESCE(r.cnt, 0)
+        FROM (
+          SELECT "postId",
+                 ROUND(AVG("rating")::numeric, 1)::float as avg_rating,
+                 COUNT(*)::int as cnt
+          FROM "Rating"
+          GROUP BY "postId"
+        ) r
+        WHERE p.id = r."postId"
+      `;
 
-    // Reset recipes with no ratings
-    await prisma.$executeRaw`
-      UPDATE "Post"
-      SET "averageRating" = 0, "reviewCount" = 0
-      WHERE id NOT IN (SELECT DISTINCT "postId" FROM "Rating")
-    `;
+      await tx.$executeRaw`
+        UPDATE "Post"
+        SET "averageRating" = 0, "reviewCount" = 0
+        WHERE id NOT IN (SELECT DISTINCT "postId" FROM "Rating")
+      `;
+    });
 
     const total = await prisma.post.count();
 

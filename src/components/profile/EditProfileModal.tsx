@@ -59,6 +59,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         isPrivate: user.isPrivate || false,
       });
       setAvatarPreview(user.avatar || '');
+      setAvatarFile(null);
     }
   }, [user, open]);
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
+import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -113,17 +114,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }
 
-    // Get recipe before deleting to access the image URL
-    const recipeService = container.getRecipeService();
-    const recipe = await recipeService.getRecipeById(id);
-
-    if (!recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-    }
+    // Get minimal recipe data for Cloudinary cleanup
+    const recipeForCleanup = await prisma.post.findUnique({
+      where: { id },
+      select: { imageUrl: true },
+    });
 
     // Delete recipe via service (performs atomic ownership check + delete)
-    const imageUrl = recipe.imageUrl;
+    const recipeService = container.getRecipeService();
     await recipeService.deleteRecipe(id, payload.userId);
+    const imageUrl = recipeForCleanup?.imageUrl;
 
     // Clean up Cloudinary image after successful DB deletion
     if (imageUrl && imageUrl.includes('cloudinary.com')) {

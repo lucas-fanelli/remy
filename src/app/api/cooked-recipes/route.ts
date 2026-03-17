@@ -104,84 +104,81 @@ export async function POST(request: NextRequest) {
     }
 
     // Remove recipe ingredients from pantry and create cooked recipe atomically
-    const cookedRecipe = await prisma.$transaction(
-      async (tx) => {
-        // Read pantry inside transaction to avoid stale data
-        const pantry = await tx.userPantry.findUnique({
-          where: { userId: payload.userId },
-          include: { items: true },
-        });
+    const cookedRecipe = await prisma.$transaction(async (tx) => {
+      // Read pantry inside transaction to avoid stale data
+      const pantry = await tx.userPantry.findUnique({
+        where: { userId: payload.userId },
+        include: { items: true },
+      });
 
-        if (pantry && recipe.ingredients) {
-          const recipeIngredients = recipe.ingredients as Array<{
-            name: string;
-            amount: string;
-            unit: string;
-          }>;
+      if (pantry && recipe.ingredients) {
+        const recipeIngredients = recipe.ingredients as Array<{
+          name: string;
+          amount: string;
+          unit: string;
+        }>;
 
-          for (const ingredient of recipeIngredients) {
-            // Find matching pantry item using fuzzy ingredient matching
-            const pantryItem = pantry.items.find((item) => ingredientMatches(item, ingredient));
+        for (const ingredient of recipeIngredients) {
+          // Find matching pantry item using fuzzy ingredient matching
+          const pantryItem = pantry.items.find((item) => ingredientMatches(item, ingredient));
 
-            if (pantryItem) {
-              // Parse amounts - supports fractions like "1/2", skips "to taste"
-              const recipeAmount = parseAmount(ingredient.amount);
-              if (isNaN(recipeAmount)) continue;
+          if (pantryItem) {
+            // Parse amounts - supports fractions like "1/2", skips "to taste"
+            const recipeAmount = parseAmount(ingredient.amount);
+            if (isNaN(recipeAmount)) continue;
 
-              const pantryQuantity = pantryItem.quantity;
+            const pantryQuantity = pantryItem.quantity;
 
-              // Check if units match using alias normalization
-              const unitsCompatible = unitsMatch(pantryItem.unit, ingredient.unit);
+            // Check if units match using alias normalization
+            const unitsCompatible = unitsMatch(pantryItem.unit, ingredient.unit);
 
-              if (unitsCompatible) {
-                const newQuantity = pantryQuantity - recipeAmount;
+            if (unitsCompatible) {
+              const newQuantity = pantryQuantity - recipeAmount;
 
-                if (newQuantity <= 0) {
-                  await tx.pantryItem.delete({
-                    where: { id: pantryItem.id },
-                  });
-                } else {
-                  await tx.pantryItem.update({
-                    where: { id: pantryItem.id },
-                    data: { quantity: newQuantity },
-                  });
-                }
+              if (newQuantity <= 0) {
+                await tx.pantryItem.delete({
+                  where: { id: pantryItem.id },
+                });
+              } else {
+                await tx.pantryItem.update({
+                  where: { id: pantryItem.id },
+                  data: { quantity: newQuantity },
+                });
               }
             }
           }
         }
+      }
 
-        // Create cooked recipe entry
-        return tx.cookedRecipe.create({
-          data: {
-            userId: payload.userId,
-            postId,
-            rating,
-            notes,
-          },
-          include: {
-            post: {
-              select: {
-                id: true,
-                title: true,
-                imageUrl: true,
-                description: true,
-                difficulty: true,
-                cookingTime: true,
-                prepTime: true,
-                user: {
-                  select: {
-                    username: true,
-                    avatar: true,
-                  },
+      // Create cooked recipe entry
+      return tx.cookedRecipe.create({
+        data: {
+          userId: payload.userId,
+          postId,
+          rating,
+          notes,
+        },
+        include: {
+          post: {
+            select: {
+              id: true,
+              title: true,
+              imageUrl: true,
+              description: true,
+              difficulty: true,
+              cookingTime: true,
+              prepTime: true,
+              user: {
+                select: {
+                  username: true,
+                  avatar: true,
                 },
               },
             },
           },
-        });
-      },
-      { isolationLevel: 'Serializable' }
-    );
+        },
+      });
+    });
 
     return NextResponse.json(
       {

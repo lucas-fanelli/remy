@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
     needMore.sort((a, b) => b.matchPercentage - a.matchPercentage);
 
     return NextResponse.json({
-      readyToCook,
+      readyToCook: readyToCook.slice(0, 20),
       almostThere: almostThere.slice(0, 10), // Limit to 10
       needMore: needMore.slice(0, 10), // Limit to 10
       pantryItemsCount: pantry.items.length,

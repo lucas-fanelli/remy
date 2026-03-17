@@ -66,6 +66,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (parsed < 0) {
         return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
       }
+      if (parsed > 999999) {
+        return NextResponse.json({ error: 'Quantity too large' }, { status: 400 });
+      }
     }
 
     // Update item

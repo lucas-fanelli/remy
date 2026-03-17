@@ -142,9 +142,7 @@ export default function RecipeDetailPage() {
       setSnackbar({ open: true, message: 'Recipe deleted successfully!', severity: 'success' });
 
       // Navigate back to feed after a short delay
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
+      router.push('/');
     } catch (err) {
       console.error('Error deleting recipe:', err);
       setSnackbar({

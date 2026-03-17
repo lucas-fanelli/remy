@@ -250,11 +250,11 @@ export class AdminService implements IAdminService {
   }
 
   async deleteComment(commentId: string): Promise<void> {
-    const comment = await this.prisma.comment.findUnique({
-      where: { id: commentId },
-    });
-
     await this.prisma.$transaction(async (tx) => {
+      const comment = await tx.comment.findUnique({
+        where: { id: commentId },
+      });
+
       await tx.comment.delete({
         where: { id: commentId },
       });

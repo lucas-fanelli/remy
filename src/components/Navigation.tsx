@@ -225,7 +225,7 @@ export default function Navigation() {
           clearInterval(interval);
           interval = null;
         }
-      } else {
+      } else if (!interval) {
         fetchNotifications();
         interval = setInterval(fetchNotifications, 60000);
       }
