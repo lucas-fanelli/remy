@@ -30,6 +30,13 @@ export const BRANDING = {
   youtube: 'https://www.youtube.com/@9QNA-4I',
   contactEmail: 'lucasarielfanelli@hotmail.com',
 
+  // Creator info
+  creator: {
+    name: 'Lucas Fanelli',
+    initials: 'LF',
+    bio: "Full-stack developer passionate about creating beautiful, functional web applications. Remy's was built as a labor of love, combining a passion for technology and food.",
+  },
+
   // Registration messaging
   registrationMessage: 'Join our community of passionate cooks and food lovers!',
 

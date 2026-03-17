@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe } from '@/domain/types/recipe';
 import EditRecipeModal from './EditRecipeModal';
@@ -42,8 +42,9 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
+  const loadingRef = useRef(false);
   const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
+  const pageRef = useRef(0);
 
   // Filters
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
@@ -78,13 +79,14 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
   const loadRecipes = useCallback(
     async (reset = false) => {
-      if (loading) return;
+      if (loadingRef.current) return;
 
+      loadingRef.current = true;
       setLoading(true);
       try {
         const queryParams = new URLSearchParams({
           limit: '12',
-          offset: String(reset ? 0 : page * 12),
+          offset: String(reset ? 0 : pageRef.current * 12),
         });
 
         if (difficultyFilter !== 'all') {
@@ -109,7 +111,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
         if (reset) {
           setRecipes(data.recipes);
-          setPage(1);
+          pageRef.current = 1;
         } else {
           setRecipes((prev) => {
             // Prevent duplicate keys by filtering out recipes that already exist
@@ -117,7 +119,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             const newRecipes = data.recipes.filter((r: Recipe) => !existingIds.has(r.id));
             return [...prev, ...newRecipes];
           });
-          setPage((prev) => prev + 1);
+          pageRef.current += 1;
         }
 
         setHasMore(data.recipes.length === 12);
@@ -134,26 +136,26 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
       } catch (error) {
         console.error('Error loading recipes:', error);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
       }
     },
-    [loading, page, difficultyFilter, timeFilter, sortOrder]
+    [difficultyFilter, timeFilter, sortOrder]
   );
 
   useEffect(() => {
     loadRecipes(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [difficultyFilter, timeFilter, sortOrder]);
+  }, [difficultyFilter, timeFilter, sortOrder, loadRecipes]);
 
   const handleScroll = useCallback(() => {
     if (
       window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 500 &&
       hasMore &&
-      !loading
+      !loadingRef.current
     ) {
       loadRecipes();
     }
-  }, [hasMore, loading, loadRecipes]);
+  }, [hasMore, loadRecipes]);
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);

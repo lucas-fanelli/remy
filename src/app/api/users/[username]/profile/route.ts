@@ -87,7 +87,8 @@ export async function GET(
     const isOwnProfile = currentUserId === user.id;
 
     // Build response with parallel queries for conditional data
-    const conditionalQueries: Promise<unknown>[] = [];
+    let isFollowing: boolean | undefined = undefined;
+    let savedRecipes: unknown[] | undefined = undefined;
     let isFollowingPromise: Promise<boolean> | null = null;
     let savedRecipesPromise: Promise<unknown[]> | null = null;
 
@@ -103,7 +104,6 @@ export async function GET(
           },
         })
         .then((follow) => !!follow);
-      conditionalQueries.push(isFollowingPromise);
     }
 
     // Get saved recipes (if own profile)
@@ -179,7 +179,6 @@ export async function GET(
             },
           }));
         });
-      conditionalQueries.push(savedRecipesPromise);
     }
 
     // Get ratings for user's recipes in parallel with conditional queries
@@ -191,12 +190,16 @@ export async function GET(
       _count: { rating: true },
     });
 
-    const results = await Promise.all([...conditionalQueries, ratingsPromise]);
-    const recipeRatings = results[results.length - 1] as Array<{
-      postId: string;
-      _avg: { rating: number | null };
-      _count: { rating: number };
-    }>;
+    // Run all queries in parallel with named results
+    const [isFollowingResult, savedRecipesResult, recipeRatings] = await Promise.all([
+      isFollowingPromise ?? Promise.resolve(undefined),
+      savedRecipesPromise ?? Promise.resolve(undefined),
+      ratingsPromise,
+    ]);
+    // Update variables from named results
+    if (isFollowingResult !== undefined) isFollowing = isFollowingResult;
+    if (savedRecipesResult !== undefined) savedRecipes = savedRecipesResult;
+
     const recipeRatingsMap = new Map(
       recipeRatings.map((r) => [
         r.postId,
@@ -244,13 +247,13 @@ export async function GET(
       isOwnProfile,
     };
 
-    // Add conditional data
-    if (isFollowingPromise) {
-      response.isFollowing = await isFollowingPromise;
+    // Add conditional data (already resolved from Promise.all above)
+    if (isFollowing !== undefined) {
+      response.isFollowing = isFollowing;
     }
 
-    if (savedRecipesPromise) {
-      response.savedRecipes = await savedRecipesPromise;
+    if (savedRecipes !== undefined) {
+      response.savedRecipes = savedRecipes;
     }
 
     return NextResponse.json(response);

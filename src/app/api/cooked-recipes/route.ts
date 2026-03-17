@@ -79,6 +79,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Recipe ID is required' }, { status: 400 });
     }
 
+    if (rating !== undefined && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
+      return NextResponse.json({ error: 'Rating must be between 1 and 5' }, { status: 400 });
+    }
+
     // Verify the recipe exists and get its ingredients
     const recipe = await prisma.post.findUnique({
       where: { id: postId },

@@ -16,8 +16,10 @@ export async function GET(request: NextRequest) {
     // Get user service from container
     const userService = container.getUserService();
 
-    // Search users
-    const users = await userService.searchUsers(validatedData.query, validatedData.limit);
+    // Search users - strip email from public results
+    const users = (await userService.searchUsers(validatedData.query, validatedData.limit)).map(
+      ({ email, ...rest }) => rest
+    );
 
     return ApiResponseHelper.success(users);
   } catch (error) {

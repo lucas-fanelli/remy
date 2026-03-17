@@ -165,29 +165,27 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
     }
 
-    // Delete associated rating and recalculate cached values
+    // Delete rating, recalculate cached values, and delete comment atomically
     const recipeId = existingComment.postId;
-    await prisma.rating.deleteMany({
-      where: { userId: payload.userId, postId: recipeId },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.rating.deleteMany({
+        where: { userId: payload.userId, postId: recipeId },
+      });
 
-    // Recalculate cached rating on the post
-    const agg = await prisma.rating.aggregate({
-      where: { postId: recipeId },
-      _avg: { rating: true },
-      _count: { rating: true },
-    });
-    await prisma.post.update({
-      where: { id: recipeId },
-      data: {
-        averageRating: Math.round((agg._avg.rating || 0) * 10) / 10,
-        reviewCount: agg._count.rating || 0,
-      },
-    });
+      const agg = await tx.rating.aggregate({
+        where: { postId: recipeId },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+      await tx.post.update({
+        where: { id: recipeId },
+        data: {
+          averageRating: Math.round((agg._avg.rating || 0) * 10) / 10,
+          reviewCount: agg._count.rating || 0,
+        },
+      });
 
-    // Delete the comment
-    await prisma.comment.delete({
-      where: { id: commentId },
+      await tx.comment.delete({ where: { id: commentId } });
     });
 
     return NextResponse.json({

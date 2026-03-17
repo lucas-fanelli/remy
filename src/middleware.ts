@@ -140,7 +140,8 @@ export async function middleware(request: NextRequest) {
           const valid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
           if (valid) {
             const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-            isAdmin = payload.role === 'ADMIN';
+            const now = Math.floor(Date.now() / 1000);
+            isAdmin = payload.role === 'ADMIN' && (!payload.exp || payload.exp > now);
           }
         }
       } catch {

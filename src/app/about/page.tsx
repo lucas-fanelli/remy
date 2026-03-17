@@ -234,14 +234,13 @@ export default function AboutPage() {
                 background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
               }}
             >
-              LF
+              {BRANDING.creator.initials}
             </Avatar>
             <Typography variant="h5" fontWeight={600} color="text.primary">
-              Lucas Fanelli
+              {BRANDING.creator.name}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500 }}>
-              Full-stack developer passionate about creating beautiful, functional web applications.
-              Remy&apos;s was built as a labor of love, combining a passion for technology and food.
+              {BRANDING.creator.bio}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
               <Link

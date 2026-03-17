@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { deleteFromCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
+import prisma from '@/lib/database/prisma';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -129,28 +130,24 @@ export async function DELETE(
       );
     }
 
-    // Delete the image from Cloudinary if it exists
-    if (recipe.imageUrl && recipe.imageUrl.includes('cloudinary.com')) {
+    // Delete recipe from database first (skip service re-fetch since we already verified ownership)
+    const imageUrl = recipe.imageUrl;
+    await prisma.post.delete({ where: { id } });
+
+    // Clean up Cloudinary image after successful DB deletion
+    if (imageUrl && imageUrl.includes('cloudinary.com')) {
       try {
-        // Extract public_id from Cloudinary URL
-        // URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{public_id}.{format}
-        const urlParts = recipe.imageUrl.split('/');
+        const urlParts = imageUrl.split('/');
         const uploadIndex = urlParts.indexOf('upload');
         if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
-          // Get everything after 'upload/v{version}/' and remove file extension
           const publicIdWithExt = urlParts.slice(uploadIndex + 2).join('/');
           const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
           await deleteFromCloudinary(publicId);
-          console.log(`Deleted image from Cloudinary: ${publicId}`);
         }
       } catch (fileError) {
-        // Log the error but don't fail the recipe deletion
         console.warn(`Failed to delete image from Cloudinary: ${fileError}`);
       }
     }
-
-    // Delete recipe using service
-    await recipeService.deleteRecipe(id, payload.userId);
 
     return NextResponse.json({ message: 'Recipe deleted successfully' }, { status: 200 });
   } catch (error) {
