@@ -212,6 +212,8 @@ export default function Navigation() {
   }, [token]);
 
   useEffect(() => {
+    if (!token) return;
+
     fetchNotifications();
 
     // Poll for new notifications every 30 seconds
@@ -893,7 +895,7 @@ export default function Navigation() {
             <ListItem disablePadding>
               <ListItemButton
                 onClick={() => {
-                  window.open('mailto:lucasarielfanelli@hotmail.com', '_blank');
+                  window.open(`mailto:${BRANDING.contactEmail}`, '_blank');
                   setDrawerOpen(false);
                 }}
                 sx={{ py: { xs: 1.5, sm: 2 } }}
@@ -929,7 +931,7 @@ export default function Navigation() {
             <ListItem disablePadding>
               <ListItemButton
                 component="a"
-                href="https://www.youtube.com/@9QNA-4I"
+                href={BRANDING.youtube}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setDrawerOpen(false)}

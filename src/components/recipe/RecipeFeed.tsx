@@ -33,13 +33,9 @@ const MotionBox = motion.create(Box);
 
 interface RecipeFeedProps {
   onCreateRecipe?: () => void;
-  onEditRecipe?: (recipe: Recipe) => void;
 }
 
-export default function RecipeFeed({
-  onCreateRecipe,
-  onEditRecipe: _onEditRecipe,
-}: RecipeFeedProps) {
+export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const router = useRouter();
   const { user, token } = useAuth();
   const theme = useTheme();

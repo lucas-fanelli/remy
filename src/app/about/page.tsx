@@ -15,6 +15,7 @@ import {
 import { motion } from 'framer-motion';
 import NextLink from 'next/link';
 import React from 'react';
+import { BRANDING } from '@/config/branding';
 
 const MotionBox = motion.create(Box);
 const MotionPaper = motion.create(Paper);
@@ -244,7 +245,7 @@ export default function AboutPage() {
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
               <Link
-                href="https://www.youtube.com/@9QNA-4I"
+                href={BRANDING.youtube}
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{ color: 'text.secondary', '&:hover': { color: '#FF0000' } }}

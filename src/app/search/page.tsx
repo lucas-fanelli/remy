@@ -88,10 +88,6 @@ function SearchPageContent() {
     fetchResults();
   }, [query, router]);
 
-  const _handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
-
   const handleUserClick = (username: string) => {
     router.push(`/profile/${username}`);
   };

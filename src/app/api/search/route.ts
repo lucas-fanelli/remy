@@ -14,8 +14,10 @@ export async function GET(request: NextRequest) {
 
     const userService = container.get<IUserService>('IUserService');
 
-    // Search users by username
-    const users = await userService.searchUsers(query.trim(), 100);
+    // Search users by username - strip email from public results
+    const users = (await userService.searchUsers(query.trim(), 100)).map(
+      ({ email, ...rest }) => rest
+    );
 
     // Search recipes with engagement data
     const recipes = await prisma.post.findMany({

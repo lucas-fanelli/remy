@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Simple in-memory rate limiting (for production, use Redis or a proper rate limiting service)
+// In-memory rate limiting
+// WARNING: This is per-instance only. In multi-instance deployments (Vercel serverless, K8s),
+// each instance has its own map. For production, replace with Redis/Upstash/Vercel KV.
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 // Configuration
 const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX_REQUESTS = 100; // Max requests per window
+const AUTH_RATE_LIMIT_MAX_REQUESTS = 10; // Stricter limit for auth endpoints
 
 function getRateLimitKey(request: NextRequest): string {
   // Use IP address for rate limiting
@@ -15,7 +18,10 @@ function getRateLimitKey(request: NextRequest): string {
   return `ratelimit:${ip}`;
 }
 
-function checkRateLimit(key: string): {
+function checkRateLimit(
+  key: string,
+  maxRequests: number = RATE_LIMIT_MAX_REQUESTS
+): {
   allowed: boolean;
   limit: number;
   remaining: number;
@@ -30,8 +36,8 @@ function checkRateLimit(key: string): {
     rateLimitMap.set(key, { count: 1, resetTime });
     return {
       allowed: true,
-      limit: RATE_LIMIT_MAX_REQUESTS,
-      remaining: RATE_LIMIT_MAX_REQUESTS - 1,
+      limit: maxRequests,
+      remaining: maxRequests - 1,
       resetTime,
     };
   }
@@ -41,9 +47,9 @@ function checkRateLimit(key: string): {
   rateLimitMap.set(key, record);
 
   return {
-    allowed: record.count <= RATE_LIMIT_MAX_REQUESTS,
-    limit: RATE_LIMIT_MAX_REQUESTS,
-    remaining: Math.max(0, RATE_LIMIT_MAX_REQUESTS - record.count),
+    allowed: record.count <= maxRequests,
+    limit: maxRequests,
+    remaining: Math.max(0, maxRequests - record.count),
     resetTime: record.resetTime,
   };
 }
@@ -58,7 +64,7 @@ setInterval(() => {
   }
 }, 60 * 1000); // Clean up every minute
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   // Security Headers
@@ -106,24 +112,39 @@ export function middleware(request: NextRequest) {
     return new NextResponse(null, { status: 200, headers: response.headers });
   }
 
-  // Block admin pages server-side for non-admin users
+  // Block admin pages server-side for non-admin users with HMAC signature verification
   if (request.nextUrl.pathname.startsWith('/admin')) {
     const authHeader = request.headers.get('authorization');
     const cookieToken = request.cookies.get('auth_token')?.value;
     const rawToken = authHeader?.replace('Bearer ', '') || cookieToken;
 
     let isAdmin = false;
-    if (rawToken) {
+    if (rawToken && process.env.JWT_SECRET) {
       try {
-        // Decode JWT payload (base64) to check role claim
-        // Full signature verification happens at the API level via requireAdmin
-        const payloadPart = rawToken.split('.')[1];
-        if (payloadPart) {
-          const payload = JSON.parse(atob(payloadPart));
-          isAdmin = payload.role === 'ADMIN';
+        const parts = rawToken.split('.');
+        if (parts.length === 3) {
+          // Verify HMAC-SHA256 signature using Web Crypto API
+          const encoder = new TextEncoder();
+          const key = await crypto.subtle.importKey(
+            'raw',
+            encoder.encode(process.env.JWT_SECRET),
+            { name: 'HMAC', hash: 'SHA-256' },
+            false,
+            ['verify']
+          );
+          const signatureInput = encoder.encode(`${parts[0]}.${parts[1]}`);
+          const signature = Uint8Array.from(
+            atob(parts[2].replace(/-/g, '+').replace(/_/g, '/')),
+            (c) => c.charCodeAt(0)
+          );
+          const valid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
+          if (valid) {
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            isAdmin = payload.role === 'ADMIN';
+          }
         }
       } catch {
-        // Invalid token format
+        // Invalid token
       }
     }
 
@@ -143,8 +164,12 @@ export function middleware(request: NextRequest) {
       return response;
     }
 
-    const rateLimitKey = getRateLimitKey(request);
-    const rateLimit = checkRateLimit(rateLimitKey);
+    const isAuthEndpoint =
+      request.nextUrl.pathname === '/api/auth/login' ||
+      request.nextUrl.pathname === '/api/auth/register';
+    const rateLimitKey = getRateLimitKey(request) + (isAuthEndpoint ? ':auth' : '');
+    const maxRequests = isAuthEndpoint ? AUTH_RATE_LIMIT_MAX_REQUESTS : RATE_LIMIT_MAX_REQUESTS;
+    const rateLimit = checkRateLimit(rateLimitKey, maxRequests);
 
     // Add rate limit headers
     response.headers.set('X-RateLimit-Limit', rateLimit.limit.toString());

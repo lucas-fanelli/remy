@@ -49,7 +49,6 @@ export default function SearchResults({
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const handleUserClick = (username: string) => {
     router.push(`/profile/${username}`);

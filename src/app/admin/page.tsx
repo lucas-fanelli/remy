@@ -21,7 +21,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface AdminStats {
@@ -42,19 +42,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Redirect non-admins
-    if (!authLoading && (!user || !isAdmin)) {
-      router.push('/');
-      return;
-    }
-
-    if (token && isAdmin) {
-      fetchStats();
-    }
-  }, [user, token, isAdmin, authLoading, router]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/stats', {
         headers: {
@@ -73,7 +61,19 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    // Redirect non-admins
+    if (!authLoading && (!user || !isAdmin)) {
+      router.push('/');
+      return;
+    }
+
+    if (token && isAdmin) {
+      fetchStats();
+    }
+  }, [user, token, isAdmin, authLoading, router, fetchStats]);
 
   if (authLoading || loading) {
     return (

@@ -35,21 +35,24 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
 
-    // Batch update all recipes
+    // Batch update recipes in chunks to avoid serverless timeouts
     let updated = 0;
     const errors: string[] = [];
+    const batchSize = 100;
 
-    for (const recipe of recipes) {
+    for (let i = 0; i < recipes.length; i += batchSize) {
+      const batch = recipes.slice(i, i + batchSize);
       try {
-        const ratingData = ratingsMap.get(recipe.id) || { averageRating: 0, reviewCount: 0 };
-        await prisma.post.update({
-          where: { id: recipe.id },
-          data: ratingData,
-        });
-        updated++;
+        await prisma.$transaction(
+          batch.map((recipe) => {
+            const data = ratingsMap.get(recipe.id) || { averageRating: 0, reviewCount: 0 };
+            return prisma.post.update({ where: { id: recipe.id }, data });
+          })
+        );
+        updated += batch.length;
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unknown error';
-        errors.push(`Recipe ${recipe.id}: ${message}`);
+        errors.push(`Batch starting at index ${i}: ${message}`);
       }
     }
 

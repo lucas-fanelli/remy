@@ -25,8 +25,10 @@ export const BRANDING = {
   // Font
   font: '"Pacifico", cursive',
 
-  // Social
+  // Social & contact
   tagPrefix: '@',
+  youtube: 'https://www.youtube.com/@9QNA-4I',
+  contactEmail: 'lucasarielfanelli@hotmail.com',
 
   // Registration messaging
   registrationMessage: 'Join our community of passionate cooks and food lovers!',

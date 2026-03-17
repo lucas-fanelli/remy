@@ -182,17 +182,21 @@ export async function GET(
       conditionalQueries.push(savedRecipesPromise);
     }
 
-    // Wait for conditional queries
-    await Promise.all(conditionalQueries);
-
-    // Get ratings for user's recipes
+    // Get ratings for user's recipes in parallel with conditional queries
     const recipeIds = user.posts.map((r) => r.id);
-    const recipeRatings = await prisma.rating.groupBy({
+    const ratingsPromise = prisma.rating.groupBy({
       by: ['postId'],
       where: { postId: { in: recipeIds } },
       _avg: { rating: true },
       _count: { rating: true },
     });
+
+    const results = await Promise.all([...conditionalQueries, ratingsPromise]);
+    const recipeRatings = results[results.length - 1] as Array<{
+      postId: string;
+      _avg: { rating: number | null };
+      _count: { rating: number };
+    }>;
     const recipeRatingsMap = new Map(
       recipeRatings.map((r) => [
         r.postId,

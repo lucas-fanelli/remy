@@ -110,14 +110,16 @@ export async function POST(request: NextRequest) {
           );
 
           if (pantryItem) {
-            // Parse amounts
+            // Parse amounts - skip non-numeric amounts like "to taste" or "1/2"
             const recipeAmount = parseFloat(ingredient.amount);
+            if (isNaN(recipeAmount)) continue;
+
             const pantryQuantity = pantryItem.quantity;
 
             // Check if units match (basic comparison, case-insensitive)
             const unitsMatch = pantryItem.unit.toLowerCase() === ingredient.unit.toLowerCase();
 
-            if (unitsMatch && !isNaN(recipeAmount)) {
+            if (unitsMatch) {
               const newQuantity = pantryQuantity - recipeAmount;
 
               if (newQuantity <= 0) {

@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { usePathname } from 'next/navigation';
 import React, { Suspense } from 'react';
 import Footer from './Footer';

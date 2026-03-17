@@ -82,13 +82,22 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get recipes with ingredients (limited to prevent OOM)
+    // Get recipes with ingredients (limited to prevent OOM, select only needed fields)
     const recipes = await prisma.post.findMany({
       where: {
         ingredients: { not: Prisma.DbNull },
       },
       take: 500,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        difficulty: true,
+        cookingTime: true,
+        prepTime: true,
+        servings: true,
+        ingredients: true,
         _count: {
           select: {
             likes: true,

@@ -165,6 +165,26 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
     }
 
+    // Delete associated rating and recalculate cached values
+    const recipeId = existingComment.postId;
+    await prisma.rating.deleteMany({
+      where: { userId: payload.userId, postId: recipeId },
+    });
+
+    // Recalculate cached rating on the post
+    const agg = await prisma.rating.aggregate({
+      where: { postId: recipeId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+    await prisma.post.update({
+      where: { id: recipeId },
+      data: {
+        averageRating: Math.round((agg._avg.rating || 0) * 10) / 10,
+        reviewCount: agg._count.rating || 0,
+      },
+    });
+
     // Delete the comment
     await prisma.comment.delete({
       where: { id: commentId },

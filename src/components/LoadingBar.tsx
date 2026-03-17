@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { LinearProgress, Box } from '@mui/material';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';

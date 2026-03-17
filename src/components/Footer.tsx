@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
+import { BRANDING } from '@/config/branding';
 import { useThemeMode } from '@/contexts/ThemeContext';
 
 export default function Footer() {
@@ -45,7 +46,7 @@ export default function Footer() {
     };
 
   const handleSendEmail = () => {
-    const mailtoLink = `mailto:lucasarielfanelli@hotmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
+    const mailtoLink = `mailto:${BRANDING.contactEmail}?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
       `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.subject}`
     )}`;
     window.open(mailtoLink, '_blank');
@@ -118,7 +119,7 @@ export default function Footer() {
           <Tooltip title="YouTube Channel">
             <IconButton
               component={Link}
-              href="https://www.youtube.com/@9QNA-4I"
+              href={BRANDING.youtube}
               target="_blank"
               rel="noopener noreferrer"
               size="small"
