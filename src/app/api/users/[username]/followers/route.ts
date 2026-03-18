@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractBearerToken } from '@/lib/utils/auth';
@@ -9,6 +10,10 @@ export async function GET(
 ) {
   try {
     const { username } = await params;
+
+    if (!USERNAME_REGEX.test(username)) {
+      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+    }
 
     // Get authorization token (optional for viewing followers)
     const token = extractBearerToken(request);

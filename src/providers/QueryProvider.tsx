@@ -21,7 +21,8 @@ function makeQueryClient() {
 
 let browserQueryClient: QueryClient | undefined = undefined;
 
-function getQueryClient() {
+/** Returns the browser-side QueryClient singleton (null on server). */
+export function getQueryClient() {
   if (typeof window === 'undefined') {
     // Server: always make a new query client
     return makeQueryClient();

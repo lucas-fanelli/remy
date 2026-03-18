@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Recipe } from '@/domain/types/recipe';
 import EditRecipeModal from '../EditRecipeModal';
@@ -692,8 +692,7 @@ describe('EditRecipeModal Component', () => {
       })
     ) as jest.Mock;
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user-1', username: 'testuser' } });
 
     renderWithProviders(
       <EditRecipeModal
@@ -732,8 +731,7 @@ describe('EditRecipeModal Component', () => {
       })
     ) as jest.Mock;
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user-1', username: 'testuser' } });
 
     renderWithProviders(
       <EditRecipeModal

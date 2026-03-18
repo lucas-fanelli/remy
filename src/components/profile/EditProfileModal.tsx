@@ -35,7 +35,7 @@ interface ProfileForm {
 }
 
 export default function EditProfileModal({ open, onClose, onSuccess }: EditProfileModalProps) {
-  const { user, token, updateProfile } = useAuth();
+  const { user, isAuthenticated, updateProfile } = useAuth();
   const { showSuccess, showError } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -93,7 +93,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!token) {
+    if (!isAuthenticated) {
       showError('You must be logged in to update your profile');
       return;
     }
@@ -110,9 +110,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
 
         const uploadResponse = await fetch('/api/upload/avatar', {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'X-Requested-With': 'fetch' },
           body: formDataUpload,
         });
 
@@ -130,7 +128,6 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           fullName: formData.fullName.trim() || null,

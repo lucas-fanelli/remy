@@ -8,6 +8,11 @@ import { extractBearerToken } from '@/lib/utils/auth';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: recipeId } = await params;
+
+    if (!UUID_REGEX.test(recipeId)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50));
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0);
@@ -124,17 +129,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
-    // Check if recipe exists
-    const recipe = await prisma.post.findUnique({
-      where: { id: recipeId },
-    });
+    // Recipe check + comment creation atomically in a single transaction
+    const { comment, recipeAuthorId } = await prisma.$transaction(async (tx) => {
+      const recipe = await tx.post.findUnique({ where: { id: recipeId } });
+      if (!recipe) {
+        throw new Error('RECIPE_NOT_FOUND');
+      }
 
-    if (!recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-    }
-
-    // Create comment + optional rating atomically in a transaction
-    const comment = await prisma.$transaction(async (tx) => {
       const newComment = await tx.comment.create({
         data: {
           text: text.trim(),
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         });
       }
 
-      return newComment;
+      return { comment: newComment, recipeAuthorId: recipe.userId };
     });
 
     // Create notification - non-critical, don't fail the request if this errors
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       await notificationService.createCommentNotification(
         payload.userId,
         recipeId,
-        recipe.userId,
+        recipeAuthorId,
         comment.id
       );
     } catch (notifError) {
@@ -213,6 +214,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       message: 'Comment added successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+    }
     console.error('Error creating comment:', error);
     return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
   }

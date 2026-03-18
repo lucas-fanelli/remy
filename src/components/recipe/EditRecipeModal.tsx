@@ -77,7 +77,7 @@ export default function EditRecipeModal({
   onClose,
   onSuccess,
 }: EditRecipeModalProps) {
-  const { token } = useAuth();
+  const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [activeStep, setActiveStep] = useState(0);
@@ -214,7 +214,7 @@ export default function EditRecipeModal({
   };
 
   const handleSubmit = async () => {
-    if (!recipe || !token) return;
+    if (!recipe || !user) return;
 
     try {
       setLoading(true);
@@ -242,7 +242,6 @@ export default function EditRecipeModal({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updateData),
       });

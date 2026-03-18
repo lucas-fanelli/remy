@@ -37,18 +37,14 @@ interface AdminStats {
 export default function AdminDashboard() {
   const router = useRouter();
   const theme = useTheme();
-  const { user, token, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/admin/stats');
 
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
@@ -61,7 +57,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     // Redirect non-admins
@@ -70,10 +66,10 @@ export default function AdminDashboard() {
       return;
     }
 
-    if (token && isAdmin) {
+    if (isAuthenticated && isAdmin) {
       fetchStats();
     }
-  }, [user, token, isAdmin, authLoading, router, fetchStats]);
+  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchStats]);
 
   if (authLoading || loading) {
     return (

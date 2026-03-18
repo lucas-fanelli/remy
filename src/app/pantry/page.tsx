@@ -52,7 +52,7 @@ const categories = ['vegetable', 'protein', 'dairy', 'grain', 'spice', 'fruit', 
 const units = ['g', 'kg', 'mL', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'];
 
 export default function PantryPage() {
-  const { token, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,11 +82,7 @@ export default function PantryPage() {
   const loadPantry = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/pantry', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/pantry');
 
       if (response.ok) {
         const data = await response.json();
@@ -98,17 +94,17 @@ export default function PantryPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
-      if (token) {
+      if (isAuthenticated) {
         loadPantry();
       } else {
         setLoading(false);
       }
     }
-  }, [token, authLoading, loadPantry]);
+  }, [isAuthenticated, authLoading, loadPantry]);
 
   const handleOpenDialog = (item?: PantryItem) => {
     if (item) {
@@ -172,7 +168,6 @@ export default function PantryPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: formData.name.trim(),
@@ -229,9 +224,6 @@ export default function PantryPage() {
     try {
       const response = await fetch(`/api/pantry/${itemToDelete}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {
@@ -296,7 +288,7 @@ export default function PantryPage() {
   }
 
   // Guest user - show sign-in prompt
-  if (!token) {
+  if (!isAuthenticated) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -82,27 +82,18 @@ interface LikeStatusResponse {
   likesCount: number;
 }
 
-async function fetchLikeStatus(
-  recipeId: string,
-  token: string | null
-): Promise<LikeStatusResponse | null> {
-  if (!token) return null;
-
-  const response = await fetch(`/api/recipes/${recipeId}/like`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+async function fetchLikeStatus(recipeId: string): Promise<LikeStatusResponse | null> {
+  const response = await fetch(`/api/recipes/${recipeId}/like`);
 
   if (!response.ok) return null;
   return response.json();
 }
 
-export function useRecipeLikeStatus(recipeId: string, token: string | null) {
+export function useRecipeLikeStatus(recipeId: string, userId: string | null) {
   return useQuery({
-    queryKey: ['recipe-like', recipeId, token],
-    queryFn: () => fetchLikeStatus(recipeId, token),
-    enabled: !!recipeId && !!token,
+    queryKey: ['recipe-like', recipeId, userId],
+    queryFn: () => fetchLikeStatus(recipeId),
+    enabled: !!recipeId && !!userId,
     staleTime: 30 * 1000, // 30 seconds
   });
 }
@@ -112,27 +103,18 @@ interface SaveStatusResponse {
   saved: boolean;
 }
 
-async function fetchSaveStatus(
-  recipeId: string,
-  token: string | null
-): Promise<SaveStatusResponse | null> {
-  if (!token) return null;
-
-  const response = await fetch(`/api/recipes/${recipeId}/save`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+async function fetchSaveStatus(recipeId: string): Promise<SaveStatusResponse | null> {
+  const response = await fetch(`/api/recipes/${recipeId}/save`);
 
   if (!response.ok) return null;
   return response.json();
 }
 
-export function useRecipeSaveStatus(recipeId: string, token: string | null) {
+export function useRecipeSaveStatus(recipeId: string, userId: string | null) {
   return useQuery({
-    queryKey: ['recipe-save', recipeId, token],
-    queryFn: () => fetchSaveStatus(recipeId, token),
-    enabled: !!recipeId && !!token,
+    queryKey: ['recipe-save', recipeId, userId],
+    queryFn: () => fetchSaveStatus(recipeId),
+    enabled: !!recipeId && !!userId,
     staleTime: 30 * 1000, // 30 seconds
   });
 }

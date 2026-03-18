@@ -23,7 +23,7 @@ import { CreateRecipeDTO } from '@/domain/types/recipe';
 export default function Home() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isLoading, token } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -35,13 +35,12 @@ export default function Home() {
 
   const handleCreateRecipe = async (data: CreateRecipeDTO) => {
     try {
-      if (!token) throw new Error('No authentication token');
+      if (!isAuthenticated) throw new Error('Not authenticated');
 
       const response = await fetch('/api/recipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });

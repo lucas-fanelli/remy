@@ -46,7 +46,7 @@ interface AdminComment {
 export default function AdminCommentsPage() {
   const router = useRouter();
   const theme = useTheme();
-  const { user, token, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
 
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [total, setTotal] = useState(0);
@@ -58,7 +58,7 @@ export default function AdminCommentsPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchComments = useCallback(async () => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     setLoading(true);
     try {
@@ -67,9 +67,7 @@ export default function AdminCommentsPage() {
         limit: String(rowsPerPage),
       });
 
-      const response = await fetch(`/api/admin/comments?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(`/api/admin/comments?${params}`);
 
       if (!response.ok) throw new Error('Failed to fetch comments');
 
@@ -81,17 +79,17 @@ export default function AdminCommentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, rowsPerPage]);
+  }, [isAuthenticated, page, rowsPerPage]);
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
       router.push('/');
       return;
     }
-    if (token && isAdmin) {
+    if (isAuthenticated && isAdmin) {
       fetchComments();
     }
-  }, [user, token, isAdmin, authLoading, router, fetchComments]);
+  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchComments]);
 
   const handleDeleteClick = (comment: AdminComment) => {
     setSelectedComment(comment);
@@ -99,13 +97,12 @@ export default function AdminCommentsPage() {
   };
 
   const handleDelete = async () => {
-    if (!selectedComment || !token) return;
+    if (!selectedComment || !isAuthenticated) return;
 
     setActionLoading(true);
     try {
       const response = await fetch(`/api/admin/comments/${selectedComment.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) throw new Error('Failed to delete comment');
@@ -201,7 +198,7 @@ export default function AdminCommentsPage() {
                         {comment.post.title || 'Untitled Recipe'}
                       </Typography>
                     </TableCell>
-                    <TableCell>{new Date(comment.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(comment.createdAt).toLocaleDateString('en-US')}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Recipe">
                         <IconButton

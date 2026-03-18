@@ -1,10 +1,10 @@
-import { render, screen, waitFor, act, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import { AuthProvider, useAuth } from '../AuthContext';
 
-// Test component that uses the auth context
-function TestComponent() {
+// Reusable test components
+function AuthStatus() {
   const { user, isLoading, isAuthenticated, token } = useAuth();
 
   if (isLoading) {
@@ -20,7 +20,7 @@ function TestComponent() {
   );
 }
 
-function TestComponentWithActions() {
+function AuthActions() {
   const { login, register, logout, updateProfile } = useAuth();
 
   return (
@@ -39,119 +39,125 @@ describe('AuthContext', () => {
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-
-    // Mock fetch globally
+    // resetAllMocks clears call history AND the mockResolvedValueOnce queue,
+    // preventing leftover mock responses from leaking between tests.
+    jest.resetAllMocks();
+    global.fetch = jest.fn();
     mockFetch = global.fetch as jest.Mock;
-    mockFetch.mockClear();
   });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  const mockUser = {
+    id: 'user123',
+    username: 'testuser',
+    email: 'test@example.com',
+    isVerified: true,
+    isPrivate: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  /** Sets up the mount fetch to return an authenticated user. */
+  function mockAuthenticatedMount() {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: mockUser }),
+    });
+  }
+
+  /** Sets up the mount fetch to return unauthenticated. */
+  function mockUnauthenticatedMount() {
+    mockFetch.mockResolvedValueOnce({ ok: false });
+  }
+
+  /** Waits for the initial auth check to complete and user to be authenticated. */
+  async function waitForAuthenticated() {
+    // Use exact regex: toHaveTextContent does substring matching by default,
+    // so 'Authenticated' would also match 'Not Authenticated'.
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent(/^Authenticated$/);
+    });
+  }
+
+  /** Waits for the initial auth check to complete and user to be unauthenticated. */
+  async function waitForUnauthenticated() {
+    await waitFor(() => {
+      expect(screen.getByTestId('auth-status')).toHaveTextContent(/^Not Authenticated$/);
+    });
+  }
+
+  /** Waits for the mount auth check to have been called. */
+  async function waitForMountCheck() {
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+    });
+  }
 
   describe('Initial State', () => {
     it('should start with loading state', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-      });
+      mockUnauthenticatedMount();
 
       render(
         <AuthProvider>
-          <TestComponent />
+          <AuthStatus />
         </AuthProvider>
       );
 
-      // Loading state may be very brief, so we'll just check it eventually loads
       await waitFor(() => {
         expect(screen.getByTestId('auth-status')).toBeInTheDocument();
       });
     });
 
     it('should set not authenticated when cookie auth fails', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-      });
+      mockUnauthenticatedMount();
 
       render(
         <AuthProvider>
-          <TestComponent />
+          <AuthStatus />
         </AuthProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
-      });
-
+      await waitForUnauthenticated();
       expect(screen.getByTestId('user-data')).toHaveTextContent('No User');
       expect(screen.getByTestId('token-data')).toHaveTextContent('No Token');
     });
 
     it('should fetch current user via cookie auth on mount', async () => {
-      const mockUser = {
-        id: 'user123',
-        username: 'testuser',
-        email: 'test@example.com',
-        isVerified: true,
-        isPrivate: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: mockUser }),
-      });
+      mockAuthenticatedMount();
 
       render(
         <AuthProvider>
-          <TestComponent />
+          <AuthStatus />
         </AuthProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
-      });
-
+      await waitForAuthenticated();
       expect(screen.getByTestId('user-data')).toHaveTextContent('testuser');
-      expect(screen.getByTestId('token-data')).toHaveTextContent('Has Token');
-      expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', {
-        credentials: 'same-origin',
-      });
+      // After cookie-based auth, token stays null — auth is via httpOnly cookie
+      expect(screen.getByTestId('token-data')).toHaveTextContent('No Token');
+      expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
     });
 
     it('should clear user when cookie auth returns not ok', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-      });
+      mockUnauthenticatedMount();
 
       render(
         <AuthProvider>
-          <TestComponent />
+          <AuthStatus />
         </AuthProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
-      });
-
+      await waitForUnauthenticated();
       expect(screen.getByTestId('token-data')).toHaveTextContent('No Token');
     });
   });
 
   describe('Login', () => {
     it('should successfully login user', async () => {
-      const mockUser = {
-        id: 'user123',
-        username: 'testuser',
-        email: 'test@example.com',
-        isVerified: true,
-        isPrivate: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // First call is /api/auth/me on mount (not authenticated)
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-      });
-      // Second call is /api/auth/login
+      mockUnauthenticatedMount();
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: { token: 'new-token', user: mockUser } }),
@@ -159,17 +165,13 @@ describe('AuthContext', () => {
 
       const { rerender } = render(
         <AuthProvider>
-          <TestComponentWithActions />
+          <AuthActions />
         </AuthProvider>
       );
 
-      // Wait for initial auth check to finish
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
-      });
+      await waitForMountCheck();
 
-      const loginButton = screen.getByText('Login');
-      loginButton.click();
+      fireEvent.click(screen.getByText('Login'));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/auth/login', {
@@ -180,73 +182,114 @@ describe('AuthContext', () => {
         });
       });
 
-      // Rerender to see updated state
       rerender(
         <AuthProvider>
-          <TestComponent />
+          <AuthStatus />
         </AuthProvider>
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('token-data')).toHaveTextContent('Has Token');
+        expect(screen.getByTestId('token-data')).toHaveTextContent('No Token');
       });
     });
 
-    it('should throw error on failed login', async () => {
-      // Mount call
-      mockFetch.mockResolvedValueOnce({ ok: false });
-      // Login call
+    it('should throw error on failed login with custom message', async () => {
+      function LoginWithError() {
+        const { login } = useAuth();
+        const [error, setError] = React.useState('');
+
+        const handleLogin = async () => {
+          try {
+            await login('test@test.com', 'wrongpass');
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="auth-status">Ready</div>
+            <button onClick={handleLogin}>Login</button>
+            {error && <div data-testid="error">{error}</div>}
+          </div>
+        );
+      }
+
+      mockUnauthenticatedMount();
       mockFetch.mockResolvedValueOnce({
         ok: false,
-        json: async () => ({ error: 'Invalid credentials' }),
+        json: async () => ({ error: 'Invalid password' }),
       });
 
       render(
         <AuthProvider>
-          <TestComponentWithActions />
+          <LoginWithError />
         </AuthProvider>
       );
 
-      const loginButton = screen.getByText('Login');
+      await waitForMountCheck();
+      fireEvent.click(screen.getByText('Login'));
 
-      await expect(async () => {
-        loginButton.click();
-        await waitFor(() => {
-          expect(mockFetch).toHaveBeenCalled();
-        });
-      }).rejects;
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent('Invalid password');
+      });
+    });
+
+    it('should use fallback message when login error has no custom message', async () => {
+      function LoginWithError() {
+        const { login } = useAuth();
+        const [error, setError] = React.useState('');
+
+        const handleLogin = async () => {
+          try {
+            await login('test@test.com', 'wrongpass');
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error');
+          }
+        };
+
+        return (
+          <div>
+            <div data-testid="auth-status">Ready</div>
+            <button onClick={handleLogin}>Login</button>
+            {error && <div data-testid="error">{error}</div>}
+          </div>
+        );
+      }
+
+      mockUnauthenticatedMount();
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      });
+
+      render(
+        <AuthProvider>
+          <LoginWithError />
+        </AuthProvider>
+      );
+
+      await waitForMountCheck();
+      fireEvent.click(screen.getByText('Login'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent('Login failed');
+      });
     });
   });
 
   describe('Logout', () => {
     it('should clear user and token on logout', async () => {
-      const mockUser = {
-        id: 'user123',
-        username: 'testuser',
-        email: 'test@example.com',
-        isVerified: true,
-        isPrivate: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      // Mount call - authenticated
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: mockUser }),
-      });
+      mockAuthenticatedMount();
 
       const { rerender } = render(
         <AuthProvider>
-          <TestComponent />
+          <AuthStatus />
         </AuthProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
-      });
+      await waitForAuthenticated();
 
-      // Mock the logout POST call
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -254,26 +297,19 @@ describe('AuthContext', () => {
 
       rerender(
         <AuthProvider>
-          <TestComponentWithActions />
+          <AuthActions />
         </AuthProvider>
       );
 
-      const logoutButton = screen.getByText('Logout');
-
-      await act(async () => {
-        logoutButton.click();
-      });
+      fireEvent.click(screen.getByText('Logout'));
 
       rerender(
         <AuthProvider>
-          <TestComponent />
+          <AuthStatus />
         </AuthProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Not Authenticated');
-      });
-
+      await waitForUnauthenticated();
       expect(mockFetch).toHaveBeenCalledWith('/api/auth/logout', {
         method: 'POST',
         credentials: 'same-origin',
@@ -281,132 +317,22 @@ describe('AuthContext', () => {
     });
   });
 
-  describe('Update Profile', () => {
-    it('should update user profile', async () => {
-      const initialUser = {
-        id: 'user123',
-        username: 'testuser',
-        email: 'test@example.com',
-        fullName: 'Original Name',
-        isVerified: true,
-        isPrivate: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const updatedUser = {
-        ...initialUser,
-        fullName: 'Updated Name',
-      };
-
-      // Mount call - authenticated
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: initialUser }),
-      });
-
-      function TestComponentWithBoth() {
-        const { user, isAuthenticated } = useAuth();
-        const { updateProfile } = useAuth();
-
+  describe('Register', () => {
+    it('should handle register success', async () => {
+      function RegisterComp() {
+        const { register, user } = useAuth();
         return (
           <div>
-            <div data-testid="auth-status">
-              {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
-            </div>
-            <div data-testid="user-name">{user?.fullName || 'No Name'}</div>
-            <button onClick={() => updateProfile({ fullName: 'Updated Name' })}>
-              Update Profile
+            <div data-testid="auth-status">Ready</div>
+            <button onClick={() => register('new@test.com', 'newuser', 'pass123', 'Full Name')}>
+              Register
             </button>
+            {user && <div data-testid="username">{user.username}</div>}
           </div>
         );
       }
 
-      render(
-        <AuthProvider>
-          <TestComponentWithBoth />
-        </AuthProvider>
-      );
-
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
-      });
-
-      // Mock the update profile call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: updatedUser }),
-      });
-
-      const updateButton = screen.getByText('Update Profile');
-      updateButton.click();
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'same-origin',
-          body: JSON.stringify({ fullName: 'Updated Name' }),
-        });
-      });
-    });
-  });
-
-  describe('useAuth hook', () => {
-    it('should throw error when used outside provider', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      expect(() => {
-        render(<TestComponent />);
-      }).toThrow('useAuth must be used within an AuthProvider');
-
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle fetch current user error and log to console', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      // Mock fetch to throw error
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-      render(
-        <AuthProvider>
-          <TestComponent />
-        </AuthProvider>
-      );
-
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'Failed to fetch current user:',
-          expect.any(Error)
-        );
-      });
-
-      consoleErrorSpy.mockRestore();
-    });
-  });
-
-  describe('Register Function - Branch Coverage', () => {
-    it('should handle register success path', async () => {
-      const TestRegisterComponent = () => {
-        const { register, user } = useAuth();
-        return (
-          <div>
-            <button onClick={() => register('new@test.com', 'newuser', 'pass123', 'Full Name')}>
-              Register
-            </button>
-            {user && <div>User: {user.username}</div>}
-          </div>
-        );
-      };
-
-      // Mount call - not authenticated
-      mockFetch.mockResolvedValueOnce({ ok: false });
-      // Register call
+      mockUnauthenticatedMount();
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -419,24 +345,20 @@ describe('AuthContext', () => {
 
       render(
         <AuthProvider>
-          <TestRegisterComponent />
+          <RegisterComp />
         </AuthProvider>
       );
 
-      // Wait for mount auth check to finish
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
-      });
-
+      await waitForMountCheck();
       fireEvent.click(screen.getByText('Register'));
 
       await waitFor(() => {
-        expect(screen.getByText('User: newuser')).toBeInTheDocument();
+        expect(screen.getByTestId('username')).toHaveTextContent('newuser');
       });
     });
 
-    it('should handle register error with custom message - branch coverage', async () => {
-      const TestRegisterComponent = () => {
+    it('should handle register error with custom message', async () => {
+      function RegisterWithError() {
         const { register } = useAuth();
         const [error, setError] = React.useState('');
 
@@ -450,15 +372,14 @@ describe('AuthContext', () => {
 
         return (
           <div>
+            <div data-testid="auth-status">Ready</div>
             <button onClick={handleRegister}>Register</button>
-            {error && <div>Error: {error}</div>}
+            {error && <div data-testid="error">{error}</div>}
           </div>
         );
-      };
+      }
 
-      // Mount call
-      mockFetch.mockResolvedValueOnce({ ok: false });
-      // Register call - error with custom message
+      mockUnauthenticatedMount();
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Email already registered' }),
@@ -466,24 +387,20 @@ describe('AuthContext', () => {
 
       render(
         <AuthProvider>
-          <TestRegisterComponent />
+          <RegisterWithError />
         </AuthProvider>
       );
 
-      // Wait for mount auth check
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
-      });
-
+      await waitForMountCheck();
       fireEvent.click(screen.getByText('Register'));
 
       await waitFor(() => {
-        expect(screen.getByText('Error: Email already registered')).toBeInTheDocument();
+        expect(screen.getByTestId('error')).toHaveTextContent('Email already registered');
       });
     });
 
-    it('should handle register error without custom message - fallback branch', async () => {
-      const TestRegisterComponent = () => {
+    it('should use fallback message when register error has no custom message', async () => {
+      function RegisterWithError() {
         const { register } = useAuth();
         const [error, setError] = React.useState('');
 
@@ -497,15 +414,14 @@ describe('AuthContext', () => {
 
         return (
           <div>
+            <div data-testid="auth-status">Ready</div>
             <button onClick={handleRegister}>Register</button>
-            {error && <div>Error: {error}</div>}
+            {error && <div data-testid="error">{error}</div>}
           </div>
         );
-      };
+      }
 
-      // Mount call
-      mockFetch.mockResolvedValueOnce({ ok: false });
-      // Register call - error without custom message (fallback)
+      mockUnauthenticatedMount();
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({}),
@@ -513,122 +429,91 @@ describe('AuthContext', () => {
 
       render(
         <AuthProvider>
-          <TestRegisterComponent />
+          <RegisterWithError />
         </AuthProvider>
       );
 
-      // Wait for mount auth check
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
-      });
-
+      await waitForMountCheck();
       fireEvent.click(screen.getByText('Register'));
 
       await waitFor(() => {
-        expect(screen.getByText('Error: Registration failed')).toBeInTheDocument();
+        expect(screen.getByTestId('error')).toHaveTextContent('Registration failed');
       });
     });
   });
 
-  describe('Login Function - Branch Coverage', () => {
-    it('should handle login error with custom message - branch coverage', async () => {
-      const TestLoginComponent = () => {
-        const { login } = useAuth();
-        const [error, setError] = React.useState('');
+  describe('Update Profile', () => {
+    it('should update user profile', async () => {
+      const updatedUser = { ...mockUser, fullName: 'Updated Name' };
 
-        const handleLogin = async () => {
-          try {
-            await login('test@test.com', 'wrongpass');
-          } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error');
-          }
-        };
+      function ProfileComp() {
+        const { isAuthenticated, updateProfile } = useAuth();
+        const [error, setError] = React.useState('');
+        const [updated, setUpdated] = React.useState(false);
 
         return (
           <div>
-            <button onClick={handleLogin}>Login</button>
-            {error && <div>Error: {error}</div>}
+            <div data-testid="auth-status">
+              {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await updateProfile({ fullName: 'Updated Name' });
+                  setUpdated(true);
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            >
+              Update Profile
+            </button>
+            {updated && <div data-testid="updated">Updated</div>}
+            {error && <div data-testid="error">{error}</div>}
           </div>
         );
-      };
+      }
 
-      // Mount call
-      mockFetch.mockResolvedValueOnce({ ok: false });
-      // Login call - error with custom message
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Invalid password' }),
+      mockFetch.mockImplementation((url: string | URL | Request) => {
+        const urlString = typeof url === 'string' ? url : url.toString();
+        if (urlString.includes('/api/auth/me')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ data: mockUser }),
+          });
+        }
+        if (urlString.includes('/api/users/profile')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ data: updatedUser }),
+          });
+        }
+        return Promise.resolve({ ok: false, json: async () => ({}) });
       });
 
       render(
         <AuthProvider>
-          <TestLoginComponent />
+          <ProfileComp />
         </AuthProvider>
       );
 
-      // Wait for mount auth check
+      await waitForAuthenticated();
+      fireEvent.click(screen.getByText('Update Profile'));
+
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
+        expect(screen.getByTestId('updated')).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('Login'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Error: Invalid password')).toBeInTheDocument();
+      expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ fullName: 'Updated Name' }),
       });
     });
 
-    it('should handle login error without custom message - fallback branch', async () => {
-      const TestLoginComponent = () => {
-        const { login } = useAuth();
-        const [error, setError] = React.useState('');
-
-        const handleLogin = async () => {
-          try {
-            await login('test@test.com', 'wrongpass');
-          } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error');
-          }
-        };
-
-        return (
-          <div>
-            <button onClick={handleLogin}>Login</button>
-            {error && <div>Error: {error}</div>}
-          </div>
-        );
-      };
-
-      // Mount call
-      mockFetch.mockResolvedValueOnce({ ok: false });
-      // Login call - error without custom message (fallback)
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({}),
-      });
-
-      render(
-        <AuthProvider>
-          <TestLoginComponent />
-        </AuthProvider>
-      );
-
-      // Wait for mount auth check
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
-      });
-
-      fireEvent.click(screen.getByText('Login'));
-
-      await waitFor(() => {
-        expect(screen.getByText('Error: Login failed')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('UpdateProfile Function - Branch Coverage', () => {
-    it('should throw error when no token - branch coverage', async () => {
-      const TestUpdateComponent = () => {
+    it('should throw error when not authenticated', async () => {
+      function UpdateWithError() {
         const { updateProfile } = useAuth();
         const [error, setError] = React.useState('');
 
@@ -642,47 +527,31 @@ describe('AuthContext', () => {
 
         return (
           <div>
+            <div data-testid="auth-status">Ready</div>
             <button onClick={handleUpdate}>Update</button>
-            {error && <div>Error: {error}</div>}
+            {error && <div data-testid="error">{error}</div>}
           </div>
         );
-      };
+      }
 
-      // Mount call - not authenticated
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-      });
+      mockUnauthenticatedMount();
 
       render(
         <AuthProvider>
-          <TestUpdateComponent />
+          <UpdateWithError />
         </AuthProvider>
       );
 
-      // Wait for mount to finish
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
-      });
-
+      await waitForMountCheck();
       fireEvent.click(screen.getByText('Update'));
 
       await waitFor(() => {
-        expect(screen.getByText('Error: Not authenticated')).toBeInTheDocument();
+        expect(screen.getByTestId('error')).toHaveTextContent('Not authenticated');
       });
     });
 
-    it('should handle update profile error with custom message - lines 136-137', async () => {
-      const initialUser = {
-        id: 'user123',
-        username: 'testuser',
-        email: 'test@example.com',
-        isVerified: true,
-        isPrivate: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const TestUpdateComponent = () => {
+    it('should handle update profile error with custom message', async () => {
+      function UpdateWithError() {
         const { updateProfile, isAuthenticated } = useAuth();
         const [error, setError] = React.useState('');
 
@@ -696,22 +565,24 @@ describe('AuthContext', () => {
 
         return (
           <div>
-            <div data-testid="auth-status">{isAuthenticated ? 'Auth' : 'Not Auth'}</div>
+            <div data-testid="auth-status">
+              {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+            </div>
             <button onClick={handleUpdate}>Update</button>
-            {error && <div data-testid="error-message">Error: {error}</div>}
+            {error && <div data-testid="error">{error}</div>}
           </div>
         );
-      };
+      }
 
-      mockFetch.mockReset();
       mockFetch.mockImplementation((url: string | URL | Request) => {
         const urlString = typeof url === 'string' ? url : url.toString();
         if (urlString.includes('/api/auth/me')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ data: initialUser }),
+            json: async () => ({ data: mockUser }),
           });
-        } else if (urlString.includes('/api/users/profile')) {
+        }
+        if (urlString.includes('/api/users/profile')) {
           return Promise.resolve({
             ok: false,
             json: async () => ({ error: 'Profile update not allowed' }),
@@ -722,42 +593,20 @@ describe('AuthContext', () => {
 
       render(
         <AuthProvider>
-          <TestUpdateComponent />
+          <UpdateWithError />
         </AuthProvider>
       );
 
-      // Wait for user to be loaded
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
-        },
-        { timeout: 2000 }
-      );
-
+      await waitForAuthenticated();
       fireEvent.click(screen.getByText('Update'));
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('error-message')).toHaveTextContent(
-            'Error: Profile update not allowed'
-          );
-        },
-        { timeout: 2000 }
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent('Profile update not allowed');
+      });
     });
 
-    it('should handle update profile error without custom message - fallback lines 136-137', async () => {
-      const initialUser = {
-        id: 'user123',
-        username: 'testuser',
-        email: 'test@example.com',
-        isVerified: true,
-        isPrivate: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const TestUpdateComponent = () => {
+    it('should use fallback message when update error has no custom message', async () => {
+      function UpdateWithError() {
         const { updateProfile, isAuthenticated } = useAuth();
         const [error, setError] = React.useState('');
 
@@ -771,25 +620,27 @@ describe('AuthContext', () => {
 
         return (
           <div>
-            <div data-testid="auth-status">{isAuthenticated ? 'Auth' : 'Not Auth'}</div>
+            <div data-testid="auth-status">
+              {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+            </div>
             <button onClick={handleUpdate}>Update</button>
-            {error && <div data-testid="error-message">Error: {error}</div>}
+            {error && <div data-testid="error">{error}</div>}
           </div>
         );
-      };
+      }
 
-      mockFetch.mockReset();
       mockFetch.mockImplementation((url: string | URL | Request) => {
         const urlString = typeof url === 'string' ? url : url.toString();
         if (urlString.includes('/api/auth/me')) {
           return Promise.resolve({
             ok: true,
-            json: async () => ({ data: initialUser }),
+            json: async () => ({ data: mockUser }),
           });
-        } else if (urlString.includes('/api/users/profile')) {
+        }
+        if (urlString.includes('/api/users/profile')) {
           return Promise.resolve({
             ok: false,
-            json: async () => ({}), // No custom error message
+            json: async () => ({}),
           });
         }
         return Promise.resolve({ ok: false, json: async () => ({}) });
@@ -797,26 +648,51 @@ describe('AuthContext', () => {
 
       render(
         <AuthProvider>
-          <TestUpdateComponent />
+          <UpdateWithError />
         </AuthProvider>
       );
 
-      // Wait for user to be loaded
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('auth-status')).toHaveTextContent('Auth');
-        },
-        { timeout: 2000 }
-      );
-
+      await waitForAuthenticated();
       fireEvent.click(screen.getByText('Update'));
 
-      await waitFor(
-        () => {
-          expect(screen.getByTestId('error-message')).toHaveTextContent('Error: Update failed');
-        },
-        { timeout: 2000 }
+      await waitFor(() => {
+        expect(screen.getByTestId('error')).toHaveTextContent('Update failed');
+      });
+    });
+  });
+
+  describe('useAuth hook', () => {
+    it('should throw error when used outside provider', () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      expect(() => {
+        render(<AuthStatus />);
+      }).toThrow('useAuth must be used within an AuthProvider');
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle fetch current user error and log to console', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      render(
+        <AuthProvider>
+          <AuthStatus />
+        </AuthProvider>
       );
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Failed to fetch current user:',
+          expect.any(Error)
+        );
+      });
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });

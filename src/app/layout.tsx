@@ -1,6 +1,7 @@
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { Analytics } from '@vercel/analytics/next';
 import { Nunito } from 'next/font/google';
+import { headers } from 'next/headers';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { BRANDING } from '@/config/branding';
@@ -81,13 +82,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     <html lang="en" suppressHydrationWarning className={nunito.variable}>
       <head>
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

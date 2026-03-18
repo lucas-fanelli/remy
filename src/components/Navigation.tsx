@@ -82,7 +82,7 @@ export default function Navigation() {
   const isSmallDesktop = useMediaQuery(theme.breakpoints.down('lg'));
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, token, isAdmin } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('home');
@@ -175,17 +175,15 @@ export default function Navigation() {
   }, [pathname]);
 
   // Fetch notification count and notifications
+  const consecutiveFailuresRef = React.useRef(0);
+
   const fetchNotifications = useCallback(async () => {
-    if (!token) {
+    if (!user) {
       return;
     }
 
     try {
-      const response = await fetch('/api/notifications', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/notifications');
 
       // Defensive check for when fetch returns undefined (e.g., in tests)
       if (!response) {
@@ -193,6 +191,7 @@ export default function Navigation() {
       }
 
       if (response.ok) {
+        consecutiveFailuresRef.current = 0;
         const data = await response.json();
 
         // Deduplicate notifications by ID to prevent duplicate key warnings
@@ -203,41 +202,73 @@ export default function Navigation() {
 
         setNotifications(uniqueNotifications);
         setUnreadNotifications(data.unreadCount || 0);
+      } else if (response.status === 401) {
+        // Token expired or invalid — stop polling, trigger logout
+        consecutiveFailuresRef.current = Infinity;
+        logout();
+        return;
       } else {
+        consecutiveFailuresRef.current++;
         console.error('Navigation: Failed to fetch notifications, status:', response.status);
       }
     } catch (error) {
+      consecutiveFailuresRef.current++;
       console.error('Error fetching notifications:', error);
     }
-  }, [token]);
+  }, [user, logout]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
 
+    const BASE_INTERVAL = 60_000; // 60s
+    const MAX_INTERVAL = 5 * 60_000; // 5min cap
+
+    // Reset backoff on login/user change
+    consecutiveFailuresRef.current = 0;
     fetchNotifications();
 
-    // Poll for new notifications every 60 seconds, pause when tab is hidden
-    let interval: ReturnType<typeof setInterval> | null = setInterval(fetchNotifications, 60000);
+    // Poll with exponential backoff on failure, reset on success.
+    // Use a ref-like object so visibility handler and scheduleNext
+    // always see the latest timeout ID (avoids stale closure).
+    const polling = { timeoutId: null as ReturnType<typeof setTimeout> | null };
+
+    const clearPolling = () => {
+      if (polling.timeoutId) {
+        clearTimeout(polling.timeoutId);
+        polling.timeoutId = null;
+      }
+    };
+
+    const scheduleNext = () => {
+      clearPolling();
+      const backoffMs = Math.min(
+        BASE_INTERVAL * Math.pow(2, consecutiveFailuresRef.current),
+        MAX_INTERVAL
+      );
+      polling.timeoutId = setTimeout(async () => {
+        await fetchNotifications();
+        scheduleNext();
+      }, backoffMs);
+    };
+
+    scheduleNext();
 
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        if (interval) {
-          clearInterval(interval);
-          interval = null;
-        }
-      } else if (!interval) {
+        clearPolling();
+      } else if (!polling.timeoutId) {
         fetchNotifications();
-        interval = setInterval(fetchNotifications, 60000);
+        scheduleNext();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      if (interval) clearInterval(interval);
+      clearPolling();
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [token, fetchNotifications]);
+  }, [user, fetchNotifications]);
 
   // Notification handlers
   const handleNotificationsOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -249,15 +280,12 @@ export default function Navigation() {
   };
 
   const markAllAsRead = async () => {
-    if (!token || markingAsRead) return;
+    if (!user || markingAsRead) return;
 
     try {
       setMarkingAsRead(true);
       const response = await fetch('/api/notifications', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {
@@ -307,13 +335,10 @@ export default function Navigation() {
     handleNotificationsClose();
 
     // Mark notification as read if not already read
-    if (!notification.isRead && token) {
+    if (!notification.isRead && user) {
       try {
         const response = await fetch(`/api/notifications/${notification.id}`, {
           method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         });
 
         if (response.ok) {
@@ -344,7 +369,6 @@ export default function Navigation() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });

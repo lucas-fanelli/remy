@@ -24,17 +24,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Check if recipe exists
-    const recipe = await prisma.post.findUnique({
-      where: { id: recipeId },
-    });
-
-    if (!recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-    }
-
-    // Fully atomic like toggle inside a single interactive transaction
+    // Fully atomic like toggle — recipe check inside the transaction
     const result = await prisma.$transaction(async (tx) => {
+      const recipe = await tx.post.findUnique({ where: { id: recipeId } });
+      if (!recipe) {
+        throw new Error('RECIPE_NOT_FOUND');
+      }
+
       const existingLike = await tx.like.findUnique({
         where: { postId_userId: { postId: recipeId, userId: payload.userId } },
       });
@@ -46,16 +42,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
 
       const likesCount = await tx.like.count({ where: { postId: recipeId } });
-      return { liked: !existingLike, likesCount };
+      return { liked: !existingLike, likesCount, recipeAuthorId: recipe.userId };
     });
 
     // Handle notifications outside transaction (non-critical)
     try {
       const notificationService = container.getNotificationService();
       if (result.liked) {
-        await notificationService.createLikeNotification(payload.userId, recipeId, recipe.userId);
+        await notificationService.createLikeNotification(
+          payload.userId,
+          recipeId,
+          result.recipeAuthorId
+        );
       } else {
-        await notificationService.deleteLikeNotification(payload.userId, recipeId, recipe.userId);
+        await notificationService.deleteLikeNotification(
+          payload.userId,
+          recipeId,
+          result.recipeAuthorId
+        );
       }
     } catch {
       // Notification failure is non-critical
@@ -67,6 +71,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       message: result.liked ? 'Recipe liked' : 'Recipe unliked',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+    }
     console.error('Error toggling like:', error);
     return NextResponse.json({ error: 'Failed to toggle like' }, { status: 500 });
   }

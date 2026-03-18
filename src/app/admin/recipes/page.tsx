@@ -51,7 +51,7 @@ interface AdminRecipe {
 export default function AdminRecipesPage() {
   const router = useRouter();
   const theme = useTheme();
-  const { user, token, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
 
   const [recipes, setRecipes] = useState<AdminRecipe[]>([]);
   const [total, setTotal] = useState(0);
@@ -70,7 +70,7 @@ export default function AdminRecipesPage() {
   }, [search]);
 
   const fetchRecipes = useCallback(async () => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     setLoading(true);
     try {
@@ -80,9 +80,7 @@ export default function AdminRecipesPage() {
       });
       if (debouncedSearch) params.append('search', debouncedSearch);
 
-      const response = await fetch(`/api/admin/recipes?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(`/api/admin/recipes?${params}`);
 
       if (!response.ok) throw new Error('Failed to fetch recipes');
 
@@ -94,17 +92,17 @@ export default function AdminRecipesPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, rowsPerPage, debouncedSearch]);
+  }, [isAuthenticated, page, rowsPerPage, debouncedSearch]);
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
       router.push('/');
       return;
     }
-    if (token && isAdmin) {
+    if (isAuthenticated && isAdmin) {
       fetchRecipes();
     }
-  }, [user, token, isAdmin, authLoading, router, fetchRecipes]);
+  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchRecipes]);
 
   const handleDeleteClick = (recipe: AdminRecipe) => {
     setSelectedRecipe(recipe);
@@ -112,13 +110,12 @@ export default function AdminRecipesPage() {
   };
 
   const handleDelete = async () => {
-    if (!selectedRecipe || !token) return;
+    if (!selectedRecipe || !isAuthenticated) return;
 
     setActionLoading(true);
     try {
       const response = await fetch(`/api/admin/recipes/${selectedRecipe.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) throw new Error('Failed to delete recipe');
@@ -239,7 +236,7 @@ export default function AdminRecipesPage() {
                     </TableCell>
                     <TableCell align="center">{recipe._count?.likes || 0}</TableCell>
                     <TableCell align="center">{recipe._count?.comments || 0}</TableCell>
-                    <TableCell>{new Date(recipe.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(recipe.createdAt).toLocaleDateString('en-US')}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Recipe">
                         <IconButton

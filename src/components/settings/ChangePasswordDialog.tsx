@@ -25,7 +25,7 @@ interface ChangePasswordDialogProps {
 }
 
 export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProps) {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { showSuccess, showError } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -106,7 +106,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
       return;
     }
 
-    if (!token) {
+    if (!isAuthenticated) {
       showError('You must be logged in to change your password');
       return;
     }
@@ -118,7 +118,6 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           oldPassword: formData.currentPassword,

@@ -21,6 +21,24 @@ export async function PUT(request: NextRequest) {
     // Validate input
     const validatedData = updateProfileSchema.parse(body);
 
+    // Validate avatar URL is a Cloudinary URL if provided
+    if (validatedData.avatar) {
+      try {
+        const avatarUrl = new URL(validatedData.avatar);
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        if (
+          !['http:', 'https:'].includes(avatarUrl.protocol) ||
+          avatarUrl.hostname !== 'res.cloudinary.com' ||
+          !cloudName ||
+          !avatarUrl.pathname.startsWith(`/${cloudName}/`)
+        ) {
+          return ApiResponseHelper.badRequest('Avatar must be uploaded through the app');
+        }
+      } catch {
+        return ApiResponseHelper.badRequest('Invalid avatar URL');
+      }
+    }
+
     // Convert null to undefined for TypeScript compatibility
     const profileData = {
       ...validatedData,

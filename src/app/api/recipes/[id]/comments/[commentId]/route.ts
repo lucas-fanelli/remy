@@ -47,26 +47,6 @@ export async function PATCH(
       );
     }
 
-    // Check if comment exists and user owns it
-    const existingComment = await prisma.comment.findUnique({
-      where: { id: commentId },
-    });
-
-    if (!existingComment) {
-      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
-    }
-
-    if (existingComment.postId !== recipeId) {
-      return NextResponse.json(
-        { error: 'Comment does not belong to this recipe' },
-        { status: 400 }
-      );
-    }
-
-    if (existingComment.userId !== payload.userId) {
-      return NextResponse.json({ error: 'Unauthorized to edit this comment' }, { status: 403 });
-    }
-
     // Validate rating before any writes
     if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
       return NextResponse.json(
@@ -75,8 +55,24 @@ export async function PATCH(
       );
     }
 
-    // Update comment and rating atomically in a transaction
+    // Ownership check + update atomically in a transaction to prevent TOCTOU race
     const comment = await prisma.$transaction(async (tx) => {
+      const existingComment = await tx.comment.findUnique({
+        where: { id: commentId },
+      });
+
+      if (!existingComment) {
+        throw new Error('COMMENT_NOT_FOUND');
+      }
+
+      if (existingComment.postId !== recipeId) {
+        throw new Error('COMMENT_WRONG_RECIPE');
+      }
+
+      if (existingComment.userId !== payload.userId) {
+        throw new Error('COMMENT_UNAUTHORIZED');
+      }
+
       const updatedComment = await tx.comment.update({
         where: { id: commentId },
         data: {
@@ -148,6 +144,20 @@ export async function PATCH(
       message: 'Comment updated successfully',
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'COMMENT_NOT_FOUND') {
+        return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+      }
+      if (error.message === 'COMMENT_WRONG_RECIPE') {
+        return NextResponse.json(
+          { error: 'Comment does not belong to this recipe' },
+          { status: 400 }
+        );
+      }
+      if (error.message === 'COMMENT_UNAUTHORIZED') {
+        return NextResponse.json({ error: 'Unauthorized to edit this comment' }, { status: 403 });
+      }
+    }
     console.error('Error updating comment:', error);
     return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 });
   }
@@ -177,28 +187,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Check if comment exists and user owns it
-    const existingComment = await prisma.comment.findUnique({
-      where: { id: commentId },
+    // Atomic ownership check + delete to prevent TOCTOU race
+    const { count } = await prisma.comment.deleteMany({
+      where: {
+        id: commentId,
+        postId: recipeId,
+        userId: payload.userId,
+      },
     });
 
-    if (!existingComment) {
-      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+    if (count === 0) {
+      return NextResponse.json({ error: 'Comment not found or unauthorized' }, { status: 404 });
     }
-
-    if (existingComment.postId !== recipeId) {
-      return NextResponse.json(
-        { error: 'Comment does not belong to this recipe' },
-        { status: 400 }
-      );
-    }
-
-    if (existingComment.userId !== payload.userId) {
-      return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
-    }
-
-    // Delete only the comment — ratings are separate entities and should persist
-    await prisma.comment.delete({ where: { id: commentId } });
 
     return NextResponse.json({
       message: 'Comment deleted successfully',

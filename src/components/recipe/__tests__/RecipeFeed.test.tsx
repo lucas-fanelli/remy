@@ -601,7 +601,7 @@ describe('RecipeFeed Component', () => {
   });
 
   it('should delete recipe successfully', async () => {
-    mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
     setupSuccessfulFetch();
 
     renderWithProviders(<RecipeFeed />);
@@ -633,7 +633,7 @@ describe('RecipeFeed Component', () => {
 
   it('should handle delete error', async () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
     setupSuccessfulFetch();
 
     renderWithProviders(<RecipeFeed />);
@@ -684,7 +684,7 @@ describe('RecipeFeed Component', () => {
 
   it('should handle like error gracefully', async () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
     setupSuccessfulFetch();
 
     renderWithProviders(<RecipeFeed />);
@@ -856,7 +856,7 @@ describe('RecipeFeed Component', () => {
     });
 
     it('should successfully toggle like when logged in (lines 291-293) - branch coverage', async () => {
-      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
       setupSuccessfulFetch();
 
       renderWithProviders(<RecipeFeed />);
@@ -880,16 +880,13 @@ describe('RecipeFeed Component', () => {
           '/api/recipes/1/like',
           expect.objectContaining({
             method: 'POST',
-            headers: expect.objectContaining({
-              Authorization: 'Bearer test-token',
-            }),
           })
         );
       });
     });
 
     it('should revert like state when API returns ok: false - lines 320-324', async () => {
-      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
       setupSuccessfulFetch();
 
       renderWithProviders(<RecipeFeed />);
@@ -990,7 +987,7 @@ describe('RecipeFeed Component', () => {
 
     it('should throw error with custom message when delete fails - lines 224-225', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
       setupSuccessfulFetch();
 
       renderWithProviders(<RecipeFeed />);
@@ -1026,7 +1023,7 @@ describe('RecipeFeed Component', () => {
     });
 
     it('should remove recipe and show success message on successful delete - lines 228-234', async () => {
-      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
       const recipe1 = { ...mockRecipe, id: '1', title: 'Recipe 1' };
       const recipe2 = { ...mockRecipe, id: '2', title: 'Recipe 2' };
 
@@ -1071,7 +1068,7 @@ describe('RecipeFeed Component', () => {
 
     it('should show non-Error exception fallback message - lines 237-241', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
       setupSuccessfulFetch();
 
       renderWithProviders(<RecipeFeed />);
@@ -1133,7 +1130,7 @@ describe('RecipeFeed Component', () => {
     });
 
     it('should use default like state when recipe not in recipeLikes - lines 287-289', async () => {
-      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
 
       // Mock recipe fetch - engagement data comes from the recipes API response
       // Recipe without likeCount/commentCount will default to 0
@@ -1340,7 +1337,7 @@ describe('RecipeFeed Component', () => {
   describe('Delete Error Fallback - line 234', () => {
     it('should show fallback error message when server returns no error field - line 234', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      mockUseAuth.mockReturnValue({ token: 'test-token', user: { id: 'user1' } });
+      mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
       setupSuccessfulFetch();
 
       renderWithProviders(<RecipeFeed />);

@@ -34,21 +34,17 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
-  const { token, user, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAsRead, setMarkingAsRead] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
 
     try {
-      const response = await fetch('/api/notifications', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/notifications');
 
       if (response.ok) {
         const data = await response.json();
@@ -59,7 +55,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -67,21 +63,18 @@ export default function NotificationsPage() {
       return;
     }
 
-    if (token) {
+    if (user) {
       fetchNotifications();
     }
-  }, [user, isLoading, token, router, fetchNotifications]);
+  }, [user, isLoading, router, fetchNotifications]);
 
   const markAllAsRead = async () => {
-    if (!token || markingAsRead) return;
+    if (!user || markingAsRead) return;
 
     try {
       setMarkingAsRead(true);
       const response = await fetch('/api/notifications', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {

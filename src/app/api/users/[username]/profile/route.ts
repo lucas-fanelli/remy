@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractBearerToken } from '@/lib/utils/auth';
@@ -22,6 +23,10 @@ export async function GET(
   try {
     const { username } = await params;
 
+    if (!USERNAME_REGEX.test(username)) {
+      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+    }
+
     // Get authorization token (optional)
     const token = extractBearerToken(request);
     let currentUserId: string | null = null;
@@ -33,9 +38,17 @@ export async function GET(
         if (payload) {
           currentUserId = payload.userId;
         }
-      } catch {
-        // Token verification failed - continue without authentication
-        // This allows viewing profiles without being logged in
+      } catch (error) {
+        // Expected JWT failures (expired, malformed) are fine — continue unauthenticated.
+        // Log unexpected errors so DI/config issues aren't silently swallowed.
+        const isExpectedJwtError =
+          error instanceof Error &&
+          (error.name === 'JsonWebTokenError' ||
+            error.name === 'TokenExpiredError' ||
+            error.name === 'NotBeforeError');
+        if (!isExpectedJwtError) {
+          console.error('Unexpected error during token verification:', error);
+        }
       }
     }
 

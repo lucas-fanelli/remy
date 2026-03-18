@@ -50,7 +50,7 @@ describe('EditProfileModal', () => {
 
     mockUseAuth.mockReturnValue({
       user: mockUser,
-      token: 'mock-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       isAdmin: false,
@@ -216,7 +216,6 @@ describe('EditProfileModal', () => {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: 'Bearer mock-token',
           },
           body: expect.stringContaining('New Name'),
         });
@@ -443,9 +442,6 @@ describe('EditProfileModal', () => {
           '/api/upload/avatar',
           expect.objectContaining({
             method: 'POST',
-            headers: expect.objectContaining({
-              Authorization: 'Bearer mock-token',
-            }),
           })
         );
       });
@@ -515,7 +511,7 @@ describe('EditProfileModal', () => {
 
       mockUseAuth.mockReturnValue({
         user: userWithNulls,
-        token: 'mock-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -745,7 +741,7 @@ describe('EditProfileModal', () => {
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoName,
-        token: 'mock-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -770,7 +766,7 @@ describe('EditProfileModal', () => {
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoBio,
-        token: 'mock-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -796,7 +792,7 @@ describe('EditProfileModal', () => {
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoWebsite,
-        token: 'mock-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -851,7 +847,7 @@ describe('EditProfileModal', () => {
       };
       mockUseAuth.mockReturnValue({
         user: userWithNoAvatar,
-        token: 'mock-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,

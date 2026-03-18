@@ -1,5 +1,6 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseHelper } from '@/lib/api/response';
+import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 
 export async function GET(
@@ -8,6 +9,11 @@ export async function GET(
 ) {
   try {
     const { username } = await params;
+
+    if (!USERNAME_REGEX.test(username)) {
+      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+    }
+
     const userService = container.getUserService();
     const user = await userService.getUserByUsername(username);
 
@@ -15,7 +21,9 @@ export async function GET(
       return ApiResponseHelper.notFound('User not found');
     }
 
-    return ApiResponseHelper.success({ user });
+    // Strip email from public response to prevent enumeration
+    const { email, ...publicUser } = user;
+    return ApiResponseHelper.success({ user: publicUser });
   } catch (error) {
     console.error('Get user error:', error);
     return ApiResponseHelper.internalError();

@@ -105,22 +105,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the recipe exists and get its ingredients
-    const recipe = await prisma.post.findUnique({
-      where: { id: postId },
-    });
-
-    if (!recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-    }
-
-    // Remove recipe ingredients from pantry and create cooked recipe atomically
+    // All checks and mutations inside a single transaction for atomicity
     const cookedRecipe = await prisma.$transaction(async (tx) => {
-      // Check for duplicate inside transaction to prevent race condition
-      const today = new Date();
-      today.setUTCHours(0, 0, 0, 0);
+      // Verify the recipe exists inside the transaction
+      const recipe = await tx.post.findUnique({ where: { id: postId } });
+      if (!recipe) {
+        throw new Error('RECIPE_NOT_FOUND');
+      }
+
+      // Check for duplicate within a rolling 24-hour window (timezone-safe)
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const existingCooked = await tx.cookedRecipe.findFirst({
-        where: { userId: payload.userId, postId, cookedAt: { gte: today } },
+        where: { userId: payload.userId, postId, cookedAt: { gte: twentyFourHoursAgo } },
       });
       if (existingCooked) {
         throw new Error('ALREADY_COOKED');
@@ -214,8 +210,16 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof Error && error.message === 'ALREADY_COOKED') {
-      return NextResponse.json({ error: 'Recipe already marked as cooked today' }, { status: 409 });
+    if (error instanceof Error) {
+      if (error.message === 'RECIPE_NOT_FOUND') {
+        return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+      }
+      if (error.message === 'ALREADY_COOKED') {
+        return NextResponse.json(
+          { error: 'Recipe already marked as cooked today' },
+          { status: 409 }
+        );
+      }
     }
     console.error('Error marking recipe as cooked:', error);
     return NextResponse.json({ error: 'Failed to mark recipe as cooked' }, { status: 500 });
@@ -244,21 +248,17 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Valid cooked recipe ID is required' }, { status: 400 });
     }
 
-    // Verify ownership before deleting
-    const cookedRecipe = await prisma.cookedRecipe.findFirst({
+    // Atomic ownership check + delete in one query
+    const { count } = await prisma.cookedRecipe.deleteMany({
       where: {
         id: cookedRecipeId,
         userId: payload.userId,
       },
     });
 
-    if (!cookedRecipe) {
+    if (count === 0) {
       return NextResponse.json({ error: 'Cooked recipe not found' }, { status: 404 });
     }
-
-    await prisma.cookedRecipe.delete({
-      where: { id: cookedRecipeId },
-    });
 
     return NextResponse.json({ message: 'Cooked recipe removed' });
   } catch (error) {

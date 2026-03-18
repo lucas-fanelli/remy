@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getQueryClient } from '@/providers/QueryProvider';
 
 export type User = {
   id: string;
@@ -18,6 +19,7 @@ export type User = {
 
 type AuthContextType = {
   user: User | null;
+  /** @deprecated Auth is cookie-based. Use `isAuthenticated` instead. */
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -32,7 +34,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check auth status on mount via httpOnly cookie (sent automatically)
@@ -43,17 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchCurrentUser = async () => {
     try {
       const response = await fetch('/api/auth/me', {
-        credentials: 'same-origin', // Include httpOnly cookies
+        credentials: 'same-origin',
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data.data);
-        // Token is in httpOnly cookie, keep in-memory reference for components that need it
-        setToken('cookie-auth');
       } else {
         setUser(null);
-        setToken(null);
       }
     } catch (error) {
       console.error('Failed to fetch current user:', error);
@@ -65,9 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (emailOrUsername: string, password: string) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({ emailOrUsername, password }),
     });
@@ -79,17 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     setUser(data.data.user);
-    // Token is set as httpOnly cookie by the server
-    // Keep in-memory reference for backward compatibility
-    setToken(data.data.token);
+    // JWT is in httpOnly cookie — never stored in client state
   };
 
   const register = async (email: string, username: string, password: string, fullName?: string) => {
     const response = await fetch('/api/auth/register', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({ email, username, password, fullName }),
     });
@@ -101,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     setUser(data.data.user);
-    setToken(data.data.token);
   };
 
   const logout = async () => {
@@ -114,19 +105,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Continue with client-side cleanup even if server call fails
     }
     setUser(null);
-    setToken(null);
+    try {
+      getQueryClient()?.clear();
+    } catch {
+      // QueryClient not available (e.g., during SSR or tests)
+    }
   };
 
   const updateProfile = async (data: Partial<User>) => {
-    if (!token) {
+    if (!user) {
       throw new Error('Not authenticated');
     }
 
     const response = await fetch('/api/users/profile', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify(data),
     });
@@ -140,13 +133,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(result.data);
   };
 
+  const isAuthenticated = !!user;
+
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
+        token: null, // Deprecated — auth is cookie-based
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated,
         isAdmin: user?.role === 'ADMIN',
         login,
         register,

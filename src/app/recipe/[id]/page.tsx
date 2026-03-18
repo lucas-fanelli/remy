@@ -56,7 +56,7 @@ const MotionCard = motion.create(Card);
 export default function RecipeDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const queryClient = useQueryClient();
@@ -65,8 +65,8 @@ export default function RecipeDetailPage() {
 
   // React Query hooks - with keepPreviousData for smooth transitions
   const { data: recipe, isLoading: loading, error: queryError } = useRecipe(recipeId);
-  const { data: likeStatus } = useRecipeLikeStatus(recipeId, token);
-  const { data: saveStatus } = useRecipeSaveStatus(recipeId, token);
+  const { data: likeStatus } = useRecipeLikeStatus(recipeId, user?.id ?? null);
+  const { data: saveStatus } = useRecipeSaveStatus(recipeId, user?.id ?? null);
 
   // Derived state from queries
   const error = queryError?.message || null;
@@ -124,15 +124,12 @@ export default function RecipeDetailPage() {
   };
 
   const confirmDelete = async () => {
-    if (!token) return;
+    if (!user) return;
 
     try {
       setDeleting(true);
       const response = await fetch(`/api/recipes/${recipeId}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -158,7 +155,7 @@ export default function RecipeDetailPage() {
   };
 
   const handleLike = async () => {
-    if (!token) {
+    if (!user) {
       setSnackbar({ open: true, message: 'Please login to like recipes', severity: 'error' });
       return;
     }
@@ -167,9 +164,6 @@ export default function RecipeDetailPage() {
       setLikeLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {
@@ -191,7 +185,7 @@ export default function RecipeDetailPage() {
   };
 
   const handleSave = async () => {
-    if (!token) {
+    if (!user) {
       setSnackbar({ open: true, message: 'Please login to save recipes', severity: 'error' });
       return;
     }
@@ -200,9 +194,6 @@ export default function RecipeDetailPage() {
       setSaveLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/save`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {
@@ -250,7 +241,7 @@ export default function RecipeDetailPage() {
   };
 
   const handleMarkAsCooked = async () => {
-    if (!token) {
+    if (!user) {
       setSnackbar({
         open: true,
         message: 'Please login to mark recipes as cooked',
@@ -265,7 +256,6 @@ export default function RecipeDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           postId: recipeId,

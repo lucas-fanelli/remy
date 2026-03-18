@@ -35,7 +35,7 @@ export default function FollowersPage() {
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
-  const { token, user: currentUser } = useAuth();
+  const { isAuthenticated, user: currentUser } = useAuth();
 
   const [followers, setFollowers] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,14 +45,7 @@ export default function FollowersPage() {
   useEffect(() => {
     const fetchFollowers = async () => {
       try {
-        const headers: HeadersInit = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`/api/users/${username}/followers`, {
-          headers,
-        });
+        const response = await fetch(`/api/users/${username}/followers`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch followers');
@@ -76,10 +69,10 @@ export default function FollowersPage() {
     };
 
     fetchFollowers();
-  }, [username, token]);
+  }, [username, isAuthenticated]);
 
   const handleFollow = async (targetUsername: string) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     const isCurrentlyFollowing = followingState[targetUsername] || false;
 
@@ -89,9 +82,6 @@ export default function FollowersPage() {
       const endpoint = isCurrentlyFollowing ? 'unfollow' : 'follow';
       const response = await fetch(`/api/users/${targetUsername}/${endpoint}`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {

@@ -84,11 +84,13 @@ export async function middleware(request: NextRequest) {
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   );
 
-  // Content Security Policy
+  // Content Security Policy with per-request nonce (replaces unsafe-inline)
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'", // unsafe-inline needed for Next.js inline scripts
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    `script-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https:",
@@ -97,6 +99,9 @@ export async function middleware(request: NextRequest) {
     "form-action 'self'",
   ].join('; ');
   response.headers.set('Content-Security-Policy', csp);
+
+  // Pass the nonce to Next.js so it can apply it to inline <script> tags
+  response.headers.set('x-nonce', nonce);
 
   // CORS Headers
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
@@ -119,16 +124,24 @@ export async function middleware(request: NextRequest) {
 
   // Block admin pages server-side for non-admin users with HMAC signature verification
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    const authHeader = request.headers.get('authorization');
+    // Prefer httpOnly cookie over Bearer header (cookie is canonical auth)
     const cookieToken = request.cookies.get('auth_token')?.value;
+    const authHeader = request.headers.get('authorization');
     const rawToken =
-      (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null) || cookieToken;
+      cookieToken || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null);
 
     let isAdmin = false;
     if (rawToken && process.env.JWT_SECRET) {
       try {
         const parts = rawToken.split('.');
         if (parts.length === 3) {
+          // Validate algorithm is HS256 to prevent algorithm confusion attacks
+          const headerJson = atob(parts[0].replace(/-/g, '+').replace(/_/g, '/'));
+          const header = JSON.parse(headerJson);
+          if (header.alg !== 'HS256') {
+            throw new Error('Unsupported JWT algorithm');
+          }
+
           // Verify HMAC-SHA256 signature using Web Crypto API
           const encoder = new TextEncoder();
           const key = await crypto.subtle.importKey(
@@ -148,7 +161,7 @@ export async function middleware(request: NextRequest) {
             const paddedPayload = b64Payload + '='.repeat((4 - (b64Payload.length % 4)) % 4);
             const payload = JSON.parse(atob(paddedPayload));
             const now = Math.floor(Date.now() / 1000);
-            isAdmin = payload.role === 'ADMIN' && (!payload.exp || payload.exp > now);
+            isAdmin = payload.role === 'ADMIN' && payload.exp && payload.exp > now;
           }
         }
       } catch {
@@ -158,6 +171,30 @@ export async function middleware(request: NextRequest) {
 
     if (!isAdmin) {
       return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  // CSRF protection: state-changing API requests must include a custom header.
+  // Browsers won't send custom headers on cross-origin form submissions, and
+  // SameSite: strict cookies block cross-site inclusion entirely.
+  if (
+    request.nextUrl.pathname.startsWith('/api') &&
+    ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)
+  ) {
+    const contentType = request.headers.get('content-type');
+    // Sec-Fetch-Site is a browser-generated forbidden header (can't be set by JS)
+    // that reliably identifies same-origin requests. This is the strongest CSRF defense.
+    const secFetchSite = request.headers.get('sec-fetch-site');
+    const isSameOrigin = secFetchSite === 'same-origin' || secFetchSite === 'none';
+    // multipart/form-data is NOT included — it's a simple content type that
+    // browsers send with standard <form> submissions (not a CSRF-proof signal).
+    const hasCustomHeader =
+      isSameOrigin ||
+      (contentType && contentType.includes('application/json')) ||
+      request.headers.has('authorization') ||
+      request.headers.has('x-requested-with');
+    if (!hasCustomHeader) {
+      return NextResponse.json({ error: 'Missing required request header' }, { status: 403 });
     }
   }
 

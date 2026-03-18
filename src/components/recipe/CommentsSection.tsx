@@ -56,7 +56,7 @@ export default function CommentsSection({
   recipeAuthorId,
   onImageClick,
 }: CommentsSectionProps) {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [comments, setComments] = useState<Comment[]>([]);
@@ -100,7 +100,7 @@ export default function CommentsSection({
   }, [loadComments]);
 
   const handleSubmitComment = async () => {
-    if (!token || !commentText.trim()) return;
+    if (!user || !commentText.trim()) return;
 
     try {
       setSubmitting(true);
@@ -114,14 +114,9 @@ export default function CommentsSection({
           const formData = new FormData();
           formData.append('file', selectedImage);
 
-          const uploadHeaders: HeadersInit = {};
-          if (token) {
-            uploadHeaders['Authorization'] = `Bearer ${token}`;
-          }
-
           const uploadResponse = await fetch('/api/upload', {
             method: 'POST',
-            headers: uploadHeaders,
+            headers: { 'X-Requested-With': 'fetch' },
             body: formData,
           });
 
@@ -145,7 +140,6 @@ export default function CommentsSection({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           text: commentText.trim(),
@@ -243,7 +237,7 @@ export default function CommentsSection({
   };
 
   const handleSaveEdit = async (commentId: string) => {
-    if (!token || !editText.trim()) return;
+    if (!user || !editText.trim()) return;
 
     try {
       setSubmitting(true);
@@ -251,7 +245,6 @@ export default function CommentsSection({
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           text: editText.trim(),
@@ -287,15 +280,12 @@ export default function CommentsSection({
   };
 
   const handleDeleteConfirm = async () => {
-    if (!token || !commentToDelete) return;
+    if (!user || !commentToDelete) return;
 
     try {
       setDeleting(true);
       const response = await fetch(`/api/recipes/${recipeId}/comments/${commentToDelete}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {

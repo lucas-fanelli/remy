@@ -37,7 +37,7 @@ interface RecipeFeedProps {
 
 export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const router = useRouter();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -189,15 +189,12 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!recipeToDelete || !token) return;
+    if (!recipeToDelete || !user) return;
 
     setDeleting(true);
     try {
       const response = await fetch(`/api/recipes/${recipeToDelete.id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -253,7 +250,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   };
 
   const handleLike = async (recipeId: string) => {
-    if (!token) {
+    if (!user) {
       setSnackbar({
         open: true,
         message: 'Please log in to like recipes',
@@ -277,9 +274,6 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     try {
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (response.ok) {

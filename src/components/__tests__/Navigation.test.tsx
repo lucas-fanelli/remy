@@ -195,7 +195,7 @@ describe('Navigation Component', () => {
     // Mock authenticated user for this test
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'testuser', email: 'test@test.com' },
-      token: 'test-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       login: jest.fn(),
@@ -247,7 +247,7 @@ describe('Navigation Component', () => {
     // Mock authenticated user for this test
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'testuser', email: 'test@test.com' },
-      token: 'test-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       login: jest.fn(),
@@ -273,7 +273,7 @@ describe('Navigation Component', () => {
     // Mock authenticated user for this test
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'testuser', email: 'test@test.com' },
-      token: 'test-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       login: jest.fn(),
@@ -326,7 +326,7 @@ describe('Navigation Component', () => {
     // Mock authenticated user for this test
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'testuser', email: 'test@test.com' },
-      token: 'test-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       login: jest.fn(),
@@ -354,7 +354,7 @@ describe('Navigation Component', () => {
     // Mock authenticated user for this test
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'testuser', email: 'test@test.com' },
-      token: 'test-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       login: jest.fn(),
@@ -432,7 +432,7 @@ describe('Navigation Component', () => {
     // Mock authenticated user for this test
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'testuser', email: 'test@test.com' },
-      token: 'test-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       login: jest.fn(),
@@ -475,7 +475,7 @@ describe('Navigation Component', () => {
     // Mock authenticated user for this test
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'testuser', email: 'test@test.com' },
-      token: 'test-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       login: jest.fn(),
@@ -911,7 +911,7 @@ describe('Navigation Component', () => {
       // Mock authenticated user
       mockUseAuth.mockReturnValue({
         user: mockUser,
-        token: 'mock-jwt-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         login: jest.fn(),
@@ -934,61 +934,35 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/notifications',
-          expect.objectContaining({
-            headers: {
-              Authorization: 'Bearer mock-jwt-token',
-            },
-          })
-        );
+        expect(mockFetch).toHaveBeenCalledWith('/api/notifications');
       });
     });
 
-    it('should handle failed notification fetch - line 209-211', async () => {
-      // Suppress expected console.error for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      // When fetch returns ok: false, component should gracefully handle it
-      // by not setting any notifications (graceful degradation)
+    it('should handle failed notification fetch with 401 by logging out - line 209-211', async () => {
+      // When fetch returns 401, component should trigger logout
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
         json: async () => ({ error: 'Unauthorized' }),
       });
 
+      const mockLogout = mockUseAuth().logout;
+
       renderWithProviders(<Navigation />);
 
       // Wait for fetch to be called
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/notifications',
-          expect.objectContaining({
-            headers: {
-              Authorization: 'Bearer mock-jwt-token',
-            },
-          })
-        );
+        expect(mockFetch).toHaveBeenCalledWith('/api/notifications');
       });
 
       // Component should still render without crashing (graceful error handling)
       const banners = screen.getAllByRole('banner');
       expect(banners.length).toBeGreaterThan(0);
 
-      // Badge should show 0 or be invisible (no unread count set due to error)
-      const badges = document.querySelectorAll('.MuiBadge-badge');
-      const visibleBadges = Array.from(badges).filter(
-        (badge) => !badge.classList.contains('MuiBadge-invisible')
-      );
-      // All badges should be invisible or show 0 after failed fetch
-      expect(visibleBadges.length).toBe(0);
-
-      // Verify error was logged (shows component handles the error)
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Navigation: Failed to fetch notifications, status:',
-        401
-      );
-      consoleErrorSpy.mockRestore();
+      // Verify logout was called on 401 instead of just logging
+      await waitFor(() => {
+        expect(mockLogout).toHaveBeenCalled();
+      });
     });
 
     it('should handle notification fetch error - line 212-213', async () => {
@@ -1003,7 +977,7 @@ describe('Navigation Component', () => {
 
       // Wait for fetch to be called
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/notifications', expect.anything());
+        expect(mockFetch).toHaveBeenCalledWith('/api/notifications');
       });
 
       // Component should still render without crashing (graceful error handling)
@@ -1250,9 +1224,6 @@ describe('Navigation Component', () => {
           '/api/notifications',
           expect.objectContaining({
             method: 'POST',
-            headers: {
-              Authorization: 'Bearer mock-jwt-token',
-            },
           })
         );
       });
@@ -1450,7 +1421,7 @@ describe('Navigation Component', () => {
     beforeEach(() => {
       mockUseAuth.mockReturnValue({
         user: mockUser,
-        token: 'mock-jwt-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         login: jest.fn(),
@@ -1560,7 +1531,6 @@ describe('Navigation Component', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer mock-jwt-token`,
           },
           body: JSON.stringify(createRecipeData),
         });
@@ -1603,7 +1573,6 @@ describe('Navigation Component', () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer mock-jwt-token`,
             },
             body: JSON.stringify({ title: 'Test' }),
           });
@@ -1760,7 +1729,7 @@ describe('Navigation Component', () => {
       // Mock authenticated user for this test
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         login: jest.fn(),
@@ -1799,7 +1768,7 @@ describe('Navigation Component', () => {
       // Mock authenticated user for this test
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         login: jest.fn(),
@@ -1847,7 +1816,7 @@ describe('Navigation Component', () => {
           profileImage: null,
           createdAt: new Date(),
         },
-        token: 'fake-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         login: jest.fn(),
@@ -1930,7 +1899,7 @@ describe('Navigation Component', () => {
           profileImage: null,
           createdAt: new Date(),
         },
-        token: 'fake-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         login: jest.fn(),
@@ -1966,7 +1935,6 @@ describe('Navigation Component', () => {
             method: 'POST',
             headers: expect.objectContaining({
               'Content-Type': 'application/json',
-              Authorization: 'Bearer fake-token',
             }),
           })
         );
@@ -2004,7 +1972,7 @@ describe('Navigation Component', () => {
           profileImage: null,
           createdAt: new Date(),
         },
-        token: 'fake-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         login: jest.fn(),
@@ -2239,7 +2207,7 @@ describe('Navigation Component', () => {
       // Mock admin user
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'admin', email: 'admin@test.com', role: 'ADMIN' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: true,
@@ -2349,7 +2317,7 @@ describe('Navigation Component', () => {
     it('should toggle theme when clicking theme button in drawer - lines 934-936', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2406,7 +2374,7 @@ describe('Navigation Component', () => {
     it('should navigate to profile when clicking My Profile in desktop menu - lines 523-529', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2438,7 +2406,7 @@ describe('Navigation Component', () => {
     it('should navigate to admin when clicking Admin in desktop menu - lines 567-572', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'adminuser', email: 'admin@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: true,
@@ -2521,7 +2489,7 @@ describe('Navigation Component', () => {
     it('should navigate to home when clicking home tab - lines 976-977', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2547,7 +2515,7 @@ describe('Navigation Component', () => {
     it('should navigate to pantry when clicking pantry tab - lines 1015-1016', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2592,7 +2560,7 @@ describe('Navigation Component', () => {
     it('should render YouTube button in drawer - line 919', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2649,7 +2617,7 @@ describe('Navigation Component', () => {
     it('should open create recipe dialog when clicking create recipe in drawer - lines 1096-1115', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2711,7 +2679,7 @@ describe('Navigation Component', () => {
     it('should navigate to home when clicking logo in mobile - line 740', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2760,7 +2728,7 @@ describe('Navigation Component', () => {
     it('should navigate to admin when admin clicks Admin in drawer - lines 976-977', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'adminuser', email: 'admin@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: true,
@@ -2796,7 +2764,7 @@ describe('Navigation Component', () => {
     it('should navigate to settings when clicking Settings in drawer - line 1015-1016', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2832,7 +2800,7 @@ describe('Navigation Component', () => {
     it('should handle profile click navigating to user profile - lines 506-509', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,
@@ -2912,7 +2880,7 @@ describe('Navigation Component', () => {
     it('should close mobile search dialog on result click - line 1155', async () => {
       mockUseAuth.mockReturnValue({
         user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: 'test-token',
+        token: null,
         isLoading: false,
         isAuthenticated: true,
         isAdmin: false,

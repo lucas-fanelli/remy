@@ -36,7 +36,7 @@ describe('ChangePasswordDialog', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-      token: 'mock-token',
+      token: null,
       isLoading: false,
       isAuthenticated: true,
       isAdmin: false,
@@ -365,7 +365,6 @@ describe('ChangePasswordDialog', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: 'Bearer mock-token',
           },
           body: JSON.stringify({
             oldPassword: 'OldPass123',

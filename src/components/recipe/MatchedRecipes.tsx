@@ -37,7 +37,7 @@ interface MatchedRecipe {
 }
 
 export default function MatchedRecipes() {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -50,11 +50,7 @@ export default function MatchedRecipes() {
   const loadMatchedRecipes = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/recipes/match', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/recipes/match');
 
       if (response.ok) {
         const data = await response.json();
@@ -67,13 +63,13 @@ export default function MatchedRecipes() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
-    if (token) {
+    if (isAuthenticated) {
       loadMatchedRecipes();
     }
-  }, [token, loadMatchedRecipes]);
+  }, [isAuthenticated, loadMatchedRecipes]);
 
   const handleRecipeClick = (recipeId: string) => {
     router.push(`/recipe/${recipeId}`);
@@ -84,8 +80,8 @@ export default function MatchedRecipes() {
   };
 
   // Return null during loading - the global LoadingBar shows progress
-  // If no token, don't show this component (user not logged in)
-  if (!token) {
+  // If not authenticated, don't show this component (user not logged in)
+  if (!isAuthenticated) {
     return null;
   }
 

@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { AuthProvider } from '@/contexts/AuthContext';
 import MatchedRecipes from '../MatchedRecipes';
 
@@ -55,7 +55,7 @@ describe('MatchedRecipes Component', () => {
     mockFetch = global.fetch as jest.Mock;
     mockFetch.mockClear();
     mockPush.mockClear();
-    mockUseAuth.mockReturnValue({ token: null }); // Default to no token
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: false }); // Default to unauthenticated
   });
 
   it('should render null during loading state', () => {
@@ -88,8 +88,7 @@ describe('MatchedRecipes Component', () => {
     });
 
     // Mock AuthContext to provide a token
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -111,8 +110,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -147,8 +145,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -171,8 +168,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -204,8 +200,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -237,8 +232,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -278,8 +272,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -317,8 +310,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -347,8 +339,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -362,8 +353,7 @@ describe('MatchedRecipes Component', () => {
 
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -413,8 +403,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -462,8 +451,7 @@ describe('MatchedRecipes Component', () => {
       }),
     });
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
@@ -500,8 +488,7 @@ describe('MatchedRecipes Component', () => {
       matchPercentage: 100,
     };
 
-    const mockToken = 'test-token';
-    mockUseAuth.mockReturnValue({ token: mockToken });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -556,8 +543,7 @@ describe('MatchedRecipes Component', () => {
         }),
       });
 
-      const mockToken = 'test-token';
-      mockUseAuth.mockReturnValue({ token: mockToken });
+      mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
       renderWithProviders(<MatchedRecipes />);
 
@@ -576,8 +562,7 @@ describe('MatchedRecipes Component', () => {
         }),
       });
 
-      const mockToken = 'test-token';
-      mockUseAuth.mockReturnValue({ token: mockToken });
+      mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
       renderWithProviders(<MatchedRecipes />);
 
@@ -598,8 +583,7 @@ describe('MatchedRecipes Component', () => {
         }),
       });
 
-      const mockToken = 'test-token';
-      mockUseAuth.mockReturnValue({ token: mockToken });
+      mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
       renderWithProviders(<MatchedRecipes />);
 

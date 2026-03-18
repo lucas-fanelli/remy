@@ -38,8 +38,12 @@ export class UserService implements IUserService {
         if (!['http:', 'https:'].includes(url.protocol)) {
           throw new Error('Website must use http or https protocol');
         }
-      } catch {
-        throw new Error('Invalid website URL');
+        // Reject URLs with embedded credentials (e.g. https://user:pass@evil.com)
+        if (url.username || url.password) {
+          throw new Error('Website URL must not contain credentials');
+        }
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : 'Invalid website URL');
       }
     }
 

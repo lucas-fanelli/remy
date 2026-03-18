@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CommentsSection from '../CommentsSection';
 
 // Speed up waitFor - aggressive timeout
@@ -101,7 +101,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should handle API error when fetching comments', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
     renderWithProviders(<CommentsSection recipeId="recipe1" />);
@@ -114,7 +114,7 @@ describe('CommentsSection Component', () => {
   });
 
   it('should show loading state while fetching comments', () => {
-    mockFetch.mockImplementation(() => new Promise(() => { }));
+    mockFetch.mockImplementation(() => new Promise(() => {}));
 
     const { container } = renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -327,7 +327,7 @@ describe('CommentsSection Component', () => {
 
     it('should submit comment successfully with valid token', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       // Mock initial fetch for existing comments
       mockFetch.mockResolvedValueOnce({
@@ -370,7 +370,6 @@ describe('CommentsSection Component', () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: 'Bearer valid-token',
             },
             body: JSON.stringify({
               text: 'This is a test comment',
@@ -390,7 +389,7 @@ describe('CommentsSection Component', () => {
 
     it('should submit comment with rating', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -441,9 +440,9 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle comment submission error', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -477,7 +476,7 @@ describe('CommentsSection Component', () => {
 
     it('should not submit empty comment', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -521,9 +520,9 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle network error during submission gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -557,7 +556,7 @@ describe('CommentsSection Component', () => {
 
     it('should clear rating after successful submission', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -599,7 +598,7 @@ describe('CommentsSection Component', () => {
 
     it('should handle API error response with error message', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -631,7 +630,7 @@ describe('CommentsSection Component', () => {
 
     it('should handle API error response without specific error message', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -777,7 +776,7 @@ describe('CommentsSection Component', () => {
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ comments: [userComment] }),
@@ -805,7 +804,7 @@ describe('CommentsSection Component', () => {
         user: { id: 'user456', username: 'otheruser', avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ comments: [otherUserComment] }),
@@ -834,7 +833,7 @@ describe('CommentsSection Component', () => {
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ comments: [userComment] }),
@@ -873,7 +872,7 @@ describe('CommentsSection Component', () => {
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ comments: [userComment] }),
@@ -920,7 +919,7 @@ describe('CommentsSection Component', () => {
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ comments: [userComment] }),
@@ -968,7 +967,7 @@ describe('CommentsSection Component', () => {
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       // Mock initial fetch
       mockFetch.mockResolvedValueOnce({
@@ -1024,9 +1023,6 @@ describe('CommentsSection Component', () => {
           `/api/recipes/recipe1/comments/${userComment.id}`,
           expect.objectContaining({
             method: 'PATCH',
-            headers: expect.objectContaining({
-              Authorization: 'Bearer valid-token',
-            }),
           })
         );
       });
@@ -1049,7 +1045,7 @@ describe('CommentsSection Component', () => {
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ comments: [userComment] }),
@@ -1105,7 +1101,7 @@ describe('CommentsSection Component', () => {
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
 
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ comments: [userComment] }),
@@ -1167,7 +1163,7 @@ describe('CommentsSection Component', () => {
     it('should handle edit comment error when response is not ok - lines 184-186', async () => {
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: testUser,
       });
 
@@ -1232,10 +1228,10 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle edit comment exception - lines 187-189', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: testUser,
       });
 
@@ -1302,7 +1298,7 @@ describe('CommentsSection Component', () => {
     it('should handle delete comment error when response is not ok - lines 223-225', async () => {
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: testUser,
       });
 
@@ -1365,10 +1361,10 @@ describe('CommentsSection Component', () => {
     });
 
     it('should handle delete comment exception - lines 226-228', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: testUser,
       });
 
@@ -1433,7 +1429,7 @@ describe('CommentsSection Component', () => {
     it('should handle rating change in edit mode - line 434', async () => {
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: testUser,
       });
 
@@ -1495,7 +1491,7 @@ describe('CommentsSection Component', () => {
     it('should close menu when clicking a menu item - line 488', async () => {
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: testUser,
       });
 
@@ -1552,7 +1548,7 @@ describe('CommentsSection Component', () => {
   describe('Image Handling - Lines 111-134, 179-206', () => {
     beforeEach(() => {
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: { id: 'user1', username: 'testuser' },
       });
     });
@@ -1633,7 +1629,7 @@ describe('CommentsSection Component', () => {
 
     it('should handle image upload failure (lines 121-132)', async () => {
       // Spy on console.error to verify it's called and prevent console output leak
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       mockFetch
         .mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) })
@@ -1728,7 +1724,7 @@ describe('CommentsSection Component', () => {
   describe('Edit Comment Functionality - Lines 572, 623-650', () => {
     beforeEach(() => {
       mockUseAuth.mockReturnValue({
-        token: 'test-token',
+        token: null,
         user: { id: 'user1', username: 'testuser' },
       });
     });
@@ -1821,7 +1817,7 @@ describe('CommentsSection Component', () => {
   describe('Image Upload in Comments', () => {
     it('should upload image and include URL in comment submission - lines 125-134', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       // Initial comments fetch
       mockFetch.mockResolvedValueOnce({
@@ -1885,7 +1881,7 @@ describe('CommentsSection Component', () => {
 
     it('should remove selected image - lines 204-206', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -1927,14 +1923,14 @@ describe('CommentsSection Component', () => {
 
     it('should handle image upload failure - lines 127-133', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ comments: [] }),
       });
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -1974,7 +1970,7 @@ describe('CommentsSection Component', () => {
 
     it('should reject invalid file type - lines 183-187', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -1999,7 +1995,7 @@ describe('CommentsSection Component', () => {
 
     it('should reject file larger than 5MB - lines 190-193', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -2029,7 +2025,7 @@ describe('CommentsSection Component', () => {
   describe('Edit Rating Change - line 554', () => {
     it('should update edit rating when rating is changed in edit mode - line 554', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       const existingComment = {
         id: 'comment1',
@@ -2080,7 +2076,7 @@ describe('CommentsSection Component', () => {
   describe('Menu onClose - line 632', () => {
     it('should close menu when clicking away - line 632', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: testUser });
+      mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
       const existingComment = {
         id: 'comment1',
@@ -2124,7 +2120,7 @@ describe('CommentsSection Component', () => {
 
     it('should change edit rating when clicking rating stars - line 554', async () => {
       const localTestUser = { id: 'user123', username: 'testuser', avatar: '/avatar.jpg' };
-      mockUseAuth.mockReturnValue({ token: 'valid-token', user: localTestUser });
+      mockUseAuth.mockReturnValue({ token: null, user: localTestUser });
 
       const existingComment = {
         id: 'comment1',
@@ -2188,7 +2184,7 @@ describe('CommentsSection Component', () => {
 
       mockUseAuth.mockReturnValue({
         user: { id: 'user1', username: 'testuser' },
-        token: 'mock-token',
+        token: null,
       });
 
       renderWithProviders(<CommentsSection recipeId="1" />);
@@ -2230,4 +2226,3 @@ describe('CommentsSection Component', () => {
     });
   });
 });
-

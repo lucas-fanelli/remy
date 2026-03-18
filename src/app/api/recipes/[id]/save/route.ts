@@ -72,17 +72,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Check if recipe exists
-    const recipe = await prisma.post.findUnique({
-      where: { id: recipeId },
-    });
-
-    if (!recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-    }
-
-    // Fully atomic save toggle inside a single interactive transaction
+    // Fully atomic save toggle — recipe check + toggle inside one transaction
     const result = await prisma.$transaction(async (tx) => {
+      const recipe = await tx.post.findUnique({ where: { id: recipeId } });
+      if (!recipe) {
+        throw new Error('RECIPE_NOT_FOUND');
+      }
+
       const existingSave = await tx.savedRecipe.findUnique({
         where: {
           userId_postId: {
@@ -93,34 +89,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
       if (existingSave) {
-        try {
-          await tx.savedRecipe.delete({
-            where: { id: existingSave.id },
-          });
-        } catch (err: unknown) {
-          if (!(err instanceof Error && err.message.includes('Record to delete does not exist'))) {
-            throw err;
-          }
-        }
+        await tx.savedRecipe.delete({ where: { id: existingSave.id } });
         return { saved: false, message: 'Recipe removed from saved' };
       } else {
-        try {
-          await tx.savedRecipe.create({
-            data: { userId: payload.userId, postId: recipeId },
-          });
-          return { saved: true, message: 'Recipe saved successfully' };
-        } catch (err: unknown) {
-          // Handle race condition - if already saved by concurrent request, treat as idempotent save
-          if (err instanceof Error && err.message.includes('Unique constraint')) {
-            return { saved: true, message: 'Recipe already saved' };
-          }
-          throw err;
-        }
+        await tx.savedRecipe.create({
+          data: { userId: payload.userId, postId: recipeId },
+        });
+        return { saved: true, message: 'Recipe saved successfully' };
       }
     });
 
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
+      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+    }
     console.error('Error toggling save:', error);
     return NextResponse.json({ error: 'Failed to save recipe' }, { status: 500 });
   }

@@ -56,7 +56,7 @@ interface AdminUser {
 export default function AdminUsersPage() {
   const router = useRouter();
   const theme = useTheme();
-  const { user, token, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
   }, [search]);
 
   const fetchUsers = useCallback(async () => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     setLoading(true);
     try {
@@ -88,9 +88,7 @@ export default function AdminUsersPage() {
       if (debouncedSearch) params.append('search', debouncedSearch);
       if (roleFilter) params.append('role', roleFilter);
 
-      const response = await fetch(`/api/admin/users?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(`/api/admin/users?${params}`);
 
       if (!response.ok) throw new Error('Failed to fetch users');
 
@@ -102,17 +100,17 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, rowsPerPage, debouncedSearch, roleFilter]);
+  }, [isAuthenticated, page, rowsPerPage, debouncedSearch, roleFilter]);
 
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
       router.push('/');
       return;
     }
-    if (token && isAdmin) {
+    if (isAuthenticated && isAdmin) {
       fetchUsers();
     }
-  }, [user, token, isAdmin, authLoading, router, fetchUsers]);
+  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchUsers]);
 
   const handleDeleteClick = (targetUser: AdminUser) => {
     setSelectedUser(targetUser);
@@ -125,13 +123,12 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async () => {
-    if (!selectedUser || !token) return;
+    if (!selectedUser || !isAuthenticated) return;
 
     setActionLoading(true);
     try {
       const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) throw new Error('Failed to delete user');
@@ -146,7 +143,7 @@ export default function AdminUsersPage() {
   };
 
   const handleRoleChange = async (action: 'promote' | 'demote') => {
-    if (!selectedUser || !token) return;
+    if (!selectedUser || !isAuthenticated) return;
 
     setActionLoading(true);
     try {
@@ -154,7 +151,6 @@ export default function AdminUsersPage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ action }),
       });
@@ -292,7 +288,7 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell align="center">{u._count?.posts || 0}</TableCell>
                     <TableCell align="center">{u._count?.followers || 0}</TableCell>
-                    <TableCell>{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(u.createdAt).toLocaleDateString('en-US')}</TableCell>
                     <TableCell align="right">
                       <Tooltip title={u.role === 'ADMIN' ? 'Demote to User' : 'Promote to Admin'}>
                         <IconButton

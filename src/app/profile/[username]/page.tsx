@@ -71,7 +71,7 @@ interface ProfileStats {
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user: currentUser, token } = useAuth();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const username = params.username as string;
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -99,12 +99,7 @@ export default function ProfilePage() {
       setError(null);
 
       // Single API call to get ALL profile data
-      const headers: HeadersInit = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`/api/users/${username}/profile`, { headers });
+      const response = await fetch(`/api/users/${username}/profile`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -133,7 +128,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [username, token]);
+  }, [username]);
 
   useEffect(() => {
     loadProfile();
@@ -143,7 +138,7 @@ export default function ProfilePage() {
     if (isOwnProfile) return;
 
     // Redirect guests to auth page
-    if (!token) {
+    if (!isAuthenticated) {
       router.push('/auth');
       return;
     }
@@ -165,9 +160,6 @@ export default function ProfilePage() {
       const endpoint = previousFollowState ? 'unfollow' : 'follow';
       const response = await fetch(`/api/users/${username}/${endpoint}`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {

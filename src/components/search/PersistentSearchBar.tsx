@@ -90,6 +90,7 @@ export default function PersistentSearchBar({
   const [liveResults, setLiveResults] = useState<SearchResults>({ users: [], recipes: [] });
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Check if user has typed something
   const hasQuery = query.trim().length > 0;
@@ -111,7 +112,10 @@ export default function PersistentSearchBar({
     // Set loading state
     setIsSearching(true);
 
+    // Abort any previous in-flight request via the ref
+    abortControllerRef.current?.abort();
     const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     // Debounce: wait 300ms after user stops typing
     searchTimeoutRef.current = setTimeout(async () => {

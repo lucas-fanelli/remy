@@ -174,6 +174,7 @@ export async function POST(request: NextRequest) {
         const imgUrl = new URL(body.imageUrl);
         const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
         if (
+          !['http:', 'https:'].includes(imgUrl.protocol) ||
           imgUrl.hostname !== 'res.cloudinary.com' ||
           !cloudName ||
           !imgUrl.pathname.startsWith(`/${cloudName}/`)

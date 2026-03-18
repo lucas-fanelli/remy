@@ -15,3 +15,6 @@ export const MAX_SEARCH_QUERY_LENGTH = 200;
 export const MAX_ITEM_NAME_LENGTH = 200;
 
 export const MAX_QUANTITY = 999999;
+
+/** Username: alphanumeric + underscore, 1-30 chars */
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]{1,30}$/;
