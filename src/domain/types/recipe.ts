@@ -42,8 +42,8 @@ export interface Recipe {
   };
 
   // Rating information (optional, populated by API)
-  averageRating?: number;
-  reviewCount?: number;
+  // averageRating is nullable in DB (Float?) — null means "not yet rated"
+  averageRating?: number | null;
   totalRatings?: number;
 
   // Metadata

@@ -1,8 +1,17 @@
 'use client';
 import { CssBaseline } from '@mui/material';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { BRANDING } from '@/config/branding';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useLayoutEffect,
+  useEffect,
+} from 'react';
+import { BRANDING, THEME_COLORS } from '@/config/branding';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface ThemeContextType {
   mode: 'light' | 'dark';
@@ -25,19 +34,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const hasMounted = React.useRef(false);
 
-  // Sync theme from localStorage after hydration is complete
-  React.useEffect(() => {
-    // Wait longer to ensure hydration has fully completed on all devices
-    const hydrationTimer = setTimeout(() => {
-      hasMounted.current = true;
-      const savedMode = localStorage.getItem('themeMode') as 'light' | 'dark' | null;
-      if (savedMode && savedMode !== mode) {
-        setMode(savedMode);
-      }
-    }, 50);
-
-    return () => clearTimeout(hydrationTimer);
-  }, [mode]);
+  // Sync theme from localStorage after DOM mutation but before browser paint.
+  // useLayoutEffect fires synchronously after hydration, avoiding the flash
+  // that a setTimeout(50ms) approach would cause.
+  useIsomorphicLayoutEffect(() => {
+    hasMounted.current = true;
+    const savedMode = localStorage.getItem('themeMode') as 'light' | 'dark' | null;
+    if (savedMode && savedMode !== mode) {
+      setMode(savedMode);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Show content only after mode has been set and rendered
   React.useEffect(() => {
@@ -67,11 +74,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (newMode === 'dark') {
         document.documentElement.classList.add('dark-mode');
         document.documentElement.style.colorScheme = 'dark';
-        document.documentElement.style.backgroundColor = '#1E1E1E';
+        document.documentElement.style.backgroundColor = THEME_COLORS.darkBackground;
       } else {
         document.documentElement.classList.remove('dark-mode');
         document.documentElement.style.colorScheme = 'light';
-        document.documentElement.style.backgroundColor = '#FAFAFA';
+        document.documentElement.style.backgroundColor = THEME_COLORS.lightBackground;
       }
 
       return newMode;
@@ -164,11 +171,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           background:
             mode === 'light'
               ? {
-                  default: '#FAFAFA', // Light gray (clean background)
+                  default: THEME_COLORS.lightBackground, // Light gray (clean background)
                   paper: '#FFFFFF', // White surfaces
                 }
               : {
-                  default: '#1E1E1E', // Lighter dark background
+                  default: THEME_COLORS.darkBackground, // Lighter dark background
                   paper: '#2C2C2C', // Lighter elevated surfaces
                 },
           text:

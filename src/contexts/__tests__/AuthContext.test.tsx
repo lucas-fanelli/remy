@@ -176,7 +176,7 @@ describe('AuthContext', () => {
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/auth/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
           credentials: 'same-origin',
           body: JSON.stringify({ emailOrUsername: 'testuser', password: 'password123' }),
         });
@@ -312,6 +312,7 @@ describe('AuthContext', () => {
       await waitForUnauthenticated();
       expect(mockFetch).toHaveBeenCalledWith('/api/auth/logout', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
         credentials: 'same-origin',
       });
     });
@@ -506,7 +507,7 @@ describe('AuthContext', () => {
 
       expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
         credentials: 'same-origin',
         body: JSON.stringify({ fullName: 'Updated Name' }),
       });

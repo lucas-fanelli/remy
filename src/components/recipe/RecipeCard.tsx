@@ -8,6 +8,7 @@ import {
   Edit,
   Delete,
   MoreVert,
+  Restaurant as RestaurantIcon,
 } from '@mui/icons-material';
 import {
   Card,
@@ -27,14 +28,18 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useRef } from 'react';
 import { Recipe } from '@/domain/types/recipe';
+import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { getDifficultyColor } from '@/lib/utils/recipe';
 
-const MotionCard = motion.create(Card);
+// motion.create must be at module scope — calling inside a component creates
+// a new type each render, breaking React reconciliation.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MotionCard = motion.create(Card as any);
 
 interface RecipeCardProps {
-  recipe: Recipe & { averageRating?: number; totalRatings?: number };
+  recipe: Recipe & { averageRating?: number | null; totalRatings?: number };
   onLike?: () => void;
   onComment?: () => void;
   onClick?: () => void;
@@ -61,8 +66,25 @@ export default function RecipeCard({
   currentUserId,
 }: RecipeCardProps) {
   const router = useRouter();
+  const [imgFallbackUsed, setImgFallbackUsed] = React.useState(false);
+  const [imgHidden, setImgHidden] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
+
+  // Warn once in dev when a recipe has a non-Cloudinary image URL (likely a data integrity issue)
+  const warnedRef = useRef(false);
+  React.useEffect(() => {
+    if (
+      process.env.NODE_ENV === 'development' &&
+      recipe.imageUrl &&
+      !isCloudinaryUrl(recipe.imageUrl) &&
+      !warnedRef.current
+    ) {
+      warnedRef.current = true;
+      console.warn(`RecipeCard: non-Cloudinary image URL for recipe ${recipe.id}`);
+    }
+  }, [recipe.id, recipe.imageUrl]);
+
   const totalTime = recipe.prepTime + recipe.cookingTime;
   const isOwner = currentUserId && currentUserId === recipe.userId;
 
@@ -113,25 +135,58 @@ export default function RecipeCard({
         },
       }}
     >
-      {/* Hero Image Container */}
+      {/* Hero Image Container
+        Image state machine:
+        1. Cloudinary URL -> render directly, onError -> fallback (/chef-logo.png)
+        2. Fallback fails -> imgHidden (show placeholder icon)
+        3. Non-Cloudinary URL -> imgHidden immediately (CSP blocks, show placeholder) */}
       <Box sx={{ position: 'relative', overflow: 'hidden' }} onClick={handleCardClick}>
-        <Box
-          component="img"
-          src={recipe.imageUrl || '/placeholder-recipe.png'}
-          alt={recipe.title}
-          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-            if (!e.currentTarget.dataset.fallback) {
-              e.currentTarget.dataset.fallback = 'true';
-              e.currentTarget.src = '/placeholder-recipe.png';
+        {imgHidden ? (
+          <Box
+            sx={{
+              width: '100%',
+              aspectRatio: '4/3',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: 'grey.200',
+            }}
+          >
+            <RestaurantIcon sx={{ fontSize: 48, color: 'grey.400' }} />
+            <Typography variant="caption" sx={{ color: 'grey.500', mt: 0.5 }}>
+              Image unavailable
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            component="img"
+            src={
+              recipe.imageUrl && isCloudinaryUrl(recipe.imageUrl)
+                ? recipe.imageUrl
+                : '/chef-logo.png'
             }
-          }}
-          sx={{
-            width: '100%',
-            aspectRatio: '4/3',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
+            alt={recipe.title}
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+              // Non-Cloudinary URLs already use the fallback as src, so skip
+              // the fallback chain and hide the image directly
+              if (!recipe.imageUrl || !isCloudinaryUrl(recipe.imageUrl)) {
+                setImgHidden(true);
+              } else if (!imgFallbackUsed) {
+                setImgFallbackUsed(true);
+                e.currentTarget.src = '/chef-logo.png';
+              } else {
+                console.error(`Recipe ${recipe.id}: both primary and fallback images failed`);
+                setImgHidden(true);
+              }
+            }}
+            sx={{
+              width: '100%',
+              aspectRatio: '4/3',
+              objectFit: 'cover',
+            }}
+          />
+        )}
 
         {/* Difficulty Badge - Top Right */}
         <Chip
@@ -257,7 +312,7 @@ export default function RecipeCard({
                 precision={0.5}
                 size="small"
                 readOnly
-                sx={{ color: '#FFB400' }}
+                sx={{ color: 'warning.main' }}
               />
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
                 ({recipe.totalRatings})

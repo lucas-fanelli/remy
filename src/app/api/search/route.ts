@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import striptags from 'striptags';
 import { IUserService } from '@/domain/services/IUserService';
 import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { logServerError } from '@/lib/utils/logger';
+import { safeRating } from '@/lib/utils/recipe';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,18 +24,25 @@ export async function GET(request: NextRequest) {
 
     const userService = container.get<IUserService>('IUserService');
 
-    // Search users by username - strip email from public results
-    const users = (await userService.searchUsers(query.trim(), limit)).map(
-      ({ email, ...rest }) => rest
-    );
+    // Search users by username - strip email from public results.
+    // Defense-in-depth: UserRepository.search already excludes email at query level,
+    // but we strip it here too in case the repository implementation changes.
+    const users = (await userService.searchUsers(query.trim(), limit, offset)).map((u) => ({
+      username: u.username,
+      fullName: u.fullName,
+      avatar: u.avatar,
+      bio: u.bio,
+    }));
 
     // Search recipes with engagement data
+    // Prisma 'contains' mode auto-escapes SQL wildcards (%, _) — no manual escaping needed
     const recipes = await prisma.post.findMany({
       where: {
         OR: [
           { title: { contains: query.trim(), mode: 'insensitive' } },
           { description: { contains: query.trim(), mode: 'insensitive' } },
         ],
+        user: { isPrivate: false },
       },
       take: limit,
       skip: offset,
@@ -56,8 +66,8 @@ export async function GET(request: NextRequest) {
     // Format recipes response - use cached rating values from post record
     const formattedRecipes = recipes.map((recipe) => ({
       id: recipe.id,
-      title: recipe.title,
-      description: recipe.description,
+      title: recipe.title ? striptags(recipe.title) : recipe.title,
+      description: recipe.description ? striptags(recipe.description) : null,
       imageUrl: recipe.imageUrl,
       difficulty: recipe.difficulty || 'medium',
       prepTime: recipe.prepTime || 0,
@@ -65,7 +75,7 @@ export async function GET(request: NextRequest) {
       servings: recipe.servings || 4,
       likeCount: recipe._count.likes,
       commentCount: recipe._count.comments,
-      averageRating: recipe.averageRating ?? 0,
+      averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount ?? 0,
       author: {
         username: recipe.user.username,
@@ -78,7 +88,7 @@ export async function GET(request: NextRequest) {
       recipes: formattedRecipes,
     });
   } catch (error) {
-    console.error('Search error:', error);
+    logServerError('Search error:', error);
     return NextResponse.json({ error: 'Failed to perform search' }, { status: 500 });
   }
 }

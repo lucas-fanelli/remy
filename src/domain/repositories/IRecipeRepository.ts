@@ -43,7 +43,7 @@ export interface IRecipeRepository {
   /**
    * Delete a recipe with atomic ownership check
    */
-  deleteWhere(id: string, userId: string): Promise<void>;
+  deleteWhere(id: string, userId: string): Promise<{ imageUrl: string | null }>;
 
   /**
    * Get recent recipes (feed)

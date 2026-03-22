@@ -71,8 +71,12 @@ export class UserService implements IUserService {
     });
   }
 
-  async searchUsers(query: string, limit: number = 10): Promise<UserPublicProfile[]> {
-    const users = await this.userRepository.search(query, limit);
+  async searchUsers(
+    query: string,
+    limit: number = 10,
+    offset?: number
+  ): Promise<UserPublicProfile[]> {
+    const users = await this.userRepository.search(query, limit, offset);
 
     return users.map((user) => {
       const { password: _, ...userWithoutPassword } = user;

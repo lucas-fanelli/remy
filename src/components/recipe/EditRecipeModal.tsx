@@ -32,9 +32,10 @@ import {
   useMediaQuery,
   MobileStepper,
 } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
 import ImageUpload from '@/components/common/ImageUpload';
+import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Recipe,
@@ -43,8 +44,7 @@ import {
   Instruction,
   DifficultyLevel,
 } from '@/domain/types/recipe';
-
-const MotionBox = motion.create(Box);
+import { UNIT_TO_TASTE } from '@/lib/constants';
 
 interface EditRecipeModalProps {
   open: boolean;
@@ -67,7 +67,7 @@ const commonUnits = [
   'L',
   'pieces',
   'pinch',
-  'to taste',
+  UNIT_TO_TASTE,
   'whole',
 ];
 
@@ -103,6 +103,7 @@ export default function EditRecipeModal({
   // Pre-fill form when recipe changes
   useEffect(() => {
     if (recipe) {
+      setActiveStep(0);
       setTitle(recipe.title);
       setDescription(recipe.description);
       setImageUrl(recipe.imageUrl);
@@ -136,16 +137,20 @@ export default function EditRecipeModal({
           typeof servings === 'number' &&
           servings > 0
         );
-      case 1:
+      case 1: {
+        const filledIngredients = ingredients.filter(
+          (i) => i.name.trim() || i.amount.trim() || i.unit.trim()
+        );
         return (
-          ingredients.length > 0 &&
-          ingredients.every(
-            (ing) =>
-              ing.name.trim() !== '' &&
-              ing.unit.trim() !== '' &&
-              (ing.unit === 'to taste' || ing.amount.trim() !== '')
+          filledIngredients.length > 0 &&
+          filledIngredients.every(
+            (i) =>
+              i.name.trim() !== '' &&
+              i.unit.trim() !== '' &&
+              (i.unit === UNIT_TO_TASTE || i.amount.trim() !== '')
           )
         );
+      }
       case 2:
         return instructions.every((inst) => inst.description.trim() !== '');
       default:
@@ -180,7 +185,7 @@ export default function EditRecipeModal({
     newIngredients[index] = { ...newIngredients[index], [field]: value };
 
     // Clear amount when "to taste" is selected
-    if (field === 'unit' && value === 'to taste') {
+    if (field === 'unit' && value === UNIT_TO_TASTE) {
       newIngredients[index].amount = '';
     }
 
@@ -232,7 +237,7 @@ export default function EditRecipeModal({
           (i) =>
             i.name.trim() !== '' &&
             i.unit.trim() !== '' &&
-            (i.unit === 'to taste' || i.amount.trim() !== '')
+            (i.unit === UNIT_TO_TASTE || i.amount.trim() !== '')
         ),
         instructions: instructions.filter((i) => i.description.trim() !== ''),
         caption: caption.trim() === '' ? null : caption,
@@ -242,6 +247,7 @@ export default function EditRecipeModal({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'fetch',
         },
         body: JSON.stringify(updateData),
       });
@@ -405,10 +411,10 @@ export default function EditRecipeModal({
                     />
                     <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
                       <TextField
-                        label={ingredient.unit === 'to taste' ? 'Amount' : 'Amount'}
+                        label={ingredient.unit === UNIT_TO_TASTE ? 'Amount' : 'Amount'}
                         value={ingredient.amount}
                         onChange={(e) => handleIngredientChange(index, 'amount', e.target.value)}
-                        required={ingredient.unit !== 'to taste'}
+                        required={ingredient.unit !== UNIT_TO_TASTE}
                         placeholder="2"
                         size="small"
                         sx={{ width: { xs: '100px', sm: '100px' } }}
@@ -416,9 +422,9 @@ export default function EditRecipeModal({
                         error={
                           ingredient.amount === '' &&
                           ingredient.name !== '' &&
-                          ingredient.unit !== 'to taste'
+                          ingredient.unit !== UNIT_TO_TASTE
                         }
-                        disabled={ingredient.unit === 'to taste'}
+                        disabled={ingredient.unit === UNIT_TO_TASTE}
                       />
                       <FormControl
                         size="small"
@@ -571,7 +577,7 @@ export default function EditRecipeModal({
 
             <Box>
               <Typography variant="h6" gutterBottom>
-                Ingredients ({ingredients.length})
+                Ingredients ({ingredients.filter((i) => i.name.trim()).length})
               </Typography>
               <Box component="ul" sx={{ pl: 2 }}>
                 {ingredients.map((ing, i) => (
@@ -584,7 +590,7 @@ export default function EditRecipeModal({
 
             <Box>
               <Typography variant="h6" gutterBottom>
-                Instructions ({instructions.length} steps)
+                Instructions ({instructions.filter((i) => i.description.trim()).length} steps)
               </Typography>
               <Box component="ol" sx={{ pl: 2 }}>
                 {instructions.map((inst, i) => (

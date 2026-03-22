@@ -10,6 +10,8 @@ export const BRANDING = {
   // Tagline/description
   tagline: 'Anyone can cook',
   description: 'A social network for chefs and cooking enthusiasts with AI-powered cooking tools',
+  taglineExtended:
+    'Named after the famous chef rat from Ratatouille, this platform embodies the belief that "anyone can cook" — and everyone has something delicious to share.',
 
   // Logo paths
   logo: '/chef-logo.png',
@@ -31,6 +33,8 @@ export const BRANDING = {
   contactEmail: 'lucasarielfanelli@hotmail.com',
 
   // Creator info
+  // Note: Adding an avatar for the creator requires code changes in the About page component.
+  // This config only stores text/URL values; avatar rendering is handled in the component.
   creator: {
     name: 'Lucas Fanelli',
     initials: 'LF',
@@ -42,6 +46,25 @@ export const BRANDING = {
 
   // Login message
   loginMessage: 'Welcome back, chef!',
+
+  // Tech stack displayed on the About page
+  techStack: [
+    'Next.js',
+    'React',
+    'TypeScript',
+    'Material UI',
+    'Prisma',
+    'PostgreSQL',
+    'Cloudinary',
+    'React Query',
+    'Zod',
+    'Serwist (PWA)',
+  ],
 } as const;
 
 export type Branding = typeof BRANDING;
+
+export const THEME_COLORS = {
+  darkBackground: '#1E1E1E',
+  lightBackground: '#FAFAFA',
+} as const;

@@ -26,11 +26,11 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
-
-const MotionCard = motion.create(Card);
+import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 
 interface Comment {
   id: string;
@@ -79,6 +79,13 @@ export default function CommentsSection({
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Revoke object URL on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
+
   const loadComments = useCallback(async () => {
     try {
       setLoading(true);
@@ -106,8 +113,9 @@ export default function CommentsSection({
       setSubmitting(true);
       setError(null);
 
-      // Upload image first if selected
       let imageUrl: string | undefined;
+
+      // Upload image first if selected
       if (selectedImage) {
         setUploadingImage(true);
         try {
@@ -140,6 +148,7 @@ export default function CommentsSection({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'fetch',
         },
         body: JSON.stringify({
           text: commentText.trim(),
@@ -158,7 +167,8 @@ export default function CommentsSection({
         });
         setCommentText('');
         setRating(null);
-        // Clear image state
+        // Clear image state and revoke object URL to free memory
+        if (imagePreview) URL.revokeObjectURL(imagePreview);
         setSelectedImage(null);
         setImagePreview(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
@@ -195,13 +205,14 @@ export default function CommentsSection({
 
     setSelectedImage(file);
     setError(null);
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
+    // Use createObjectURL for efficient synchronous preview (no base64 encoding overhead)
+    const objectUrl = URL.createObjectURL(file);
+    setImagePreview(objectUrl);
   };
 
-  // Remove selected image
+  // Remove selected image and revoke object URL to free memory
   const removeSelectedImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
     setSelectedImage(null);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -245,6 +256,7 @@ export default function CommentsSection({
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'fetch',
         },
         body: JSON.stringify({
           text: editText.trim(),
@@ -286,6 +298,7 @@ export default function CommentsSection({
       setDeleting(true);
       const response = await fetch(`/api/recipes/${recipeId}/comments/${commentToDelete}`, {
         method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (response.ok) {
@@ -652,8 +665,8 @@ export default function CommentsSection({
                           >
                             {comment.text}
                           </Typography>
-                          {/* Comment Image */}
-                          {comment.imageUrl && (
+                          {/* Comment Image — only render from trusted Cloudinary CDN */}
+                          {comment.imageUrl && isCloudinaryUrl(comment.imageUrl) && (
                             <Box
                               component="img"
                               src={comment.imageUrl}

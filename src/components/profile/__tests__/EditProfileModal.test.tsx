@@ -197,10 +197,7 @@ describe('EditProfileModal', () => {
   describe('Form Submission', () => {
     it('should successfully update profile', async () => {
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true, data: { ...mockUser, fullName: 'New Name' } }),
-      });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -212,13 +209,11 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/users/profile', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: expect.stringContaining('New Name'),
-        });
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fullName: 'New Name',
+          })
+        );
       });
 
       await waitFor(() => {
@@ -253,10 +248,7 @@ describe('EditProfileModal', () => {
     it('should show error when API request fails', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Update failed' }),
-      });
+      mockUpdateProfile.mockRejectedValueOnce(new Error('Update failed'));
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -272,18 +264,8 @@ describe('EditProfileModal', () => {
 
     it('should disable buttons while saving', async () => {
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockImplementation(
-        () =>
-          new Promise((resolve) =>
-            setTimeout(
-              () =>
-                resolve({
-                  ok: true,
-                  json: async () => ({ success: true }),
-                }),
-              100
-            )
-          )
+      mockUpdateProfile.mockImplementation(
+        () => new Promise((resolve) => setTimeout(() => resolve(undefined), 100))
       );
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
@@ -332,7 +314,11 @@ describe('EditProfileModal', () => {
       const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-      const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
+      const file = new File(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d])],
+        'avatar.png',
+        { type: 'image/png' }
+      );
       const input = document.querySelector('#avatar-upload-modal') as HTMLInputElement;
 
       if (input) {
@@ -351,7 +337,11 @@ describe('EditProfileModal', () => {
       const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-      const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
+      const file = new File(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d])],
+        'avatar.png',
+        { type: 'image/png' }
+      );
       const input = document.querySelector('#avatar-upload-modal') as HTMLInputElement;
 
       if (input) {
@@ -385,11 +375,19 @@ describe('EditProfileModal', () => {
       const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-      const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
+      const file = new File(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d])],
+        'avatar.png',
+        { type: 'image/png' }
+      );
       const input = document.querySelector('#avatar-upload-modal') as HTMLInputElement;
 
       if (input) {
         await user.upload(input, file);
+        // Wait for async magic byte validation + FileReader to complete
+        await waitFor(() => {
+          expect(screen.getByText(/new photo selected/i)).toBeInTheDocument();
+        });
       }
 
       // Mock failed avatar upload without error field (line 119 - fallback message)
@@ -412,27 +410,28 @@ describe('EditProfileModal', () => {
       const user = userEvent.setup({ delay: null });
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
-      const file = new File(['avatar'], 'avatar.png', { type: 'image/png' });
+      const file = new File(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d])],
+        'avatar.png',
+        { type: 'image/png' }
+      );
       const input = document.querySelector('#avatar-upload-modal') as HTMLInputElement;
 
       if (input) {
         await user.upload(input, file);
+        await waitFor(() => {
+          expect(screen.getByText(/new photo selected/i)).toBeInTheDocument();
+        });
       }
 
-      // Mock successful avatar upload
+      // Mock successful avatar upload (still uses fetch)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ url: 'https://example.com/new-avatar.jpg' }),
       });
 
-      // Mock successful profile update
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: { ...mockUser, avatar: 'https://example.com/new-avatar.jpg' },
-        }),
-      });
+      // Profile update now uses updateProfile from useAuth
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
 
       const saveButton = screen.getByRole('button', { name: /save changes/i });
       await user.click(saveButton);
@@ -447,11 +446,9 @@ describe('EditProfileModal', () => {
       });
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/users/profile',
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
           expect.objectContaining({
-            method: 'PUT',
-            body: expect.stringContaining('https://example.com/new-avatar.jpg'),
+            avatar: 'https://example.com/new-avatar.jpg',
           })
         );
       });
@@ -537,10 +534,7 @@ describe('EditProfileModal', () => {
   describe('Whitespace Handling - Lines 139-141', () => {
     it('should trim whitespace from fullName and send null if empty - line 139', async () => {
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -552,10 +546,9 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/users/profile',
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
           expect.objectContaining({
-            body: expect.stringContaining('"fullName":null'),
+            fullName: null,
           })
         );
       });
@@ -563,10 +556,7 @@ describe('EditProfileModal', () => {
 
     it('should trim whitespace from bio and send null if empty - line 140', async () => {
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -578,10 +568,9 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/users/profile',
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
           expect.objectContaining({
-            body: expect.stringContaining('"bio":null'),
+            bio: null,
           })
         );
       });
@@ -589,10 +578,7 @@ describe('EditProfileModal', () => {
 
     it('should trim whitespace from website and send null if empty - line 141', async () => {
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -604,10 +590,9 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/users/profile',
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
           expect.objectContaining({
-            body: expect.stringContaining('"website":null'),
+            website: null,
           })
         );
       });
@@ -615,10 +600,7 @@ describe('EditProfileModal', () => {
 
     it('should preserve trimmed non-empty values', async () => {
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -630,10 +612,9 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/users/profile',
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
           expect.objectContaining({
-            body: expect.stringContaining('"fullName":"John Doe"'),
+            fullName: 'John Doe',
           })
         );
       });
@@ -644,10 +625,7 @@ describe('EditProfileModal', () => {
     it('should throw Error with custom message when response not ok - line 150', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Custom error message' }),
-      });
+      mockUpdateProfile.mockRejectedValueOnce(new Error('Custom error message'));
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -665,10 +643,8 @@ describe('EditProfileModal', () => {
     it('should throw Error with fallback message when error field missing - line 150', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({}),
-      });
+      // Rejecting with a non-Error triggers the fallback message path
+      mockUpdateProfile.mockRejectedValueOnce('unknown failure');
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -685,7 +661,7 @@ describe('EditProfileModal', () => {
     it('should handle non-Error exceptions - line 161', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
-      mockFetch.mockRejectedValueOnce('String error'); // Non-Error exception
+      mockUpdateProfile.mockRejectedValueOnce('String error'); // Non-Error exception
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -703,7 +679,7 @@ describe('EditProfileModal', () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const user = userEvent.setup({ delay: null });
       const testError = new Error('Network error');
-      mockFetch.mockRejectedValueOnce(testError);
+      mockUpdateProfile.mockRejectedValueOnce(testError);
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -857,10 +833,7 @@ describe('EditProfileModal', () => {
         updateProfile: mockUpdateProfile,
       });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
 
       render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
 
@@ -868,10 +841,9 @@ describe('EditProfileModal', () => {
       await user.click(saveButton);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/users/profile',
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
           expect.objectContaining({
-            body: expect.stringContaining('"avatar":null'),
+            avatar: null,
           })
         );
       });

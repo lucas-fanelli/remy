@@ -9,7 +9,6 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import React from 'react';
 
 interface ConfirmDialogProps {
   open: boolean;

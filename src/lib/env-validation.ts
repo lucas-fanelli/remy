@@ -16,6 +16,9 @@ interface EnvConfig {
   NEXTAUTH_URL: string;
   NEXTAUTH_SECRET: string;
 
+  // Cloudinary
+  CLOUDINARY_CLOUD_NAME: string;
+
   // AI (Optional for MVP)
   GEMINI_API_KEY?: string;
 
@@ -29,6 +32,21 @@ class EnvironmentValidationError extends Error {
     super(message);
     this.name = 'EnvironmentValidationError';
   }
+}
+
+/**
+ * Compute Shannon entropy of a string (bits per character).
+ * Used to detect low-randomness secrets like repeated characters or dictionary words.
+ */
+function shannonEntropy(s: string): number {
+  const freq = new Map<string, number>();
+  for (const c of s) freq.set(c, (freq.get(c) || 0) + 1);
+  let entropy = 0;
+  for (const count of freq.values()) {
+    const p = count / s.length;
+    entropy -= p * Math.log2(p);
+  }
+  return entropy;
 }
 
 /**
@@ -47,6 +65,7 @@ export function validateEnvironment(): EnvConfig {
     'NEXTAUTH_SECRET',
     'NODE_ENV',
     'NEXT_PUBLIC_APP_URL',
+    'CLOUDINARY_CLOUD_NAME',
   ];
 
   // Check for missing required variables
@@ -91,32 +110,54 @@ export function validateEnvironment(): EnvConfig {
 
   // Production-specific validations
   if (process.env.NODE_ENV === 'production') {
-    // Check for insecure secrets
-    const insecureSecrets = ['your-super-secret', 'change-this', 'secret', 'password', 'test'];
+    // Check for insecure secrets — only flag short secrets or exact placeholder matches.
+    // Substring checks on long random secrets would false-positive on words like "secret".
+    const insecurePlaceholders = ['your-super-secret', 'change-this', 'your-secret-key'];
+    const MIN_SECRET_LENGTH = 32;
 
-    const jwtSecret = process.env.JWT_SECRET?.toLowerCase() || '';
-    const nextAuthSecret = process.env.NEXTAUTH_SECRET?.toLowerCase() || '';
+    const jwtSecret = process.env.JWT_SECRET || '';
+    const nextAuthSecret = process.env.NEXTAUTH_SECRET || '';
 
-    for (const insecure of insecureSecrets) {
-      if (jwtSecret.includes(insecure)) {
+    if (jwtSecret.length < MIN_SECRET_LENGTH) {
+      errors.push(
+        `JWT_SECRET is too short (${jwtSecret.length} chars). Use at least ${MIN_SECRET_LENGTH} random characters.`
+      );
+    }
+    if (nextAuthSecret.length < MIN_SECRET_LENGTH) {
+      errors.push(
+        `NEXTAUTH_SECRET is too short (${nextAuthSecret.length} chars). Use at least ${MIN_SECRET_LENGTH} random characters.`
+      );
+    }
+
+    for (const insecure of insecurePlaceholders) {
+      if (jwtSecret.toLowerCase().includes(insecure)) {
         errors.push(
-          'JWT_SECRET appears to be insecure. Use a strong, random secret in production.'
+          'JWT_SECRET appears to be a placeholder. Use a strong, random secret in production.'
         );
       }
-      if (nextAuthSecret.includes(insecure)) {
+      if (nextAuthSecret.toLowerCase().includes(insecure)) {
         errors.push(
-          'NEXTAUTH_SECRET appears to be insecure. Use a strong, random secret in production.'
+          'NEXTAUTH_SECRET appears to be a placeholder. Use a strong, random secret in production.'
         );
       }
     }
 
-    // Check secret length
-    if (jwtSecret.length < 32) {
-      errors.push('JWT_SECRET should be at least 32 characters long in production.');
+    // 2.5 bits = catches repeated-character secrets (e.g., "aaaa...") while
+    // accepting hex secrets (~4.0 bits) and base64 secrets (~5.7 bits).
+    if (jwtSecret.length >= MIN_SECRET_LENGTH && shannonEntropy(jwtSecret) < 2.5) {
+      errors.push('JWT_SECRET has low entropy. Use a cryptographically random secret.');
     }
-    if (nextAuthSecret.length < 32) {
-      errors.push('NEXTAUTH_SECRET should be at least 32 characters long in production.');
+    if (nextAuthSecret.length >= MIN_SECRET_LENGTH && shannonEntropy(nextAuthSecret) < 2.5) {
+      errors.push('NEXTAUTH_SECRET has low entropy. Use a cryptographically random secret.');
     }
+  }
+
+  // Validate JWT_EXPIRES_IN format (e.g., "7d", "24h", "60m", "3600s")
+  const jwtExpiresIn = process.env.JWT_EXPIRES_IN;
+  if (jwtExpiresIn && !/^\d+[smhd]$/.test(jwtExpiresIn)) {
+    const warnings: string[] = [];
+    warnings.push('JWT_EXPIRES_IN should match format like "7d", "24h", "60m", "3600s"');
+    warnings.forEach((w) => console.warn(`\u26A0\uFE0F  ${w}`));
   }
 
   // Warnings for optional but recommended variables
@@ -150,6 +191,7 @@ export function validateEnvironment(): EnvConfig {
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN!,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL!,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME!,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     NODE_ENV: process.env.NODE_ENV as 'development' | 'production' | 'test',
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL!,

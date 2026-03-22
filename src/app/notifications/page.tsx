@@ -33,29 +33,55 @@ interface Notification {
   commentId?: string | null;
 }
 
+const PAGE_SIZE = 20;
+
 export default function NotificationsPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
+  const fetchNotifications = useCallback(
+    async (currentOffset = 0, append = false) => {
+      if (!user) return;
 
-    try {
-      const response = await fetch('/api/notifications');
+      try {
+        if (append) {
+          setLoadingMore(true);
+        }
+        const response = await fetch(
+          `/api/notifications?limit=${PAGE_SIZE}&offset=${currentOffset}`
+        );
 
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications || []);
+        if (response.ok) {
+          const data = await response.json();
+          const fetched = data.notifications || [];
+          if (append) {
+            setNotifications((prev) => [...prev, ...fetched]);
+          } else {
+            setNotifications(fetched);
+          }
+          setHasMore(fetched.length === PAGE_SIZE);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    },
+    [user]
+  );
+
+  const handleLoadMore = useCallback(() => {
+    const newOffset = offset + PAGE_SIZE;
+    setOffset(newOffset);
+    fetchNotifications(newOffset, true);
+  }, [offset, fetchNotifications]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -75,6 +101,7 @@ export default function NotificationsPage() {
       setMarkingAsRead(true);
       const response = await fetch('/api/notifications', {
         method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (response.ok) {
@@ -119,7 +146,17 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read (best effort) before navigating
+    if (!notification.isRead) {
+      try {
+        await fetch(`/api/notifications/${notification.id}`, { method: 'PATCH' });
+      } catch {} // Best effort
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
+      );
+    }
+
     if (notification.type === 'follow') {
       router.push(`/profile/${notification.sender.username}`);
     } else if (notification.postId) {
@@ -196,7 +233,7 @@ export default function NotificationsPage() {
                       </Box>
                     }
                     secondary={
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
                         {formatDistanceToNow(new Date(notification.createdAt), {
                           addSuffix: true,
                         })}
@@ -213,6 +250,13 @@ export default function NotificationsPage() {
               </React.Fragment>
             ))}
           </List>
+          {hasMore && (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Button variant="text" onClick={handleLoadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </Button>
+            </Box>
+          )}
         </Paper>
       )}
     </Container>

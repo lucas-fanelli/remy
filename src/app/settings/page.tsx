@@ -14,7 +14,6 @@ import {
   Container,
   Box,
   Typography,
-  Paper,
   Divider,
   Switch,
   FormControlLabel,
@@ -29,16 +28,14 @@ import {
   useMediaQuery,
   IconButton,
 } from '@mui/material';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
+import { MotionPaper } from '@/components/motion';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePwa } from '@/contexts/PwaContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
-
-const MotionPaper = motion.create(Paper);
 
 export default function SettingsPage() {
   const router = useRouter();

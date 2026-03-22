@@ -586,7 +586,7 @@ describe('PersistentSearchBar', () => {
       // Now fetch should have been called
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/search?q=pasta',
+          '/api/search?q=pasta&limit=5',
           expect.objectContaining({ signal: expect.any(AbortSignal) })
         );
       });
@@ -650,7 +650,7 @@ describe('PersistentSearchBar', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/search?q=testquery',
+          '/api/search?q=testquery&limit=5',
           expect.objectContaining({ signal: expect.any(AbortSignal) })
         );
       });

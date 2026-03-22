@@ -1,13 +1,15 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import RegisterForm from '../RegisterForm';
 
 // Mock framer-motion
-jest.mock('framer-motion', () => ({
-  motion: (component: any) => component,
-}));
+jest.mock('framer-motion', () => {
+  const passthrough = (component: any) => component;
+  passthrough.create = (component: any) => component;
+  return { motion: passthrough };
+});
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({

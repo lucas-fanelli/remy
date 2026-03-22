@@ -20,7 +20,6 @@ import React from 'react';
 interface User {
   id: string;
   username: string;
-  email: string;
   avatar?: string;
 }
 
@@ -37,6 +36,13 @@ interface SearchResultsProps {
   recipes: Recipe[];
   loading: boolean;
   onClose: () => void;
+}
+
+function truncateAtWord(text: string, maxLen: number): string {
+  if (!text || maxLen <= 0) return '';
+  if (text.length <= maxLen) return text;
+  const idx = text.lastIndexOf(' ', maxLen);
+  return text.substring(0, idx >= 0 ? idx : maxLen) + '...';
 }
 
 export default function SearchResults({
@@ -163,7 +169,7 @@ export default function SearchResults({
                   </ListItemAvatar>
                   <ListItemText
                     primary={user.username}
-                    secondary={isMobile ? null : user.email}
+                    secondary={isMobile ? null : `@${user.username}`}
                     primaryTypographyProps={{
                       fontWeight: 600,
                       fontSize: { xs: '0.875rem', md: '1rem' },
@@ -205,11 +211,7 @@ export default function SearchResults({
                   </ListItemAvatar>
                   <ListItemText
                     primary={recipe.title}
-                    secondary={
-                      isMobile
-                        ? null
-                        : `${recipe.description.substring(0, 50)}${recipe.description.length > 50 ? '...' : ''}`
-                    }
+                    secondary={isMobile ? null : truncateAtWord(recipe.description, 50)}
                     primaryTypographyProps={{
                       fontWeight: 600,
                       fontSize: { xs: '0.875rem', md: '1rem' },

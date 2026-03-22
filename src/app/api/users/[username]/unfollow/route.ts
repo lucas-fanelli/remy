@@ -3,7 +3,8 @@ import { INotificationService } from '@/domain/services/INotificationService';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { extractAuthToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
 
 export async function POST(
   request: NextRequest,
@@ -16,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
+    const token = extractAuthToken(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -35,26 +36,39 @@ export async function POST(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Delete follow relationship
-    const result = await prisma.follow.deleteMany({
-      where: {
-        followerId: payload.userId,
-        followingId: userToUnfollow.id,
-      },
+    if (userToUnfollow.id === payload.userId) {
+      return NextResponse.json({ error: 'Cannot unfollow yourself' }, { status: 400 });
+    }
+
+    // Atomic delete + count in a single transaction
+    const { deleteResult, followersCount } = await prisma.$transaction(async (tx) => {
+      const deleteResult = await tx.follow.deleteMany({
+        where: {
+          followerId: payload.userId,
+          followingId: userToUnfollow.id,
+        },
+      });
+      const followersCount = await tx.follow.count({
+        where: { followingId: userToUnfollow.id },
+      });
+      return { deleteResult, followersCount };
     });
 
-    if (result.count === 0) {
+    if (deleteResult.count === 0) {
       return NextResponse.json({ error: 'Not following this user' }, { status: 400 });
     }
 
-    // Delete the follow notification
-    const notificationService = container.get<INotificationService>('INotificationService');
-    await notificationService.deleteFollowNotification(payload.userId, userToUnfollow.id);
+    // Non-critical notification cleanup
+    try {
+      const notificationService = container.get<INotificationService>('INotificationService');
+      await notificationService.deleteFollowNotification(payload.userId, userToUnfollow.id);
+    } catch (notifError) {
+      logServerError('Failed to delete follow notification:', notifError);
+    }
 
-    const followersCount = await prisma.follow.count({ where: { followingId: userToUnfollow.id } });
     return NextResponse.json({ success: true, message: 'Unfollowed successfully', followersCount });
   } catch (error) {
-    console.error('Error unfollowing user:', error);
+    logServerError('Error unfollowing user:', error);
     return NextResponse.json({ error: 'Failed to unfollow user' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/api/auth';
 import { ApiResponseHelper } from '@/lib/api/response';
+import { logServerError } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
       return ApiResponseHelper.unauthorized();
     }
 
-    console.error('Get current user error:', error);
+    logServerError('Get current user error:', error);
     return ApiResponseHelper.internalError();
   }
 }

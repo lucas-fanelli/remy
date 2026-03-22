@@ -30,12 +30,11 @@ import {
   Toolbar,
   Autocomplete,
 } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
+import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
-
-const MotionCard = motion.create(Card);
 
 interface PantryItem {
   id: string;
@@ -67,6 +66,7 @@ export default function PantryPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
   const [existingItem, setExistingItem] = useState<PantryItem | null>(null);
 
@@ -78,6 +78,11 @@ export default function PantryPage() {
     category: 'other',
     notes: '',
   });
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadPantry = useCallback(async () => {
     try {
@@ -140,23 +145,11 @@ export default function PantryPage() {
       return;
     }
 
-    // Check if ingredient already exists (case-insensitive)
-    if (!editingItem) {
-      const existingIngredient = items.find(
-        (item) => item.name.toLowerCase() === formData.name.trim().toLowerCase()
-      );
-
-      if (existingIngredient) {
-        setExistingItem(existingIngredient);
-        setModifyDialogOpen(true);
-        return;
-      }
-    }
-
     // Use the category from formData, trim it, and default to 'other' only if empty
     const categoryToSave = formData.category.trim() || 'other';
 
-    // Support "to taste" - use 0 for quantity if not provided
+    // Support "to taste" - use 0 for quantity if not provided.
+    // Always send as a number (parseFloat) so the API receives a numeric type.
     const quantity =
       formData.quantity && parseFloat(formData.quantity) > 0 ? parseFloat(formData.quantity) : 0;
 
@@ -168,10 +161,11 @@ export default function PantryPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'fetch',
         },
         body: JSON.stringify({
           name: formData.name.trim(),
-          quantity: quantity,
+          quantity: quantity || 0,
           unit: formData.unit,
           category: categoryToSave,
           notes: formData.notes.trim() || null,
@@ -186,6 +180,22 @@ export default function PantryPage() {
           message: editingItem ? 'Item updated successfully' : 'Item added successfully',
           severity: 'success',
         });
+      } else if (response.status === 409) {
+        // Server detected duplicate ingredient — offer to modify existing
+        const data = await response.json();
+        const existingIngredient = items.find(
+          (item) => item.name.toLowerCase() === formData.name.trim().toLowerCase()
+        );
+        if (existingIngredient) {
+          setExistingItem(existingIngredient);
+          setModifyDialogOpen(true);
+        } else {
+          setSnackbar({
+            open: true,
+            message: data.error || 'Ingredient already exists',
+            severity: 'error',
+          });
+        }
       } else {
         const error = await response.json();
         setSnackbar({
@@ -224,6 +234,7 @@ export default function PantryPage() {
     try {
       const response = await fetch(`/api/pantry/${itemToDelete}`, {
         method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (response.ok) {
@@ -261,9 +272,9 @@ export default function PantryPage() {
   const filteredItems = items.filter((item) => {
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
     const matchesSearch =
-      !searchQuery ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.notes && item.notes.toLowerCase().includes(searchQuery.toLowerCase()));
+      !debouncedSearch ||
+      item.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (item.notes && item.notes.toLowerCase().includes(debouncedSearch.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 

@@ -28,12 +28,12 @@ import {
   useMediaQuery,
   MobileStepper,
 } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import React, { useState } from 'react';
 import ImageUpload from '@/components/common/ImageUpload';
+import { MotionBox } from '@/components/motion';
 import { CreateRecipeDTO, Ingredient, Instruction, DifficultyLevel } from '@/domain/types/recipe';
-
-const MotionBox = motion.create(Box);
+import { UNIT_TO_TASTE } from '@/lib/constants';
 
 interface CreateRecipeFormProps {
   onSubmit: (data: CreateRecipeDTO) => Promise<void>;
@@ -54,7 +54,7 @@ const commonUnits = [
   'L',
   'pieces',
   'pinch',
-  'to taste',
+  UNIT_TO_TASTE,
   'whole',
 ];
 
@@ -99,11 +99,15 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
           servings > 0
         );
       case 1: // Ingredients
+        // Aligned with EditRecipeModal: empty rows are filtered out on submission,
+        // but every row with a name must have unit and amount (unless "to taste").
         return (
           ingredients.some((i) => i.name.trim() !== '') &&
           ingredients
             .filter((i) => i.name.trim())
-            .every((i) => i.unit.trim() !== '' && (i.unit === 'to taste' || i.amount.trim() !== ''))
+            .every(
+              (i) => i.unit.trim() !== '' && (i.unit === UNIT_TO_TASTE || i.amount.trim() !== '')
+            )
         );
       case 2: // Instructions
         return instructions.some((i) => i.description.trim() !== '');
@@ -146,7 +150,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
     updated[index] = { ...updated[index], [field]: value };
 
     // Clear amount when "to taste" is selected
-    if (field === 'unit' && value === 'to taste') {
+    if (field === 'unit' && value === UNIT_TO_TASTE) {
       updated[index].amount = '';
     }
 
@@ -191,7 +195,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
           (i) =>
             i.name.trim() !== '' &&
             i.unit.trim() !== '' &&
-            (i.unit === 'to taste' || i.amount.trim() !== '')
+            (i.unit === UNIT_TO_TASTE || i.amount.trim() !== '')
         ),
         instructions: instructions.filter((i) => i.description.trim()),
         userId: '', // Will be set by the API from session
@@ -381,7 +385,7 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                     <TextField
                       fullWidth
                       size="small"
-                      label={ingredient.unit === 'to taste' ? 'Amount' : 'Amount *'}
+                      label={ingredient.unit === UNIT_TO_TASTE ? 'Amount' : 'Amount *'}
                       value={ingredient.amount}
                       onChange={(e) => updateIngredient(index, 'amount', e.target.value)}
                       placeholder="2"
@@ -389,9 +393,9 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
                       error={
                         ingredient.amount === '' &&
                         ingredient.name !== '' &&
-                        ingredient.unit !== 'to taste'
+                        ingredient.unit !== UNIT_TO_TASTE
                       }
-                      disabled={ingredient.unit === 'to taste'}
+                      disabled={ingredient.unit === UNIT_TO_TASTE}
                     />
                   </Grid>
                   <Grid item xs={5} sm={3}>

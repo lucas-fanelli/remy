@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { extractAuthToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
 
 export async function GET(
   request: NextRequest,
@@ -14,12 +16,37 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
     }
 
+    // Optional auth — get current user if authenticated
+    const token = extractAuthToken(request);
+    let currentUserId: string | null = null;
+    if (token) {
+      try {
+        const tokenService = container.getTokenService();
+        const payload = tokenService.verify(token);
+        if (payload) currentUserId = payload.userId;
+      } catch (error) {
+        const isExpectedJwtError =
+          error instanceof Error &&
+          (error.name === 'JsonWebTokenError' ||
+            error.name === 'TokenExpiredError' ||
+            error.name === 'NotBeforeError');
+        if (!isExpectedJwtError) {
+          logServerError('Unexpected error during token verification:', error);
+        }
+      }
+    }
+
     const userService = container.getUserService();
 
     // Get user
     const user = await userService.getUserByUsername(username);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Privacy check
+    if (user.isPrivate && currentUserId !== user.id) {
+      return NextResponse.json({ error: 'This profile is private' }, { status: 403 });
     }
 
     // Get stats
@@ -35,7 +62,7 @@ export async function GET(
       followingCount,
     });
   } catch (error) {
-    console.error('Error fetching user stats:', error);
+    logServerError('Error fetching user stats:', error);
     return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
   }
 }

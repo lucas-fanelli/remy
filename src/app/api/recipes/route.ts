@@ -1,10 +1,73 @@
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { CreateRecipeDTO } from '@/domain/types/recipe';
-import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
+import striptags from 'striptags';
+import { z, ZodError } from 'zod';
+import { ValidationError } from '@/domain/errors';
+import { requireAuth } from '@/lib/api/auth';
+import {
+  MAX_SEARCH_QUERY_LENGTH,
+  MAX_DAILY_RECIPES,
+  PG_ADVISORY_LOCK_RECIPE_CREATE,
+  UUID_REGEX,
+} from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
+import { logServerError } from '@/lib/utils/logger';
+import { safeRating } from '@/lib/utils/recipe';
+import { requireJsonContentType } from '@/lib/utils/request';
+
+const ingredientSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    amount: z.string().max(50),
+    unit: z.string().max(50),
+  })
+  .strict();
+
+const instructionSchema = z
+  .object({
+    step: z.number().int().positive(),
+    description: z.string().min(1).max(5000),
+    image: z
+      .string()
+      .url()
+      .refine(
+        (url) => url.startsWith('https://res.cloudinary.com/'),
+        'Instruction image must be a Cloudinary URL'
+      )
+      .optional(),
+  })
+  .strict();
+
+const createRecipeSchema = z
+  .object({
+    title: z.string().min(1).max(100),
+    description: z.string().min(1).max(500),
+    imageUrl: z
+      .string()
+      .min(1)
+      .url()
+      .refine(
+        (url) => url.startsWith('https://res.cloudinary.com/'),
+        'Image must be a Cloudinary URL'
+      ),
+    cookingTime: z.number().int().min(1).max(720),
+    prepTime: z.number().int().min(0).max(480),
+    servings: z.number().int().min(1).max(100),
+    difficulty: z.enum(['easy', 'medium', 'hard']),
+    ingredients: z.array(ingredientSchema).min(1).max(100),
+    instructions: z
+      .array(instructionSchema)
+      .min(1)
+      .max(50)
+      .refine(
+        (instructions) => new Set(instructions.map((i) => i.step)).size === instructions.length,
+        'Instruction steps must be unique'
+      ),
+    caption: z.string().max(500).optional(),
+  })
+  .strict();
 
 /**
  * GET /api/recipes - Fetch recipes with optional filters
@@ -23,14 +86,22 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q');
     const sort = searchParams.get('sort') || 'newest';
 
-    // Build Prisma where clause
-    const where: Prisma.PostWhereInput = {};
+    const validSorts = ['newest', 'rating_desc', 'rating_asc', 'most_reviewed'];
+    if (sort && !validSorts.includes(sort)) {
+      return NextResponse.json({ error: 'Invalid sort parameter' }, { status: 400 });
+    }
+
+    // Build Prisma where clause — exclude recipes from private users by default
+    const where: Prisma.PostWhereInput = {
+      user: { isPrivate: false },
+    };
 
     if (query && query.length > MAX_SEARCH_QUERY_LENGTH) {
       return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
     }
 
     if (query) {
+      // Prisma 'contains' mode auto-escapes SQL wildcards (%, _) — no manual escaping needed
       where.OR = [
         { title: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
@@ -38,6 +109,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (difficulty) {
+      const validDifficulties = ['easy', 'medium', 'hard'];
+      if (!validDifficulties.includes(difficulty)) {
+        return NextResponse.json(
+          { error: 'Invalid difficulty. Must be: easy, medium, hard' },
+          { status: 400 }
+        );
+      }
       where.difficulty = difficulty;
     }
 
@@ -55,6 +133,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (userId) {
+      if (!UUID_REGEX.test(userId)) {
+        return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+      }
       where.userId = userId;
     }
 
@@ -62,13 +143,13 @@ export async function GET(request: NextRequest) {
     let orderBy: Prisma.PostOrderByWithRelationInput[] = [{ createdAt: 'desc' }, { id: 'asc' }]; // Default: Newest
     switch (sort) {
       case 'rating_desc':
-        orderBy = [{ averageRating: 'desc' }, { createdAt: 'desc' }];
+        orderBy = [{ averageRating: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }];
         break;
       case 'rating_asc':
-        orderBy = [{ averageRating: 'asc' }, { createdAt: 'desc' }];
+        orderBy = [{ averageRating: 'asc' }, { createdAt: 'desc' }, { id: 'asc' }];
         break;
       case 'most_reviewed':
-        orderBy = [{ reviewCount: 'desc' }, { createdAt: 'desc' }];
+        orderBy = [{ reviewCount: 'desc' }, { createdAt: 'desc' }, { id: 'asc' }];
         break;
       case 'newest':
       default:
@@ -76,29 +157,32 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Fetch recipes with cached ratings from database
-    const recipes = await prisma.post.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            fullName: true,
-            avatar: true,
+    // Fetch recipes and total count in parallel
+    const [recipes, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              fullName: true,
+              avatar: true,
+            },
+          },
+          _count: {
+            select: {
+              likes: true,
+              comments: true,
+            },
           },
         },
-        _count: {
-          select: {
-            likes: true,
-            comments: true,
-          },
-        },
-      },
-      orderBy,
-      take: limit,
-      skip: offset,
-    });
+        orderBy,
+        take: limit,
+        skip: offset,
+      }),
+      prisma.post.count({ where }),
+    ]);
 
     // Transform to expected format with author and ratings
     const recipesWithRatings = recipes.map((recipe) => ({
@@ -123,22 +207,20 @@ export async function GET(request: NextRequest) {
             avatar: recipe.user.avatar,
           }
         : undefined,
-      averageRating: recipe.averageRating,
+      averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount,
       likeCount: recipe._count.likes,
       commentCount: recipe._count.comments,
     }));
 
-    const total = await prisma.post.count({ where });
-
     return NextResponse.json({
       recipes: recipesWithRatings,
       count: recipesWithRatings.length,
       total,
-      hasMore: recipes.length === limit,
+      hasMore: offset + limit < total,
     });
   } catch (error) {
-    console.error('Error fetching recipes:', error);
+    logServerError('Error fetching recipes:', error);
     return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 });
   }
 }
@@ -148,17 +230,14 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const token = extractBearerToken(request);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
-    }
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
 
-    const tokenService = container.getTokenService();
-
-    // Verify token and get user ID
-    const payload = tokenService.verify(token);
-    if (!payload || !payload.userId) {
-      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -169,42 +248,116 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    if (body.imageUrl) {
-      try {
-        const imgUrl = new URL(body.imageUrl);
-        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-        if (
-          !['http:', 'https:'].includes(imgUrl.protocol) ||
-          imgUrl.hostname !== 'res.cloudinary.com' ||
-          !cloudName ||
-          !imgUrl.pathname.startsWith(`/${cloudName}/`)
-        ) {
-          return NextResponse.json(
-            { error: 'Image must be uploaded through the app' },
-            { status: 400 }
-          );
-        }
-      } catch {
-        return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
+    let validated;
+    try {
+      validated = createRecipeSchema.parse(body);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        const firstIssue = err.issues[0]?.message || 'Invalid request body';
+        return NextResponse.json({ error: firstIssue }, { status: 400 });
+      }
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    if (validated.imageUrl) {
+      const cloudinaryError = validateCloudinaryUrl(validated.imageUrl);
+      if (cloudinaryError) return cloudinaryError;
+    }
+
+    // Validate instruction images against Cloudinary
+    for (const instruction of validated.instructions) {
+      if (instruction.image) {
+        const cloudinaryError = validateCloudinaryUrl(instruction.image);
+        if (cloudinaryError) return cloudinaryError;
       }
     }
 
-    const recipeData: CreateRecipeDTO = {
-      ...body,
-      userId: payload.userId, // Set userId from token
+    // Explicit field list + sanitization to prevent mass assignment and stored XSS
+    const stripHtml = (s: string) => striptags(s).trim();
+    const sanitizedIngredients = validated.ingredients.map((i) => ({
+      name: stripHtml(i.name),
+      amount: stripHtml(i.amount),
+      unit: stripHtml(i.unit),
+    }));
+    const sanitizedInstructions = validated.instructions.map((i) => ({
+      step: i.step,
+      description: stripHtml(i.description),
+      image: i.image,
+    }));
+    const recipeData = {
+      title: stripHtml(validated.title),
+      description: stripHtml(validated.description),
+      imageUrl: validated.imageUrl,
+      cookingTime: validated.cookingTime,
+      prepTime: validated.prepTime,
+      servings: validated.servings,
+      difficulty: validated.difficulty,
+      ingredients: sanitizedIngredients,
+      instructions: sanitizedInstructions,
+      caption: validated.caption ? stripHtml(validated.caption) : undefined,
+      userId: user.id,
     };
 
-    // Create recipe using service
+    // Validate via the service (does not hit DB)
     const recipeService = container.getRecipeService();
-    const recipe = await recipeService.createRecipe(recipeData);
+    const validationResult = await recipeService.validateRecipeData(recipeData);
+    if (!validationResult.valid) {
+      return NextResponse.json(
+        { error: `Recipe validation failed: ${validationResult.errors.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const recipe = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_RECIPE_CREATE}, hashtext(${user.id}))`;
+
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const dailyPostCount = await tx.post.count({
+        where: { userId: user.id, createdAt: { gte: twentyFourHoursAgo } },
+      });
+      if (dailyPostCount >= MAX_DAILY_RECIPES) {
+        throw new Error('DAILY_LIMIT_REACHED');
+      }
+
+      return tx.post.create({
+        data: recipeData,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          imageUrl: true,
+          cookingTime: true,
+          prepTime: true,
+          servings: true,
+          difficulty: true,
+          ingredients: true,
+          instructions: true,
+          caption: true,
+          createdAt: true,
+          updatedAt: true,
+          userId: true,
+        },
+      });
+    });
 
     return NextResponse.json({ recipe, message: 'Recipe created successfully' }, { status: 201 });
   } catch (error) {
-    console.error('Error creating recipe:', error);
+    logServerError('Error creating recipe:', error);
 
     if (error instanceof Error) {
-      // Validation errors
-      if (error.message.includes('validation failed')) {
+      if (error.message === 'DAILY_LIMIT_REACHED') {
+        return NextResponse.json(
+          {
+            error: `Daily recipe creation limit reached (${MAX_DAILY_RECIPES} per day). Please try again tomorrow.`,
+          },
+          { status: 429 }
+        );
+      }
+      // Validation errors from service layer
+      if (
+        error instanceof ValidationError ||
+        error.message.startsWith('Recipe validation failed:')
+      ) {
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
     }

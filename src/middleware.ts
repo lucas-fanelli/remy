@@ -1,6 +1,41 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Safe base64url decode that handles non-ASCII (e.g. accented usernames)
+function b64UrlDecode(str: string): string {
+  const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+  const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+/** Verify JWT signature and return payload, or null if invalid. */
+async function verifyJwt(token: string, secret: string): Promise<Record<string, unknown> | null> {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const header = JSON.parse(b64UrlDecode(parts[0]));
+    if (header.alg !== 'HS256') return null;
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const signatureInput = encoder.encode(`${parts[0]}.${parts[1]}`);
+    const b64Sig = parts[2].replace(/-/g, '+').replace(/_/g, '/');
+    const paddedSig = b64Sig + '='.repeat((4 - (b64Sig.length % 4)) % 4);
+    const signature = Uint8Array.from(atob(paddedSig), (c) => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
+    if (!valid) return null;
+    return JSON.parse(b64UrlDecode(parts[1]));
+  } catch {
+    return null;
+  }
+}
+
 // In-memory rate limiting
 // WARNING: This is per-instance only. In multi-instance deployments (Vercel serverless, K8s),
 // each instance has its own map. For production, replace with Redis/Upstash/Vercel KV.
@@ -11,6 +46,8 @@ const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX_REQUESTS = 100; // Max requests per window
 const AUTH_RATE_LIMIT_MAX_REQUESTS = 10; // Stricter limit for auth endpoints
 const UPLOAD_RATE_LIMIT_MAX_REQUESTS = 20; // Limit for file uploads
+const MATCH_RATE_LIMIT_MAX_REQUESTS = 30; // Stricter limit for recipe match (expensive query)
+const USER_WRITE_RATE_LIMIT_MAX_REQUESTS = 60; // Per-user limit for write operations
 
 function getRateLimitKey(request: NextRequest): string {
   // Use IP address for rate limiting
@@ -36,10 +73,27 @@ function checkRateLimit(
     rateLimitMap.delete(key);
   }
 
-  // Bulk cleanup when map grows too large
-  if (rateLimitMap.size > 1000) {
+  // Probabilistic cleanup: 5% chance on each request to scan and remove expired entries
+  if (Math.random() < 0.05) {
     for (const [k, v] of rateLimitMap.entries()) {
       if (now > v.resetTime) rateLimitMap.delete(k);
+    }
+  }
+
+  // Enforce hard cap BEFORE inserting new entries to prevent unbounded growth
+  if (rateLimitMap.size > 500) {
+    for (const [k, v] of rateLimitMap.entries()) {
+      if (now > v.resetTime) rateLimitMap.delete(k);
+    }
+    // If still over cap after expired cleanup, evict oldest 50 entries by resetTime to avoid
+    // repeating O(n) scans on every request when many entries are active.
+    if (rateLimitMap.size >= 500) {
+      const entries = Array.from(rateLimitMap.entries())
+        .sort((a, b) => a[1].resetTime - b[1].resetTime)
+        .slice(0, 50);
+      for (const [k] of entries) {
+        rateLimitMap.delete(k);
+      }
     }
   }
 
@@ -89,11 +143,18 @@ export async function middleware(request: NextRequest) {
 
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'`,
-    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
+    `script-src 'self' 'nonce-${nonce}' https://va.vercel-scripts.com`,
+    // style-src needs 'unsafe-inline' because MUI Emotion injects <style> tags
+    // client-side after hydration. The nonce covers SSR-rendered styles via
+    // AppRouterCacheProvider, but dynamic sx-prop and theme-change styles
+    // cannot carry the nonce. This is MUI's documented recommendation.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: https: blob:",
-    "connect-src 'self' https:",
+    `img-src 'self' data: ${process.env.CLOUDINARY_CLOUD_NAME ? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/` : ''}blob:`.replace(
+      /\s+/g,
+      ' '
+    ),
+    "connect-src 'self' https://res.cloudinary.com https://*.sentry.io https://*.vercel-analytics.com https://*.vercel-insights.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -122,7 +183,11 @@ export async function middleware(request: NextRequest) {
     return new NextResponse(null, { status: 200, headers: response.headers });
   }
 
-  // Block admin pages server-side for non-admin users with HMAC signature verification
+  // Block admin pages server-side for non-admin users with HMAC signature verification.
+  // NOTE: This checks the role claim from the JWT, which may be stale after demotion.
+  // This is defense-in-depth only — all admin API routes re-verify role from the DB
+  // via requireAdmin(). A demoted user can see the admin UI shell until JWT expires,
+  // but cannot perform any admin actions.
   if (request.nextUrl.pathname.startsWith('/admin')) {
     // Prefer httpOnly cookie over Bearer header (cookie is canonical auth)
     const cookieToken = request.cookies.get('auth_token')?.value;
@@ -132,40 +197,10 @@ export async function middleware(request: NextRequest) {
 
     let isAdmin = false;
     if (rawToken && process.env.JWT_SECRET) {
-      try {
-        const parts = rawToken.split('.');
-        if (parts.length === 3) {
-          // Validate algorithm is HS256 to prevent algorithm confusion attacks
-          const headerJson = atob(parts[0].replace(/-/g, '+').replace(/_/g, '/'));
-          const header = JSON.parse(headerJson);
-          if (header.alg !== 'HS256') {
-            throw new Error('Unsupported JWT algorithm');
-          }
-
-          // Verify HMAC-SHA256 signature using Web Crypto API
-          const encoder = new TextEncoder();
-          const key = await crypto.subtle.importKey(
-            'raw',
-            encoder.encode(process.env.JWT_SECRET),
-            { name: 'HMAC', hash: 'SHA-256' },
-            false,
-            ['verify']
-          );
-          const signatureInput = encoder.encode(`${parts[0]}.${parts[1]}`);
-          const b64Sig = parts[2].replace(/-/g, '+').replace(/_/g, '/');
-          const paddedSig = b64Sig + '='.repeat((4 - (b64Sig.length % 4)) % 4);
-          const signature = Uint8Array.from(atob(paddedSig), (c) => c.charCodeAt(0));
-          const valid = await crypto.subtle.verify('HMAC', key, signature, signatureInput);
-          if (valid) {
-            const b64Payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-            const paddedPayload = b64Payload + '='.repeat((4 - (b64Payload.length % 4)) % 4);
-            const payload = JSON.parse(atob(paddedPayload));
-            const now = Math.floor(Date.now() / 1000);
-            isAdmin = payload.role === 'ADMIN' && payload.exp && payload.exp > now;
-          }
-        }
-      } catch {
-        // Invalid token
+      const payload = await verifyJwt(rawToken, process.env.JWT_SECRET);
+      if (payload) {
+        const now = Math.floor(Date.now() / 1000);
+        isAdmin = payload.role === 'ADMIN' && !!payload.exp && (payload.exp as number) > now;
       }
     }
 
@@ -174,25 +209,40 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // CSRF protection: state-changing API requests must include a custom header.
-  // Browsers won't send custom headers on cross-origin form submissions, and
-  // SameSite: strict cookies block cross-site inclusion entirely.
+  // CSRF protection — layered defense for state-changing API requests:
+  //
+  // Layer 1: SameSite: lax cookie — sends cookies on top-level GET navigations
+  //          but blocks cross-site POST/PUT/DELETE submissions.
+  // Layer 2: Sec-Fetch-Site header — unforgeable browser header, strongest signal.
+  // Layer 3: Custom header check — fallback for browsers without Sec-Fetch-Site.
+  //
+  // IMPORTANT: All file upload endpoints using multipart/form-data MUST include
+  // the X-Requested-With: fetch header from the client. Without it, the request
+  // will be rejected as a CSRF violation (multipart is a "simple" content type
+  // that browsers send with standard form submissions).
   if (
     request.nextUrl.pathname.startsWith('/api') &&
     ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)
   ) {
     const contentType = request.headers.get('content-type');
-    // Sec-Fetch-Site is a browser-generated forbidden header (can't be set by JS)
-    // that reliably identifies same-origin requests. This is the strongest CSRF defense.
     const secFetchSite = request.headers.get('sec-fetch-site');
     const isSameOrigin = secFetchSite === 'same-origin' || secFetchSite === 'none';
-    // multipart/form-data is NOT included — it's a simple content type that
-    // browsers send with standard <form> submissions (not a CSRF-proof signal).
-    const hasCustomHeader =
-      isSameOrigin ||
-      (contentType && contentType.includes('application/json')) ||
-      request.headers.has('authorization') ||
-      request.headers.has('x-requested-with');
+
+    // Multipart/form-data is a "simple" content type that browsers send with
+    // standard form submissions. Require either Sec-Fetch-Site (same-origin) or
+    // X-Requested-With to prove this isn't a cross-site form POST.
+    if (
+      contentType?.includes('multipart/form-data') &&
+      !isSameOrigin &&
+      !request.headers.has('x-requested-with')
+    ) {
+      return NextResponse.json(
+        { error: 'Missing required request header for file upload' },
+        { status: 403 }
+      );
+    }
+
+    const hasCustomHeader = isSameOrigin || request.headers.has('x-requested-with');
     if (!hasCustomHeader) {
       return NextResponse.json({ error: 'Missing required request header' }, { status: 403 });
     }
@@ -200,7 +250,7 @@ export async function middleware(request: NextRequest) {
 
   // Apply rate limiting to API routes only
   if (request.nextUrl.pathname.startsWith('/api')) {
-    // Skip rate limiting for health check routes only
+    // Skip rate limiting for health check routes
     if (request.nextUrl.pathname === '/api/health' || request.nextUrl.pathname === '/api/ready') {
       return response;
     }
@@ -209,13 +259,33 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname === '/api/auth/login' ||
       request.nextUrl.pathname === '/api/auth/register';
     const isUploadEndpoint = request.nextUrl.pathname.startsWith('/api/upload');
-    const rateLimitSuffix = isAuthEndpoint ? ':auth' : isUploadEndpoint ? ':upload' : '';
+    const isMatchEndpoint = request.nextUrl.pathname === '/api/recipes/match';
+    const isNotificationGet =
+      request.nextUrl.pathname === '/api/notifications' && request.method === 'GET';
+    const isNotificationPost =
+      request.nextUrl.pathname === '/api/notifications' && request.method === 'POST';
+    const rateLimitSuffix = isAuthEndpoint
+      ? ':auth'
+      : isUploadEndpoint
+        ? ':upload'
+        : isMatchEndpoint
+          ? ':match'
+          : isNotificationPost
+            ? ':notif-write'
+            : '';
     const rateLimitKey = getRateLimitKey(request) + rateLimitSuffix;
+    // Use higher limit for notification polling, stricter for expensive endpoints
     const maxRequests = isAuthEndpoint
       ? AUTH_RATE_LIMIT_MAX_REQUESTS
       : isUploadEndpoint
         ? UPLOAD_RATE_LIMIT_MAX_REQUESTS
-        : RATE_LIMIT_MAX_REQUESTS;
+        : isMatchEndpoint
+          ? MATCH_RATE_LIMIT_MAX_REQUESTS
+          : isNotificationGet
+            ? 200 // Higher limit for polling
+            : isNotificationPost
+              ? 10 // Stricter limit for mark-all-as-read (10 per 15 minutes)
+              : RATE_LIMIT_MAX_REQUESTS;
     const rateLimit = checkRateLimit(rateLimitKey, maxRequests);
 
     // Add rate limit headers
@@ -238,6 +308,43 @@ export async function middleware(request: NextRequest) {
           },
         }
       );
+    }
+
+    // Per-user rate limiting for write operations — uses signature-verified JWT
+    // to prevent userId spoofing via crafted cookies
+    if (
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method) &&
+      !isAuthEndpoint &&
+      process.env.JWT_SECRET
+    ) {
+      const cookieToken = request.cookies.get('auth_token')?.value;
+      if (cookieToken) {
+        const payload = await verifyJwt(cookieToken, process.env.JWT_SECRET);
+        if (payload?.userId) {
+          const userRateLimit = checkRateLimit(
+            `ratelimit:user:${payload.userId}`,
+            USER_WRITE_RATE_LIMIT_MAX_REQUESTS
+          );
+          if (!userRateLimit.allowed) {
+            return NextResponse.json(
+              {
+                error: 'Too many requests',
+                message: 'Per-user rate limit exceeded. Please try again later.',
+                retryAfter: Math.ceil((userRateLimit.resetTime - Date.now()) / 1000),
+              },
+              {
+                status: 429,
+                headers: {
+                  'Retry-After': Math.ceil(
+                    (userRateLimit.resetTime - Date.now()) / 1000
+                  ).toString(),
+                  ...Object.fromEntries(response.headers),
+                },
+              }
+            );
+          }
+        }
+      }
     }
   }
 

@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "user_commands": [
+      {
+        "name": "review",
+        "command": "./review.sh"
+      },
+      {
+        "name": "review-last",
+        "command": "./review.sh --last-commit"
+      },
+      {
+        "name": "review-staged",
+        "command": "./review.sh --staged"
+      }
+    ]
+  }
+}

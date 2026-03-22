@@ -14,10 +14,12 @@ import {
   Toolbar,
   IconButton,
   Paper,
+  Snackbar,
 } from '@mui/material';
-import { motion } from 'framer-motion';
+import NextLink from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { MotionPaper } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UserListItem {
@@ -29,20 +31,21 @@ interface UserListItem {
   isFollowing: boolean;
 }
 
-const MotionPaper = motion.create(Paper);
-
 export default function FollowingPage() {
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
-  const { isAuthenticated, user: currentUser } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user: currentUser } = useAuth();
 
   const [following, setFollowing] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [followError, setFollowError] = useState('');
   const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchFollowing = async () => {
       try {
         const response = await fetch(`/api/users/${username}/following`);
@@ -82,19 +85,39 @@ export default function FollowingPage() {
       const endpoint = isCurrentlyFollowing ? 'unfollow' : 'follow';
       const response = await fetch(`/api/users/${targetUsername}/${endpoint}`, {
         method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (!response.ok) {
+        console.error('Follow toggle failed with status:', response.status);
         setFollowingState((prev) => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
+        setFollowError(`Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} user`);
       }
     } catch (error) {
       setFollowingState((prev) => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
+      setFollowError(`Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} user`);
       console.error('Error toggling follow:', error);
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return null;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+        <Toolbar />
+        <Container maxWidth="md" sx={{ pt: 4, textAlign: 'center' }}>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+            Sign in to view following
+          </Typography>
+          <Button component={NextLink} href="/auth" variant="contained">
+            Sign In
+          </Button>
+        </Container>
+      </Box>
+    );
   }
 
   if (error) {
@@ -208,6 +231,17 @@ export default function FollowingPage() {
           </List>
         )}
       </Container>
+
+      <Snackbar
+        open={!!followError}
+        autoHideDuration={4000}
+        onClose={() => setFollowError('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setFollowError('')} severity="error" variant="filled">
+          {followError}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

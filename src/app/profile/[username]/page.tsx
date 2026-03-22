@@ -15,7 +15,6 @@ import {
   Avatar,
   Button,
   Grid,
-  Card,
   CardMedia,
   CardContent,
   IconButton,
@@ -24,18 +23,17 @@ import {
   Toolbar,
   Grow,
   Rating,
+  type Theme,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
+import { MotionBox, MotionCard } from '@/components/motion';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDifficultyColor } from '@/lib/utils/recipe';
-
-const MotionCard = motion.create(Card);
-const MotionBox = motion.create(Box);
 
 interface User {
   id: string;
@@ -160,6 +158,7 @@ export default function ProfilePage() {
       const endpoint = previousFollowState ? 'unfollow' : 'follow';
       const response = await fetch(`/api/users/${username}/${endpoint}`, {
         method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (!response.ok) {
@@ -438,7 +437,7 @@ export default function ProfilePage() {
                               whileHover={{ scale: 1.02 }}
                               onClick={() => handleRecipeClick(recipe.id)}
                               sx={{
-                                backgroundColor: (theme) => theme.palette.background.paper,
+                                backgroundColor: (theme: Theme) => theme.palette.background.paper,
                                 cursor: 'pointer',
                                 height: '100%',
                                 borderRadius: '20px',
@@ -465,7 +464,7 @@ export default function ProfilePage() {
                                       precision={0.5}
                                       size="small"
                                       readOnly
-                                      sx={{ color: '#FFB400' }}
+                                      sx={{ color: 'warning.main' }}
                                     />
                                     <Typography
                                       variant="body2"
@@ -522,7 +521,7 @@ export default function ProfilePage() {
                               whileHover={{ scale: 1.02 }}
                               onClick={() => handleRecipeClick(recipe.id)}
                               sx={{
-                                backgroundColor: (theme) => theme.palette.background.paper,
+                                backgroundColor: (theme: Theme) => theme.palette.background.paper,
                                 cursor: 'pointer',
                                 height: '100%',
                                 borderRadius: '20px',
@@ -564,7 +563,7 @@ export default function ProfilePage() {
                                       precision={0.5}
                                       size="small"
                                       readOnly
-                                      sx={{ color: '#FFB400' }}
+                                      sx={{ color: 'warning.main' }}
                                     />
                                     <Typography
                                       variant="body2"

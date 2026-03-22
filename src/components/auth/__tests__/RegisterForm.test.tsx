@@ -6,9 +6,11 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import RegisterForm from '../RegisterForm';
 
 // Mock framer-motion
-jest.mock('framer-motion', () => ({
-  motion: (component: any) => component,
-}));
+jest.mock('framer-motion', () => {
+  const passthrough = (component: any) => component;
+  passthrough.create = (component: any) => component;
+  return { motion: passthrough };
+});
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({

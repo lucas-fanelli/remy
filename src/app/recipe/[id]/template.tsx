@@ -22,7 +22,7 @@ export default function RecipeTemplate({ children }: { children: React.ReactNode
   // Wait for client-side hydration to complete before animating
   useEffect(() => {
     setIsClient(true);
-  }, [pathname]);
+  }, []);
 
   // Don't render animation wrapper during SSR - prevents hydration mismatch
   if (!isClient) {

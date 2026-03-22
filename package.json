@@ -37,6 +37,7 @@
     "docker:build": "docker-compose build",
     "docker:prod": "docker-compose --profile production up -d",
     "docker:clean": "docker-compose down -v",
+    "cleanup:images": "tsx src/scripts/cleanup-orphaned-images.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -55,13 +56,14 @@
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.8.0",
     "date-fns": "^4.1.0",
-    "framer-motion": "^11.5.0",
+    "framer-motion": "11.5.0",
     "jsonwebtoken": "^9.0.2",
     "next": "16.0.10",
     "next-auth": "^4.24.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "serwist": "^9.2.3",
+    "striptags": "^3.2.0",
     "uuid": "^13.0.0",
     "zod": "^3.23.0"
   },

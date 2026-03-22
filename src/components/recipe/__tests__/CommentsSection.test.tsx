@@ -370,6 +370,7 @@ describe('CommentsSection Component', () => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'X-Requested-With': 'fetch',
             },
             body: JSON.stringify({
               text: 'This is a test comment',
@@ -1701,22 +1702,30 @@ describe('CommentsSection Component', () => {
 
       // Select an image first
       const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput) {
-        const validFile = new File(['image content'], 'photo.jpg', { type: 'image/jpeg' });
-        fireEvent.change(fileInput, { target: { files: [validFile] } });
+      expect(fileInput).toBeTruthy();
 
-        // Wait for preview to appear
-        await waitFor(() => {
-          // Image preview should be visible
-          const removeButton =
-            screen.queryByRole('button', { name: /remove/i }) ||
-            screen.queryByRole('button', { name: '' });
-          // If remove button exists, click it
-          if (removeButton) {
-            fireEvent.click(removeButton);
-          }
-        });
-      }
+      const validFile = new File(['image content'], 'photo.jpg', { type: 'image/jpeg' });
+      fireEvent.change(fileInput, { target: { files: [validFile] } });
+
+      // Wait for image preview to appear (URL.createObjectURL returns 'blob:mock-url')
+      await waitFor(() => {
+        const previewImg = screen.getByAltText('Preview');
+        expect(previewImg).toBeInTheDocument();
+        expect(previewImg).toHaveAttribute('src', 'blob:mock-url');
+      });
+
+      // Find the remove button (Close icon button next to the preview)
+      const closeButtons = screen
+        .getAllByRole('button')
+        .filter((btn) => btn.querySelector('[data-testid="CloseIcon"]'));
+      expect(closeButtons.length).toBeGreaterThan(0);
+
+      fireEvent.click(closeButtons[0]);
+
+      // Preview image should be removed
+      await waitFor(() => {
+        expect(screen.queryByAltText('Preview')).not.toBeInTheDocument();
+      });
     });
   });
 

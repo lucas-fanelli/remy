@@ -14,10 +14,10 @@ export type CreateUserDTO = {
 export type UpdateUserDTO = {
   email?: string;
   username?: string;
-  fullName?: string;
-  bio?: string;
-  avatar?: string;
-  website?: string;
+  fullName?: string | null;
+  bio?: string | null;
+  avatar?: string | null;
+  website?: string | null;
   isPrivate?: boolean;
 };
 
@@ -40,7 +40,7 @@ export interface IUserRepository {
   delete(id: string): Promise<User>;
 
   // Search
-  search(query: string, limit?: number): Promise<User[]>;
+  search(query: string, limit?: number, offset?: number): Promise<User[]>;
 
   // Utility
   exists(email: string, username: string): Promise<boolean>;

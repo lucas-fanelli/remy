@@ -352,7 +352,7 @@ describe('Validation Schemas - Unit Tests', () => {
       };
 
       const result = searchSchema.parse(validData);
-      expect(result.limit).toBe(10);
+      expect(result.limit).toBe(20);
     });
 
     it('should coerce limit to number', () => {

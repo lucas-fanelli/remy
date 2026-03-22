@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ForbiddenError, NotFoundError, ValidationError } from '@/domain/errors';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
-import { deleteFromCloudinary } from '@/lib/cloudinary';
+import { requireAuth } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
-import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { cleanupCloudinaryImage } from '@/lib/utils/cloudinary-cleanup';
+import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
+import { logServerError } from '@/lib/utils/logger';
+import { safeRating } from '@/lib/utils/recipe';
+import { requireJsonContentType } from '@/lib/utils/request';
 
 /**
  * GET /api/recipes/[id] - Get a single recipe by ID
@@ -12,6 +16,11 @@ import { extractBearerToken } from '@/lib/utils/auth';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+
+    if (!UUID_REGEX.test(id)) {
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+    }
+
     const recipeService = container.getRecipeService();
     const recipe = await recipeService.getRecipeById(id);
 
@@ -23,12 +32,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({
       recipe: {
         ...recipe,
-        averageRating: recipe.averageRating ?? 0,
-        totalRatings: recipe.reviewCount ?? 0,
+        averageRating: safeRating(recipe.averageRating),
+        totalRatings: recipe.totalRatings ?? 0,
       },
     });
   } catch (error) {
-    console.error('Error fetching recipe:', error);
+    logServerError('Error fetching recipe:', error);
     return NextResponse.json({ error: 'Failed to fetch recipe' }, { status: 500 });
   }
 }
@@ -38,23 +47,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
  */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
+
     const { id } = await params;
 
     if (!UUID_REGEX.test(id)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
-    }
-
-    const tokenService = container.getTokenService();
-
-    // Verify token and get user ID
-    const payload = tokenService.verify(token);
-    if (!payload || !payload.userId) {
-      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -66,53 +72,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (body.imageUrl) {
-      try {
-        const imgUrl = new URL(body.imageUrl);
-        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-        if (
-          !['http:', 'https:'].includes(imgUrl.protocol) ||
-          imgUrl.hostname !== 'res.cloudinary.com' ||
-          !cloudName ||
-          !imgUrl.pathname.startsWith(`/${cloudName}/`)
-        ) {
-          return NextResponse.json(
-            { error: 'Image must be uploaded through the app' },
-            { status: 400 }
-          );
-        }
-      } catch {
-        return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
-      }
+      const cloudinaryError = validateCloudinaryUrl(body.imageUrl);
+      if (cloudinaryError) return cloudinaryError;
     }
 
     const updateData: UpdateRecipeDTO = body;
 
     // Update recipe using service (ownership check is done in service)
     const recipeService = container.getRecipeService();
-    const recipe = await recipeService.updateRecipe(id, payload.userId, updateData);
+    const recipe = await recipeService.updateRecipe(id, user.id, updateData);
 
     return NextResponse.json({ recipe, message: 'Recipe updated successfully' }, { status: 200 });
   } catch (error) {
-    console.error('Error updating recipe:', error);
+    logServerError('Error updating recipe:', error);
 
-    if (error instanceof Error) {
-      // Check for permission errors
-      if (error.message.includes('not authorized') || error.message.includes('permission')) {
-        return NextResponse.json(
-          { error: 'You do not have permission to update this recipe' },
-          { status: 403 }
-        );
-      }
-
-      // Check for not found errors
-      if (error.message.includes('not found')) {
-        return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-      }
-
-      // Validation errors
-      if (error.message.includes('validation failed')) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        { error: 'You do not have permission to update this recipe' },
+        { status: 403 }
+      );
+    }
+    if (error instanceof NotFoundError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ error: 'Failed to update recipe' }, { status: 500 });
@@ -133,60 +117,38 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tokenService = container.getTokenService();
-
-    // Verify token and get user ID
-    const payload = tokenService.verify(token);
-    if (!payload || !payload.userId) {
-      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
-    }
-
-    // Get minimal recipe data for Cloudinary cleanup
-    const recipeForCleanup = await prisma.post.findUnique({
-      where: { id },
-      select: { imageUrl: true },
-    });
-
-    // Delete recipe via service (performs atomic ownership check + delete)
+    // Atomic ownership check + delete — returns imageUrl for Cloudinary cleanup
     const recipeService = container.getRecipeService();
-    await recipeService.deleteRecipe(id, payload.userId);
-    const imageUrl = recipeForCleanup?.imageUrl;
+    const { imageUrl } = await recipeService.deleteRecipe(id, user.id);
 
-    // Clean up Cloudinary image after successful DB deletion
-    if (imageUrl && imageUrl.includes('cloudinary.com')) {
+    // Clean up Cloudinary image after successful DB deletion (best-effort)
+    if (imageUrl) {
       try {
-        // Handle Cloudinary URLs with or without transformations
-        const match = imageUrl.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
-        if (match) {
-          await deleteFromCloudinary(match[1]);
-        }
-      } catch (fileError) {
-        console.warn(`Failed to delete image from Cloudinary: ${fileError}`);
+        await cleanupCloudinaryImage(imageUrl);
+      } catch (err) {
+        logServerError('Failed to cleanup Cloudinary image:', err);
       }
     }
 
     return NextResponse.json({ message: 'Recipe deleted successfully' }, { status: 200 });
   } catch (error) {
-    console.error('Error deleting recipe:', error);
+    logServerError('Error deleting recipe:', error);
 
-    if (error instanceof Error) {
-      // Check for permission errors
-      if (error.message.includes('not authorized') || error.message.includes('permission')) {
-        return NextResponse.json(
-          { error: 'You do not have permission to delete this recipe' },
-          { status: 403 }
-        );
-      }
-
-      // Check for not found errors
-      if (error.message.includes('not found')) {
-        return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
-      }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this recipe' },
+        { status: 403 }
+      );
+    }
+    if (error instanceof NotFoundError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
     return NextResponse.json({ error: 'Failed to delete recipe' }, { status: 500 });

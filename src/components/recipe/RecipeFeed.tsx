@@ -21,15 +21,21 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe } from '@/domain/types/recipe';
 import EditRecipeModal from './EditRecipeModal';
 import RecipeCard from './RecipeCard';
 
-const MotionBox = motion.create(Box);
+interface FeedRecipe extends Recipe {
+  likeCount?: number;
+  commentCount?: number;
+}
+
+const PAGE_SIZE = 12;
+const MAX_PAGES = 25;
 
 interface RecipeFeedProps {
   onCreateRecipe?: () => void;
@@ -43,8 +49,11 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
   const [hasMore, setHasMore] = useState(true);
   const pageRef = useRef(0);
+  const recipesLengthRef = useRef(0);
 
   // Filters
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
@@ -70,7 +79,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
-    severity: 'success' | 'error' | 'info';
+    severity: 'success' | 'error' | 'info' | 'warning';
   }>({
     open: false,
     message: '',
@@ -79,14 +88,31 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
   const loadRecipes = useCallback(
     async (reset = false) => {
-      if (loadingRef.current) return;
+      if (loadingRef.current && !reset) return;
+      abortControllerRef.current?.abort();
 
       loadingRef.current = true;
+      if (reset) {
+        pageRef.current = 0;
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      // Double-guard against filter change races:
+      // 1. AbortController cancels in-flight HTTP requests
+      // 2. requestIdRef detects stale responses that arrived before abort took effect
+      // Together they ensure only the latest filter combination's response updates state.
+      // Three layers of dedup protection:
+      // 1. existingIds Set — filters out recipes already rendered (prevents duplicate React keys)
+      // 2. requestIdRef — discards stale responses from superseded filter changes
+      // 3. AbortController — cancels in-flight HTTP requests on filter change or unmount
+      requestIdRef.current++;
+      const thisRequestId = requestIdRef.current;
       setLoading(true);
       try {
+        const offset = reset ? 0 : recipesLengthRef.current;
         const queryParams = new URLSearchParams({
-          limit: '12',
-          offset: String(reset ? 0 : pageRef.current * 12),
+          limit: String(PAGE_SIZE),
+          offset: String(offset),
         });
 
         if (difficultyFilter !== 'all') {
@@ -104,36 +130,48 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
           queryParams.append('sort', sortOrder);
         }
 
-        const response = await fetch(`/api/recipes?${queryParams}`);
+        const response = await fetch(`/api/recipes?${queryParams}`, {
+          signal: controller.signal,
+        });
         if (!response.ok) throw new Error('Failed to load recipes');
 
         const data = await response.json();
 
-        if (reset) {
-          setRecipes(data.recipes);
-          pageRef.current = 1;
-        } else {
-          setRecipes((prev) => {
-            // Prevent duplicate keys by filtering out recipes that already exist
-            const existingIds = new Set(prev.map((r) => r.id));
-            const newRecipes = data.recipes.filter((r: Recipe) => !existingIds.has(r.id));
-            return [...prev, ...newRecipes];
-          });
-          pageRef.current += 1;
-        }
-
-        setHasMore(data.recipes.length === 12);
+        // Discard stale response if a newer request has been issued.
+        // Check before ALL state updates to avoid partial state from outdated responses.
+        if (thisRequestId !== requestIdRef.current) return;
 
         // Use engagement data already included in the API response
         const newLikes: Record<string, { liked: boolean; count: number }> = {};
         const newComments: Record<string, number> = {};
-        data.recipes.forEach((r: any) => {
+        data.recipes.forEach((r: FeedRecipe) => {
           newLikes[r.id] = { liked: false, count: r.likeCount || 0 };
           newComments[r.id] = r.commentCount || 0;
         });
         setRecipeLikes((prev) => ({ ...prev, ...newLikes }));
         setRecipeComments((prev) => ({ ...prev, ...newComments }));
+
+        if (reset) {
+          pageRef.current = 1;
+          recipesLengthRef.current = data.recipes.length;
+          setRecipes(data.recipes);
+        } else {
+          // Increment page inside the requestId guard to prevent stale responses from advancing the page
+          pageRef.current += 1;
+          setRecipes((prev) => {
+            // Prevent duplicate keys by filtering out recipes that already exist
+            const existingIds = new Set(prev.map((r) => r.id));
+            const newRecipes = data.recipes.filter((r: Recipe) => !existingIds.has(r.id));
+            const updated = [...prev, ...newRecipes];
+            recipesLengthRef.current = updated.length;
+            return updated;
+          });
+        }
+
+        setHasMore(data.hasMore ?? data.recipes.length === PAGE_SIZE);
       } catch (error) {
+        // If the request was aborted (e.g., filter changed), return early without updating state
+        if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('Error loading recipes:', error);
       } finally {
         loadingRef.current = false;
@@ -145,30 +183,45 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
   useEffect(() => {
     loadRecipes(true);
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [difficultyFilter, timeFilter, sortOrder, loadRecipes]);
 
-  const handleScroll = useCallback(() => {
-    if (
-      window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 500 &&
-      hasMore &&
-      !loadingRef.current
-    ) {
-      loadRecipes();
-    }
-  }, [hasMore, loadRecipes]);
+  // Infinite scroll via IntersectionObserver on a sentinel element
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const lastLoadTimeRef = useRef(0);
+  const rafPendingRef = useRef(false);
 
   useEffect(() => {
-    let scrollTimeout: ReturnType<typeof setTimeout>;
-    const throttledScroll = () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(handleScroll, 200);
-    };
-    window.addEventListener('scroll', throttledScroll);
-    return () => {
-      window.removeEventListener('scroll', throttledScroll);
-      clearTimeout(scrollTimeout);
-    };
-  }, [handleScroll]);
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting || !hasMore || loadingRef.current) return;
+        if (pageRef.current >= MAX_PAGES) {
+          setHasMore(false);
+          return;
+        }
+        // Guard against the observer firing twice in the same frame
+        if (rafPendingRef.current) return;
+        rafPendingRef.current = true;
+        requestAnimationFrame(() => {
+          rafPendingRef.current = false;
+          const now = Date.now();
+          if (now - lastLoadTimeRef.current > 500) {
+            lastLoadTimeRef.current = now;
+            loadRecipes();
+          }
+        });
+      },
+      { rootMargin: '500px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadRecipes]);
 
   // Note: Removed visibilitychange handler that was resetting recipes on tab switch.
   // This caused loss of scroll position and loaded recipes. Rating updates are
@@ -195,6 +248,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     try {
       const response = await fetch(`/api/recipes/${recipeToDelete.id}`, {
         method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (!response.ok) {
@@ -203,7 +257,11 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
       }
 
       // Remove recipe from list
-      setRecipes((prev) => prev.filter((r) => r.id !== recipeToDelete.id));
+      setRecipes((prev) => {
+        const updated = prev.filter((r) => r.id !== recipeToDelete.id);
+        recipesLengthRef.current = updated.length;
+        return updated;
+      });
 
       setSnackbar({
         open: true,
@@ -274,15 +332,21 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     try {
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (response.ok) {
-        const data = await response.json();
-        // Update with server response
-        setRecipeLikes((prev) => ({
-          ...prev,
-          [recipeId]: { liked: data.liked, count: data.likesCount },
-        }));
+        try {
+          const data = await response.json();
+          // Update with server response
+          setRecipeLikes((prev) => ({
+            ...prev,
+            [recipeId]: { liked: data.liked, count: data.likesCount },
+          }));
+        } catch (parseError) {
+          console.warn('Like response parse failed, keeping optimistic state:', parseError);
+          // Server returned 200 — the like was processed. Keep optimistic state.
+        }
       } else {
         // Revert on error
         setRecipeLikes((prev) => ({
@@ -446,7 +510,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
               <MotionBox
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: (index % PAGE_SIZE) * 0.05 }}
               >
                 <RecipeCard
                   recipe={recipe}
@@ -500,6 +564,9 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
       {/* Loading state - render nothing */}
       {loading && recipes.length === 0 && null}
 
+      {/* Sentinel element for IntersectionObserver infinite scroll */}
+      <div ref={sentinelRef} />
+
       {/* End of Feed Message */}
       {!loading && !hasMore && recipes.length > 0 && (
         <Box sx={{ textAlign: 'center', py: { xs: 3, md: 4 } }}>
@@ -508,7 +575,9 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             color="text.secondary"
             sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
           >
-            You&apos;ve reached the end! 🍽️
+            {pageRef.current >= MAX_PAGES
+              ? `Showing first ${MAX_PAGES * PAGE_SIZE} recipes. Use search or filters to find specific recipes.`
+              : "You've reached the end!"}
           </Typography>
         </Box>
       )}

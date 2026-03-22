@@ -9,9 +9,8 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { motion } from 'framer-motion';
 import React, { useState, useRef } from 'react';
-const MotionCard = motion.create(Card);
+import { MotionCard } from '@/components/motion';
 
 interface ImageUploadProps {
   value: string;

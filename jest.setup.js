@@ -1,4 +1,5 @@
-import '@testing-library/jest-dom'
+// TODO: Create typed mock factories to reduce 'any' usage in test files
+import '@testing-library/jest-dom';
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -8,15 +9,15 @@ jest.mock('next/navigation', () => ({
       replace: jest.fn(),
       prefetch: jest.fn(),
       back: jest.fn(),
-    }
+    };
   },
   usePathname() {
-    return '/'
+    return '/';
   },
   useSearchParams() {
-    return new URLSearchParams()
+    return new URLSearchParams();
   },
-}))
+}));
 
 // Mock localStorage
 const localStorageMock = {
@@ -24,20 +25,24 @@ const localStorageMock = {
   setItem: jest.fn(),
   removeItem: jest.fn(),
   clear: jest.fn(),
-}
-global.localStorage = localStorageMock
+};
+global.localStorage = localStorageMock;
 
 // Mock fetch
-global.fetch = jest.fn()
+global.fetch = jest.fn();
+
+// Mock URL.createObjectURL/revokeObjectURL for jsdom compatibility
+global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+global.URL.revokeObjectURL = jest.fn();
 
 // Suppress noisy console output from tests
-const originalError = console.error
-const originalLog = console.log
+const originalError = console.error;
+const originalLog = console.log;
 
 beforeAll(() => {
   // Suppress noisy MUI warnings
   console.error = (...args) => {
-    const message = args[0]
+    const message = args[0];
     if (
       typeof message === 'string' &&
       (message.includes('Warning: An update to') ||
@@ -47,25 +52,22 @@ beforeAll(() => {
         message.includes('Error updating recipe:') ||
         message.includes('Search error:'))
     ) {
-      return
+      return;
     }
-    originalError.call(console, ...args)
-  }
+    originalError.call(console, ...args);
+  };
 
   // Suppress debug console.log statements
   console.log = (...args) => {
-    const message = args[0]
-    if (
-      typeof message === 'string' &&
-      message.startsWith('Navigation:')
-    ) {
-      return
+    const message = args[0];
+    if (typeof message === 'string' && message.startsWith('Navigation:')) {
+      return;
     }
-    originalLog.call(console, ...args)
-  }
-})
+    originalLog.call(console, ...args);
+  };
+});
 
 afterAll(() => {
-  console.error = originalError
-  console.log = originalLog
-})
+  console.error = originalError;
+  console.log = originalLog;
+});

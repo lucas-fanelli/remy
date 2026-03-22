@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { extractAuthToken } from '@/lib/utils/auth';
 import { validateImageMagicBytes } from '@/lib/utils/image-validation';
+import { logServerError } from '@/lib/utils/logger';
 
 // Disable body parsing for file uploads in Next.js 15
 export const runtime = 'nodejs';
 
 /**
  * POST /api/upload - Upload an image file to Cloudinary
+ *
+ * KNOWN LIMITATION: Uploaded images are not tracked per-user in the database.
+ * Any authenticated user can reference any Cloudinary URL when creating/updating
+ * a recipe. This is low-risk because Cloudinary URLs are not guessable (they
+ * contain random public IDs), but a proper fix would require a new DB table
+ * mapping uploads to users, which is a significant architecture change.
  */
 export async function POST(request: NextRequest) {
   try {
-    const authToken = extractBearerToken(request);
+    const authToken = extractAuthToken(request);
     if (!authToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -24,17 +31,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    // Check Content-Type header
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        { error: 'Invalid Content-Type. Expected multipart/form-data.' },
+        { status: 400 }
+      );
+    }
+
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const fileEntry = formData.get('file');
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    if (!fileEntry || !(fileEntry instanceof File)) {
+      return NextResponse.json({ error: 'No valid file provided' }, { status: 400 });
     }
-
-    // Check if file is actually a File instance
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: 'Invalid file object' }, { status: 400 });
-    }
+    const file = fileEntry;
 
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -62,21 +74,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // SECURITY: Upload ownership is not tracked. Any authenticated user can reference any Cloudinary URL.
+    // This is mitigated by: (1) Cloudinary URLs contain random public IDs, (2) validateCloudinaryUrl checks
+    // the URL belongs to our cloud account. Implementing an Upload table is recommended for production.
+    // TODO: Track upload ownership (publicId -> userId) to prevent cross-user image references.
+
     // Upload to Cloudinary
-    const { url: fileUrl, publicId } = await uploadToCloudinary(buffer, 'recipes');
+    const { url: fileUrl } = await uploadToCloudinary(buffer, 'recipes');
 
     return NextResponse.json({
       success: true,
       url: fileUrl,
-      publicId,
       size: file.size,
       type: file.type,
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to upload file' },
-      { status: 500 }
-    );
+    logServerError('Error uploading file:', error);
+    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
 }

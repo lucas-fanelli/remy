@@ -21,9 +21,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { MotionBox } from '@/components/motion';
 import { useMotionContext } from '@/contexts/MotionContext';
-
-const MotionBox = motion.create(Box);
 
 // Types for live search results
 interface SearchResultUser {
@@ -47,7 +46,7 @@ interface SearchResults {
 interface PersistentSearchBarProps {
   /** Callback when search is submitted */
   onSearch?: (query: string) => void;
-  /** Callback when query changes (for live search) */
+  /** Called on every keystroke. Parent should debounce if doing heavy work. */
   onQueryChange?: (query: string) => void;
   /** Callback when a result is clicked (for closing parent dialogs) */
   onResultClick?: () => void;
@@ -90,58 +89,75 @@ export default function PersistentSearchBar({
   const [liveResults, setLiveResults] = useState<SearchResults>({ users: [], recipes: [] });
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Clear search query on pathname change (skip initial mount)
+  const prevPathnameRef = useRef(pathname);
+  useEffect(() => {
+    if (prevPathnameRef.current !== pathname) {
+      setQuery('');
+      prevPathnameRef.current = pathname;
+    }
+  }, [pathname]);
 
   // Check if user has typed something
   const hasQuery = query.trim().length > 0;
 
-  // Debounced search effect
+  // Debounced search effect — one AbortController per effect run handles
+  // both cancellation on query change and cleanup on unmount.
+  // The AbortController is created outside setTimeout so the cleanup function
+  // can abort it, but the ref assignment is inside setTimeout to avoid pointing
+  // at a controller that may never be used if the timeout is cleared first.
   useEffect(() => {
-    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Don't search if query is too short
     if (query.trim().length < 2) {
       setLiveResults({ users: [], recipes: [] });
       setIsSearching(false);
       return;
     }
 
-    // Set loading state
-    setIsSearching(true);
-
-    // Abort any previous in-flight request via the ref
-    abortControllerRef.current?.abort();
+    // Abort any previous in-flight search request before starting a new one
+    searchAbortRef.current?.abort();
     const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    // Debounce: wait 300ms after user stops typing
     searchTimeoutRef.current = setTimeout(async () => {
+      if (!isMountedRef.current) return;
+      // Assign ref inside setTimeout so it only points to controllers that are actually used
+      searchAbortRef.current = controller;
+      setIsSearching(true);
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}&limit=5`, {
           signal: controller.signal,
         });
         if (response.ok) {
           const data = await response.json();
+          if (!isMountedRef.current) return;
           setLiveResults({
             users: data.users || [],
             recipes: data.recipes || [],
           });
         }
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return;
-        }
+        if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('Search error:', error);
+        if (!isMountedRef.current) return;
         setLiveResults({ users: [], recipes: [] });
       } finally {
-        setIsSearching(false);
+        if (isMountedRef.current) {
+          setIsSearching(false);
+        }
       }
     }, 300);
 
-    // Cleanup on unmount or query change
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);

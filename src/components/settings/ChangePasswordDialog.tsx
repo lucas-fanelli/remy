@@ -118,6 +118,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'fetch',
         },
         body: JSON.stringify({
           oldPassword: formData.currentPassword,

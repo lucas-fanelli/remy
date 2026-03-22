@@ -10,6 +10,7 @@ import {
   CardContent,
   Avatar,
   Paper,
+  CircularProgress,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -20,7 +21,6 @@ import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 
 interface User {
-  id: string;
   username: string;
   fullName?: string | null;
   avatar?: string;
@@ -45,9 +45,13 @@ interface Recipe {
   };
 }
 
-// Fallback loading component for Suspense
+// Fallback loading component for Suspense (useSearchParams requires a Suspense boundary)
 function SearchPageFallback() {
-  return null;
+  return (
+    <Box sx={{ p: 4, textAlign: 'center' }}>
+      <CircularProgress />
+    </Box>
+  );
 }
 
 // Main search page content that uses useSearchParams
@@ -192,7 +196,7 @@ function SearchPageContent() {
                 ) : (
                   <Grid container spacing={2}>
                     {users.map((user) => (
-                      <Grid item xs={12} sm={6} md={4} key={user.id}>
+                      <Grid item xs={12} sm={6} md={4} key={user.username}>
                         <Card
                           sx={{
                             backgroundColor: (theme) => theme.palette.background.paper,

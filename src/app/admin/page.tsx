@@ -1,3 +1,12 @@
+// TODO: Extract a shared useAdminTable hook or AdminTable component that encapsulates:
+//   - Search input with debounce
+//   - Pagination state (page, limit, total)
+//   - Bulk selection and bulk action dispatch
+//   - Loading/error states and retry logic
+// This would deduplicate ~80 lines of repeated logic across:
+//   - src/app/admin/users/page.tsx
+//   - src/app/admin/recipes/page.tsx
+//   - src/app/admin/comments/page.tsx
 'use client';
 
 import {
@@ -23,6 +32,7 @@ import {
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
 
 interface AdminStats {
   totalUsers: number;
@@ -37,7 +47,8 @@ interface AdminStats {
 export default function AdminDashboard() {
   const router = useRouter();
   const theme = useTheme();
-  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { isReady, isLoading: guardLoading } = useAdminGuard();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,18 +71,12 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    // Redirect non-admins
-    if (!authLoading && (!user || !isAdmin)) {
-      router.push('/');
-      return;
-    }
-
-    if (isAuthenticated && isAdmin) {
+    if (isReady) {
       fetchStats();
     }
-  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchStats]);
+  }, [isReady, fetchStats]);
 
-  if (authLoading || loading) {
+  if (guardLoading || loading) {
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
@@ -171,30 +176,32 @@ export default function AdminDashboard() {
         )}
 
         {/* Stats Grid */}
-        <Grid container spacing={3} sx={{ mb: 6 }}>
-          {statCards.map((stat) => (
-            <Grid item xs={6} sm={4} md={2} key={stat.label}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2,
-                  textAlign: 'center',
-                  borderRadius: 2,
-                  border: `1px solid ${theme.palette.divider}`,
-                  height: '100%',
-                }}
-              >
-                <Box sx={{ color: stat.color, mb: 1 }}>{stat.icon}</Box>
-                <Typography variant="h4" fontWeight={700} color="text.primary">
-                  {stat.value.toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {stat.label}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
+        {stats && (
+          <Grid container spacing={3} sx={{ mb: 6 }}>
+            {statCards.map((stat) => (
+              <Grid item xs={6} sm={4} md={2} key={stat.label}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    textAlign: 'center',
+                    borderRadius: 2,
+                    border: `1px solid ${theme.palette.divider}`,
+                    height: '100%',
+                  }}
+                >
+                  <Box sx={{ color: stat.color, mb: 1 }}>{stat.icon}</Box>
+                  <Typography variant="h4" fontWeight={700} color="text.primary">
+                    {stat.value.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {stat.label}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        )}
 
         {/* Management Cards */}
         <Typography variant="h5" fontWeight={600} color="text.primary" gutterBottom sx={{ mb: 3 }}>

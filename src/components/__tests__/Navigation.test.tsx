@@ -44,6 +44,7 @@ let mockPathname = '/';
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    refresh: jest.fn(),
   }),
   usePathname: () => mockPathname,
 }));
@@ -934,32 +935,39 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/notifications');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/notifications',
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        );
       });
     });
 
-    it('should handle failed notification fetch with 401 by logging out - line 209-211', async () => {
-      // When fetch returns 401, component should trigger logout
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({ error: 'Unauthorized' }),
-      });
+    it('should handle failed notification fetch with 401 by confirming then logging out - line 209-211', async () => {
+      // First call: /api/notifications returns 401
+      // Second call: /api/auth/me confirms auth is truly invalid
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({ error: 'Unauthorized' }),
+        })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+        });
 
       const mockLogout = mockUseAuth().logout;
 
       renderWithProviders(<Navigation />);
 
-      // Wait for fetch to be called
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/notifications');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/notifications',
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        );
       });
 
-      // Component should still render without crashing (graceful error handling)
-      const banners = screen.getAllByRole('banner');
-      expect(banners.length).toBeGreaterThan(0);
-
-      // Verify logout was called on 401 instead of just logging
+      // Verify /api/auth/me confirmation was called and logout triggered
       await waitFor(() => {
         expect(mockLogout).toHaveBeenCalled();
       });
@@ -977,7 +985,10 @@ describe('Navigation Component', () => {
 
       // Wait for fetch to be called
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/notifications');
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/notifications',
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        );
       });
 
       // Component should still render without crashing (graceful error handling)
@@ -1945,8 +1956,6 @@ describe('Navigation Component', () => {
     });
 
     it('should handle recipe creation failure - lines 363-376', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       // Mock failed recipe creation FIRST
       mockFetch.mockImplementation((url: string, options?: any) => {
         if (url === '/api/recipes' && options?.method === 'POST') {
@@ -1999,23 +2008,16 @@ describe('Navigation Component', () => {
       const submitButton = screen.getByText('Submit Test Recipe');
       fireEvent.click(submitButton);
 
-      // Wait for error to be logged (line 374) AND caught by form
+      // The useCreateRecipe hook throws on failure, and the error propagates
+      // to the mock form component which catches it and displays it
       await waitFor(
         () => {
-          expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating recipe:', expect.any(Error));
+          const formError = screen.queryByTestId('form-error');
+          expect(formError).toBeInTheDocument();
+          expect(formError).toHaveTextContent(/recipe validation failed/i);
         },
         { timeout: 3000 }
       );
-
-      // Also check that the form displays the error
-      await waitFor(() => {
-        const formError = screen.queryByTestId('form-error');
-        if (formError) {
-          expect(formError).toHaveTextContent(/recipe validation failed/i);
-        }
-      });
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('should generate and render breadcrumbs for various paths - lines 360-390', () => {

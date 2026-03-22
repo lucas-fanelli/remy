@@ -26,7 +26,7 @@ import {
   DialogContentText,
   DialogActions,
   Tooltip,
-  useTheme,
+  Alert,
   FormControl,
   InputLabel,
   Select,
@@ -35,6 +35,7 @@ import {
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
 
 interface AdminUser {
   id: string;
@@ -55,8 +56,8 @@ interface AdminUser {
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const theme = useTheme();
-  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { isReady, isLoading: guardLoading } = useAdminGuard();
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
@@ -70,6 +71,7 @@ export default function AdminUsersPage() {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -77,8 +79,6 @@ export default function AdminUsersPage() {
   }, [search]);
 
   const fetchUsers = useCallback(async () => {
-    if (!isAuthenticated) return;
-
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -93,24 +93,22 @@ export default function AdminUsersPage() {
       if (!response.ok) throw new Error('Failed to fetch users');
 
       const data = await response.json();
+      setError(null);
       setUsers(data.users);
       setTotal(data.total);
     } catch (error) {
+      setError('Failed to load users.');
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, page, rowsPerPage, debouncedSearch, roleFilter]);
+  }, [page, rowsPerPage, debouncedSearch, roleFilter]);
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      router.push('/');
-      return;
-    }
-    if (isAuthenticated && isAdmin) {
+    if (isReady) {
       fetchUsers();
     }
-  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchUsers]);
+  }, [isReady, fetchUsers]);
 
   const handleDeleteClick = (targetUser: AdminUser) => {
     setSelectedUser(targetUser);
@@ -123,12 +121,13 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async () => {
-    if (!selectedUser || !isAuthenticated) return;
+    if (!selectedUser) return;
 
     setActionLoading(true);
     try {
       const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
         method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (!response.ok) throw new Error('Failed to delete user');
@@ -137,13 +136,14 @@ export default function AdminUsersPage() {
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
+      setError('Failed to delete user.');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleRoleChange = async (action: 'promote' | 'demote') => {
-    if (!selectedUser || !isAuthenticated) return;
+    if (!selectedUser) return;
 
     setActionLoading(true);
     try {
@@ -151,6 +151,7 @@ export default function AdminUsersPage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'fetch',
         },
         body: JSON.stringify({ action }),
       });
@@ -161,12 +162,13 @@ export default function AdminUsersPage() {
       fetchUsers();
     } catch (error) {
       console.error('Error updating role:', error);
+      setError('Failed to update user role. Please try again.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  if (authLoading || !isAdmin) {
+  if (guardLoading) {
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
@@ -182,12 +184,12 @@ export default function AdminUsersPage() {
         minHeight: '100vh',
         pt: { xs: 10, md: 12 },
         pb: { xs: 10, md: 6 },
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: 'background.default',
       }}
     >
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <IconButton onClick={() => router.push('/admin')}>
+          <IconButton onClick={() => router.push('/admin')} aria-label="Go back">
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight={700} color="text.primary">
@@ -230,6 +232,12 @@ export default function AdminUsersPage() {
             </Select>
           </FormControl>
         </Paper>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
         {/* Users Table */}
         <TableContainer component={Paper}>
@@ -288,13 +296,20 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell align="center">{u._count?.posts || 0}</TableCell>
                     <TableCell align="center">{u._count?.followers || 0}</TableCell>
-                    <TableCell>{new Date(u.createdAt).toLocaleDateString('en-US')}</TableCell>
+                    <TableCell>
+                      {new Date(u.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </TableCell>
                     <TableCell align="right">
                       <Tooltip title={u.role === 'ADMIN' ? 'Demote to User' : 'Promote to Admin'}>
                         <IconButton
                           onClick={() => handleRoleClick(u)}
                           disabled={u.id === user?.id}
                           color={u.role === 'ADMIN' ? 'warning' : 'primary'}
+                          aria-label={u.role === 'ADMIN' ? 'Demote to user' : 'Promote to admin'}
                         >
                           {u.role === 'ADMIN' ? <ArrowDownward /> : <ArrowUpward />}
                         </IconButton>
@@ -304,6 +319,7 @@ export default function AdminUsersPage() {
                           onClick={() => handleDeleteClick(u)}
                           disabled={u.id === user?.id}
                           color="error"
+                          aria-label="Delete user"
                         >
                           <Delete />
                         </IconButton>

@@ -7,7 +7,6 @@ import {
 } from '@mui/icons-material';
 import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import { useRouter } from 'next/navigation';
-import React from 'react';
 
 export default function NotFound() {
   const router = useRouter();

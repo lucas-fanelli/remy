@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { extractAuthToken } from '@/lib/utils/auth';
 
 export interface AdminAuthResult {
   userId: string;
@@ -16,7 +16,7 @@ export interface AdminAuthResult {
  * Returns admin user info if authorized, or NextResponse with error if not.
  */
 export async function requireAdmin(request: NextRequest): Promise<AdminAuthResult | NextResponse> {
-  const token = extractBearerToken(request);
+  const token = extractAuthToken(request);
 
   if (!token) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });

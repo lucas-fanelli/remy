@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { container } from '@/lib/container/container';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { extractAuthToken } from '@/lib/utils/auth';
 
 export async function getCurrentUser(request: NextRequest) {
-  const token = extractBearerToken(request);
+  const token = extractAuthToken(request);
   if (!token) return null;
 
   const authService = container.getAuthService();

@@ -4,7 +4,7 @@ import { Nunito } from 'next/font/google';
 import { headers } from 'next/headers';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
-import { BRANDING } from '@/config/branding';
+import { BRANDING, THEME_COLORS } from '@/config/branding';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { MotionProvider } from '@/contexts/MotionContext';
 import { PwaProvider } from '@/contexts/PwaContext';
@@ -104,9 +104,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   if (mode === 'dark') {
                     document.documentElement.classList.add('dark-mode');
                     document.documentElement.style.colorScheme = 'dark';
-                    document.documentElement.style.backgroundColor = '#1E1E1E';
+                    document.documentElement.style.backgroundColor = '${THEME_COLORS.darkBackground}';
                   } else {
-                    document.documentElement.style.backgroundColor = '#FAFAFA';
+                    document.documentElement.style.backgroundColor = '${THEME_COLORS.lightBackground}';
                     // Light mode doesn't need loading class
                     document.documentElement.classList.remove('loading');
                     document.documentElement.classList.add('theme-ready');

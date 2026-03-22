@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+// Standard error format across the API is `{ error: 'message' }` with an appropriate HTTP status code.
+// ApiResponseHelper wraps this pattern with additional `success` and optional `data` fields.
+// New routes should use the simple `{ error: 'message' }` format for consistency with the majority of existing routes.
+
 export type ApiResponse<T = any> = {
   success: boolean;
   data?: T;
