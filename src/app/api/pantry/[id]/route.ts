@@ -1,45 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MAX_ITEM_NAME_LENGTH, MAX_QUANTITY, UUID_REGEX } from '@/lib/constants';
-import { container } from '@/lib/container/container';
+import striptags from 'striptags';
+import { requireAuth } from '@/lib/api/auth';
+import { MAX_ITEM_NAME_LENGTH, MAX_NOTES_LENGTH, MAX_QUANTITY, UUID_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
+import { requireJsonContentType } from '@/lib/utils/request';
 
 // PUT - Update pantry item
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
+
     const { id: itemId } = await params;
 
     if (!UUID_REGEX.test(itemId)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
-    if (!token) {
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
-
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Check if item exists and belongs to user
-    const item = await prisma.pantryItem.findUnique({
-      where: { id: itemId },
-      include: { pantry: true },
-    });
-
-    if (!item) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
-    }
-
-    if (item.pantry.userId !== payload.userId) {
-      return NextResponse.json(
-        { error: 'You do not have permission to update this item' },
-        { status: 403 }
-      );
     }
 
     let body;
@@ -66,18 +49,25 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unit cannot be empty' }, { status: 400 });
     }
 
-    // Validate quantity: must be a valid non-negative number
+    if (unit && unit.length > 50) {
+      return NextResponse.json({ error: 'Unit too long (max 50 characters)' }, { status: 400 });
+    }
+
+    // quantity: 0 is valid (represents "to taste" or "as needed" items)
+    let normalizedQuantity: number | undefined;
     if (quantity !== undefined) {
-      const parsed = parseFloat(quantity);
-      if (isNaN(parsed) || !isFinite(parsed)) {
+      normalizedQuantity = parseFloat(quantity);
+      if (isNaN(normalizedQuantity) || !isFinite(normalizedQuantity)) {
         return NextResponse.json({ error: 'Quantity must be a valid number' }, { status: 400 });
       }
-      if (parsed < 0) {
+      if (normalizedQuantity < 0) {
         return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
       }
-      if (parsed > MAX_QUANTITY) {
+      if (normalizedQuantity > MAX_QUANTITY) {
         return NextResponse.json({ error: 'Quantity too large' }, { status: 400 });
       }
+      // Normalize -0 to 0
+      if (Object.is(normalizedQuantity, -0)) normalizedQuantity = 0;
     }
 
     if (expiresAt !== undefined && expiresAt !== null) {
@@ -87,25 +77,57 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // Update item
-    const updatedItem = await prisma.pantryItem.update({
-      where: { id: itemId },
-      data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(quantity !== undefined && { quantity: parseFloat(quantity) }),
-        ...(unit !== undefined && { unit: unit.trim() }),
-        ...(category !== undefined && { category: category?.trim() || null }),
-        ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
-        ...(notes !== undefined && { notes: notes?.trim() || null }),
-      },
-    });
+    if (notes !== undefined && notes !== null && notes.length > MAX_NOTES_LENGTH) {
+      return NextResponse.json(
+        { error: `Notes too long (max ${MAX_NOTES_LENGTH} characters)` },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({
-      item: updatedItem,
-      message: 'Item updated successfully',
-    });
+    // Custom categories are intentionally allowed (freeSolo Autocomplete on the client).
+    // The length limit is the only server-side constraint.
+    if (category !== undefined && category !== null && category.length > MAX_ITEM_NAME_LENGTH) {
+      return NextResponse.json(
+        { error: `Category too long (max ${MAX_ITEM_NAME_LENGTH} characters)` },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize category to strip any HTML tags
+    const sanitizedCategory =
+      category !== undefined ? (category ? striptags(category).trim() : category) : undefined;
+
+    // Atomic ownership check + update in one query, returning the updated item directly.
+    // Uses Prisma's compound where to enforce ownership without a separate findUnique.
+    try {
+      const updatedItem = await prisma.pantryItem.update({
+        where: {
+          id: itemId,
+          pantry: { userId: user.id },
+        },
+        data: {
+          ...(name !== undefined && { name: striptags(name.trim()) }),
+          ...(normalizedQuantity !== undefined && { quantity: normalizedQuantity }),
+          ...(unit !== undefined && { unit: unit.trim() }),
+          ...(sanitizedCategory !== undefined && { category: sanitizedCategory?.trim() || null }),
+          ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+          ...(notes !== undefined && { notes: notes ? striptags(notes.trim()) || null : null }),
+        },
+      });
+
+      return NextResponse.json({
+        item: updatedItem,
+        message: 'Item updated successfully',
+      });
+    } catch (e) {
+      // Prisma throws P2025 when the where clause (including ownership) doesn't match
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'P2025') {
+        return NextResponse.json({ error: 'Item not found or unauthorized' }, { status: 404 });
+      }
+      throw e;
+    }
   } catch (error) {
-    console.error('Error updating pantry item:', error);
+    logServerError('Error updating pantry item:', error);
     return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
   }
 }
@@ -122,45 +144,30 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
-    if (!token) {
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
-
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Check if item exists and belongs to user
-    const item = await prisma.pantryItem.findUnique({
-      where: { id: itemId },
-      include: { pantry: true },
+    // Atomic ownership check + delete (no TOCTOU)
+    const { count } = await prisma.pantryItem.deleteMany({
+      where: {
+        id: itemId,
+        pantry: { userId: user.id },
+      },
     });
 
-    if (!item) {
-      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    if (count === 0) {
+      return NextResponse.json({ error: 'Item not found or unauthorized' }, { status: 404 });
     }
-
-    if (item.pantry.userId !== payload.userId) {
-      return NextResponse.json(
-        { error: 'You do not have permission to delete this item' },
-        { status: 403 }
-      );
-    }
-
-    // Delete item
-    await prisma.pantryItem.delete({
-      where: { id: itemId },
-    });
 
     return NextResponse.json({
       message: 'Item deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting pantry item:', error);
+    logServerError('Error deleting pantry item:', error);
     return NextResponse.json({ error: 'Failed to delete item' }, { status: 500 });
   }
 }

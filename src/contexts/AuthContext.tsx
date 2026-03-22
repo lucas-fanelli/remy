@@ -1,5 +1,17 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+// NOTE: All fetch() calls in this file use `credentials: 'same-origin'` explicitly.
+// This is the browser default for same-origin requests, but we include it for clarity
+// since auth depends on httpOnly cookies being sent. Other fetch calls in the app
+// (RecipeFeed, notifications, etc.) rely on the browser default and do not need it.
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ReactNode,
+} from 'react';
 import { getQueryClient } from '@/providers/QueryProvider';
 
 export type User = {
@@ -35,6 +47,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Ref mirrors user state so memoized callbacks can read latest value
+  const userRef = React.useRef(user);
+  userRef.current = user;
 
   // Check auth status on mount via httpOnly cookie (sent automatically)
   useEffect(() => {
@@ -60,10 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (emailOrUsername: string, password: string) => {
+  const login = useCallback(async (emailOrUsername: string, password: string) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
       credentials: 'same-origin',
       body: JSON.stringify({ emailOrUsername, password }),
     });
@@ -75,51 +90,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     setUser(data.data.user);
-    // JWT is in httpOnly cookie — never stored in client state
-  };
+  }, []);
 
-  const register = async (email: string, username: string, password: string, fullName?: string) => {
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ email, username, password, fullName }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Registration failed');
-    }
-
-    const data = await response.json();
-    setUser(data.data.user);
-  };
-
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', {
+  const register = useCallback(
+    async (email: string, username: string, password: string, fullName?: string) => {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
         credentials: 'same-origin',
+        body: JSON.stringify({ email, username, password, fullName }),
       });
-    } catch {
-      // Continue with client-side cleanup even if server call fails
-    }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Registration failed');
+      }
+
+      const data = await response.json();
+      setUser(data.data.user);
+    },
+    []
+  );
+
+  // Optimistic logout: UI clears immediately, cookie may persist on network failure.
+  const logout = useCallback(async () => {
     setUser(null);
     try {
       getQueryClient()?.clear();
     } catch {
-      // QueryClient not available (e.g., during SSR or tests)
+      // On the server, getQueryClient() creates a new empty client so clear() is a no-op.
+      // In tests without QueryClientProvider, getQueryClient() may throw.
     }
-  };
 
-  const updateProfile = async (data: Partial<User>) => {
-    if (!user) {
+    const sendLogoutRequest = async () => {
+      const resp = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin',
+      });
+      return resp.ok;
+    };
+
+    const retryLogout = () => {
+      setTimeout(async () => {
+        try {
+          const ok = await sendLogoutRequest();
+          if (!ok) {
+            console.warn('Failed to clear auth cookie server-side (retry)');
+            window.dispatchEvent(new CustomEvent('auth:logout-failed'));
+          }
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'AbortError') return;
+          console.warn('Failed to clear auth cookie server-side (retry, network error)');
+          window.dispatchEvent(new CustomEvent('auth:logout-failed'));
+        }
+      }, 1000);
+    };
+
+    // Clear httpOnly cookie server-side. Fire a background retry on failure.
+    try {
+      const ok = await sendLogoutRequest();
+      if (!ok) retryLogout();
+    } catch {
+      retryLogout();
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (data: Partial<User>) => {
+    if (!userRef.current) {
       throw new Error('Not authenticated');
     }
 
     const response = await fetch('/api/users/profile', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
       credentials: 'same-origin',
       body: JSON.stringify(data),
     });
@@ -131,27 +175,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const result = await response.json();
     setUser(result.data);
-  };
+  }, []);
 
-  const isAuthenticated = !!user;
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token: null, // Deprecated — auth is cookie-based
-        isLoading,
-        isAuthenticated,
-        isAdmin: user?.role === 'ADMIN',
-        login,
-        register,
-        logout,
-        updateProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      token: null,
+      isLoading,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === 'ADMIN',
+      login,
+      register,
+      logout,
+      updateProfile,
+    }),
+    [user, isLoading, login, register, logout, updateProfile]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

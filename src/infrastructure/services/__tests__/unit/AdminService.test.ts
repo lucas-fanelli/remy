@@ -66,6 +66,7 @@ describe('AdminService - Unit Tests', () => {
   beforeEach(() => {
     prismaMock = mockDeep<PrismaClient>();
     adminService = new AdminService(prismaMock);
+    AdminService._clearStatsCache();
   });
 
   afterEach(() => {
@@ -116,7 +117,6 @@ describe('AdminService - Unit Tests', () => {
           where: {
             OR: [
               { username: { contains: 'test', mode: 'insensitive' } },
-              { email: { contains: 'test', mode: 'insensitive' } },
               { fullName: { contains: 'test', mode: 'insensitive' } },
             ],
           },
@@ -296,14 +296,16 @@ describe('AdminService - Unit Tests', () => {
   });
 
   describe('deleteRecipe', () => {
-    it('should delete recipe', async () => {
-      prismaMock.post.delete.mockResolvedValue(mockRecipe as any);
+    it('should delete recipe and return imageUrl', async () => {
+      prismaMock.post.delete.mockResolvedValue({ imageUrl: 'https://example.com/img.jpg' } as any);
 
-      await adminService.deleteRecipe('recipe-123');
+      const result = await adminService.deleteRecipe('recipe-123');
 
       expect(prismaMock.post.delete).toHaveBeenCalledWith({
         where: { id: 'recipe-123' },
+        select: { imageUrl: true },
       });
+      expect(result).toEqual({ imageUrl: 'https://example.com/img.jpg' });
     });
   });
 
@@ -395,43 +397,38 @@ describe('AdminService - Unit Tests', () => {
   });
 
   describe('deleteComment', () => {
-    it('should delete comment and recalculate ratings', async () => {
-      prismaMock.comment.findUnique.mockResolvedValue({
-        ...mockComment,
-        postId: 'post-123',
-      } as any);
-      prismaMock.$transaction.mockImplementation(async (fn: any) => fn(prismaMock));
-      prismaMock.comment.delete.mockResolvedValue(mockComment as any);
-      prismaMock.rating.aggregate.mockResolvedValue({
-        _avg: { rating: 4.0 },
-        _count: { rating: 2 },
-        _sum: { rating: null },
-        _min: { rating: null },
-        _max: { rating: null },
-      } as any);
-      prismaMock.post.update.mockResolvedValue({} as any);
+    it('should delete comment using deleteMany', async () => {
+      prismaMock.comment.deleteMany.mockResolvedValue({ count: 1 });
 
       await adminService.deleteComment('comment-123');
 
-      expect(prismaMock.comment.delete).toHaveBeenCalledWith({
+      expect(prismaMock.comment.deleteMany).toHaveBeenCalledWith({
         where: { id: 'comment-123' },
       });
+    });
+
+    it('should throw COMMENT_NOT_FOUND when comment does not exist', async () => {
+      prismaMock.comment.deleteMany.mockResolvedValue({ count: 0 });
+
+      await expect(adminService.deleteComment('nonexistent-id')).rejects.toThrow(
+        'COMMENT_NOT_FOUND'
+      );
     });
   });
 
   describe('getStats', () => {
     it('should return all statistics', async () => {
-      prismaMock.user.count
-        .mockResolvedValueOnce(100) // totalUsers
-        .mockResolvedValueOnce(5) // totalAdmins
-        .mockResolvedValueOnce(10); // newUsersToday
-
-      prismaMock.post.count
-        .mockResolvedValueOnce(50) // totalRecipes
-        .mockResolvedValueOnce(3); // newRecipesToday
-
-      prismaMock.comment.count.mockResolvedValue(200);
-      prismaMock.like.count.mockResolvedValue(500);
+      prismaMock.$queryRaw.mockResolvedValueOnce([
+        {
+          totalUsers: BigInt(100),
+          totalAdmins: BigInt(5),
+          totalRecipes: BigInt(50),
+          totalComments: BigInt(200),
+          totalLikes: BigInt(500),
+          newUsersToday: BigInt(10),
+          newRecipesToday: BigInt(3),
+        },
+      ]);
 
       const result = await adminService.getStats();
 
@@ -447,10 +444,17 @@ describe('AdminService - Unit Tests', () => {
     });
 
     it('should return zero counts when no data', async () => {
-      prismaMock.user.count.mockResolvedValue(0);
-      prismaMock.post.count.mockResolvedValue(0);
-      prismaMock.comment.count.mockResolvedValue(0);
-      prismaMock.like.count.mockResolvedValue(0);
+      prismaMock.$queryRaw.mockResolvedValueOnce([
+        {
+          totalUsers: BigInt(0),
+          totalAdmins: BigInt(0),
+          totalRecipes: BigInt(0),
+          totalComments: BigInt(0),
+          totalLikes: BigInt(0),
+          newUsersToday: BigInt(0),
+          newRecipesToday: BigInt(0),
+        },
+      ]);
 
       const result = await adminService.getStats();
 
@@ -460,20 +464,22 @@ describe('AdminService - Unit Tests', () => {
       expect(result.totalLikes).toBe(0);
     });
 
-    it('should query today stats with correct date filter', async () => {
-      prismaMock.user.count.mockResolvedValue(0);
-      prismaMock.post.count.mockResolvedValue(0);
-      prismaMock.comment.count.mockResolvedValue(0);
-      prismaMock.like.count.mockResolvedValue(0);
+    it('should call $queryRaw for stats', async () => {
+      prismaMock.$queryRaw.mockResolvedValueOnce([
+        {
+          totalUsers: BigInt(0),
+          totalAdmins: BigInt(0),
+          totalRecipes: BigInt(0),
+          totalComments: BigInt(0),
+          totalLikes: BigInt(0),
+          newUsersToday: BigInt(0),
+          newRecipesToday: BigInt(0),
+        },
+      ]);
 
       await adminService.getStats();
 
-      // Check that at least one call to user.count includes a date filter
-      const userCountCalls = prismaMock.user.count.mock.calls;
-      const hasDateFilter = userCountCalls.some(
-        (call) => call[0] && call[0].where && call[0].where.createdAt && call[0].where.createdAt.gte
-      );
-      expect(hasDateFilter).toBe(true);
+      expect(prismaMock.$queryRaw).toHaveBeenCalled();
     });
   });
 });

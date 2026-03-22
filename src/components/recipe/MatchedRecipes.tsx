@@ -2,8 +2,8 @@
 import { CheckCircle, Circle, Kitchen } from '@mui/icons-material';
 import {
   Box,
-  Typography,
   Card,
+  Typography,
   CardMedia,
   CardContent,
   Chip,
@@ -13,16 +13,15 @@ import {
   Tabs,
   Tab,
   LinearProgress,
+  Skeleton,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
+import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDifficultyColor } from '@/lib/utils/recipe';
-
-const MotionCard = motion.create(Card);
 
 interface MatchedRecipe {
   id: string;
@@ -33,7 +32,7 @@ interface MatchedRecipe {
   matchPercentage: number;
   matchedIngredients: number;
   totalIngredients: number;
-  missingIngredients: Array<{ name: string; amount: number; unit: string }>;
+  missingIngredients: string[];
 }
 
 export default function MatchedRecipes() {
@@ -86,7 +85,22 @@ export default function MatchedRecipes() {
   }
 
   if (loading) {
-    return null;
+    return (
+      <Box sx={{ mb: 4 }}>
+        <Skeleton variant="text" width={200} height={32} />
+        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton
+              key={i}
+              variant="rectangular"
+              width={280}
+              height={200}
+              sx={{ borderRadius: 2 }}
+            />
+          ))}
+        </Box>
+      </Box>
+    );
   }
 
   if (!pantryItemsCount || pantryItemsCount === 0) {
@@ -349,7 +363,7 @@ export default function MatchedRecipes() {
                           color="error"
                           sx={{ fontWeight: 600, fontSize: { xs: '0.7rem', md: '0.75rem' } }}
                         >
-                          Missing: {recipe.missingIngredients.map((ing) => ing.name).join(', ')}
+                          Missing: {recipe.missingIngredients.join(', ')}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>

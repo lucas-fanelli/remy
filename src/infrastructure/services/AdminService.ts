@@ -7,6 +7,20 @@ import {
   AdminStats,
 } from '@/domain/services/IAdminService';
 
+function maskEmail(email: string): string {
+  const atIdx = email.indexOf('@');
+  if (atIdx < 1) return '***@***';
+  const local = email.slice(0, atIdx);
+  const domain = email.slice(atIdx + 1);
+  const maskedLocal = local[0] + '*'.repeat(Math.max(local.length - 1, 2));
+  const dotIdx = domain.lastIndexOf('.');
+  if (dotIdx < 1) return `${maskedLocal}@***`;
+  const domainName = domain.slice(0, dotIdx);
+  const tld = domain.slice(dotIdx);
+  const maskedDomain = domainName[0] + '*'.repeat(Math.max(domainName.length - 1, 2));
+  return `${maskedLocal}@${maskedDomain}${tld}`;
+}
+
 /**
  * AdminService - Handles all admin operations
  * Single Responsibility: Only admin management logic
@@ -31,7 +45,6 @@ export class AdminService implements IAdminService {
     if (options?.search) {
       where.OR = [
         { username: { contains: options.search, mode: 'insensitive' } },
-        { email: { contains: options.search, mode: 'insensitive' } },
         { fullName: { contains: options.search, mode: 'insensitive' } },
       ];
     }
@@ -68,10 +81,28 @@ export class AdminService implements IAdminService {
       this.prisma.user.count({ where }),
     ]);
 
-    return { users: users as AdminUser[], total };
+    const maskedUsers = users.map((u) => ({ ...u, email: maskEmail(u.email) }));
+    return { users: maskedUsers as AdminUser[], total };
   }
 
   async promoteToAdmin(userId: string): Promise<AdminUser> {
+    // Check if already admin to avoid unnecessary write
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        fullName: true,
+        avatar: true,
+        role: true,
+        isVerified: true,
+        createdAt: true,
+        _count: { select: { posts: true, comments: true, followers: true, following: true } },
+      },
+    });
+    if (existing?.role === 'ADMIN') return existing as AdminUser;
+
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { role: 'ADMIN' },
@@ -187,13 +218,20 @@ export class AdminService implements IAdminService {
       this.prisma.post.count({ where }),
     ]);
 
-    return { recipes: recipes as AdminRecipe[], total };
+    const maskedRecipes = recipes.map((r) => ({
+      ...r,
+      user: { ...r.user, email: maskEmail(r.user.email) },
+    }));
+    return { recipes: maskedRecipes as AdminRecipe[], total };
   }
 
-  async deleteRecipe(recipeId: string): Promise<void> {
-    await this.prisma.post.delete({
+  async deleteRecipe(recipeId: string): Promise<{ imageUrl: string | null }> {
+    const deleted = await this.prisma.post.delete({
       where: { id: recipeId },
+      select: { imageUrl: true },
     });
+
+    return { imageUrl: deleted.imageUrl };
   }
 
   // ============ COMMENT MANAGEMENT ============
@@ -246,73 +284,84 @@ export class AdminService implements IAdminService {
       this.prisma.comment.count({ where }),
     ]);
 
-    return { comments: comments as AdminComment[], total };
+    const maskedComments = comments.map((c) => ({
+      ...c,
+      user: { ...c.user, email: maskEmail(c.user.email) },
+    }));
+    return { comments: maskedComments as AdminComment[], total };
   }
 
   async deleteComment(commentId: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      const comment = await tx.comment.findUnique({
-        where: { id: commentId },
-      });
-
-      if (!comment) {
-        throw new Error('COMMENT_NOT_FOUND');
-      }
-
-      await tx.comment.delete({
-        where: { id: commentId },
-      });
-
-      // Recalculate cached rating for the recipe atomically
-      if (comment?.postId) {
-        const agg = await tx.rating.aggregate({
-          where: { postId: comment.postId },
-          _avg: { rating: true },
-          _count: { rating: true },
-        });
-        await tx.post.update({
-          where: { id: comment.postId },
-          data: {
-            averageRating: Math.round((agg._avg.rating || 0) * 10) / 10,
-            reviewCount: agg._count.rating || 0,
-          },
-        });
-      }
+    // Comments and ratings are separate entities — deleting a comment
+    // does not affect ratings, so no recalculation is needed.
+    const { count } = await this.prisma.comment.deleteMany({
+      where: { id: commentId },
     });
+
+    if (count === 0) {
+      throw new Error('COMMENT_NOT_FOUND');
+    }
   }
 
   // ============ STATISTICS ============
 
-  async getStats(): Promise<AdminStats> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // Simple in-memory cache with short TTL to avoid hammering the DB on rapid admin page loads
+  private static statsCache: { data: AdminStats; timestamp: number } | null = null;
+  private static readonly STATS_CACHE_TTL = 15_000; // 15 seconds
 
-    const [
-      totalUsers,
-      totalAdmins,
-      totalRecipes,
-      totalComments,
-      totalLikes,
-      newUsersToday,
-      newRecipesToday,
-    ] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { role: 'ADMIN' } }),
-      this.prisma.post.count(),
-      this.prisma.comment.count(),
-      this.prisma.like.count(),
-      this.prisma.user.count({ where: { createdAt: { gte: today } } }),
-      this.prisma.post.count({ where: { createdAt: { gte: today } } }),
-    ]);
+  /** Clear stats cache — exposed for testing */
+  static _clearStatsCache(): void {
+    AdminService.statsCache = null;
+  }
+
+  async getStats(): Promise<AdminStats> {
+    if (
+      AdminService.statsCache &&
+      Date.now() - AdminService.statsCache.timestamp < AdminService.STATS_CACHE_TTL
+    ) {
+      return AdminService.statsCache.data;
+    }
+
+    const stats = await this.fetchStats();
+    AdminService.statsCache = { data: stats, timestamp: Date.now() };
+    return stats;
+  }
+
+  private async fetchStats(): Promise<AdminStats> {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const [row] = await this.prisma.$queryRaw<
+      [
+        {
+          totalUsers: bigint;
+          totalAdmins: bigint;
+          totalRecipes: bigint;
+          totalComments: bigint;
+          totalLikes: bigint;
+          newUsersToday: bigint;
+          newRecipesToday: bigint;
+        },
+      ]
+    >`
+      SELECT
+        (SELECT COUNT(*) FROM "User")::bigint AS "totalUsers",
+        (SELECT COUNT(*) FROM "User" WHERE role = 'ADMIN')::bigint AS "totalAdmins",
+        (SELECT COUNT(*) FROM "Post")::bigint AS "totalRecipes",
+        (SELECT COUNT(*) FROM "Comment")::bigint AS "totalComments",
+        (SELECT COUNT(*) FROM "Like")::bigint AS "totalLikes",
+        (SELECT COUNT(*) FROM "User" WHERE "createdAt" >= ${today})::bigint AS "newUsersToday",
+        (SELECT COUNT(*) FROM "Post" WHERE "createdAt" >= ${today})::bigint AS "newRecipesToday"
+    `;
 
     return {
-      totalUsers,
-      totalAdmins,
-      totalRecipes,
-      totalComments,
-      totalLikes,
-      newUsersToday,
-      newRecipesToday,
+      totalUsers: Number(row.totalUsers),
+      totalAdmins: Number(row.totalAdmins),
+      totalRecipes: Number(row.totalRecipes),
+      totalComments: Number(row.totalComments),
+      totalLikes: Number(row.totalLikes),
+      newUsersToday: Number(row.newUsersToday),
+      newRecipesToday: Number(row.newRecipesToday),
     };
   }
 }

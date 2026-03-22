@@ -1,6 +1,5 @@
 'use client';
 import { Box, LinearProgress, Typography } from '@mui/material';
-import React from 'react';
 
 interface LoadingWithProgressProps {
   /** Optional message to display below the progress bar */

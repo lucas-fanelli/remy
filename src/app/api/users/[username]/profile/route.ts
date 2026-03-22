@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { extractAuthToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
+import { safeRating } from '@/lib/utils/recipe';
 
 /**
  * GET /api/users/[username]/profile - Combined profile endpoint
@@ -27,8 +29,21 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
     }
 
+    // Pagination params for posts and saved recipes
+    const { searchParams } = new URL(request.url);
+    const postsLimit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get('postsLimit') || '50') || 50)
+    );
+    const postsOffset = Math.max(0, parseInt(searchParams.get('postsOffset') || '0') || 0);
+    const savedLimit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get('savedLimit') || '50') || 50)
+    );
+    const savedOffset = Math.max(0, parseInt(searchParams.get('savedOffset') || '0') || 0);
+
     // Get authorization token (optional)
-    const token = extractBearerToken(request);
+    const token = extractAuthToken(request);
     let currentUserId: string | null = null;
 
     if (token) {
@@ -47,7 +62,7 @@ export async function GET(
             error.name === 'TokenExpiredError' ||
             error.name === 'NotBeforeError');
         if (!isExpectedJwtError) {
-          console.error('Unexpected error during token verification:', error);
+          logServerError('Unexpected error during token verification:', error);
         }
       }
     }
@@ -73,7 +88,8 @@ export async function GET(
         },
         posts: {
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: postsLimit,
+          skip: postsOffset,
           select: {
             id: true,
             title: true,
@@ -145,7 +161,8 @@ export async function GET(
       savedRecipesPromise = prisma.savedRecipe
         .findMany({
           where: { userId: currentUserId },
-          take: 50,
+          take: savedLimit,
+          skip: savedOffset,
           include: {
             post: {
               select: {
@@ -190,7 +207,7 @@ export async function GET(
             likesCount: s.post._count.likes,
             commentsCount: s.post._count.comments,
             createdAt: s.post.createdAt,
-            averageRating: s.post.averageRating ?? 0,
+            averageRating: safeRating(s.post.averageRating),
             totalRatings: s.post.reviewCount ?? 0,
             author: {
               username: s.post.user.username,
@@ -221,7 +238,7 @@ export async function GET(
       likesCount: recipe._count.likes,
       commentsCount: recipe._count.comments,
       createdAt: recipe.createdAt,
-      averageRating: recipe.averageRating ?? 0,
+      averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount ?? 0,
     }));
 
@@ -256,7 +273,7 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching profile:', error);
+    logServerError('Error fetching profile:', error);
     return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
   }
 }

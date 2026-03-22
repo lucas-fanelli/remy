@@ -24,7 +24,6 @@ import {
   Button,
   Divider,
   Avatar,
-  Card,
   CardContent,
   Alert,
   Paper,
@@ -43,15 +42,51 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
+import { MotionBox, MotionCard } from '@/components/motion';
 import CommentsSection from '@/components/recipe/CommentsSection';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { Recipe as DomainRecipe } from '@/domain/types/recipe';
-import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus } from '@/hooks/useRecipe';
+import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
+import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus, ApiRecipe } from '@/hooks/useRecipe';
+import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { getDifficultyColor } from '@/lib/utils/recipe';
 
-const MotionBox = motion.create(Box);
-const MotionCard = motion.create(Card);
+/** Adapt the API recipe shape to the DomainRecipe type expected by EditRecipeModal. */
+function toEditableRecipe(apiRecipe: ApiRecipe): DomainRecipe {
+  const author =
+    apiRecipe.author ??
+    (apiRecipe.user
+      ? {
+          username: apiRecipe.user.username,
+          fullName: apiRecipe.user.fullName ?? undefined,
+          avatar: apiRecipe.user.avatar ?? undefined,
+        }
+      : undefined);
+
+  return {
+    id: apiRecipe.id,
+    title: apiRecipe.title,
+    description: apiRecipe.description,
+    imageUrl: apiRecipe.imageUrl,
+    userId: apiRecipe.userId,
+    cookingTime: apiRecipe.cookingTime,
+    prepTime: apiRecipe.prepTime,
+    servings: apiRecipe.servings,
+    difficulty: apiRecipe.difficulty as DifficultyLevel,
+    ingredients: apiRecipe.ingredients.map(({ name, amount, unit }) => ({ name, amount, unit })),
+    instructions: apiRecipe.instructions.map(({ step, description, image }) => ({
+      step,
+      description,
+      image,
+    })),
+    caption: apiRecipe.caption,
+    author,
+    averageRating: apiRecipe.averageRating,
+    totalRatings: apiRecipe.totalRatings,
+    createdAt: new Date(apiRecipe.createdAt),
+    updatedAt: new Date(apiRecipe.updatedAt),
+  };
+}
 
 export default function RecipeDetailPage() {
   const router = useRouter();
@@ -81,11 +116,15 @@ export default function RecipeDetailPage() {
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'success' as 'success' | 'error',
+    severity: 'success' as 'success' | 'error' | 'warning',
   });
   const [likeLoading, setLikeLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [cookedLoading, setCookedLoading] = useState(false);
+  const [forceDialogOpen, setForceDialogOpen] = useState(false);
+  const [insufficientList, setInsufficientList] = useState<
+    Array<{ name: string; required: number; available: number; unit: string }>
+  >([]);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
@@ -130,6 +169,7 @@ export default function RecipeDetailPage() {
       setDeleting(true);
       const response = await fetch(`/api/recipes/${recipeId}`, {
         method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (!response.ok) {
@@ -164,6 +204,7 @@ export default function RecipeDetailPage() {
       setLikeLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (response.ok) {
@@ -194,6 +235,7 @@ export default function RecipeDetailPage() {
       setSaveLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/save`, {
         method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (response.ok) {
@@ -214,18 +256,51 @@ export default function RecipeDetailPage() {
   };
 
   const handleShare = async () => {
+    const url = window.location.href;
     if (navigator.share) {
-      navigator.share({
-        title: recipe?.title,
-        text: recipe?.description,
-        url: window.location.href,
-      });
-    } else {
       try {
-        await navigator.clipboard.writeText(window.location.href);
-        setSnackbar({ open: true, message: 'Link copied to clipboard!', severity: 'success' });
-      } catch {
-        setSnackbar({ open: true, message: 'Failed to copy link', severity: 'error' });
+        await navigator.share({
+          title: recipe?.title,
+          text: recipe?.description,
+          url,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          // Fallback to clipboard on share failure (except user cancellation)
+          if (navigator.clipboard && window.isSecureContext) {
+            try {
+              await navigator.clipboard.writeText(url);
+              setSnackbar({
+                open: true,
+                message: 'Link copied to clipboard!',
+                severity: 'success',
+              });
+            } catch {
+              setSnackbar({ open: true, message: 'Failed to copy link', severity: 'error' });
+            }
+          } else {
+            setSnackbar({
+              open: true,
+              message: 'Cannot copy link — please copy the URL manually',
+              severity: 'warning',
+            });
+          }
+        }
+      }
+    } else {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(url);
+          setSnackbar({ open: true, message: 'Link copied to clipboard!', severity: 'success' });
+        } catch {
+          setSnackbar({ open: true, message: 'Failed to copy link', severity: 'error' });
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Cannot copy link — please copy the URL manually',
+          severity: 'warning',
+        });
       }
     }
   };
@@ -240,6 +315,20 @@ export default function RecipeDetailPage() {
     setTimeout(() => setSelectedImage(null), 300); // Clear after animation
   };
 
+  // The `force` parameter is intentional UX: when a user doesn't have all ingredients
+  // in their pantry, they are shown a confirmation dialog and can explicitly confirm
+  // they want to mark the recipe as cooked anyway. This is a deliberate design choice,
+  // not a security bypass. Rate limiting is handled by the middleware.
+  const sendCookRequest = async (force = false) => {
+    const response = await fetch('/api/cooked-recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify({ postId: recipeId, ...(force && { force: true }) }),
+    });
+
+    return { response, data: await response.json() };
+  };
+
   const handleMarkAsCooked = async () => {
     if (!user) {
       setSnackbar({
@@ -252,27 +341,39 @@ export default function RecipeDetailPage() {
 
     try {
       setCookedLoading(true);
-      const response = await fetch('/api/cooked-recipes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          postId: recipeId,
-        }),
-      });
+      const { response, data } = await sendCookRequest();
 
       if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: 'Recipe marked as cooked!',
-          severity: 'success',
-        });
+        // Invalidate the recipe cache so rating updates from cooking are reflected
+        try {
+          queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+        } catch {
+          /* best-effort */
+        }
+
+        if (data.insufficientIngredients && data.insufficientIngredients.length > 0) {
+          const names = data.insufficientIngredients
+            .map((i: { name: string }) => i.name)
+            .join(', ');
+          setSnackbar({
+            open: true,
+            message: `Recipe marked as cooked! Note: insufficient pantry stock for: ${names}`,
+            severity: 'success',
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: 'Recipe marked as cooked!',
+            severity: 'success',
+          });
+        }
+      } else if (response.status === 409 && data.insufficientIngredients) {
+        setInsufficientList(data.insufficientIngredients);
+        setForceDialogOpen(true);
       } else {
-        const error = await response.json();
         setSnackbar({
           open: true,
-          message: error.error || 'Failed to mark recipe as cooked',
+          message: data.error || 'Failed to mark recipe as cooked',
           severity: 'error',
         });
       }
@@ -281,6 +382,34 @@ export default function RecipeDetailPage() {
       setSnackbar({ open: true, message: 'Failed to mark recipe as cooked', severity: 'error' });
     } finally {
       setCookedLoading(false);
+    }
+  };
+
+  const handleForceConfirm = async () => {
+    setForceDialogOpen(false);
+    try {
+      setCookedLoading(true);
+      const { response, data } = await sendCookRequest(true);
+      if (response.ok) {
+        try {
+          queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+        } catch {
+          /* best-effort */
+        }
+        setSnackbar({ open: true, message: 'Recipe marked as cooked!', severity: 'success' });
+      } else {
+        setSnackbar({
+          open: true,
+          message: data.error || 'Failed to mark recipe as cooked',
+          severity: 'error',
+        });
+      }
+    } catch (error) {
+      console.error('Error marking recipe as cooked:', error);
+      setSnackbar({ open: true, message: 'Failed to mark recipe as cooked', severity: 'error' });
+    } finally {
+      setCookedLoading(false);
+      setInsufficientList([]);
     }
   };
 
@@ -331,7 +460,10 @@ export default function RecipeDetailPage() {
 
         {/* Recipe content */}
         {recipe && (
-          <Container maxWidth="lg" sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 } }}>
+          <Container
+            maxWidth="lg"
+            sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 }, position: 'relative' }}
+          >
             {/* Recipe Image */}
             <MotionBox
               initial={{ opacity: 0, y: 20 }}
@@ -761,7 +893,7 @@ export default function RecipeDetailPage() {
                           <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
                             {instruction.description}
                           </Typography>
-                          {instruction.image && (
+                          {instruction.image && isCloudinaryUrl(instruction.image) && (
                             <Box
                               sx={{
                                 position: 'relative',
@@ -853,7 +985,7 @@ export default function RecipeDetailPage() {
         {/* Edit Recipe Modal */}
         <EditRecipeModal
           open={editModalOpen}
-          recipe={(recipe as unknown as DomainRecipe) ?? null}
+          recipe={recipe ? toEditableRecipe(recipe) : null}
           onClose={() => setEditModalOpen(false)}
           onSuccess={handleEditSuccess}
         />
@@ -873,6 +1005,34 @@ export default function RecipeDetailPage() {
             </Button>
             <Button onClick={confirmDelete} color="error" disabled={deleting} autoFocus>
               {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Insufficient Ingredients Confirmation Dialog */}
+        <Dialog open={forceDialogOpen} onClose={() => setForceDialogOpen(false)}>
+          <DialogTitle>Insufficient Ingredients</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              The following ingredients are insufficient in your pantry:
+            </DialogContentText>
+            <Box component="ul" sx={{ mt: 1, pl: 2 }}>
+              {insufficientList.map((item, idx) => (
+                <li key={idx}>
+                  <Typography variant="body2">
+                    {item.name}: need {item.required} {item.unit}, have {item.available} {item.unit}
+                  </Typography>
+                </li>
+              ))}
+            </Box>
+            <DialogContentText sx={{ mt: 1 }}>
+              Do you want to mark this recipe as cooked anyway?
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setForceDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleForceConfirm} variant="contained" disabled={cookedLoading}>
+              {cookedLoading ? 'Marking...' : 'Cook Anyway'}
             </Button>
           </DialogActions>
         </Dialog>

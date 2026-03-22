@@ -38,15 +38,30 @@ export const updateProfileSchema = z.object({
   bio: z.string().max(300, 'Bio must be at most 300 characters').nullable().optional(),
   avatar: z.string().nullable().optional(), // Allow any string path (relative or absolute URL)
   website: z
-    .string()
-    .url('Invalid website URL')
-    .refine(
-      (url) => !url || /^https?:\/\//.test(url),
-      'Website must start with http:// or https://'
-    )
-    .or(z.literal(''))
+    .union([
+      z.literal(''),
+      z
+        .string()
+        .url('Invalid website URL')
+        .refine((url) => {
+          try {
+            const parsed = new URL(url);
+            return !parsed.username && !parsed.password;
+          } catch {
+            return true; // Let the .url() check handle invalid URLs
+          }
+        }, 'URL must not contain credentials')
+        .refine((url) => {
+          try {
+            return ['http:', 'https:'].includes(new URL(url).protocol);
+          } catch {
+            return false;
+          }
+        }, 'Website must use http:// or https://'),
+    ])
     .nullable()
-    .optional(),
+    .optional()
+    .transform((v) => (v === '' ? null : v)),
   isPrivate: z.boolean().optional(),
 });
 
@@ -57,8 +72,8 @@ export const paginationSchema = z.object({
 });
 
 export const searchSchema = z.object({
-  query: z.string().min(1, 'Search query is required'),
-  limit: z.coerce.number().int().positive().max(50).default(10),
+  query: z.string().trim().min(1, 'Search query is required'),
+  limit: z.coerce.number().int().positive().max(50).default(20),
 });
 
 // Types

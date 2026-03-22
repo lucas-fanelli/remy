@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import striptags from 'striptags';
+import { requireAuth } from '@/lib/api/auth';
 import { MAX_COMMENT_LENGTH, UUID_REGEX } from '@/lib/constants';
-import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
+import { logServerError } from '@/lib/utils/logger';
+import { requireJsonContentType } from '@/lib/utils/request';
 
 // PATCH - Update a comment
 export async function PATCH(
@@ -10,22 +13,20 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; commentId: string }> }
 ) {
   try {
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
+
     const { id: recipeId, commentId } = await params;
 
     if (!UUID_REGEX.test(recipeId) || !UUID_REGEX.test(commentId)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
-    if (!token) {
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
-
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     let body;
@@ -34,7 +35,7 @@ export async function PATCH(
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
-    const { text, rating } = body;
+    const { text, rating, imageUrl } = body;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
@@ -45,6 +46,12 @@ export async function PATCH(
         { error: 'Comment text must be 5000 characters or less' },
         { status: 400 }
       );
+    }
+
+    // Validate imageUrl - only allow Cloudinary URLs (uploaded via our upload endpoint)
+    if (imageUrl) {
+      const cloudinaryError = validateCloudinaryUrl(imageUrl);
+      if (cloudinaryError) return cloudinaryError;
     }
 
     // Validate rating before any writes
@@ -69,14 +76,15 @@ export async function PATCH(
         throw new Error('COMMENT_WRONG_RECIPE');
       }
 
-      if (existingComment.userId !== payload.userId) {
+      if (existingComment.userId !== user.id) {
         throw new Error('COMMENT_UNAUTHORIZED');
       }
 
       const updatedComment = await tx.comment.update({
         where: { id: commentId },
         data: {
-          text: text.trim(),
+          text: striptags(text.trim()),
+          ...(imageUrl !== undefined && { imageUrl: imageUrl || null }),
         },
         include: {
           user: {
@@ -91,15 +99,18 @@ export async function PATCH(
 
       // If rating provided, upsert rating
       if (rating !== undefined) {
+        // Lock the post row to prevent concurrent rating aggregation races
+        await tx.$executeRaw`SELECT id FROM "Post" WHERE id = ${recipeId} FOR UPDATE`;
+
         await tx.rating.upsert({
           where: {
             userId_postId: {
-              userId: payload.userId,
+              userId: user.id,
               postId: recipeId,
             },
           },
           create: {
-            userId: payload.userId,
+            userId: user.id,
             postId: recipeId,
             rating,
           },
@@ -118,8 +129,12 @@ export async function PATCH(
         await tx.post.update({
           where: { id: recipeId },
           data: {
-            averageRating: Math.round((ratingAggregation._avg.rating || 0) * 10) / 10,
-            reviewCount: ratingAggregation._count.rating || 0,
+            // Use null when no ratings exist so unrated recipes are distinguishable from 0-rated
+            averageRating:
+              ratingAggregation._avg.rating != null
+                ? Math.round(ratingAggregation._avg.rating * 10) / 10
+                : null,
+            reviewCount: ratingAggregation._count.rating ?? 0,
           },
         });
       }
@@ -128,7 +143,7 @@ export async function PATCH(
       const ratingRecord = await tx.rating.findUnique({
         where: {
           userId_postId: {
-            userId: payload.userId,
+            userId: user.id,
             postId: recipeId,
           },
         },
@@ -158,7 +173,7 @@ export async function PATCH(
         return NextResponse.json({ error: 'Unauthorized to edit this comment' }, { status: 403 });
       }
     }
-    console.error('Error updating comment:', error);
+    logServerError('Error updating comment:', error);
     return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 });
   }
 }
@@ -175,36 +190,73 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
-    if (!token) {
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
+    await prisma.$transaction(async (tx) => {
+      // 1. Find the comment (verify ownership and get postId/userId)
+      const comment = await tx.comment.findUnique({
+        where: { id: commentId },
+      });
 
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+      if (!comment || comment.postId !== recipeId || comment.userId !== user.id) {
+        throw new Error('COMMENT_NOT_FOUND_OR_UNAUTHORIZED');
+      }
 
-    // Atomic ownership check + delete to prevent TOCTOU race
-    const { count } = await prisma.comment.deleteMany({
-      where: {
-        id: commentId,
-        postId: recipeId,
-        userId: payload.userId,
-      },
+      // 2. Delete the comment
+      await tx.comment.delete({
+        where: { id: commentId },
+      });
+
+      // 3. Only delete the associated rating if the user has no cooked-recipe for this post.
+      // Symmetric with cooked-recipe DELETE, which preserves ratings when a comment exists.
+      const cookedRecipe = await tx.cookedRecipe.findFirst({
+        where: { userId: user.id, postId: recipeId },
+      });
+
+      if (!cookedRecipe) {
+        // Lock the post row to prevent concurrent rating aggregation races
+        await tx.$executeRaw`SELECT id FROM "Post" WHERE id = ${recipeId} FOR UPDATE`;
+
+        await tx.rating.deleteMany({
+          where: {
+            userId: user.id,
+            postId: recipeId,
+          },
+        });
+
+        // Recalculate and cache the recipe's average rating
+        const ratingAggregation = await tx.rating.aggregate({
+          where: { postId: recipeId },
+          _avg: { rating: true },
+          _count: { rating: true },
+        });
+
+        await tx.post.update({
+          where: { id: recipeId },
+          data: {
+            averageRating:
+              ratingAggregation._avg.rating != null
+                ? Math.round(ratingAggregation._avg.rating * 10) / 10
+                : null,
+            reviewCount: ratingAggregation._count.rating ?? 0,
+          },
+        });
+      }
     });
-
-    if (count === 0) {
-      return NextResponse.json({ error: 'Comment not found or unauthorized' }, { status: 404 });
-    }
 
     return NextResponse.json({
       message: 'Comment deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting comment:', error);
+    if (error instanceof Error && error.message === 'COMMENT_NOT_FOUND_OR_UNAUTHORIZED') {
+      return NextResponse.json({ error: 'Comment not found or unauthorized' }, { status: 404 });
+    }
+    logServerError('Error deleting comment:', error);
     return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
   }
 }

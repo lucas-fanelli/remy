@@ -17,6 +17,25 @@ import {
 export class RecipeRepository implements IRecipeRepository {
   constructor(private prisma: PrismaClient) {}
 
+  private readonly defaultPostSelect = {
+    id: true,
+    title: true,
+    description: true,
+    imageUrl: true,
+    userId: true,
+    cookingTime: true,
+    prepTime: true,
+    servings: true,
+    difficulty: true,
+    ingredients: true,
+    instructions: true,
+    caption: true,
+    averageRating: true,
+    reviewCount: true,
+    createdAt: true,
+    updatedAt: true,
+  } as const;
+
   async create(data: CreateRecipeDTO): Promise<Recipe> {
     const post = await this.prisma.post.create({
       data: {
@@ -32,9 +51,10 @@ export class RecipeRepository implements IRecipeRepository {
         ingredients: data.ingredients as any,
         instructions: data.instructions as any,
       },
+      select: this.defaultPostSelect,
     });
 
-    return this.mapToRecipe(post);
+    return this.mapToRecipe(post as unknown as Post);
   }
 
   async findById(id: string): Promise<Recipe | null> {
@@ -60,9 +80,10 @@ export class RecipeRepository implements IRecipeRepository {
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
+      select: this.defaultPostSelect,
     });
 
-    return posts.map(this.mapToRecipe);
+    return posts.map((p) => this.mapToRecipe(p as unknown as Post));
   }
 
   async search(options: RecipeSearchOptions): Promise<Recipe[]> {
@@ -136,9 +157,10 @@ export class RecipeRepository implements IRecipeRepository {
         ingredients: data.ingredients as any,
         instructions: data.instructions as any,
       },
+      select: this.defaultPostSelect,
     });
 
-    return this.mapToRecipe(post);
+    return this.mapToRecipe(post as unknown as Post);
   }
 
   async delete(id: string): Promise<void> {
@@ -166,10 +188,12 @@ export class RecipeRepository implements IRecipeRepository {
     return this.mapToRecipe(post);
   }
 
-  async deleteWhere(id: string, userId: string): Promise<void> {
-    await this.prisma.post.delete({
+  async deleteWhere(id: string, userId: string): Promise<{ imageUrl: string | null }> {
+    const deleted = await this.prisma.post.delete({
       where: { id, userId },
+      select: { imageUrl: true },
     });
+    return { imageUrl: deleted.imageUrl };
   }
 
   async getRecent(limit = 20, offset = 0): Promise<Recipe[]> {
@@ -177,9 +201,10 @@ export class RecipeRepository implements IRecipeRepository {
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
+      select: this.defaultPostSelect,
     });
 
-    return posts.map(this.mapToRecipe);
+    return posts.map((p) => this.mapToRecipe(p as unknown as Post));
   }
 
   async getByDifficulty(difficulty: string, limit = 20, offset = 0): Promise<Recipe[]> {
@@ -188,9 +213,10 @@ export class RecipeRepository implements IRecipeRepository {
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
+      select: this.defaultPostSelect,
     });
 
-    return posts.map(this.mapToRecipe);
+    return posts.map((p) => this.mapToRecipe(p as unknown as Post));
   }
 
   async exists(id: string): Promise<boolean> {
@@ -211,7 +237,10 @@ export class RecipeRepository implements IRecipeRepository {
   }
 
   /**
-   * Maps a Prisma Post to a Recipe domain model
+   * Maps a Prisma Post (or select result) to a Recipe domain model.
+   * Depends on: id, title, description, imageUrl, userId, cookingTime,
+   * prepTime, servings, difficulty, ingredients, instructions, caption,
+   * averageRating, reviewCount, createdAt, updatedAt (see defaultPostSelect).
    */
   private mapToRecipe(
     post: Post & {
@@ -231,7 +260,7 @@ export class RecipeRepository implements IRecipeRepository {
       ingredients: (post.ingredients as unknown as Ingredient[]) || [],
       instructions: (post.instructions as unknown as Instruction[]) || [],
       caption: post.caption || undefined,
-      averageRating: post.averageRating ?? undefined,
+      averageRating: post.averageRating ?? null,
       totalRatings: post.reviewCount ?? undefined,
       author: post.user
         ? {

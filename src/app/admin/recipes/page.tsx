@@ -25,11 +25,11 @@ import {
   DialogContentText,
   DialogActions,
   Tooltip,
-  useTheme,
+  Alert,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
 
 interface AdminRecipe {
   id: string;
@@ -50,8 +50,7 @@ interface AdminRecipe {
 
 export default function AdminRecipesPage() {
   const router = useRouter();
-  const theme = useTheme();
-  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+  const { isReady, isLoading: guardLoading } = useAdminGuard();
 
   const [recipes, setRecipes] = useState<AdminRecipe[]>([]);
   const [total, setTotal] = useState(0);
@@ -63,6 +62,7 @@ export default function AdminRecipesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<AdminRecipe | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -70,8 +70,6 @@ export default function AdminRecipesPage() {
   }, [search]);
 
   const fetchRecipes = useCallback(async () => {
-    if (!isAuthenticated) return;
-
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -85,24 +83,22 @@ export default function AdminRecipesPage() {
       if (!response.ok) throw new Error('Failed to fetch recipes');
 
       const data = await response.json();
+      setError(null);
       setRecipes(data.recipes);
       setTotal(data.total);
     } catch (error) {
+      setError('Failed to load recipes.');
       console.error('Error fetching recipes:', error);
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, page, rowsPerPage, debouncedSearch]);
+  }, [page, rowsPerPage, debouncedSearch]);
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      router.push('/');
-      return;
-    }
-    if (isAuthenticated && isAdmin) {
+    if (isReady) {
       fetchRecipes();
     }
-  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchRecipes]);
+  }, [isReady, fetchRecipes]);
 
   const handleDeleteClick = (recipe: AdminRecipe) => {
     setSelectedRecipe(recipe);
@@ -110,12 +106,13 @@ export default function AdminRecipesPage() {
   };
 
   const handleDelete = async () => {
-    if (!selectedRecipe || !isAuthenticated) return;
+    if (!selectedRecipe) return;
 
     setActionLoading(true);
     try {
       const response = await fetch(`/api/admin/recipes/${selectedRecipe.id}`, {
         method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (!response.ok) throw new Error('Failed to delete recipe');
@@ -124,12 +121,13 @@ export default function AdminRecipesPage() {
       fetchRecipes();
     } catch (error) {
       console.error('Error deleting recipe:', error);
+      setError('Failed to delete recipe.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  if (authLoading || !isAdmin) {
+  if (guardLoading) {
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
@@ -145,12 +143,12 @@ export default function AdminRecipesPage() {
         minHeight: '100vh',
         pt: { xs: 10, md: 12 },
         pb: { xs: 10, md: 6 },
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: 'background.default',
       }}
     >
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <IconButton onClick={() => router.push('/admin')}>
+          <IconButton onClick={() => router.push('/admin')} aria-label="Go back">
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight={700} color="text.primary">
@@ -178,6 +176,12 @@ export default function AdminRecipesPage() {
             sx={{ minWidth: 300 }}
           />
         </Paper>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
         {/* Recipes Table */}
         <TableContainer component={Paper}>
@@ -236,18 +240,29 @@ export default function AdminRecipesPage() {
                     </TableCell>
                     <TableCell align="center">{recipe._count?.likes || 0}</TableCell>
                     <TableCell align="center">{recipe._count?.comments || 0}</TableCell>
-                    <TableCell>{new Date(recipe.createdAt).toLocaleDateString('en-US')}</TableCell>
+                    <TableCell>
+                      {new Date(recipe.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Recipe">
                         <IconButton
                           onClick={() => router.push(`/recipe/${recipe.id}`)}
                           color="primary"
+                          aria-label="View recipe"
                         >
                           <Visibility />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete Recipe">
-                        <IconButton onClick={() => handleDeleteClick(recipe)} color="error">
+                        <IconButton
+                          onClick={() => handleDeleteClick(recipe)}
+                          color="error"
+                          aria-label="Delete recipe"
+                        >
                           <Delete />
                         </IconButton>
                       </Tooltip>

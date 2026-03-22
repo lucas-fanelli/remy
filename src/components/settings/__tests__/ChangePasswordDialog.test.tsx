@@ -365,6 +365,7 @@ describe('ChangePasswordDialog', () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'fetch',
           },
           body: JSON.stringify({
             oldPassword: 'OldPass123',

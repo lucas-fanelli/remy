@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { extractAuthToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
 
 export async function GET(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
+    const token = extractAuthToken(request);
     if (!token) {
       return NextResponse.json({ isFollowing: false });
     }
@@ -46,7 +47,7 @@ export async function GET(
 
     return NextResponse.json({ isFollowing: !!follow });
   } catch (error) {
-    console.error('Error checking follow status:', error);
+    logServerError('Error checking follow status:', error);
     return NextResponse.json({ isFollowing: false });
   }
 }

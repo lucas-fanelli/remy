@@ -3,6 +3,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { ingredientMatches } from '../lib/utils/ingredients';
 
 const prisma = new PrismaClient();
 
@@ -103,7 +104,7 @@ async function findMatches(pantryItems: string[]) {
 
     for (const recipeIng of recipeIngredients) {
       const matched = pantryItems.some((pantryItem) =>
-        ingredientMatches(pantryItem, recipeIng.name)
+        ingredientMatches({ name: pantryItem }, { name: recipeIng.name })
       );
 
       if (matched) {
@@ -150,26 +151,6 @@ async function findMatches(pantryItems: string[]) {
   needMore.slice(0, 3).forEach((recipe) => {
     console.log(`   • ${recipe.title} - ${recipe.matchPercentage}% match (${recipe.difficulty})`);
   });
-}
-
-function ingredientMatches(pantryItem: string, recipeIngredient: string): boolean {
-  const normalized1 = normalizeIngredient(pantryItem);
-  const normalized2 = normalizeIngredient(recipeIngredient);
-
-  return (
-    normalized1 === normalized2 ||
-    normalized1.includes(normalized2) ||
-    normalized2.includes(normalized1)
-  );
-}
-
-function normalizeIngredient(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/s$/, '') // Remove plural 's'
-    .replace(/es$/, '') // Remove plural 'es'
-    .replace(/[^a-z0-9]/g, ''); // Remove special chars
 }
 
 // Run the test

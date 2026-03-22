@@ -1,3 +1,23 @@
+jest.mock('@prisma/client', () => {
+  class PrismaClientKnownRequestError extends Error {
+    code: string;
+    clientVersion: string;
+    meta?: Record<string, unknown>;
+    constructor(message: string, { code, clientVersion }: { code: string; clientVersion: string }) {
+      super(message);
+      this.code = code;
+      this.clientVersion = clientVersion;
+      this.name = 'PrismaClientKnownRequestError';
+    }
+  }
+  return {
+    Prisma: {
+      PrismaClientKnownRequestError,
+    },
+  };
+});
+
+import { Prisma } from '@prisma/client';
 import { mockDeep } from 'jest-mock-extended';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
 import {
@@ -357,9 +377,11 @@ describe('RecipeService - Unit Tests', () => {
     });
 
     it('should throw error when recipe not found', async () => {
-      mockRecipeRepository.updateWhere = jest
-        .fn()
-        .mockRejectedValue(new Error('Record to update not found'));
+      const prismaError = new Prisma.PrismaClientKnownRequestError('Record to update not found', {
+        code: 'P2025',
+        clientVersion: '5.0.0',
+      });
+      mockRecipeRepository.updateWhere = jest.fn().mockRejectedValue(prismaError);
       mockRecipeRepository.exists = jest.fn().mockResolvedValue(false);
 
       await expect(
@@ -368,9 +390,11 @@ describe('RecipeService - Unit Tests', () => {
     });
 
     it('should throw error when user is not the owner', async () => {
-      mockRecipeRepository.updateWhere = jest
-        .fn()
-        .mockRejectedValue(new Error('Record to update not found'));
+      const prismaError = new Prisma.PrismaClientKnownRequestError('Record to update not found', {
+        code: 'P2025',
+        clientVersion: '5.0.0',
+      });
+      mockRecipeRepository.updateWhere = jest.fn().mockRejectedValue(prismaError);
       mockRecipeRepository.exists = jest.fn().mockResolvedValue(true);
 
       await expect(
@@ -389,9 +413,11 @@ describe('RecipeService - Unit Tests', () => {
     });
 
     it('should throw error when recipe not found', async () => {
-      mockRecipeRepository.deleteWhere = jest
-        .fn()
-        .mockRejectedValue(new Error('Record to delete does not exist'));
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Record to delete does not exist',
+        { code: 'P2025', clientVersion: '5.0.0' }
+      );
+      mockRecipeRepository.deleteWhere = jest.fn().mockRejectedValue(prismaError);
       mockRecipeRepository.exists = jest.fn().mockResolvedValue(false);
 
       await expect(recipeService.deleteRecipe('non-existent', 'user-123')).rejects.toThrow(
@@ -400,9 +426,11 @@ describe('RecipeService - Unit Tests', () => {
     });
 
     it('should throw error when user is not the owner', async () => {
-      mockRecipeRepository.deleteWhere = jest
-        .fn()
-        .mockRejectedValue(new Error('Record to delete does not exist'));
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Record to delete does not exist',
+        { code: 'P2025', clientVersion: '5.0.0' }
+      );
+      mockRecipeRepository.deleteWhere = jest.fn().mockRejectedValue(prismaError);
       mockRecipeRepository.exists = jest.fn().mockResolvedValue(true);
 
       await expect(recipeService.deleteRecipe('recipe-123', 'different-user')).rejects.toThrow(

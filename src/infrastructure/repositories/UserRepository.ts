@@ -79,17 +79,37 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  async search(query: string, limit: number = 10): Promise<User[]> {
+  async search(query: string, limit: number = 10, offset: number = 0): Promise<User[]> {
+    // Exclude email and password at the query level so sensitive data never
+    // leaves the database layer. The Prisma select returns a partial object
+    // that is cast to User — callers (e.g. UserService.searchUsers) should
+    // already strip password, but this provides defense-in-depth.
     return this.prisma.user.findMany({
       where: {
+        isPrivate: false,
         OR: [
           { username: { contains: query, mode: 'insensitive' } },
           { fullName: { contains: query, mode: 'insensitive' } },
         ],
       },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        bio: true,
+        avatar: true,
+        website: true,
+        role: true,
+        isVerified: true,
+        isPrivate: true,
+        createdAt: true,
+        updatedAt: true,
+        // email and password intentionally excluded
+      },
       take: limit,
+      skip: offset,
       orderBy: { createdAt: 'desc' },
-    });
+    }) as unknown as User[];
   }
 
   async exists(email: string, username: string): Promise<boolean> {

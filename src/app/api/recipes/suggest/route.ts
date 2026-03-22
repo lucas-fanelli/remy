@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IngredientMatchFilters } from '@/domain/types/pantry';
+import { requireAuth } from '@/lib/api/auth';
 import { container } from '@/lib/container/container';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
+import { requireJsonContentType } from '@/lib/utils/request';
 
 /**
  * POST /api/recipes/suggest - Get recipe suggestions based on available ingredients
  */
 export async function POST(request: NextRequest) {
   try {
-    const token = extractBearerToken(request);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
-    }
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
-
-    if (!payload || !payload.userId) {
-      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Option 1: Use user's pantry
     if (usePantry) {
       const pantryService = container.getPantryService();
-      const pantry = await pantryService.getUserPantry(payload.userId);
+      const pantry = await pantryService.getUserPantry(user.id);
 
       if (!pantry || pantry.ingredients.length === 0) {
         return NextResponse.json(
@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
     }
     // Option 2: Use provided ingredients
     else if (ingredients && Array.isArray(ingredients)) {
-      userIngredients = ingredients;
+      if (!ingredients.every((i: unknown) => typeof i === 'string' && i.length <= 200)) {
+        return NextResponse.json({ error: 'Invalid ingredients format' }, { status: 400 });
+      }
+      userIngredients = ingredients.slice(0, 100);
     } else {
       return NextResponse.json(
         { error: 'Either provide ingredients or set usePantry=true' },
@@ -98,7 +101,7 @@ export async function POST(request: NextRequest) {
       allMatches: matches.slice(0, 30), // Return top 30 overall
     });
   } catch (error) {
-    console.error('Error suggesting recipes:', error);
+    logServerError('Error suggesting recipes:', error);
     return NextResponse.json({ error: 'Failed to suggest recipes' }, { status: 500 });
   }
 }

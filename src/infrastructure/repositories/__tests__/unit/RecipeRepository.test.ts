@@ -31,8 +31,29 @@ describe('RecipeRepository - Unit Tests', () => {
     protein: null,
     carbs: null,
     fat: null,
+    averageRating: 0,
+    reviewCount: 0,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
+  };
+
+  const defaultPostSelect = {
+    id: true,
+    title: true,
+    description: true,
+    imageUrl: true,
+    userId: true,
+    cookingTime: true,
+    prepTime: true,
+    servings: true,
+    difficulty: true,
+    ingredients: true,
+    instructions: true,
+    caption: true,
+    averageRating: true,
+    reviewCount: true,
+    createdAt: true,
+    updatedAt: true,
   };
 
   const authorInclude = {
@@ -100,6 +121,7 @@ describe('RecipeRepository - Unit Tests', () => {
           ingredients: createData.ingredients,
           instructions: createData.instructions,
         },
+        select: defaultPostSelect,
       });
     });
   });
@@ -148,6 +170,7 @@ describe('RecipeRepository - Unit Tests', () => {
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
+        select: defaultPostSelect,
       });
     });
 
@@ -162,6 +185,7 @@ describe('RecipeRepository - Unit Tests', () => {
         orderBy: { createdAt: 'desc' },
         take: 10,
         skip: 5,
+        select: defaultPostSelect,
       });
     });
   });
@@ -374,6 +398,7 @@ describe('RecipeRepository - Unit Tests', () => {
           ingredients: undefined,
           instructions: undefined,
         },
+        select: defaultPostSelect,
       });
     });
   });
@@ -401,6 +426,7 @@ describe('RecipeRepository - Unit Tests', () => {
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
+        select: defaultPostSelect,
       });
     });
 
@@ -414,6 +440,7 @@ describe('RecipeRepository - Unit Tests', () => {
         orderBy: { createdAt: 'desc' },
         take: 10,
         skip: 5,
+        select: defaultPostSelect,
       });
     });
   });
@@ -430,6 +457,7 @@ describe('RecipeRepository - Unit Tests', () => {
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
+        select: defaultPostSelect,
       });
     });
 
@@ -444,6 +472,7 @@ describe('RecipeRepository - Unit Tests', () => {
         orderBy: { createdAt: 'desc' },
         take: 10,
         skip: 5,
+        select: defaultPostSelect,
       });
     });
   });

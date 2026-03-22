@@ -10,8 +10,7 @@ import {
   DialogContent,
   Toolbar,
 } from '@mui/material';
-import { useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import CreateRecipeForm from '@/components/recipe/CreateRecipeForm';
@@ -19,51 +18,32 @@ import MatchedRecipes from '@/components/recipe/MatchedRecipes';
 import RecipeFeed from '@/components/recipe/RecipeFeed';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
+import { useCreateRecipe } from '@/hooks/useCreateRecipe';
 
 export default function Home() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const createRecipe = useCreateRecipe();
+  const shouldReduceMotion = useReducedMotion();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Return null during loading - the global LoadingBar shows progress
   if (isLoading) {
     return null;
   }
 
   const handleCreateRecipe = async (data: CreateRecipeDTO) => {
-    try {
-      if (!isAuthenticated) throw new Error('Not authenticated');
-
-      const response = await fetch('/api/recipes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create recipe');
-      }
-
-      // Invalidate recipe queries before closing to ensure fresh data
-      await queryClient.invalidateQueries({ queryKey: ['recipes'] });
-      setCreateDialogOpen(false);
-    } catch (error) {
-      console.error('Error creating recipe:', error);
-      throw error;
-    }
+    if (!isAuthenticated) throw new Error('Not authenticated');
+    await createRecipe(data);
+    setCreateDialogOpen(false);
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      initial={shouldReduceMotion ? undefined : { opacity: 0, y: 20 }}
+      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+      transition={shouldReduceMotion ? undefined : { type: 'spring', stiffness: 300, damping: 30 }}
     >
       <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
         {/* Spacer for fixed AppBar - Material Design pattern */}
@@ -75,9 +55,9 @@ export default function Home() {
           sx={{ pt: { xs: 1, md: 2 }, pb: { xs: 10, sm: 11, md: 4 }, px: { xs: 2, md: 3 } }}
         >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+            initial={shouldReduceMotion ? undefined : { opacity: 0 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1 }}
+            transition={shouldReduceMotion ? undefined : { duration: 0.5 }}
           >
             {/* Recipe Matching based on pantry */}
             <MatchedRecipes />

@@ -1,6 +1,5 @@
 'use client';
 
-import { Box, Button, Container, Typography } from '@mui/material';
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 
@@ -17,37 +16,45 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html>
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Error</title>
       </head>
       <body>
-        <Container maxWidth="sm">
-          <Box
-            sx={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '100vh',
-              textAlign: 'center',
-              gap: 3,
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '100vh',
+            textAlign: 'center',
+            gap: '24px',
+            padding: '0 16px',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          <h1 style={{ fontSize: '2rem', margin: 0 }}>Something went wrong!</h1>
+          <p style={{ fontSize: '1rem', color: '#666', margin: 0, maxWidth: '480px' }}>
+            We apologize for the inconvenience. Our team has been notified and is working on a fix.
+          </p>
+          <button
+            onClick={() => reset()}
+            style={{
+              padding: '10px 24px',
+              fontSize: '1rem',
+              backgroundColor: '#1976d2',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
             }}
           >
-            <Typography variant="h3" component="h1" gutterBottom>
-              Something went wrong!
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              We apologize for the inconvenience. Our team has been notified and is working on a
-              fix.
-            </Typography>
-            <Button variant="contained" color="primary" onClick={() => reset()}>
-              Try again
-            </Button>
-          </Box>
-        </Container>
+            Try again
+          </button>
+        </div>
       </body>
     </html>
   );

@@ -30,33 +30,34 @@ interface MotionContextValue {
 
 const MotionContext = createContext<MotionContextValue | undefined>(undefined);
 
+// Module-level flag to only warn once about missing MotionProvider
+let motionContextWarned = false;
+
 interface MotionProviderProps {
   children: ReactNode;
 }
 
 export function MotionProvider({ children }: MotionProviderProps) {
-  const [sourceType, setSourceType] = useState<SourceType>(null);
-  const [recipeId, setRecipeId] = useState<string | null>(null);
-  const [layoutId, setLayoutId] = useState<string | null>(null);
+  const [motion, setMotion] = useState<{
+    sourceType: SourceType;
+    recipeId: string | null;
+    layoutId: string | null;
+  }>({ sourceType: null, recipeId: null, layoutId: null });
 
   const setSource = useCallback((type: 'feed' | 'search', id: string, lid?: string) => {
-    setSourceType(type);
-    setRecipeId(id);
-    setLayoutId(lid || null);
+    setMotion({ sourceType: type, recipeId: id, layoutId: lid || null });
   }, []);
 
   const clearSource = useCallback(() => {
-    setSourceType(null);
-    setRecipeId(null);
-    setLayoutId(null);
+    setMotion({ sourceType: null, recipeId: null, layoutId: null });
   }, []);
 
   return (
     <MotionContext.Provider
       value={{
-        sourceType,
-        recipeId,
-        layoutId,
+        sourceType: motion.sourceType,
+        recipeId: motion.recipeId,
+        layoutId: motion.layoutId,
         setSource,
         clearSource,
       }}
@@ -69,6 +70,10 @@ export function MotionProvider({ children }: MotionProviderProps) {
 export function useMotionContext(): MotionContextValue {
   const context = useContext(MotionContext);
   if (!context) {
+    if (process.env.NODE_ENV === 'development' && !motionContextWarned) {
+      motionContextWarned = true;
+      console.warn('useMotionContext used outside MotionProvider — returning no-op fallback');
+    }
     // Return default values if used outside provider (graceful fallback)
     return {
       sourceType: null,

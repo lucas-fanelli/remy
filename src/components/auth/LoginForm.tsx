@@ -1,11 +1,9 @@
 'use client';
 import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
-import { motion } from 'framer-motion';
 import React, { useState } from 'react';
+import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
-
-const MotionBox = motion(Box);
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;

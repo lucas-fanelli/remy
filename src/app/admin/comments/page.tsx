@@ -22,11 +22,11 @@ import {
   DialogContentText,
   DialogActions,
   Tooltip,
-  useTheme,
+  Alert,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
 
 interface AdminComment {
   id: string;
@@ -45,8 +45,7 @@ interface AdminComment {
 
 export default function AdminCommentsPage() {
   const router = useRouter();
-  const theme = useTheme();
-  const { user, isAuthenticated, isAdmin, isLoading: authLoading } = useAuth();
+  const { isReady, isLoading: guardLoading } = useAdminGuard();
 
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [total, setTotal] = useState(0);
@@ -56,10 +55,9 @@ export default function AdminCommentsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedComment, setSelectedComment] = useState<AdminComment | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchComments = useCallback(async () => {
-    if (!isAuthenticated) return;
-
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -72,24 +70,22 @@ export default function AdminCommentsPage() {
       if (!response.ok) throw new Error('Failed to fetch comments');
 
       const data = await response.json();
+      setError(null);
       setComments(data.comments);
       setTotal(data.total);
     } catch (error) {
+      setError('Failed to load comments.');
       console.error('Error fetching comments:', error);
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, page, rowsPerPage]);
+  }, [page, rowsPerPage]);
 
   useEffect(() => {
-    if (!authLoading && (!user || !isAdmin)) {
-      router.push('/');
-      return;
-    }
-    if (isAuthenticated && isAdmin) {
+    if (isReady) {
       fetchComments();
     }
-  }, [user, isAuthenticated, isAdmin, authLoading, router, fetchComments]);
+  }, [isReady, fetchComments]);
 
   const handleDeleteClick = (comment: AdminComment) => {
     setSelectedComment(comment);
@@ -97,12 +93,13 @@ export default function AdminCommentsPage() {
   };
 
   const handleDelete = async () => {
-    if (!selectedComment || !isAuthenticated) return;
+    if (!selectedComment) return;
 
     setActionLoading(true);
     try {
       const response = await fetch(`/api/admin/comments/${selectedComment.id}`, {
         method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
       });
 
       if (!response.ok) throw new Error('Failed to delete comment');
@@ -111,12 +108,13 @@ export default function AdminCommentsPage() {
       fetchComments();
     } catch (error) {
       console.error('Error deleting comment:', error);
+      setError('Failed to delete comment.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  if (authLoading || !isAdmin) {
+  if (guardLoading) {
     return (
       <Box
         sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}
@@ -132,18 +130,24 @@ export default function AdminCommentsPage() {
         minHeight: '100vh',
         pt: { xs: 10, md: 12 },
         pb: { xs: 10, md: 6 },
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: 'background.default',
       }}
     >
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <IconButton onClick={() => router.push('/admin')}>
+          <IconButton onClick={() => router.push('/admin')} aria-label="Go back">
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight={700} color="text.primary">
             Manage Comments
           </Typography>
         </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
         {/* Comments Table */}
         <TableContainer component={Paper}>
@@ -198,18 +202,29 @@ export default function AdminCommentsPage() {
                         {comment.post.title || 'Untitled Recipe'}
                       </Typography>
                     </TableCell>
-                    <TableCell>{new Date(comment.createdAt).toLocaleDateString('en-US')}</TableCell>
+                    <TableCell>
+                      {new Date(comment.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </TableCell>
                     <TableCell align="right">
                       <Tooltip title="View Recipe">
                         <IconButton
                           onClick={() => router.push(`/recipe/${comment.postId}`)}
                           color="primary"
+                          aria-label="View recipe"
                         >
                           <Visibility />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete Comment">
-                        <IconButton onClick={() => handleDeleteClick(comment)} color="error">
+                        <IconButton
+                          onClick={() => handleDeleteClick(comment)}
+                          color="error"
+                          aria-label="Delete comment"
+                        >
                           <Delete />
                         </IconButton>
                       </Tooltip>

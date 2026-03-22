@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SearchResults from '../SearchResults';
 
 // Mock next/navigation
@@ -19,9 +19,9 @@ const renderWithTheme = (component: React.ReactElement) => {
 };
 
 const mockUsers = [
-  { id: '1', username: 'testuser1', email: 'test1@example.com', avatar: '/avatar1.jpg' },
-  { id: '2', username: 'testuser2', email: 'test2@example.com' },
-  { id: '3', username: 'testuser3', email: 'test3@example.com' },
+  { id: '1', username: 'testuser1', avatar: '/avatar1.jpg' },
+  { id: '2', username: 'testuser2' },
+  { id: '3', username: 'testuser3' },
 ];
 
 const mockRecipes = [
@@ -233,9 +233,9 @@ describe('SearchResults Component', () => {
         />
       );
 
-      // Both username and email should be visible on desktop
+      // Both username and @username secondary text should be visible on desktop
       expect(screen.getByText('testuser1')).toBeInTheDocument();
-      expect(screen.getByText('test1@example.com')).toBeInTheDocument();
+      expect(screen.getByText('@testuser1')).toBeInTheDocument();
     });
 
     it('should show recipe description on desktop - lines 218-220', () => {

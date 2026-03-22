@@ -29,21 +29,14 @@ describe('LoadingBar Component', () => {
 
     const { rerender } = render(<LoadingBar />);
 
-    // Loading bar appears on initial mount
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    // No loading bar on initial mount (pathname hasn't changed from ref)
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
 
-    // Fast-forward past initial load
-    jest.advanceTimersByTime(500);
-
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    });
-
-    // Change pathname
+    // Change pathname to trigger loading
     mockUsePathname.mockReturnValue('/recipes');
     rerender(<LoadingBar />);
 
-    // Loading bar should appear again
+    // Loading bar should appear after pathname change
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
@@ -69,27 +62,21 @@ describe('LoadingBar Component', () => {
     });
   });
 
-  it('should show loading bar when search params change', async () => {
+  it('should show loading bar when pathname changes with search params', async () => {
     mockUsePathname.mockReturnValue('/search');
     mockUseSearchParams.mockReturnValue(new URLSearchParams());
 
     const { rerender } = render(<LoadingBar />);
 
-    // Loading bar appears on initial mount
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    // No loading bar on initial mount (pathname hasn't changed from ref)
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
 
-    // Fast-forward past initial load
-    jest.advanceTimersByTime(500);
-
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    });
-
-    // Change search params
+    // Change pathname (the component only triggers on pathname changes)
+    mockUsePathname.mockReturnValue('/search/results');
     mockUseSearchParams.mockReturnValue(new URLSearchParams('q=pasta'));
     rerender(<LoadingBar />);
 
-    // Loading bar should appear again
+    // Loading bar should appear after pathname change
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 

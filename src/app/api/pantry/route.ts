@@ -1,27 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MAX_PANTRY_ITEMS, MAX_ITEM_NAME_LENGTH, MAX_QUANTITY } from '@/lib/constants';
-import { container } from '@/lib/container/container';
+import striptags from 'striptags';
+import { requireAuth } from '@/lib/api/auth';
+import {
+  MAX_PANTRY_ITEMS,
+  MAX_ITEM_NAME_LENGTH,
+  MAX_NOTES_LENGTH,
+  MAX_QUANTITY,
+} from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
+import { requireJsonContentType } from '@/lib/utils/request';
 
 // GET - Get user's pantry with all items
 export async function GET(request: NextRequest) {
   try {
-    const token = extractBearerToken(request);
-    if (!token) {
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
-
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     // Get or create user's pantry
     const pantry = await prisma.userPantry.findUnique({
-      where: { userId: payload.userId },
+      where: { userId: user.id },
       include: {
         items: {
           orderBy: [{ category: 'asc' }, { name: 'asc' }],
@@ -44,7 +46,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching pantry:', error);
+    logServerError('Error fetching pantry:', error);
     return NextResponse.json({ error: 'Failed to fetch pantry' }, { status: 500 });
   }
 }
@@ -52,16 +54,14 @@ export async function GET(request: NextRequest) {
 // POST - Add item to pantry
 export async function POST(request: NextRequest) {
   try {
-    const token = extractBearerToken(request);
-    if (!token) {
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
+
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
-
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
     let body;
@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // quantity: 0 is valid (represents "to taste" or "as needed" items)
     if (quantity !== undefined && quantity !== null) {
       const parsed = parseFloat(quantity);
       if (isNaN(parsed) || !isFinite(parsed)) {
@@ -101,6 +102,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unit is required' }, { status: 400 });
     }
 
+    if (unit.length > 50) {
+      return NextResponse.json({ error: 'Unit too long (max 50 characters)' }, { status: 400 });
+    }
+
     if (expiresAt !== undefined && expiresAt !== null) {
       const parsedDate = new Date(expiresAt);
       if (isNaN(parsedDate.getTime())) {
@@ -108,31 +113,63 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Custom categories are intentionally allowed (freeSolo Autocomplete on the client).
+    // The length limit is the only server-side constraint.
+    if (category !== undefined && category !== null && category.length > MAX_ITEM_NAME_LENGTH) {
+      return NextResponse.json(
+        { error: `Category too long (max ${MAX_ITEM_NAME_LENGTH} characters)` },
+        { status: 400 }
+      );
+    }
+
+    if (notes !== undefined && notes !== null && notes.length > MAX_NOTES_LENGTH) {
+      return NextResponse.json(
+        { error: `Notes too long (max ${MAX_NOTES_LENGTH} characters)` },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize category to strip any HTML tags
+    const sanitizedCategory = category ? striptags(category).trim() : category;
+
     // Get or create user's pantry and create item atomically
     const item = await prisma.$transaction(async (tx) => {
       let pantry = await tx.userPantry.findUnique({
-        where: { userId: payload.userId },
+        where: { userId: user.id },
       });
 
       if (!pantry) {
         pantry = await tx.userPantry.create({
-          data: { userId: payload.userId },
+          data: { userId: user.id },
         });
       }
+
+      // Lock the pantry row to prevent concurrent inserts from bypassing the item limit
+      await tx.$executeRaw`SELECT id FROM "UserPantry" WHERE id = ${pantry.id} FOR UPDATE`;
 
       const itemCount = await tx.pantryItem.count({ where: { pantryId: pantry.id } });
       if (itemCount >= MAX_PANTRY_ITEMS) {
         throw new Error('PANTRY_LIMIT');
       }
+
+      const existingItem = await tx.pantryItem.findFirst({
+        where: { pantryId: pantry.id, name: { equals: name.trim(), mode: 'insensitive' } },
+      });
+      if (existingItem) {
+        throw new Error('DUPLICATE_ITEM');
+      }
+
+      const sanitizedName = striptags(name.trim());
+
       return tx.pantryItem.create({
         data: {
           pantryId: pantry.id,
-          name: name.trim(),
+          name: sanitizedName,
           quantity: quantity !== undefined && quantity !== null ? parseFloat(quantity) : 0,
           unit: unit.trim(),
-          category: category?.trim() || null,
+          category: sanitizedCategory?.trim() || null,
           expiresAt: expiresAt ? new Date(expiresAt) : null,
-          notes: notes?.trim() || null,
+          notes: notes ? striptags(notes.trim()) || null : null,
         },
       });
     });
@@ -151,7 +188,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    console.error('Error adding pantry item:', error);
+    if (error instanceof Error && error.message === 'DUPLICATE_ITEM') {
+      return NextResponse.json(
+        { error: 'An item with this name already exists in your pantry' },
+        { status: 409 }
+      );
+    }
+    logServerError('Error adding pantry item:', error);
     return NextResponse.json({ error: 'Failed to add item to pantry' }, { status: 500 });
   }
 }

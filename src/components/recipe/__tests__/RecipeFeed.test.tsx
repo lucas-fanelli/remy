@@ -8,6 +8,8 @@ import RecipeFeed from '../RecipeFeed';
 // Speed up waitFor - needs longer timeout for multiple sequential async operations
 configure({ asyncUtilTimeout: 250 });
 
+// TODO: Centralize this framer-motion mock into a shared file (e.g., src/__mocks__/framer-motion.ts)
+// and use jest.config moduleNameMapper to apply it globally across all test files.
 // Mock framer-motion - comprehensive mock supporting all patterns
 jest.mock('framer-motion', () => {
   const mockMotion: any = (component: any) => component;
@@ -104,6 +106,11 @@ const mockRecipe = {
   updatedAt: new Date().toISOString(),
 };
 
+// IntersectionObserver mock for infinite scroll
+let intersectionCallback: IntersectionObserverCallback;
+const mockObserve = jest.fn();
+const mockDisconnect = jest.fn();
+
 describe('RecipeFeed Component', () => {
   let mockFetch: jest.Mock;
 
@@ -112,6 +119,12 @@ describe('RecipeFeed Component', () => {
     mockFetch.mockClear();
     mockPush.mockClear();
     mockUseAuth.mockReturnValue({ token: null, user: null }); // Default to no token
+
+    // Mock IntersectionObserver
+    (global as any).IntersectionObserver = jest.fn((callback) => {
+      intersectionCallback = callback;
+      return { observe: mockObserve, disconnect: mockDisconnect, unobserve: jest.fn() };
+    });
   });
 
   afterEach(async () => {
@@ -459,7 +472,10 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(easyOption);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('difficulty=easy'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('difficulty=easy'),
+        expect.anything()
+      );
     });
 
     // Wait for all skeleton loaders to disappear (indicates async operations completed)
@@ -493,7 +509,10 @@ describe('RecipeFeed Component', () => {
     fireEvent.click(under30Option);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('maxTime=30'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('maxTime=30'),
+        expect.anything()
+      );
     });
 
     // Wait for all skeleton loaders to disappear (indicates async operations completed)
@@ -779,8 +798,13 @@ describe('RecipeFeed Component', () => {
         json: async () => ({ recipes: moreRecipes }),
       });
 
-      // Trigger infinite scroll by scrolling
-      fireEvent.scroll(window, { target: { scrollY: 10000 } });
+      // Trigger infinite scroll via IntersectionObserver
+      act(() => {
+        intersectionCallback(
+          [{ isIntersecting: true }] as IntersectionObserverEntry[],
+          {} as IntersectionObserver
+        );
+      });
 
       await waitFor(() => {
         expect(screen.getByText('Recipe 13')).toBeInTheDocument();
@@ -803,7 +827,7 @@ describe('RecipeFeed Component', () => {
       await act(async () => {});
     });
 
-    it('should handle scroll event conditions (lines 180-185) - branch coverage', async () => {
+    it('should not load more when hasMore is false (IntersectionObserver) - branch coverage', async () => {
       // Test with no more recipes to load (hasMore = false)
       setupSuccessfulFetch();
 
@@ -813,15 +837,13 @@ describe('RecipeFeed Component', () => {
         expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
       });
 
-      // Scroll near bottom - should not load more since hasMore = false
-      Object.defineProperty(window, 'innerHeight', { writable: true, value: 800 });
-      Object.defineProperty(window, 'scrollY', { writable: true, value: 5000 });
-      Object.defineProperty(document.documentElement, 'scrollHeight', {
-        writable: true,
-        value: 6000,
+      // Triggering IntersectionObserver should not load more since hasMore = false
+      act(() => {
+        intersectionCallback(
+          [{ isIntersecting: true }] as IntersectionObserverEntry[],
+          {} as IntersectionObserver
+        );
       });
-
-      fireEvent.scroll(window);
 
       // Should have end of feed message since hasMore = false
       await waitFor(() => {
@@ -1251,7 +1273,10 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(under60Option);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('maxTime=60'));
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('maxTime=60'),
+          expect.anything()
+        );
       });
 
       await act(async () => {});
@@ -1275,7 +1300,10 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(over60Option);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('minTime=60'));
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('minTime=60'),
+          expect.anything()
+        );
       });
 
       await act(async () => {});
@@ -1302,7 +1330,10 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(highestRatedOption);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('sort=rating_desc'));
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('sort=rating_desc'),
+          expect.anything()
+        );
       });
 
       await act(async () => {});
@@ -1326,7 +1357,10 @@ describe('RecipeFeed Component', () => {
       fireEvent.click(mostReviewedOption);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('sort=most_reviewed'));
+        expect(mockFetch).toHaveBeenCalledWith(
+          expect.stringContaining('sort=most_reviewed'),
+          expect.anything()
+        );
       });
 
       await act(async () => {});

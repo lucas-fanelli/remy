@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ZodError } from 'zod';
 import { ApiResponseHelper } from '@/lib/api/response';
 import { container } from '@/lib/container/container';
+import { logServerError } from '@/lib/utils/logger';
 import { searchSchema } from '@/lib/validation/schemas';
 
 export async function GET(request: NextRequest) {
@@ -16,9 +17,9 @@ export async function GET(request: NextRequest) {
     // Get user service from container
     const userService = container.getUserService();
 
-    // Search users - strip email from public results
+    // Search users - strip email and id from public results
     const users = (await userService.searchUsers(validatedData.query, validatedData.limit)).map(
-      ({ email, ...rest }) => rest
+      ({ email: _email, id: _id, ...rest }) => rest
     );
 
     return ApiResponseHelper.success(users);
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
-    console.error('Search users error:', error);
+    logServerError('Search users error:', error);
     return ApiResponseHelper.internalError();
   }
 }

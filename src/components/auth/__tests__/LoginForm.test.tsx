@@ -6,9 +6,11 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import LoginForm from '../LoginForm';
 
 // Mock framer-motion
-jest.mock('framer-motion', () => ({
-  motion: (component: any) => component,
-}));
+jest.mock('framer-motion', () => {
+  const passthrough = (component: any) => component;
+  passthrough.create = (component: any) => component;
+  return { motion: passthrough };
+});
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
@@ -195,7 +197,7 @@ describe('LoginForm Component', () => {
         '/api/auth/login',
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
         })
       );
     });

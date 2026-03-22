@@ -399,7 +399,7 @@ describe('AuthService - Unit Tests', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      mockTokenService.generateToken.mockReturnValue('test-token');
+      mockTokenService.generate.mockReturnValue('test-token');
 
       await authService.register(registerData);
 

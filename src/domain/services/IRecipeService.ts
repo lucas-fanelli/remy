@@ -33,7 +33,7 @@ export interface IRecipeService {
   /**
    * Delete a recipe (with ownership validation)
    */
-  deleteRecipe(id: string, userId: string): Promise<void>;
+  deleteRecipe(id: string, userId: string): Promise<{ imageUrl: string | null }>;
 
   /**
    * Get recent recipes feed

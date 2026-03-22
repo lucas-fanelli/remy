@@ -2,14 +2,19 @@
 
 import { LinearProgress, Box } from '@mui/material';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function LoadingBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const prevPathnameRef = useRef(pathname);
 
   useEffect(() => {
+    // Only show loading bar when the pathname actually changes
+    if (prevPathnameRef.current === pathname) return;
+    prevPathnameRef.current = pathname;
+
     // Show loading immediately when route changes
     setLoading(true);
 

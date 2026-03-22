@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ApiResponseHelper } from '@/lib/api/response';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
+import { logServerError } from '@/lib/utils/logger';
 
 export async function GET(
   request: NextRequest,
@@ -22,10 +23,10 @@ export async function GET(
     }
 
     // Strip email from public response to prevent enumeration
-    const { email, ...publicUser } = user;
+    const { email: _email, ...publicUser } = user;
     return ApiResponseHelper.success({ user: publicUser });
   } catch (error) {
-    console.error('Get user error:', error);
+    logServerError('Get user error:', error);
     return ApiResponseHelper.internalError();
   }
 }

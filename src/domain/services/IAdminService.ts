@@ -80,7 +80,7 @@ export interface IAdminService {
     userId?: string;
   }): Promise<{ recipes: AdminRecipe[]; total: number }>;
 
-  deleteRecipe(recipeId: string): Promise<void>;
+  deleteRecipe(recipeId: string): Promise<{ imageUrl: string | null }>;
 
   // Comment management
   getAllComments(options?: {

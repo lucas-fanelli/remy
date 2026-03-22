@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 // API Recipe type - matches what the API actually returns
 // This is more complete than the domain Recipe type
@@ -65,14 +65,15 @@ async function fetchRecipe(id: string): Promise<RecipeResponse> {
   return response.json();
 }
 
+const selectRecipe = (data: RecipeResponse) => data.recipe;
+
 export function useRecipe(id: string) {
   return useQuery({
     queryKey: ['recipe', id],
     queryFn: () => fetchRecipe(id),
-    placeholderData: keepPreviousData, // Keep old recipe visible while loading new one
     enabled: !!id, // Only fetch if id is provided
-    staleTime: 60 * 1000, // 1 minute
-    select: (data) => data.recipe, // Return just the recipe object
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    select: selectRecipe,
   });
 }
 

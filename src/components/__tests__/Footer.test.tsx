@@ -1,9 +1,10 @@
 'use client';
 
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { BRANDING } from '@/config/branding';
 import Footer from '../Footer';
 
 // Mock useRouter
@@ -24,10 +25,18 @@ jest.mock('@/contexts/ThemeContext', () => ({
   }),
 }));
 
-// Mock window.open
-const mockWindowOpen = jest.fn();
-Object.defineProperty(window, 'open', {
-  value: mockWindowOpen,
+// Track window.location.href assignments for mailto link testing
+let lastLocationHref = '';
+Object.defineProperty(window, 'location', {
+  value: {
+    ...window.location,
+    get href() {
+      return lastLocationHref;
+    },
+    set href(v: string) {
+      lastLocationHref = v;
+    },
+  },
   writable: true,
 });
 
@@ -113,7 +122,7 @@ describe('Footer Component', () => {
       });
       expect(screen.getByLabelText(/your name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/your email/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/subject/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/message/i)).toBeInTheDocument();
     });
 
     it('should close dialog when Cancel is clicked', async () => {
@@ -174,15 +183,15 @@ describe('Footer Component', () => {
       // Fill in form
       const nameInput = screen.getByLabelText(/your name/i);
       const emailInput = screen.getByLabelText(/your email/i);
-      const subjectInput = screen.getByLabelText(/subject/i);
+      const messageInput = screen.getByLabelText(/message/i);
 
       fireEvent.change(nameInput, { target: { value: 'John Doe' } });
       fireEvent.change(emailInput, { target: { value: 'john@example.com' } });
-      fireEvent.change(subjectInput, { target: { value: 'Test message' } });
+      fireEvent.change(messageInput, { target: { value: 'Test message' } });
 
       expect(nameInput).toHaveValue('John Doe');
       expect(emailInput).toHaveValue('john@example.com');
-      expect(subjectInput).toHaveValue('Test message');
+      expect(messageInput).toHaveValue('Test message');
     });
 
     it('should disable Send button when form is incomplete', async () => {
@@ -215,11 +224,11 @@ describe('Footer Component', () => {
       // Fill in form
       const nameInput = screen.getByLabelText(/your name/i);
       const emailInput = screen.getByLabelText(/your email/i);
-      const subjectInput = screen.getByLabelText(/subject/i);
+      const messageInput = screen.getByLabelText(/message/i);
 
       fireEvent.change(nameInput, { target: { value: 'John Doe' } });
       fireEvent.change(emailInput, { target: { value: 'john@example.com' } });
-      fireEvent.change(subjectInput, { target: { value: 'Test message' } });
+      fireEvent.change(messageInput, { target: { value: 'Test message' } });
 
       // Send button should now be enabled
       const sendButton = screen.getByRole('button', { name: /send email/i });
@@ -240,21 +249,18 @@ describe('Footer Component', () => {
       // Fill in form
       const nameInput = screen.getByLabelText(/your name/i);
       const emailInput = screen.getByLabelText(/your email/i);
-      const subjectInput = screen.getByLabelText(/subject/i);
+      const messageInput = screen.getByLabelText(/message/i);
 
       fireEvent.change(nameInput, { target: { value: 'John Doe' } });
       fireEvent.change(emailInput, { target: { value: 'john@example.com' } });
-      fireEvent.change(subjectInput, { target: { value: 'Test message' } });
+      fireEvent.change(messageInput, { target: { value: 'Test message' } });
 
       // Click send
       const sendButton = screen.getByRole('button', { name: /send email/i });
       fireEvent.click(sendButton);
 
-      // Check window.open was called with mailto link
-      expect(mockWindowOpen).toHaveBeenCalledWith(
-        expect.stringContaining('mailto:lucasarielfanelli@hotmail.com'),
-        '_blank'
-      );
+      // Check window.location.href was set to mailto link
+      expect(lastLocationHref).toContain(`mailto:${BRANDING.contactEmail}`);
 
       // Dialog should close
       await waitFor(() => {

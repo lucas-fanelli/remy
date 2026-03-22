@@ -20,6 +20,9 @@ import {
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { MAX_UPLOAD_SIZE } from '@/lib/constants';
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 interface EditProfileModalProps {
   open: boolean;
@@ -32,6 +35,10 @@ interface ProfileForm {
   bio: string;
   website: string;
   isPrivate: boolean;
+}
+
+interface FormErrors {
+  website?: string;
 }
 
 export default function EditProfileModal({ open, onClose, onSuccess }: EditProfileModalProps) {
@@ -49,6 +56,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
   });
   const [avatarPreview, setAvatarPreview] = useState<string>('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   useEffect(() => {
     if (user && open) {
@@ -62,6 +70,15 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
       setAvatarFile(null);
     }
   }, [user, open]);
+
+  // Revoke object URL on unmount or when preview changes to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (avatarPreview && avatarPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -78,15 +95,73 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
     }));
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+        showError('Please select a valid image file (JPG, PNG, GIF, or WebP)');
+        e.target.value = '';
+        return;
+      }
+      if (file.size > MAX_UPLOAD_SIZE) {
+        showError(`Image must be under ${MAX_UPLOAD_SIZE / (1024 * 1024)}MB`);
+        e.target.value = '';
+        return;
+      }
+
+      try {
+        // Client-side validation for fast UX feedback. Server-side validateImageMagicBytes is the security boundary.
+        // Only read the first 12 bytes for magic byte validation instead of
+        // the entire file, avoiding unnecessary memory usage for large images.
+        const headerBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file.slice(0, 12));
+        });
+        const bytes = new Uint8Array(headerBuffer);
+        if (bytes.length < 12) {
+          showError('File is too small to identify');
+          e.target.value = '';
+          return;
+        }
+        // JPEG: bytes[0-2], PNG: bytes[0-3], GIF: bytes[0-2]
+        const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+        const isPng =
+          bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+        const isGif = bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46;
+        // WebP needs 12 bytes: bytes[0-3] = RIFF, bytes[8-11] = WEBP
+        const isWebp =
+          bytes.length >= 12 &&
+          bytes[0] === 0x52 &&
+          bytes[1] === 0x49 &&
+          bytes[2] === 0x46 &&
+          bytes[3] === 0x46 &&
+          bytes[8] === 0x57 &&
+          bytes[9] === 0x45 &&
+          bytes[10] === 0x42 &&
+          bytes[11] === 0x50;
+        if (!isJpeg && !isPng && !isGif && !isWebp) {
+          showError('Invalid image file. Supported formats: JPEG, PNG, GIF, WebP');
+          e.target.value = '';
+          return;
+        }
+
+        // Revoke previous blob URL to avoid memory leaks on re-selection
+        if (avatarPreview && avatarPreview.startsWith('blob:')) {
+          URL.revokeObjectURL(avatarPreview);
+        }
+        // Use object URL for preview (more efficient than base64, avoids stack overflow)
+        const objectUrl = URL.createObjectURL(file);
+        if (!objectUrl.startsWith('blob:')) return;
+        setAvatarPreview(objectUrl);
+      } catch {
+        showError('Failed to read file');
+        e.target.value = '';
+        return;
+      }
+
       setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -97,6 +172,26 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
       showError('You must be logged in to update your profile');
       return;
     }
+
+    // Client-side URL validation for website — URL() + protocol check is the primary gate
+    const websiteValue = formData.website.trim();
+    if (websiteValue) {
+      try {
+        const parsed = new URL(websiteValue);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+          setFormErrors({ website: 'Website must use http:// or https://' });
+          return;
+        }
+        if (parsed.username || parsed.password) {
+          setFormErrors({ website: 'URL must not contain credentials' });
+          return;
+        }
+      } catch {
+        setFormErrors({ website: 'Please enter a valid URL' });
+        return;
+      }
+    }
+    setFormErrors({});
 
     try {
       setSaving(true);
@@ -123,29 +218,14 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         avatarUrl = uploadData.url;
       }
 
-      // Update profile with all data including avatar
-      const response = await fetch('/api/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fullName: formData.fullName.trim() || null,
-          bio: formData.bio.trim() || null,
-          website: formData.website.trim() || null,
-          avatar: avatarUrl,
-          isPrivate: formData.isPrivate,
-        }),
+      // Single call: updateProfile sends PUT to /api/users/profile AND updates local state
+      await updateProfile({
+        fullName: formData.fullName.trim() || null,
+        bio: formData.bio.trim() || null,
+        website: formData.website.trim() || null,
+        avatar: avatarUrl,
+        isPrivate: formData.isPrivate,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update profile');
-      }
-
-      // Update auth context with new data
-      await updateProfile({ ...formData, avatar: avatarUrl });
 
       showSuccess('Profile updated successfully!');
       onSuccess();
@@ -302,11 +382,16 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             label="Website"
             name="website"
             value={formData.website}
-            onChange={handleInputChange}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              handleInputChange(e);
+              if (formErrors.website) setFormErrors({});
+            }}
             size={isMobile ? 'small' : 'medium'}
             sx={{ mb: { xs: 1.5, md: 2 } }}
             placeholder="https://yourwebsite.com"
             type="url"
+            error={!!formErrors.website}
+            helperText={formErrors.website}
           />
 
           <FormControlLabel

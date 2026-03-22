@@ -203,7 +203,7 @@ describe('UserService - Unit Tests', () => {
 
       expect(result).toBeDefined();
       expect(result.every((user) => !('password' in user))).toBe(true);
-      expect(mockUserRepository.search).toHaveBeenCalledWith('test', 10);
+      expect(mockUserRepository.search).toHaveBeenCalledWith('test', 10, undefined);
     });
 
     it('should search users by full name', async () => {
