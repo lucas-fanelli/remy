@@ -133,7 +133,7 @@ export async function PATCH(
             averageRating:
               ratingAggregation._avg.rating != null
                 ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                : null,
+                : undefined,
             reviewCount: ratingAggregation._count.rating ?? 0,
           },
         });
@@ -242,7 +242,7 @@ export async function DELETE(
             averageRating:
               ratingAggregation._avg.rating != null
                 ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                : null,
+                : undefined,
             reviewCount: ratingAggregation._count.rating ?? 0,
           },
         });
