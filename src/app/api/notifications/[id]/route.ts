@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
-import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { logServerError } from '@/lib/utils/logger';
 
 /**
  * PATCH /api/notifications/[id]
@@ -10,44 +10,34 @@ import { extractBearerToken } from '@/lib/utils/auth';
  */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    let user;
+    try {
+      user = await requireAuth(request);
+    } catch {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id: notificationId } = await params;
 
     if (!UUID_REGEX.test(notificationId)) {
       return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
-    const token = extractBearerToken(request);
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tokenService = container.getTokenService();
-    const decoded = tokenService.verify(token);
-    if (!decoded) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    // Verify the notification belongs to this user and update it
-    const notification = await prisma.notification.findFirst({
-      where: {
-        id: notificationId,
-        recipientId: decoded.userId,
-      },
-    });
-
-    if (!notification) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-    }
-
-    // Mark as read
-    await prisma.notification.update({
-      where: { id: notificationId },
+    // Atomic ownership check + update in a single query.
+    // Combines findFirst + update into updateMany with compound where to avoid TOCTOU races.
+    const result = await prisma.notification.updateMany({
+      where: { id: notificationId, recipientId: user.id, isRead: false },
       data: { isRead: true },
     });
 
+    if (result.count === 0) {
+      // Could be not found, not owned, or already read - return success for idempotency
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    logServerError('Error marking notification as read:', error);
     return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 });
   }
 }

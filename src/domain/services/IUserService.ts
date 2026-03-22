@@ -1,10 +1,10 @@
 import { User } from '@prisma/client';
 
 export type UpdateUserProfileDTO = {
-  fullName?: string;
-  bio?: string;
-  avatar?: string;
-  website?: string;
+  fullName?: string | null;
+  bio?: string | null;
+  avatar?: string | null;
+  website?: string | null;
   isPrivate?: boolean;
 };
 
@@ -17,5 +17,5 @@ export interface IUserService {
   updateProfile(userId: string, data: UpdateUserProfileDTO): Promise<UserPublicProfile>;
   deleteUser(userId: string): Promise<void>;
   getUsers(page: number, limit: number): Promise<UserPublicProfile[]>;
-  searchUsers(query: string, limit: number): Promise<UserPublicProfile[]>;
+  searchUsers(query: string, limit: number, offset?: number): Promise<UserPublicProfile[]>;
 }

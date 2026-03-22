@@ -190,6 +190,9 @@ model CookedRecipe {
   cookedAt  DateTime @default(now())
   rating    Int?     // Optional: user can rate their cooking experience (1-5)
   notes     String?  // Optional: notes about how it turned out
+  deductedIngredients Json?  // Stores pantry deductions for reversal on delete
+  restoredAt          DateTime? // Set when pantry items are restored on soft-delete; prevents double-restoration
+  deletedAt           DateTime? // Soft-delete timestamp; records with deletedAt set are excluded from queries
 
   // Relations
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

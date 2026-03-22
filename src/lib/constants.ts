@@ -16,5 +16,40 @@ export const MAX_ITEM_NAME_LENGTH = 200;
 
 export const MAX_QUANTITY = 999999;
 
-/** Username: alphanumeric + underscore, 1-30 chars */
-export const USERNAME_REGEX = /^[a-zA-Z0-9_]{1,30}$/;
+export const MAX_DAILY_COOKS = 20;
+export const MAX_DAILY_RECIPES = 10;
+
+/**
+ * PostgreSQL advisory lock key registry.
+ *
+ * We use the two-key form of pg_advisory_xact_lock(key1, key2):
+ *   - key1: a feature-level namespace (the constants below) that identifies
+ *     which subsystem owns the lock.
+ *   - key2: an instance discriminator within that namespace. Use 0 for global
+ *     (one-at-a-time) locks, or hashtext(userId) / similar for per-entity locks.
+ *
+ * The two-key form keeps each feature's lock space independent so a lock in
+ * one subsystem can never collide with a lock in another, even if the
+ * instance keys happen to match.
+ *
+ * All advisory lock keys must be registered here to prevent collisions.
+ *
+ * Key allocation:
+ *   48879 - Recalculate ratings admin endpoint (key2 = 0, global)
+ *   48880 - Admin user delete / demote endpoint (key2 = 0, global)
+ *   48881 - Cooked recipe pantry deduction (key2 = hashtext(userId), per-user)
+ *   48882 - Orphaned image cleanup script (key2 = 0, global)
+ *   48883 - Recipe match endpoint (key2 = hashtext(userId), per-user)
+ */
+export const PG_ADVISORY_LOCK_RECALC_RATINGS = 48879;
+export const PG_ADVISORY_LOCK_ADMIN_DELETE = 48880;
+export const PG_ADVISORY_LOCK_COOKED_RECIPE = 48881;
+export const PG_ADVISORY_LOCK_CLEANUP = 48882;
+export const PG_ADVISORY_LOCK_MATCH = 48883;
+export const PG_ADVISORY_LOCK_RECIPE_CREATE = 48884;
+
+/** Canonical "to taste" unit value used across forms, validation, and display */
+export const UNIT_TO_TASTE = 'to taste';
+
+/** Username: alphanumeric + underscore, 3-30 chars (matches registration schema) */
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,30}$/;

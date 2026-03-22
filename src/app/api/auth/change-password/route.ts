@@ -3,10 +3,15 @@ import { ZodError } from 'zod';
 import { requireAuth } from '@/lib/api/auth';
 import { ApiResponseHelper } from '@/lib/api/response';
 import { container } from '@/lib/container/container';
+import { logServerError } from '@/lib/utils/logger';
+import { requireJsonContentType } from '@/lib/utils/request';
 import { changePasswordSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {
+    const ctError = requireJsonContentType(request);
+    if (ctError) return ctError;
+
     const user = await requireAuth(request);
 
     // Parse request body
@@ -36,11 +41,11 @@ export async function POST(request: NextRequest) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
-    if (error instanceof Error) {
+    if (error instanceof Error && error.message === 'Current password is incorrect') {
       return ApiResponseHelper.badRequest(error.message);
     }
 
-    console.error('Change password error:', error);
+    logServerError('Change password error:', error);
     return ApiResponseHelper.internalError();
   }
 }
