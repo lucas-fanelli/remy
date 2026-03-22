@@ -111,7 +111,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             }
           }
         }
-        return urls.filter((url): url is string => Boolean(url) && isCloudinaryUrl(url));
+        return urls
+          .filter((url): url is string => typeof url === 'string')
+          .filter((url) => isCloudinaryUrl(url));
       },
       { timeout: 60000 }
     );
