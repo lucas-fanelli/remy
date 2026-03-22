@@ -13,7 +13,6 @@ interface EnvConfig {
   JWT_EXPIRES_IN: string;
 
   // NextAuth
-  NEXTAUTH_URL: string;
   NEXTAUTH_SECRET: string;
 
   // Cloudinary
@@ -24,7 +23,6 @@ interface EnvConfig {
 
   // Application
   NODE_ENV: 'development' | 'production' | 'test';
-  NEXT_PUBLIC_APP_URL: string;
 }
 
 class EnvironmentValidationError extends Error {
@@ -61,10 +59,8 @@ export function validateEnvironment(): EnvConfig {
     'DATABASE_URL',
     'JWT_SECRET',
     'JWT_EXPIRES_IN',
-    'NEXTAUTH_URL',
     'NEXTAUTH_SECRET',
     'NODE_ENV',
-    'NEXT_PUBLIC_APP_URL',
     'CLOUDINARY_CLOUD_NAME',
   ];
 
@@ -82,30 +78,14 @@ export function validateEnvironment(): EnvConfig {
     errors.push(`Invalid NODE_ENV: ${nodeEnv}. Must be 'development', 'production', or 'test'`);
   }
 
-  // Validate URL formats
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    try {
-      new URL(process.env.NEXT_PUBLIC_APP_URL);
-    } catch {
-      errors.push(`Invalid NEXT_PUBLIC_APP_URL format: ${process.env.NEXT_PUBLIC_APP_URL}`);
-    }
-  }
-
-  if (process.env.NEXTAUTH_URL) {
-    try {
-      new URL(process.env.NEXTAUTH_URL);
-    } catch {
-      errors.push(`Invalid NEXTAUTH_URL format: ${process.env.NEXTAUTH_URL}`);
-    }
-  }
-
-  // Validate DATABASE_URL format (both postgres:// and postgresql:// are valid)
+  // Validate DATABASE_URL format (postgres://, postgresql://, and prisma+postgres:// are valid)
   if (
     process.env.DATABASE_URL &&
     !process.env.DATABASE_URL.startsWith('postgresql://') &&
-    !process.env.DATABASE_URL.startsWith('postgres://')
+    !process.env.DATABASE_URL.startsWith('postgres://') &&
+    !process.env.DATABASE_URL.startsWith('prisma+postgres://')
   ) {
-    errors.push('DATABASE_URL must start with postgresql:// or postgres://');
+    errors.push('DATABASE_URL must start with postgresql://, postgres://, or prisma+postgres://');
   }
 
   // Production-specific validations
@@ -189,12 +169,10 @@ export function validateEnvironment(): EnvConfig {
     DATABASE_URL: process.env.DATABASE_URL!,
     JWT_SECRET: process.env.JWT_SECRET!,
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN!,
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL!,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME!,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     NODE_ENV: process.env.NODE_ENV as 'development' | 'production' | 'test',
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL!,
   };
 }
 
