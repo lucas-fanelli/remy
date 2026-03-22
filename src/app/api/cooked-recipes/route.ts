@@ -416,7 +416,7 @@ export async function POST(request: NextRequest) {
               averageRating:
                 ratingAggregation._avg.rating != null
                   ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                  : null,
+                  : undefined,
               reviewCount: ratingAggregation._count.rating ?? 0,
             },
           });
