@@ -150,10 +150,7 @@ export async function middleware(request: NextRequest) {
     // cannot carry the nonce. This is MUI's documented recommendation.
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    `img-src 'self' data: ${process.env.CLOUDINARY_CLOUD_NAME ? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/` : ''}blob:`.replace(
-      /\s+/g,
-      ' '
-    ),
+    "img-src 'self' data: https: blob:",
     "connect-src 'self' https://res.cloudinary.com https://*.sentry.io https://*.vercel-analytics.com https://*.vercel-insights.com",
     "frame-ancestors 'self'",
     "base-uri 'self'",
