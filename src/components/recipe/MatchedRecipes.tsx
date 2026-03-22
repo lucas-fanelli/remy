@@ -16,6 +16,7 @@ import {
   Skeleton,
   useTheme,
   useMediaQuery,
+  type Theme,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useCallback } from 'react';
@@ -204,7 +205,7 @@ export default function MatchedRecipes() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                     sx={{
-                      backgroundColor: (theme) => theme.palette.background.paper,
+                      backgroundColor: (theme: Theme) => theme.palette.background.paper,
                       cursor: 'pointer',
                       height: '100%',
                       transition: 'all 0.2s',
@@ -292,7 +293,7 @@ export default function MatchedRecipes() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                     sx={{
-                      backgroundColor: (theme) => theme.palette.background.paper,
+                      backgroundColor: (theme: Theme) => theme.palette.background.paper,
                       cursor: 'pointer',
                       height: '100%',
                       transition: 'all 0.2s',

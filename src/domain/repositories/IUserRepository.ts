@@ -14,10 +14,10 @@ export type CreateUserDTO = {
 export type UpdateUserDTO = {
   email?: string;
   username?: string;
-  fullName?: string;
-  bio?: string;
-  avatar?: string;
-  website?: string;
+  fullName?: string | null;
+  bio?: string | null;
+  avatar?: string | null;
+  website?: string | null;
   isPrivate?: boolean;
 };
 

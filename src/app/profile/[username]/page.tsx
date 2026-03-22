@@ -23,6 +23,7 @@ import {
   Toolbar,
   Grow,
   Rating,
+  type Theme,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
@@ -436,7 +437,7 @@ export default function ProfilePage() {
                               whileHover={{ scale: 1.02 }}
                               onClick={() => handleRecipeClick(recipe.id)}
                               sx={{
-                                backgroundColor: (theme) => theme.palette.background.paper,
+                                backgroundColor: (theme: Theme) => theme.palette.background.paper,
                                 cursor: 'pointer',
                                 height: '100%',
                                 borderRadius: '20px',
@@ -520,7 +521,7 @@ export default function ProfilePage() {
                               whileHover={{ scale: 1.02 }}
                               onClick={() => handleRecipeClick(recipe.id)}
                               sx={{
-                                backgroundColor: (theme) => theme.palette.background.paper,
+                                backgroundColor: (theme: Theme) => theme.palette.background.paper,
                                 cursor: 'pointer',
                                 height: '100%',
                                 borderRadius: '20px',

@@ -35,7 +35,8 @@ import { getDifficultyColor } from '@/lib/utils/recipe';
 
 // motion.create must be at module scope — calling inside a component creates
 // a new type each render, breaking React reconciliation.
-const MotionCard = motion.create(Card);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const MotionCard = motion.create(Card as any);
 
 interface RecipeCardProps {
   recipe: Recipe & { averageRating?: number | null; totalRatings?: number };
