@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToCloudinary, deleteFromCloudinary } from '@/lib/cloudinary';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
-import { extractBearerToken } from '@/lib/utils/auth';
+import { extractAuthToken } from '@/lib/utils/auth';
+import { cleanupCloudinaryImage } from '@/lib/utils/cloudinary-cleanup';
 import { validateImageMagicBytes } from '@/lib/utils/image-validation';
+import { logServerError } from '@/lib/utils/logger';
 
 // Configure route to use Node.js runtime
 export const runtime = 'nodejs';
@@ -12,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const token = extractBearerToken(request);
+    const token = extractAuthToken(request);
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -83,13 +85,12 @@ export async function POST(request: NextRequest) {
       data: { avatar: avatarUrl },
     });
 
-    // Clean up old avatar from Cloudinary
-    if (existingUser?.avatar?.includes('cloudinary.com')) {
+    // Clean up old avatar from Cloudinary (best-effort)
+    if (existingUser?.avatar) {
       try {
-        const match = existingUser.avatar.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
-        if (match) await deleteFromCloudinary(match[1]);
-      } catch {
-        // Old avatar cleanup failure is non-critical
+        await cleanupCloudinaryImage(existingUser.avatar);
+      } catch (cleanupError) {
+        logServerError('Failed to cleanup old avatar from Cloudinary:', cleanupError);
       }
     }
 
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
       message: 'Avatar uploaded successfully',
     });
   } catch (error) {
-    console.error('Error uploading avatar:', error);
+    logServerError('Error uploading avatar:', error);
     return NextResponse.json({ error: 'Failed to upload avatar' }, { status: 500 });
   }
 }
