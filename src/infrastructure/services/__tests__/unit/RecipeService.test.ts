@@ -401,6 +401,126 @@ describe('RecipeService - Unit Tests', () => {
         recipeService.updateRecipe('recipe-123', 'different-user', updateDTO)
       ).rejects.toThrow('Unauthorized: You can only update your own recipes');
     });
+
+    it('should rethrow unexpected repository errors untouched', async () => {
+      mockRecipeRepository.updateWhere = jest.fn().mockRejectedValue(new Error('connection lost'));
+
+      await expect(recipeService.updateRecipe('recipe-123', 'user-123', updateDTO)).rejects.toThrow(
+        'connection lost'
+      );
+    });
+
+    it('should strip HTML from every text field before saving', async () => {
+      mockRecipeRepository.updateWhere = jest.fn().mockResolvedValue(mockRecipe);
+
+      await recipeService.updateRecipe('recipe-123', 'user-123', {
+        title: '<b>Pasta</b>',
+        description: '<script>alert(1)</script>Rich',
+        caption: '<i>Yum</i>',
+        ingredients: [{ name: '<u>Tomato</u>', amount: '2', unit: 'pieces' }],
+        instructions: [{ step: 1, description: '<p>Boil water</p>' }],
+      });
+
+      expect(mockRecipeRepository.updateWhere).toHaveBeenCalledWith('recipe-123', 'user-123', {
+        title: 'Pasta',
+        description: 'alert(1)Rich',
+        caption: 'Yum',
+        ingredients: [{ name: 'Tomato', amount: '2', unit: 'pieces' }],
+        instructions: [{ step: 1, description: 'Boil water' }],
+      });
+    });
+
+    it('should accept a partial update that only changes numeric fields', async () => {
+      mockRecipeRepository.updateWhere = jest.fn().mockResolvedValue(mockRecipe);
+      const partial: UpdateRecipeDTO = { cookingTime: 720, prepTime: 0, servings: 100 };
+
+      await recipeService.updateRecipe('recipe-123', 'user-123', partial);
+
+      expect(mockRecipeRepository.updateWhere).toHaveBeenCalledWith(
+        'recipe-123',
+        'user-123',
+        partial
+      );
+    });
+
+    it('should accept an ingredient without amount when its unit is "to taste"', async () => {
+      mockRecipeRepository.updateWhere = jest.fn().mockResolvedValue(mockRecipe);
+
+      await expect(
+        recipeService.updateRecipe('recipe-123', 'user-123', {
+          ingredients: [{ name: 'Salt', amount: '', unit: 'to taste' }],
+        })
+      ).resolves.toBeDefined();
+    });
+
+    const step = (n: number, description = 'Do it') => ({ step: n, description });
+    const ingredient = (overrides = {}) => ({ name: 'Salt', amount: '1', unit: 'g', ...overrides });
+
+    it.each<[string, UpdateRecipeDTO, string]>([
+      ['a blank title', { title: '   ' }, 'Title is required'],
+      ['a title over 100 characters', { title: 'a'.repeat(101) }, 'Title must be less than 100'],
+      ['a blank description', { description: '  ' }, 'Description is required'],
+      [
+        'a description over 500 characters',
+        { description: 'a'.repeat(501) },
+        'Description must be less than 500',
+      ],
+      ['a cooking time of zero', { cookingTime: 0 }, 'Cooking time must be greater than 0'],
+      ['a cooking time over 12 hours', { cookingTime: 721 }, 'Cooking time must be less than 12'],
+      ['a negative prep time', { prepTime: -1 }, 'Prep time cannot be negative'],
+      ['a prep time over 8 hours', { prepTime: 481 }, 'Prep time must be less than 8 hours'],
+      ['zero servings', { servings: 0 }, 'Servings must be greater than 0'],
+      ['more than 100 servings', { servings: 101 }, 'Servings must be less than 100'],
+      [
+        'an unknown difficulty',
+        { difficulty: 'expert' as UpdateRecipeDTO['difficulty'] },
+        'Difficulty must be easy, medium, or hard',
+      ],
+      ['an empty ingredient list', { ingredients: [] }, 'At least one ingredient is required'],
+      [
+        'more than 100 ingredients',
+        { ingredients: Array.from({ length: 101 }, () => ingredient()) },
+        'Maximum 100 ingredients',
+      ],
+      [
+        'an ingredient without a name',
+        { ingredients: [ingredient({ name: ' ' })] },
+        'Ingredient 1: name is required',
+      ],
+      [
+        'an ingredient without an amount',
+        { ingredients: [ingredient({ amount: '' })] },
+        'Ingredient 1: amount is required',
+      ],
+      [
+        'an ingredient without a unit',
+        { ingredients: [ingredient({ unit: '' })] },
+        'Ingredient 1: unit is required',
+      ],
+      ['an empty step list', { instructions: [] }, 'At least one instruction step is required'],
+      [
+        'more than 50 steps',
+        { instructions: Array.from({ length: 51 }, (_, i) => step(i + 1)) },
+        'Maximum 50 steps',
+      ],
+      [
+        'a step without a description',
+        { instructions: [step(1, ' ')] },
+        'Instruction 1: description is required',
+      ],
+      [
+        'step numbers that skip a position',
+        { instructions: [step(1), step(3)] },
+        'Instruction 2: step number must match position',
+      ],
+    ])('should reject %s without touching the repository', async (_case, data, message) => {
+      mockRecipeRepository.updateWhere = jest.fn();
+
+      await expect(recipeService.updateRecipe('recipe-123', 'user-123', data)).rejects.toThrow(
+        message
+      );
+      expect(mockRecipeRepository.updateWhere).not.toHaveBeenCalled();
+    });
   });
 
   describe('deleteRecipe', () => {
@@ -422,6 +542,14 @@ describe('RecipeService - Unit Tests', () => {
 
       await expect(recipeService.deleteRecipe('non-existent', 'user-123')).rejects.toThrow(
         'Recipe not found'
+      );
+    });
+
+    it('should rethrow unexpected repository errors untouched', async () => {
+      mockRecipeRepository.deleteWhere = jest.fn().mockRejectedValue(new Error('connection lost'));
+
+      await expect(recipeService.deleteRecipe('recipe-123', 'user-123')).rejects.toThrow(
+        'connection lost'
       );
     });
 
