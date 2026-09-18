@@ -127,7 +127,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
 
       // Lock the Post row to prevent concurrent rating aggregation races
-      await tx.$executeRaw`SELECT id FROM "Post" WHERE id = ${recipeId} FOR UPDATE`;
+      await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${recipeId} FOR UPDATE`;
 
       const newComment = await tx.comment.create({
         data: {

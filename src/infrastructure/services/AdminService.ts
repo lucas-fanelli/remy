@@ -345,13 +345,13 @@ export class AdminService implements IAdminService {
       ]
     >`
       SELECT
-        (SELECT COUNT(*) FROM "User")::bigint AS "totalUsers",
-        (SELECT COUNT(*) FROM "User" WHERE role = 'ADMIN')::bigint AS "totalAdmins",
-        (SELECT COUNT(*) FROM "Post")::bigint AS "totalRecipes",
-        (SELECT COUNT(*) FROM "Comment")::bigint AS "totalComments",
-        (SELECT COUNT(*) FROM "Like")::bigint AS "totalLikes",
-        (SELECT COUNT(*) FROM "User" WHERE "createdAt" >= ${today})::bigint AS "newUsersToday",
-        (SELECT COUNT(*) FROM "Post" WHERE "createdAt" >= ${today})::bigint AS "newRecipesToday"
+        (SELECT COUNT(*) FROM "users")::bigint AS "totalUsers",
+        (SELECT COUNT(*) FROM "users" WHERE role = 'ADMIN')::bigint AS "totalAdmins",
+        (SELECT COUNT(*) FROM "posts")::bigint AS "totalRecipes",
+        (SELECT COUNT(*) FROM "comments")::bigint AS "totalComments",
+        (SELECT COUNT(*) FROM "likes")::bigint AS "totalLikes",
+        (SELECT COUNT(*) FROM "users" WHERE "createdAt" >= ${today})::bigint AS "newUsersToday",
+        (SELECT COUNT(*) FROM "posts" WHERE "createdAt" >= ${today})::bigint AS "newRecipesToday"
     `;
 
     return {

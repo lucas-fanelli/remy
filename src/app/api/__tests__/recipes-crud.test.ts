@@ -12,6 +12,7 @@ jest.mock('@/lib/database/prisma', () => ({
       findUnique: jest.fn(),
       count: jest.fn(),
     },
+    $transaction: jest.fn(),
   },
 }));
 
@@ -162,14 +163,28 @@ describe('GET /api/recipes', () => {
 });
 
 describe('POST /api/recipes', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (container.getTokenService as jest.Mock).mockReturnValue(mockTokenService);
-    (container.getRecipeService as jest.Mock).mockReturnValue(mockRecipeService);
+  // CLOUDINARY_CLOUD_NAME is "test-cloud" in .env.test
+  const CLOUDINARY_IMAGE = 'https://res.cloudinary.com/test-cloud/image/upload/recipes/cover.jpg';
+
+  const mockTx = {
+    $executeRaw: jest.fn(),
+    post: { count: jest.fn(), create: jest.fn() },
+  };
+
+  const createRecipePayload = (overrides: Record<string, unknown> = {}) => ({
+    title: 'New Recipe',
+    description: 'A new recipe',
+    imageUrl: CLOUDINARY_IMAGE,
+    cookingTime: 30,
+    prepTime: 10,
+    servings: 4,
+    difficulty: 'easy',
+    ingredients: [{ name: 'flour', amount: '200', unit: 'g' }],
+    instructions: [{ step: 1, description: 'Mix' }],
+    ...overrides,
   });
 
-  it('should create a recipe when authenticated', async () => {
-    // Arrange
+  const authenticate = () =>
     (requireAuth as jest.Mock).mockResolvedValue({
       id: VALID_UUID,
       userId: VALID_UUID,
@@ -178,19 +193,22 @@ describe('POST /api/recipes', () => {
       role: 'USER',
     });
 
-    const newRecipe = {
-      title: 'New Recipe',
-      description: 'A new recipe',
-      ingredients: ['flour'],
-      instructions: ['Mix'],
-    };
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (container.getTokenService as jest.Mock).mockReturnValue(mockTokenService);
+    (container.getRecipeService as jest.Mock).mockReturnValue(mockRecipeService);
+    mockRecipeService.validateRecipeData.mockResolvedValue({ valid: true, errors: [] });
+    mockTx.post.count.mockResolvedValue(0);
+    mockTx.post.create.mockImplementation(async ({ data }) => ({ id: VALID_UUID_2, ...data }));
+    (prisma.$transaction as jest.Mock).mockImplementation(async (run) => run(mockTx));
+  });
 
-    const createdRecipe = { id: VALID_UUID_2, ...newRecipe, userId: VALID_UUID };
-    mockRecipeService.createRecipe.mockResolvedValue(createdRecipe);
-
+  it('should create a recipe for the authenticated user', async () => {
+    // Arrange
+    authenticate();
     const request = createJsonRequest(
       'http://localhost:3000/api/recipes',
-      newRecipe,
+      createRecipePayload(),
       'valid-token'
     );
 
@@ -200,11 +218,60 @@ describe('POST /api/recipes', () => {
 
     // Assert
     expect(response.status).toBe(201);
-    expect(body.recipe).toEqual(createdRecipe);
     expect(body.message).toBe('Recipe created successfully');
-    expect(mockRecipeService.createRecipe).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: VALID_UUID, title: 'New Recipe' })
+    expect(body.recipe).toEqual(
+      expect.objectContaining({ id: VALID_UUID_2, title: 'New Recipe', userId: VALID_UUID })
     );
+  });
+
+  it('should treat an empty step image as "no image"', async () => {
+    // Arrange — the recipe forms keep image: '' for steps without a photo
+    authenticate();
+    const request = createJsonRequest(
+      'http://localhost:3000/api/recipes',
+      createRecipePayload({ instructions: [{ step: 1, description: 'Mix', image: '' }] })
+    );
+
+    // Act
+    const response = await recipesPOST(request);
+
+    // Assert
+    expect(response.status).toBe(201);
+    expect(mockTx.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ instructions: [{ step: 1, description: 'Mix' }] }),
+      })
+    );
+  });
+
+  it('should reject a client-supplied userId', async () => {
+    // Arrange
+    authenticate();
+    const request = createJsonRequest(
+      'http://localhost:3000/api/recipes',
+      createRecipePayload({ userId: VALID_UUID_2 })
+    );
+
+    // Act
+    const response = await recipesPOST(request);
+
+    // Assert
+    expect(response.status).toBe(400);
+    expect(mockTx.post.create).not.toHaveBeenCalled();
+  });
+
+  it('should return 429 when the daily recipe limit is reached', async () => {
+    // Arrange
+    authenticate();
+    mockTx.post.count.mockResolvedValue(10);
+    const request = createJsonRequest('http://localhost:3000/api/recipes', createRecipePayload());
+
+    // Act
+    const response = await recipesPOST(request);
+
+    // Assert
+    expect(response.status).toBe(429);
+    expect(mockTx.post.create).not.toHaveBeenCalled();
   });
 
   it('should return 401 when no token is provided', async () => {
@@ -224,20 +291,32 @@ describe('POST /api/recipes', () => {
     expect(body.error).toBe('Unauthorized');
   });
 
-  it('should return 400 when imageUrl has invalid protocol', async () => {
+  it('should return 400 when imageUrl is not a Cloudinary URL', async () => {
     // Arrange
-    (requireAuth as jest.Mock).mockResolvedValue({
-      id: VALID_UUID,
-      userId: VALID_UUID,
-      email: 'test@example.com',
-      username: 'testuser',
-      role: 'USER',
-    });
+    authenticate();
+    const request = createJsonRequest(
+      'http://localhost:3000/api/recipes',
+      createRecipePayload({ imageUrl: 'ftp://malicious.com/image.jpg' })
+    );
 
-    const request = createJsonRequest('http://localhost:3000/api/recipes', {
-      title: 'Recipe',
-      imageUrl: 'ftp://malicious.com/image.jpg',
-    });
+    // Act
+    const response = await recipesPOST(request);
+    const body = await response.json();
+
+    // Assert
+    expect(response.status).toBe(400);
+    expect(body.error).toBe('Image must be a Cloudinary URL');
+  });
+
+  it('should return 400 when imageUrl belongs to another Cloudinary account', async () => {
+    // Arrange
+    authenticate();
+    const request = createJsonRequest(
+      'http://localhost:3000/api/recipes',
+      createRecipePayload({
+        imageUrl: 'https://res.cloudinary.com/someone-else/image/upload/x.jpg',
+      })
+    );
 
     // Act
     const response = await recipesPOST(request);

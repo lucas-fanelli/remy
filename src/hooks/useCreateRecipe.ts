@@ -7,11 +7,22 @@ import { CreateRecipeDTO } from '@/domain/types/recipe';
  */
 export function useCreateRecipe(onSuccess?: () => void) {
   const createRecipe = async (data: CreateRecipeDTO) => {
+    // The API schema is strict: the author comes from the session (userId is rejected),
+    // and a step's image must be a Cloudinary URL or absent — the form keeps '' for
+    // steps without a photo, so drop it here.
+    const { userId: _userId, ...recipe } = data;
+    const payload = {
+      ...recipe,
+      instructions: recipe.instructions.map(({ image, ...step }) =>
+        image ? { ...step, image } : step
+      ),
+    };
+
     const response = await fetch('/api/recipes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
       credentials: 'same-origin',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

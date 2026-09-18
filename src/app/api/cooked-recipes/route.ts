@@ -300,7 +300,7 @@ export async function POST(request: NextRequest) {
         // Unlike SELECT FOR UPDATE, this works even if the pantry row doesn't exist yet.
         // Two-key form uses a namespace to avoid collisions with advisory locks in other features.
         // hashtext returns 32-bit int — collision risk is acceptable at <1M users. For larger scale, split UUID into two int4 keys.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_COOKED_RECIPE}, hashtext(${user.id}))`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_COOKED_RECIPE}::int, hashtext(${user.id}))`;
 
         // Read pantry inside transaction to avoid stale data
         const pantry = await tx.userPantry.findUnique({
@@ -385,7 +385,7 @@ export async function POST(request: NextRequest) {
         if (rating !== undefined) {
           // Lock the Post row BEFORE the upsert to serialize the entire read-modify-write
           // cycle and prevent concurrent rating aggregation races.
-          await tx.$executeRaw`SELECT id FROM "Post" WHERE id = ${postId} FOR UPDATE`;
+          await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${postId} FOR UPDATE`;
 
           await tx.rating.upsert({
             where: {
@@ -509,7 +509,7 @@ export async function DELETE(request: NextRequest) {
     const deleted = await prisma.$transaction(async (tx) => {
       // 1. Acquire per-user advisory lock FIRST to serialize the entire read-check-restore-delete
       // sequence. Without this, two concurrent DELETEs can both pass findFirst before either commits.
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_COOKED_RECIPE}, hashtext(${user.id}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_COOKED_RECIPE}::int, hashtext(${user.id}))`;
 
       // 2. Find the cooked recipe (verify ownership and get postId + deducted ingredients)
       const cookedRecipe = await tx.cookedRecipe.findFirst({
@@ -618,7 +618,7 @@ export async function DELETE(request: NextRequest) {
 
       if (!userComment) {
         // Lock the post row to prevent concurrent rating aggregation races
-        await tx.$executeRaw`SELECT id FROM "Post" WHERE id = ${cookedRecipe.postId} FOR UPDATE`;
+        await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${cookedRecipe.postId} FOR UPDATE`;
 
         await tx.rating.deleteMany({
           where: {

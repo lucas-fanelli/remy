@@ -46,10 +46,12 @@ export default function MatchedRecipes() {
   const [readyToCook, setReadyToCook] = useState<MatchedRecipe[]>([]);
   const [almostThere, setAlmostThere] = useState<MatchedRecipe[]>([]);
   const [pantryItemsCount, setPantryItemsCount] = useState(0);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const loadMatchedRecipes = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadFailed(false);
       const response = await fetch('/api/recipes/match');
 
       if (response.ok) {
@@ -57,9 +59,13 @@ export default function MatchedRecipes() {
         setReadyToCook(data.readyToCook);
         setAlmostThere(data.almostThere);
         setPantryItemsCount(data.pantryItemsCount);
+      } else {
+        // Don't fall through to the "pantry is empty" state — that hides server errors
+        setLoadFailed(true);
       }
     } catch (error) {
       console.error('Error loading matched recipes:', error);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -101,6 +107,22 @@ export default function MatchedRecipes() {
           ))}
         </Box>
       </Box>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <Alert
+        severity="error"
+        sx={{ mb: { xs: 3, md: 4 } }}
+        action={
+          <Button color="inherit" size="small" onClick={loadMatchedRecipes}>
+            Retry
+          </Button>
+        }
+      >
+        We couldn&apos;t load your recipe matches. Please try again.
+      </Alert>
     );
   }
 
