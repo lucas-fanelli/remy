@@ -25,7 +25,7 @@ export async function register() {
       if (!Array.isArray(result) || result.length === 0) {
         console.warn(
           '[performance] GIN index on Post.ingredients is missing. ' +
-            'Run: prisma/migrations/manual/add_gin_index_ingredients.sql'
+            'Run: prisma/manual-sql/add_gin_index_ingredients.sql'
         );
       }
     } catch {

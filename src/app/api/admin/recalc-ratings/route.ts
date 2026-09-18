@@ -19,21 +19,21 @@ export async function POST(request: NextRequest) {
     const total = await prisma.$transaction(
       async (tx) => {
         await tx.$executeRaw`SET LOCAL statement_timeout = '30s'`;
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_RECALC_RATINGS}, 0)`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_RECALC_RATINGS}::int, 0)`;
 
         // Use r.avg_rating directly (NULL for unrated recipes) instead of
         // COALESCE(r.avg_rating, 0) so that unrated recipes store NULL.
         // reviewCount uses COALESCE since 0 is a meaningful count.
         await tx.$executeRaw`
-        UPDATE "Post" p
+        UPDATE "posts" p
         SET "averageRating" = r.avg_rating,
             "reviewCount" = COALESCE(r.cnt, 0)
         FROM (
           SELECT p2.id,
                  ROUND(AVG(rt."rating")::numeric, 1)::float as avg_rating,
                  COUNT(rt.id)::int as cnt
-          FROM "Post" p2
-          LEFT JOIN "Rating" rt ON rt."postId" = p2.id
+          FROM "posts" p2
+          LEFT JOIN "ratings" rt ON rt."postId" = p2.id
           GROUP BY p2.id
         ) r
         WHERE p.id = r.id

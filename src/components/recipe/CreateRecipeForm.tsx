@@ -197,7 +197,10 @@ export default function CreateRecipeForm({ onSubmit, onCancel }: CreateRecipeFor
             i.unit.trim() !== '' &&
             (i.unit === UNIT_TO_TASTE || i.amount.trim() !== '')
         ),
-        instructions: instructions.filter((i) => i.description.trim()),
+        // Renumber after dropping blank steps: the API requires step === position
+        instructions: instructions
+          .filter((i) => i.description.trim())
+          .map((instruction, index) => ({ ...instruction, step: index + 1 })),
         userId: '', // Will be set by the API from session
       };
 

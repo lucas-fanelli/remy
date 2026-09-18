@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Lock the pantry row to prevent concurrent inserts from bypassing the item limit
-      await tx.$executeRaw`SELECT id FROM "UserPantry" WHERE id = ${pantry.id} FOR UPDATE`;
+      await tx.$executeRaw`SELECT id FROM "user_pantries" WHERE id = ${pantry.id} FOR UPDATE`;
 
       const itemCount = await tx.pantryItem.count({ where: { pantryId: pantry.id } });
       if (itemCount >= MAX_PANTRY_ITEMS) {

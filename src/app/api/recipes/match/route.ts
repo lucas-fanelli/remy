@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         // Use pg_try_advisory_xact_lock to avoid holding a connection while waiting for the lock.
         // Returns false immediately if another request from this user is already running.
         const [{ locked }] = await tx.$queryRaw<[{ locked: boolean }]>`
-        SELECT pg_try_advisory_xact_lock(${PG_ADVISORY_LOCK_MATCH}, hashtext(${user.id})) AS locked
+        SELECT pg_try_advisory_xact_lock(${PG_ADVISORY_LOCK_MATCH}::int, hashtext(${user.id})) AS locked
       `;
         if (!locked) {
           throw new Error('MATCH_IN_PROGRESS');
@@ -97,17 +97,19 @@ export async function GET(request: NextRequest) {
         let allCandidates: { id: string; ingredients: unknown }[];
 
         if (pantryPatterns.length > 0) {
+          // No ESCAPE clause below: PostgreSQL rejects it with LIKE ANY(...), and the
+          // backslash emitted by escapeLike is already the default LIKE escape character.
           const likePatterns = pantryPatterns.map((name) => `%${escapeLike(name)}%`);
           allCandidates = await tx.$queryRaw<{ id: string; ingredients: unknown }[]>`
           SELECT p.id, p.ingredients
-          FROM "Post" p
-          JOIN "User" u ON u.id = p."userId"
+          FROM "posts" p
+          JOIN "users" u ON u.id = p."userId"
           WHERE u."isPrivate" = false
             AND p.ingredients IS NOT NULL AND jsonb_typeof(p.ingredients) = 'array' AND jsonb_array_length(p.ingredients) <= 100
             AND EXISTS (
               SELECT 1 FROM jsonb_array_elements(p.ingredients) AS elem
               WHERE length(elem->>'name') <= 200
-                AND lower(elem->>'name') LIKE ANY(ARRAY[${Prisma.join(likePatterns)}]) ESCAPE '\\'
+                AND lower(elem->>'name') LIKE ANY(ARRAY[${Prisma.join(likePatterns)}])
             )
           ORDER BY p."averageRating" DESC NULLS LAST, p."createdAt" DESC
           LIMIT ${limit}

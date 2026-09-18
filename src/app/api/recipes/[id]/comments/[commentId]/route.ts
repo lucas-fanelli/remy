@@ -100,7 +100,7 @@ export async function PATCH(
       // If rating provided, upsert rating
       if (rating !== undefined) {
         // Lock the post row to prevent concurrent rating aggregation races
-        await tx.$executeRaw`SELECT id FROM "Post" WHERE id = ${recipeId} FOR UPDATE`;
+        await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${recipeId} FOR UPDATE`;
 
         await tx.rating.upsert({
           where: {
@@ -220,7 +220,7 @@ export async function DELETE(
 
       if (!cookedRecipe) {
         // Lock the post row to prevent concurrent rating aggregation races
-        await tx.$executeRaw`SELECT id FROM "Post" WHERE id = ${recipeId} FOR UPDATE`;
+        await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${recipeId} FOR UPDATE`;
 
         await tx.rating.deleteMany({
           where: {

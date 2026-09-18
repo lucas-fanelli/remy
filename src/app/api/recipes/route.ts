@@ -29,14 +29,18 @@ const instructionSchema = z
   .object({
     step: z.number().int().positive(),
     description: z.string().min(1).max(5000),
-    image: z
-      .string()
-      .url()
-      .refine(
-        (url) => url.startsWith('https://res.cloudinary.com/'),
-        'Instruction image must be a Cloudinary URL'
-      )
-      .optional(),
+    // '' means "no image" (the recipe forms use it for steps without a photo)
+    image: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z
+        .string()
+        .url()
+        .refine(
+          (url) => url.startsWith('https://res.cloudinary.com/'),
+          'Instruction image must be a Cloudinary URL'
+        )
+        .optional()
+    ),
   })
   .strict();
 
@@ -309,7 +313,7 @@ export async function POST(request: NextRequest) {
     }
 
     const recipe = await prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_RECIPE_CREATE}, hashtext(${user.id}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_RECIPE_CREATE}::int, hashtext(${user.id}))`;
 
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const dailyPostCount = await tx.post.count({

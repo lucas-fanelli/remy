@@ -58,7 +58,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         // Global advisory lock (second key = 0): concurrent admin deletes of ANY user
         // must be serialized to prevent a race where two requests both see >1 admin
         // and then delete the last two admins simultaneously.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_ADMIN_DELETE}, 0)`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_ADMIN_DELETE}::int, 0)`;
 
         // Re-verify the requesting user is still admin inside the transaction
         const requester = await tx.user.findUnique({
@@ -69,11 +69,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         const [userToDelete] = await tx.$queryRaw<
           [{ role: string }] | []
-        >`SELECT role FROM "User" WHERE id = ${id}`;
+        >`SELECT role FROM "users" WHERE id = ${id}`;
         if (!userToDelete) throw new Error('USER_NOT_FOUND');
         if (userToDelete.role === 'ADMIN') {
           const [{ count }] = await tx.$queryRaw<[{ count: number }]>`
-          SELECT COUNT(*)::int as count FROM "User" WHERE role = 'ADMIN'
+          SELECT COUNT(*)::int as count FROM "users" WHERE role = 'ADMIN'
         `;
           if (count <= 1) throw new Error('LAST_ADMIN');
         }
@@ -193,9 +193,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       // to prevent a race where two concurrent demotions both see >1 admin
       const result = await prisma.$transaction(
         async (tx) => {
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_ADMIN_DELETE}, 0)`;
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_ADMIN_DELETE}::int, 0)`;
+          // No FOR UPDATE here: PostgreSQL rejects it with aggregates, and the
+          // advisory lock above already serializes concurrent demotions/deletes.
           const [{ count }] = await tx.$queryRaw<[{ count: number }]>`
-          SELECT COUNT(*)::int as count FROM "User" WHERE role = 'ADMIN' FOR UPDATE
+          SELECT COUNT(*)::int as count FROM "users" WHERE role = 'ADMIN'
         `;
           if (count <= 1) throw new Error('LAST_ADMIN');
           return tx.user.update({

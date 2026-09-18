@@ -1,7 +1,7 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor, within, act, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CreateRecipeForm from '../CreateRecipeForm';
 
 // Speed up waitFor operations - aggressive timeout for faster tests
@@ -576,6 +576,31 @@ describe('CreateRecipeForm Component', () => {
     });
 
     // Wait for all async state updates to complete (setLoading(false) in finally block)
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  });
+
+  it('should renumber the steps when a blank step in the middle is dropped', async () => {
+    // Arrange — three steps, the second one left blank (the API requires step === position)
+    renderWithProviders(<CreateRecipeForm onSubmit={mockOnSubmit} onCancel={mockOnCancel} />);
+    navigateToStep3();
+    fireEvent.click(screen.getByText(/add step/i));
+    fireEvent.click(screen.getByText(/add step/i));
+    const stepInputs = screen.getAllByLabelText(/^step \d+$/i);
+    fireEvent.change(stepInputs[0], { target: { value: 'First' } });
+    fireEvent.change(stepInputs[2], { target: { value: 'Last' } });
+    fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: /create recipe/i }));
+
+    // Assert
+    await waitFor(() => expect(mockOnSubmit).toHaveBeenCalled());
+    expect(mockOnSubmit.mock.calls[0][0].instructions).toEqual([
+      expect.objectContaining({ step: 1, description: 'First' }),
+      expect.objectContaining({ step: 2, description: 'Last' }),
+    ]);
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });

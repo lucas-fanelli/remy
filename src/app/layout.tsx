@@ -90,8 +90,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {/* Browsers blank the nonce attribute in the DOM once parsed (nonce hiding), so
+            hydration always sees nonce="" here. The mismatch is expected and harmless. */}
         <script
           nonce={nonce}
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               (function() {

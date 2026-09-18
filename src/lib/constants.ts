@@ -34,12 +34,21 @@ export const MAX_DAILY_RECIPES = 10;
  *
  * All advisory lock keys must be registered here to prevent collisions.
  *
+ * IMPORTANT: always cast key1 in raw SQL — `pg_advisory_xact_lock(${KEY}::int, ...)`.
+ * Prisma binds JS numbers as bigint, and PostgreSQL only defines the two-key form
+ * as (int, int), so without the cast the call fails with
+ * "function pg_advisory_xact_lock(bigint, integer) does not exist".
+ *
+ * Raw SQL must also use the real table names from @@map in schema.prisma
+ * ("posts", "users", "user_pantries", ...), never the Prisma model names.
+ *
  * Key allocation:
  *   48879 - Recalculate ratings admin endpoint (key2 = 0, global)
  *   48880 - Admin user delete / demote endpoint (key2 = 0, global)
  *   48881 - Cooked recipe pantry deduction (key2 = hashtext(userId), per-user)
  *   48882 - Orphaned image cleanup script (key2 = 0, global)
  *   48883 - Recipe match endpoint (key2 = hashtext(userId), per-user)
+ *   48884 - Recipe create daily-limit check (key2 = hashtext(userId), per-user)
  */
 export const PG_ADVISORY_LOCK_RECALC_RATINGS = 48879;
 export const PG_ADVISORY_LOCK_ADMIN_DELETE = 48880;

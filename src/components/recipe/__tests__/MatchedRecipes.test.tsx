@@ -368,6 +368,31 @@ describe('MatchedRecipes Component', () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it('should show an error instead of the empty pantry state when the server fails', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    expect(await screen.findByText(/couldn't load your recipe matches/i)).toBeInTheDocument();
+    expect(screen.queryByText(/your pantry is empty/i)).not.toBeInTheDocument();
+  });
+
+  it('should load the matches when retrying after a failure', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ readyToCook: [], almostThere: [], pantryItemsCount: 0 }),
+    });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
+    renderWithProviders(<MatchedRecipes />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /retry/i }));
+
+    expect(await screen.findByText(/your pantry is empty/i)).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't load your recipe matches/i)).not.toBeInTheDocument();
+  });
+
   it('should display multiple ready to cook recipes', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

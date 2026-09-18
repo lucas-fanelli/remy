@@ -239,7 +239,10 @@ export default function EditRecipeModal({
             i.unit.trim() !== '' &&
             (i.unit === UNIT_TO_TASTE || i.amount.trim() !== '')
         ),
-        instructions: instructions.filter((i) => i.description.trim() !== ''),
+        // Renumber after dropping blank steps: the API requires step === position
+        instructions: instructions
+          .filter((i) => i.description.trim() !== '')
+          .map((instruction, index) => ({ ...instruction, step: index + 1 })),
         caption: caption.trim() === '' ? null : caption,
       };
 

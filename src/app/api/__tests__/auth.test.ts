@@ -78,7 +78,8 @@ describe('POST /api/auth/login', () => {
     // Assert
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.data).toEqual(loginResult);
+    // The token travels only in the httpOnly cookie, never in the response body
+    expect(body.data).toEqual({ user: loginResult.user });
     expect(body.message).toBe('Login successful');
     expect(setAuthCookie).toHaveBeenCalledWith(expect.anything(), 'jwt-token-123');
   });
@@ -170,7 +171,8 @@ describe('POST /api/auth/register', () => {
     // Assert
     expect(response.status).toBe(201);
     expect(body.success).toBe(true);
-    expect(body.data).toEqual(registerResult);
+    // The token travels only in the httpOnly cookie, never in the response body
+    expect(body.data).toEqual({ user: registerResult.user });
     expect(body.message).toBe('User registered successfully');
     expect(setAuthCookie).toHaveBeenCalledWith(expect.anything(), 'jwt-token-456');
   });
