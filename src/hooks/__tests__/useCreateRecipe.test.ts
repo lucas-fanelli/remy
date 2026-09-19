@@ -2,8 +2,9 @@ import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { RecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
 import { useCreateRecipe } from '../useCreateRecipe';
 
-// What CreateRecipeForm.handleSubmit builds: userId is a placeholder and steps
-// without a photo carry image: ''. POST /api/recipes validates with a strict schema.
+// The most a caller may hand over: userId is a placeholder (the editor's toPayload() sends
+// '') and a step without a photo may carry image: '' (toPayload() already leaves it out).
+// POST /api/recipes validates with a strict schema.
 const createFormData = (overrides: Partial<CreateRecipeDTO> = {}): CreateRecipeDTO => ({
   title: 'Chocotorta',
   description: 'La clásica',

@@ -12,8 +12,8 @@ import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSu
 export function useCreateRecipe(onSuccess?: () => void) {
   const createRecipe = async (data: CreateRecipeDTO) => {
     // The API schema is strict: the author comes from the session (userId is rejected),
-    // and a step's image must be a Cloudinary URL or absent — the form keeps '' for
-    // steps without a photo, so drop it here.
+    // and a step's image must be a Cloudinary URL or absent. The editor's toPayload()
+    // already leaves '' out; this keeps the promise for any other caller.
     const { userId: _userId, ...recipe } = data;
     const payload = {
       ...recipe,
