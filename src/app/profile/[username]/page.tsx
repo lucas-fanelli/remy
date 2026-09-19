@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { MotionBox, MotionCard } from '@/components/motion';
 import EditProfileModal from '@/components/profile/EditProfileModal';
@@ -66,7 +67,19 @@ interface ProfileStats {
   followingCount: number;
 }
 
+/** Which message the error banner shows - a closed set, so the key can be built from it. */
+type ProfileError = 'userNotFound' | 'loadFailed';
+
+/** The big bold number inside a stat sentence; the message decides where it sits. */
+const statCount = (chunks: React.ReactNode) => (
+  <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
+    {chunks}
+  </Typography>
+);
+
 export default function ProfilePage() {
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
   const params = useParams();
   const router = useRouter();
   const { user: currentUser, isAuthenticated } = useAuth();
@@ -81,7 +94,7 @@ export default function ProfilePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ProfileError | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -90,6 +103,10 @@ export default function ProfilePage() {
 
   const isOwnProfile = currentUser?.username === username;
   const bioPreviewLength = 100;
+
+  // The stored difficulty never changes; a value this build does not know is shown as it
+  // came back, which is what the chip already did.
+  const difficultyLabel = (level: string) => t('difficulty', { level, fallback: level });
 
   const loadProfile = useCallback(async () => {
     try {
@@ -100,10 +117,9 @@ export default function ProfilePage() {
       const response = await fetch(`/api/users/${username}/profile`);
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('User not found');
-        }
-        throw new Error('Failed to load profile');
+        // The banner picks its own sentence: the failure is a state, not a string
+        setError(response.status === 404 ? 'userNotFound' : 'loadFailed');
+        return;
       }
 
       const data = await response.json();
@@ -122,7 +138,7 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error('Error loading profile:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
+      setError('loadFailed');
     } finally {
       setLoading(false);
     }
@@ -197,9 +213,9 @@ export default function ProfilePage() {
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Toolbar />
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error || 'Profile not found'}
+          {error ? t(`errors.${error}`) : t('errors.notFound')}
         </Alert>
-        <Button onClick={() => router.push('/')}>Go Back Home</Button>
+        <Button onClick={() => router.push('/')}>{t('goHome')}</Button>
       </Container>
     );
   }
@@ -255,7 +271,7 @@ export default function ProfilePage() {
                         onClick={() => setEditModalOpen(true)}
                         size="small"
                       >
-                        Edit Profile
+                        {t('actions.edit')}
                       </Button>
                       <IconButton onClick={() => router.push('/settings')}>
                         <Settings />
@@ -273,75 +289,44 @@ export default function ProfilePage() {
                         transition: 'all 0.2s ease-in-out',
                       }}
                     >
-                      {followLoading ? 'Loading...' : isFollowing ? 'Following' : 'Follow'}
+                      {followLoading
+                        ? tCommon('status.loading')
+                        : isFollowing
+                          ? t('actions.following')
+                          : t('actions.follow')}
                     </Button>
                   )}
                 </Box>
 
-                {/* Stats */}
+                {/* Stats - one message each, so the count and its noun agree in both languages */}
                 <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
-                  <Box>
-                    <Typography
-                      variant="h6"
-                      component="span"
-                      sx={{ fontWeight: 700, color: 'text.primary' }}
-                    >
-                      {stats.recipesCount}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      component="span"
-                      sx={{ ml: 0.5, color: 'text.primary' }}
-                    >
-                      recipes
-                    </Typography>
-                  </Box>
-                  <Box
+                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                    {t.rich('stats.recipes', { count: stats.recipesCount, value: statCount })}
+                  </Typography>
+                  <Typography
+                    variant="body2"
                     sx={{
+                      color: 'text.primary',
                       cursor: 'pointer',
                       '&:hover': { opacity: 0.7 },
                       transition: 'opacity 0.2s',
                     }}
                     onClick={() => router.push(`/profile/${username}/followers`)}
                   >
-                    <Typography
-                      variant="h6"
-                      component="span"
-                      sx={{ fontWeight: 700, color: 'text.primary' }}
-                    >
-                      {stats.followersCount}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      component="span"
-                      sx={{ ml: 0.5, color: 'text.primary' }}
-                    >
-                      followers
-                    </Typography>
-                  </Box>
-                  <Box
+                    {t.rich('stats.followers', { count: stats.followersCount, value: statCount })}
+                  </Typography>
+                  <Typography
+                    variant="body2"
                     sx={{
+                      color: 'text.primary',
                       cursor: 'pointer',
                       '&:hover': { opacity: 0.7 },
                       transition: 'opacity 0.2s',
                     }}
                     onClick={() => router.push(`/profile/${username}/following`)}
                   >
-                    <Typography
-                      variant="h6"
-                      component="span"
-                      sx={{ fontWeight: 700, color: 'text.primary' }}
-                    >
-                      {stats.followingCount}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      component="span"
-                      sx={{ ml: 0.5, color: 'text.primary' }}
-                    >
-                      following
-                    </Typography>
-                  </Box>
+                    {t.rich('stats.following', { count: stats.followingCount, value: statCount })}
+                  </Typography>
                 </Box>
 
                 {/* Bio */}
@@ -371,7 +356,7 @@ export default function ProfilePage() {
                         sx={{ cursor: 'pointer', fontWeight: 500 }}
                         onClick={() => setBioExpanded(!bioExpanded)}
                       >
-                        {bioExpanded ? 'Show less' : 'Show more'}
+                        {bioExpanded ? tCommon('actions.showLess') : tCommon('actions.showMore')}
                       </Typography>
                     )}
                   </Box>
@@ -402,8 +387,10 @@ export default function ProfilePage() {
           {/* Tabs with Sliding Indicator */}
           <AnimatedTabs
             tabs={[
-              { key: 0, label: 'Recipes', icon: <GridOn /> },
-              ...(isOwnProfile ? [{ key: 1, label: 'Saved', icon: <BookmarkBorder /> }] : []),
+              { key: 0, label: t('tabs.recipes'), icon: <GridOn /> },
+              ...(isOwnProfile
+                ? [{ key: 1, label: t('tabs.saved'), icon: <BookmarkBorder /> }]
+                : []),
             ]}
             activeKey={activeTab}
             onChange={(key) => setActiveTab(key as number)}
@@ -419,11 +406,11 @@ export default function ProfilePage() {
                       <Box sx={{ textAlign: 'center', py: 8 }}>
                         <Restaurant sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
                         <Typography variant="h6" color="text.secondary">
-                          No recipes yet
+                          {t('empty.recipes')}
                         </Typography>
                         {isOwnProfile && (
                           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            Share your first recipe to get started!
+                            {t('empty.recipesOwn')}
                           </Typography>
                         )}
                       </Box>
@@ -477,7 +464,7 @@ export default function ProfilePage() {
                                 )}
                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                   <Chip
-                                    label={recipe.difficulty}
+                                    label={difficultyLabel(recipe.difficulty)}
                                     size="small"
                                     color={getDifficultyColor(recipe.difficulty)}
                                     sx={{
@@ -505,10 +492,10 @@ export default function ProfilePage() {
                       <Box sx={{ textAlign: 'center', py: 8 }}>
                         <BookmarkBorder sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
                         <Typography variant="h6" color="text.secondary">
-                          No saved recipes yet
+                          {t('empty.saved')}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          Bookmark recipes you&apos;d like to try later!
+                          {t('empty.savedDescription')}
                         </Typography>
                       </Box>
                     </Grid>
@@ -576,7 +563,7 @@ export default function ProfilePage() {
                                 )}
                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                   <Chip
-                                    label={recipe.difficulty}
+                                    label={difficultyLabel(recipe.difficulty)}
                                     size="small"
                                     color={getDifficultyColor(recipe.difficulty)}
                                     sx={{
