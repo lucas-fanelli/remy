@@ -1,1 +1,71 @@
-{}
+{
+  "states": {
+    "notFound": "Recipe not found",
+    "loadFailed": "Failed to load recipe"
+  },
+  "meta": {
+    "difficulty": "{level, select, easy {easy} medium {medium} hard {hard} other {{level}}}",
+    "servings": "{count, plural, one {# serving} other {# servings}}",
+    "totalTime": "{minutes, number} min total",
+    "noRatings": "No ratings yet",
+    "ratingSummary": "{average} ({count, plural, one {# review} other {# reviews}})"
+  },
+  "times": {
+    "prep": "PREP TIME",
+    "cook": "COOK TIME",
+    "total": "TOTAL TIME"
+  },
+  "ingredients": {
+    "title": "Ingredients",
+    "toTaste": ", to taste"
+  },
+  "instructions": {
+    "title": "Instructions",
+    "stepAlt": "Step {number, number}"
+  },
+  "actions": {
+    "markAsCooked": "Mark as Cooked",
+    "marking": "Marking...",
+    "cookAnyway": "Cook Anyway",
+    "edit": "Edit recipe",
+    "delete": "Delete recipe"
+  },
+  "deleteDialog": {
+    "title": "Delete Recipe?",
+    "message": "Are you sure you want to delete “{title}”? This action cannot be undone."
+  },
+  "insufficientDialog": {
+    "title": "Insufficient Ingredients",
+    "intro": "The following ingredients are insufficient in your pantry:",
+    "row": "{name}: need {required} {unit}, have {available} {unit}",
+    "question": "Do you want to mark this recipe as cooked anyway?"
+  },
+  "toasts": {
+    "updated": "Recipe updated successfully!",
+    "deleted": "Recipe deleted successfully!",
+    "deleteFailed": "Failed to delete recipe",
+    "loginToLike": "Please login to like recipes",
+    "liked": "Recipe liked!",
+    "unliked": "Recipe unliked",
+    "likeFailed": "Failed to like recipe",
+    "loginToSave": "Please login to save recipes",
+    "saved": "Recipe saved!",
+    "unsaved": "Recipe removed from saved",
+    "saveFailed": "Failed to save recipe",
+    "linkCopied": "Link copied to clipboard!",
+    "copyFailed": "Failed to copy link",
+    "copyManually": "Cannot copy link — please copy the URL manually",
+    "loginToCook": "Please login to mark recipes as cooked",
+    "cooked": "Recipe marked as cooked!",
+    "cookedPartial": "Recipe marked as cooked! Note: insufficient pantry stock for: {names}",
+    "cookFailed": "Failed to mark recipe as cooked"
+  },
+  "card": {
+    "like": "Like",
+    "unlike": "Unlike",
+    "comments": "Comments",
+    "options": "recipe options",
+    "edit": "Edit Recipe",
+    "delete": "Delete Recipe"
+  }
+}
