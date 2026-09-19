@@ -50,8 +50,9 @@ export async function POST(request: NextRequest) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
-    if (error instanceof Error && error.message === 'Current password is incorrect') {
-      return ApiResponseHelper.badRequest(error.message);
+    // AuthService.changePassword reports a wrong current password with this message
+    if (error instanceof Error && error.message === 'Invalid old password') {
+      return ApiResponseHelper.badRequest('Current password is incorrect');
     }
 
     logServerError('Change password error:', error);

@@ -106,6 +106,19 @@ describe('POST /api/auth/change-password', () => {
     expect(mockAuthService.changePassword).not.toHaveBeenCalled();
   });
 
+  it('should return 400, not 500, when the current password is wrong', async () => {
+    // Arrange - the message AuthService.changePassword really throws
+    mockAuthService.changePassword.mockRejectedValue(new Error('Invalid old password'));
+
+    // Act
+    const response = await POST(createJsonRequest(validBody));
+
+    // Assert
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe('Current password is incorrect');
+    expect(setAuthCookie).not.toHaveBeenCalled();
+  });
+
   it('should not re-issue the cookie when the change fails', async () => {
     // Arrange
     mockAuthService.changePassword.mockRejectedValue(new Error('boom'));
