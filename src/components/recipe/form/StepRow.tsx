@@ -3,11 +3,11 @@ import { ArrowDownward, ArrowUpward, Close } from '@mui/icons-material';
 import { Box, IconButton, TextField } from '@mui/material';
 import { memo } from 'react';
 import ImageUpload, { type ImageUploadHandle } from '@/components/common/ImageUpload';
+import StepNumber from '@/components/recipe/display/StepNumber';
 import { RECIPE_LIMITS } from '@/lib/constants';
 import { fieldHelper } from './fieldHelper';
 import { getFieldCounter } from './formTokens';
 import { isModEnter } from './keyboard';
-import StepNumberBadge from './StepNumberBadge';
 import { StepRowValue } from './types';
 import { RegisterField, useFieldRef } from './useFieldRegistry';
 import { StepPatch } from './useRecipeForm';
@@ -99,7 +99,7 @@ function StepRow({
         alignItems: 'flex-start',
       }}
     >
-      <StepNumberBadge number={position} />
+      <StepNumber number={position} />
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <TextField

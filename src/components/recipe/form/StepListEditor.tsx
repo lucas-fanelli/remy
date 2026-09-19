@@ -4,12 +4,12 @@ import { Box, Button, FormHelperText, Paper, Typography } from '@mui/material';
 import { AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useId, useRef } from 'react';
 import { MotionBox } from '@/components/motion';
+import StepNumber from '@/components/recipe/display/StepNumber';
 import { RECIPE_LIMITS } from '@/lib/constants';
 import EditorLiveRegion, { useAnnouncer } from './EditorLiveRegion';
 import { rowMotion } from './formMotion';
 import { attentionColor } from './formTokens';
 import { neighbourRowId } from './keyboard';
-import StepNumberBadge from './StepNumberBadge';
 import StepRow from './StepRow';
 import { StepRowValue } from './types';
 import { RegisterField } from './useFieldRegistry';
@@ -162,7 +162,7 @@ export default function StepListEditor({
       </AnimatePresence>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 1 }}>
-        <StepNumberBadge number={rows.length + 1} ghost />
+        <StepNumber number={rows.length + 1} ghost />
         <Button
           ref={addButtonRef}
           type="button"
