@@ -14,7 +14,10 @@ export async function GET(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     const token = extractAuthToken(request);
@@ -32,7 +35,7 @@ export async function GET(
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
     // Check if following

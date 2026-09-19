@@ -12,14 +12,17 @@ export async function GET(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     const userService = container.getUserService();
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
-      return ApiResponseHelper.notFound('User not found');
+      return ApiResponseHelper.notFound('User not found', 'user.notFound');
     }
 
     // Strip email from public response to prevent enumeration
@@ -27,6 +30,6 @@ export async function GET(
     return ApiResponseHelper.success({ user: publicUser });
   } catch (error) {
     logServerError('Get user error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }

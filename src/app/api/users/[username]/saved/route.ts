@@ -15,30 +15,36 @@ export async function GET(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     const token = extractAuthToken(request);
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const payload = await verifySessionToken(token);
 
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid token', code: 'auth.invalidToken' },
+        { status: 401 }
+      );
     }
 
     const userService = container.getUserService();
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
     // Check if requesting user is the profile owner
     if (user.id !== payload.userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden', code: 'forbidden' }, { status: 403 });
     }
 
     // Pagination params
@@ -96,6 +102,9 @@ export async function GET(
     return NextResponse.json({ recipes: formattedRecipes, total });
   } catch (error) {
     logServerError('Error fetching saved recipes:', error);
-    return NextResponse.json({ error: 'Failed to fetch saved recipes' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch saved recipes', code: 'recipe.savedFetchFailed' },
+      { status: 500 }
+    );
   }
 }
