@@ -45,8 +45,6 @@ export interface FormStatusProps {
    * event. Without it the alert is announced only when `publishAttempted` turns true.
    */
   attempt?: number;
-  /** Defaults to '/auth?next=create' (create) and '/auth' (edit) */
-  loginHref?: string;
   /**
    * Runs when [Log in again] is activated, before the link navigates. A shell that is a
    * dialog closes itself here: a dialog owned by the layout would stay on top of the login form
@@ -167,7 +165,6 @@ export default function FormStatus({
   sessionExpired = false,
   draftSavedAt,
   attempt = 0,
-  loginHref,
   onLogin,
   id,
   sx,
@@ -292,7 +289,8 @@ export default function FormStatus({
             {errorView.action === 'login' && (
               <Button
                 component={NextLink}
-                href={loginHref ?? (mode === 'create' ? '/auth?next=create' : '/auth')}
+                // Create comes back to 'New recipe' and its draft; Edit has nothing stored
+                href={mode === 'create' ? '/auth?next=create' : '/auth'}
                 size="small"
                 onClick={onLogin}
               >

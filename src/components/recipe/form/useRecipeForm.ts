@@ -21,18 +21,16 @@ import {
   RecipeFieldPath,
   RecipeFormErrors,
   RecipeFormMode,
-  RecipeFormSection,
   RecipeFormTouched,
   RecipeFormValues,
   RecipeFormValuesInput,
   RecipeIssue,
   RecipePayload,
   RecipeScalarField,
-  SectionStatus,
   StepRowInput,
   StepRowValue,
 } from './types';
-import { deriveSectionStatus, isPathWithin, validateRecipe } from './validateRecipe';
+import { isPathWithin, validateRecipe } from './validateRecipe';
 
 /**
  * ONE form engine for Create and Edit.
@@ -101,7 +99,6 @@ export interface RecipeFormApi {
   publishAttempted: boolean;
   /** Every current problem, visible or not (FormStatus' 'Missing: ...' reads this) */
   issues: RecipeIssue[];
-  sectionStatus: Record<RecipeFormSection, SectionStatus>;
   isDirty: boolean;
   uploadsInFlight: number;
   setField<K extends RecipeScalarField>(path: K, value: RecipeFormValues[K]): void;
@@ -431,10 +428,6 @@ export function useRecipeForm({ initial, resetKey }: UseRecipeFormOptions): Reci
   }, []);
 
   const issues = useMemo(() => validateRecipe(values), [values]);
-  const sectionStatus = useMemo(
-    () => deriveSectionStatus(issues, touched, publishAttempted, values),
-    [issues, touched, publishAttempted, values]
-  );
   const isDirty = useMemo(
     () => snapshotValues(values) !== initialSnapshot,
     [values, initialSnapshot]
@@ -460,7 +453,6 @@ export function useRecipeForm({ initial, resetKey }: UseRecipeFormOptions): Reci
     touched,
     publishAttempted,
     issues,
-    sectionStatus,
     isDirty,
     uploadsInFlight: Object.keys(uploading).length,
     setField,

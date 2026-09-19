@@ -1,11 +1,9 @@
 import { DifficultyLevel, Ingredient, Instruction } from '@/domain/types/recipe';
 
-/** The four-section vocabulary shared by every proposal, in the author's order */
+/** The four sections of a recipe, in the author's order: what an issue or an [Edit] names */
 export const RECIPE_FORM_SECTIONS = ['basics', 'ingredients', 'steps', 'presentation'] as const;
 
 export type RecipeFormSection = (typeof RECIPE_FORM_SECTIONS)[number];
-
-export type SectionStatus = 'empty' | 'in-progress' | 'complete' | 'attention';
 
 /** A whole number typed by the author, or '' while the field is still empty */
 export type NumericFieldValue = number | '';

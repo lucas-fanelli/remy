@@ -52,11 +52,7 @@ jest.mock('next/navigation', () => ({
 // The one 'New recipe' dialog is owned by CreateRecipeProvider: Navigation only calls it
 const mockOpenCreate = jest.fn();
 jest.mock('@/contexts/CreateRecipeContext', () => ({
-  useCreateRecipeDialog: () => ({
-    openCreate: mockOpenCreate,
-    closeCreate: jest.fn(),
-    isCreateOpen: false,
-  }),
+  useCreateRecipeDialog: () => ({ openCreate: mockOpenCreate }),
 }));
 
 // Mock SearchResults component
@@ -364,7 +360,7 @@ describe('Navigation Component', () => {
   it('should render all navigation icons', () => {
     renderWithProviders(<Navigation />);
 
-    // Home, Pantry, Create Recipe (Add), Notifications, Avatar icons should be present
+    // Home, Pantry, New recipe (Add), Notifications, Avatar icons should be present
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThan(3); // At least nav items + avatar
   });

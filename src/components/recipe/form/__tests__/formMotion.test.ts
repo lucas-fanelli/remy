@@ -3,12 +3,10 @@ import {
   FORM_ENTER_EASE,
   FORM_EXIT_DURATION,
   FORM_EXIT_EASE,
-  FORM_SLIDE_PX,
   PUBLISH_GUARD_MS,
   fadeMotion,
   formEnterTransition,
   formExitTransition,
-  panelMotion,
   rowMotion,
 } from '../formMotion';
 
@@ -24,26 +22,6 @@ describe('formMotion', () => {
     expect(FORM_EXIT_DURATION).toBe(0.1);
     expect(FORM_ENTER_EASE).toHaveLength(4);
     expect(FORM_EXIT_EASE).toHaveLength(4);
-  });
-
-  it('should slide a panel in from the right by 16px when moving forward', () => {
-    const preset = panelMotion(1);
-
-    expect(FORM_SLIDE_PX).toBe(16);
-    expect(preset.initial).toEqual({ opacity: 0, x: 16 });
-    expect(preset.animate).toEqual({ opacity: 1, x: 0, transition: formEnterTransition });
-    expect(preset.exit).toEqual({ opacity: 0, x: -16, transition: formExitTransition });
-  });
-
-  it('should mirror the slide when moving back', () => {
-    const preset = panelMotion(-1);
-
-    expect(preset.initial.x).toBe(-16);
-    expect(preset.exit.x).toBe(16);
-  });
-
-  it('should default the panel direction to forward', () => {
-    expect(panelMotion()).toEqual(panelMotion(1));
   });
 
   it('should cross-fade with the shared transitions', () => {

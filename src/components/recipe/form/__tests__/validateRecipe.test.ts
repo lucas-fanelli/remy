@@ -2,13 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { RECIPE_LIMITS, RECIPE_UNITS, UNIT_TO_TASTE } from '@/lib/constants';
 import { RecipeFormValues, RecipeIssue } from '../types';
-import {
-  deriveSectionStatus,
-  isPathTouched,
-  isPathWithin,
-  sectionOfPath,
-  validateRecipe,
-} from '../validateRecipe';
+import { isPathWithin, sectionOfPath, validateRecipe } from '../validateRecipe';
 import { COVER_URL, makeValues, STEP_URL } from './fixtures';
 
 const messagesOf = (values: RecipeFormValues) => validateRecipe(values).map((i) => i.message);
@@ -408,122 +402,10 @@ describe('path helpers', () => {
     expect(sectionOfPath(fieldPath)).toBe(section);
   });
 
-  it('should treat a row field as touched when its row was touched', () => {
-    expect(isPathTouched({ 'ingredients.i1': true }, 'ingredients.i1.amount')).toBe(true);
-  });
-
-  it('should treat a field as touched when it was touched itself', () => {
-    expect(isPathTouched({ title: true }, 'title')).toBe(true);
-  });
-
-  it('should not treat a row as touched because another row was', () => {
-    expect(isPathTouched({ 'ingredients.i1': true }, 'ingredients.i10.amount')).toBe(false);
-  });
-
   it('should tell whether a path lives under a scope', () => {
     expect(isPathWithin('steps.s1.description', 'steps.s1')).toBe(true);
     expect(isPathWithin('steps.s10.description', 'steps.s1')).toBe(false);
     expect(isPathWithin('steps.s1', 'steps.s1')).toBe(true);
-  });
-});
-
-describe('deriveSectionStatus', () => {
-  const emptyValues = makeValues({
-    title: '',
-    description: '',
-    imageUrl: '',
-    caption: '',
-    prepTime: '',
-    cookingTime: '',
-    ingredients: [{ id: 'i1', name: '', amount: '', unit: '' }],
-    steps: [{ id: 's1', description: '', image: '' }],
-  });
-
-  it('should mark every section complete when there are no issues', () => {
-    expect(deriveSectionStatus([], {}, false, makeValues())).toEqual({
-      basics: 'complete',
-      ingredients: 'complete',
-      steps: 'complete',
-      presentation: 'complete',
-    });
-  });
-
-  it('should mark untouched sections of a new form as empty', () => {
-    const status = deriveSectionStatus(validateRecipe(emptyValues), {}, false, emptyValues);
-
-    expect(status).toEqual({
-      basics: 'empty',
-      ingredients: 'empty',
-      steps: 'empty',
-      presentation: 'empty',
-    });
-  });
-
-  it('should mark a started section with hidden problems as in progress', () => {
-    const values = { ...emptyValues, title: 'Chocotorta' };
-
-    const status = deriveSectionStatus(validateRecipe(values), {}, false, values);
-
-    expect(status.basics).toBe('in-progress');
-  });
-
-  it.each([
-    ['ingredients', { ingredients: [{ id: 'i1', name: '', amount: '2', unit: 'g' }] }],
-    ['steps', { steps: [{ id: 's1', description: '', image: STEP_URL }] }],
-    ['presentation', { imageUrl: COVER_URL }],
-  ] as const)('should see content in the %s section', (section, overrides) => {
-    const values = { ...emptyValues, ...overrides } as RecipeFormValues;
-
-    const status = deriveSectionStatus(validateRecipe(values), {}, false, values);
-
-    expect(status[section]).toBe('in-progress');
-  });
-
-  it('should ask for attention once a failing field was touched', () => {
-    const status = deriveSectionStatus(
-      validateRecipe(emptyValues),
-      { title: true },
-      false,
-      emptyValues
-    );
-
-    expect(status.basics).toBe('attention');
-    expect(status.presentation).toBe('empty');
-  });
-
-  it('should ask for attention on a row problem once the row was touched', () => {
-    const values = makeValues({
-      ingredients: [{ id: 'i1', name: 'Flour', amount: '', unit: 'g' }],
-    });
-
-    const status = deriveSectionStatus(
-      validateRecipe(values),
-      { 'ingredients.i1': true },
-      false,
-      values
-    );
-
-    expect(status.ingredients).toBe('attention');
-  });
-
-  it('should ask for attention on every failing section after a publish attempt', () => {
-    const status = deriveSectionStatus(validateRecipe(emptyValues), {}, true, emptyValues);
-
-    expect(status).toEqual({
-      basics: 'attention',
-      ingredients: 'attention',
-      steps: 'attention',
-      presentation: 'attention',
-    });
-  });
-
-  it('should fall back on touched paths to tell started from empty when no values are given', () => {
-    const issues = validateRecipe(emptyValues);
-
-    const status = deriveSectionStatus(issues, { difficulty: true }, false);
-
-    expect(status.basics).toBe('in-progress');
-    expect(status.steps).toBe('empty');
   });
 });
 

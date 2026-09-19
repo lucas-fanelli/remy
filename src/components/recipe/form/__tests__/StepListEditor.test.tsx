@@ -114,17 +114,10 @@ describe('StepListEditor', () => {
       expect(within(photo).getByRole('button', { name: 'Add photo' })).toBeInTheDocument();
     });
 
-    it('should draw its own outlined surface by default', () => {
+    it('should draw its own outlined surface', () => {
       const { container } = renderList();
 
       expect(container.querySelector('.MuiPaper-outlined')).toBeInTheDocument();
-    });
-
-    it('should drop its own surface when bare', () => {
-      const { container } = renderList({ bare: true });
-
-      expect(container.querySelector('.MuiPaper-root')).not.toBeInTheDocument();
-      expect(step(1)).toBeInTheDocument();
     });
 
     it('should mention the keyboard shortcut', () => {

@@ -39,8 +39,8 @@ export interface PresentationFieldsProps {
   /** Registers 'imageUrl' (the ImageUpload handle), 'description' and 'caption' */
   registerField?: RegisterField;
   /**
-   * Receives the cover's upload handle and KEEPS it when this block unmounts (a wizard
-   * step, the other tab): ImageUpload goes on uploading after an unmount and then writes
+   * Receives the cover's upload handle and KEEPS it when this block unmounts (the author
+   * went to the other tab): ImageUpload goes on uploading after an unmount and then writes
    * the URL through `setField`, so a late upload would land in a form that was reset in
    * the meantime. Call `coverHandleRef.current?.cancel()` BEFORE `form.reset()`,
    * `form.load()`, Start over or Discard. `cancel()` reaches every upload started through

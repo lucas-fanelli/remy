@@ -29,26 +29,15 @@ export const FORM_ENTER_DURATION = 0.18;
 export const FORM_EXIT_DURATION = 0.1;
 export const FORM_ENTER_EASE: CubicBezier = [0.4, 0, 0.2, 1];
 export const FORM_EXIT_EASE: CubicBezier = [0.4, 0, 1, 1];
-export const FORM_SLIDE_PX = 16;
 
 export const formEnterTransition = { duration: FORM_ENTER_DURATION, ease: FORM_ENTER_EASE };
 export const formExitTransition = { duration: FORM_EXIT_DURATION, ease: FORM_EXIT_EASE };
 
-/** 1 = moving forward (content comes from the right), -1 = moving back. */
-export type FormSlideDirection = 1 | -1;
-
 /**
- * Section / panel change: fade plus a 16px slide in the direction of travel.
- * Usage: `<MotionBox key={section} {...panelMotion(direction)} />` inside
+ * Plain cross-fade for content that swaps in place (the editor's two tabs).
+ * Usage: `<MotionBox key={tab} {...fadeMotion} />` inside
  * `<AnimatePresence mode="wait" initial={false}>`.
  */
-export const panelMotion = (direction: FormSlideDirection = 1) => ({
-  initial: { opacity: 0, x: direction * FORM_SLIDE_PX },
-  animate: { opacity: 1, x: 0, transition: formEnterTransition },
-  exit: { opacity: 0, x: -direction * FORM_SLIDE_PX, transition: formExitTransition },
-});
-
-/** Plain cross-fade for content that swaps in place. */
 export const fadeMotion = {
   initial: { opacity: 0 },
   animate: { opacity: 1, transition: formEnterTransition },

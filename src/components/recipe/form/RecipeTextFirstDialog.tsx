@@ -635,7 +635,7 @@ function EditorSession({
 }
 
 /**
- * Proposal C - 'Write it like a note'. ONE dialog for Create and Edit with two freely
+ * The recipe editor - 'write it like a note'. ONE dialog for Create and Edit with two freely
  * switchable tabs over the same recipe: 'Write' (title + two text boxes, parsed live into
  * rows) and 'Check & publish' (the shared structured editors). Only Publish / Save
  * validates; tabs are never blocked.

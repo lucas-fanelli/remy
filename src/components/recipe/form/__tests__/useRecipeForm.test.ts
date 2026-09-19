@@ -761,18 +761,13 @@ describe('useRecipeForm', () => {
       expect(issues.map((issue) => issue.path)).toEqual(['title']);
     });
 
-    it('should expose the hidden issues and the section status while typing', () => {
+    it('should expose the hidden issues while typing', () => {
       const { result } = renderCreate();
 
       act(() => result.current.setField('title', 'Empanadas'));
 
       expect(result.current.issues.map((issue) => issue.path)).not.toContain('title');
-      expect(result.current.sectionStatus).toEqual({
-        basics: 'in-progress',
-        ingredients: 'empty',
-        steps: 'empty',
-        presentation: 'empty',
-      });
+      expect(result.current.issues.map((issue) => issue.path)).toContain('imageUrl');
     });
   });
 

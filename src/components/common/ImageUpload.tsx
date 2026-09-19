@@ -50,8 +50,6 @@ export interface ImageUploadProps {
   required?: boolean;
   /** Width / height of the tile on sm+ and of every preview. Defaults to 4:3. */
   aspectRatio?: number;
-  /** Alias of `variant="inline"`, kept for the existing call sites. */
-  compact?: boolean;
   /** Validation state owned by the form. Nothing is red until this is true. */
   error?: boolean;
   helperText?: string;
@@ -191,7 +189,6 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
     label = 'Cover photo',
     required = true,
     aspectRatio = 4 / 3,
-    compact = false,
     error = false,
     helperText,
     variant,
@@ -202,7 +199,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   },
   ref
 ) {
-  const inline = (variant ?? (compact ? 'inline' : 'cover')) === 'inline';
+  const inline = variant === 'inline';
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

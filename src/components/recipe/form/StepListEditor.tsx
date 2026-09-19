@@ -25,8 +25,6 @@ export interface StepListEditorProps {
    * and, per row, 'steps.<rowId>.description' (textarea) / '.image' (ImageUpload handle)
    */
   registerField?: RegisterField;
-  /** Drops the outer border / radius when the parent already is an outlined Paper */
-  bare?: boolean;
   disabled?: boolean;
   /** id of the SectionHeading that names this list; without it the group is 'Steps' */
   labelledBy?: string;
@@ -42,7 +40,6 @@ export interface StepListEditorProps {
 export default function StepListEditor({
   form,
   registerField,
-  bare = false,
   disabled = false,
   labelledBy,
   onRowRemoved,
@@ -185,13 +182,9 @@ export default function StepListEditor({
       aria-label={labelledBy ? undefined : 'Steps'}
       aria-describedby={errors.steps ? errorId : undefined}
     >
-      {bare ? (
-        <Box ref={containerRef}>{list}</Box>
-      ) : (
-        <Paper ref={containerRef} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
-          {list}
-        </Paper>
-      )}
+      <Paper ref={containerRef} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        {list}
+      </Paper>
 
       {errors.steps && (
         <FormHelperText id={errorId} error>

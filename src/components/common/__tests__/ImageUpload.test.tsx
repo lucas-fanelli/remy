@@ -1132,18 +1132,6 @@ describe('ImageUpload', () => {
       expect(screen.queryByText('Add a cover photo')).not.toBeInTheDocument();
     });
 
-    it('should treat compact as an alias of inline', () => {
-      renderWithTheme(<ImageUpload value="" onChange={onChange} compact />);
-
-      expect(screen.getByRole('button', { name: 'Add photo' })).toBeInTheDocument();
-    });
-
-    it('should let an explicit variant win over compact', () => {
-      renderWithTheme(<ImageUpload value="" onChange={onChange} compact variant="cover" />);
-
-      expect(getTrigger()).toBeInTheDocument();
-    });
-
     it('should open the picker from Add photo', () => {
       renderWithTheme(<ImageUpload value="" onChange={onChange} variant="inline" />);
       const clickSpy = jest.spyOn(getInput(), 'click');

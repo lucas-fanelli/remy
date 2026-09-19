@@ -11,10 +11,8 @@ import {
   RECIPE_FORM_SECTIONS,
   RecipeFieldPath,
   RecipeFormSection,
-  RecipeFormTouched,
   RecipeFormValuesInput,
   RecipeIssue,
-  SectionStatus,
 } from './types';
 
 /**
@@ -42,15 +40,6 @@ const SECTION_BY_FIELD: Record<string, RecipeFormSection> = {
 /** The section a path belongs to; unknown paths fall back to the first section */
 export function sectionOfPath(path: RecipeFieldPath): RecipeFormSection {
   return SECTION_BY_FIELD[path.split('.')[0]] ?? RECIPE_FORM_SECTIONS[0];
-}
-
-/** A path is touched when it, or the row / list that contains it, was touched */
-export function isPathTouched(touched: RecipeFormTouched, path: RecipeFieldPath): boolean {
-  const parts = path.split('.');
-  for (let length = parts.length; length > 0; length -= 1) {
-    if (touched[parts.slice(0, length).join('.')]) return true;
-  }
-  return false;
 }
 
 /** True when `path` is `scope` itself or lives under it ('steps.a.description' under 'steps.a') */
@@ -197,54 +186,4 @@ export function validateRecipe(values: RecipeFormValuesInput): RecipeIssue[] {
   }
 
   return issues;
-}
-
-const hasContent = (values: RecipeFormValuesInput, section: RecipeFormSection): boolean => {
-  switch (section) {
-    case 'basics':
-      // Servings and difficulty are prefilled, so they say nothing about progress
-      return values.title.trim() !== '' || values.prepTime !== '' || values.cookingTime !== '';
-    case 'ingredients':
-      return values.ingredients.some((row) => !isBlankIngredientRow(row));
-    case 'steps':
-      return values.steps.some((row) => !isBlankStepRow(row));
-    default:
-      return values.imageUrl !== '' || values.description.trim() !== '' || values.caption !== '';
-  }
-};
-
-/**
- * Status of each section for steppers, tabs and section links:
- *   complete    - nothing to fix
- *   attention   - something to fix that the author has already been shown
- *                 (the field was touched, or Publish was attempted)
- *   in-progress - started, the remaining problems are not shown yet
- *   empty       - not started
- * Pass `values` so 'started' means "has content"; without them it means "was touched".
- */
-export function deriveSectionStatus(
-  issues: RecipeIssue[],
-  touched: RecipeFormTouched,
-  publishAttempted: boolean,
-  values?: RecipeFormValuesInput
-): Record<RecipeFormSection, SectionStatus> {
-  const touchedPaths = Object.keys(touched);
-  const statusOf = (section: RecipeFormSection): SectionStatus => {
-    const sectionIssues = issues.filter((issue) => issue.section === section);
-    if (sectionIssues.length === 0) return 'complete';
-    if (publishAttempted || sectionIssues.some((issue) => isPathTouched(touched, issue.path))) {
-      return 'attention';
-    }
-    const started = values
-      ? hasContent(values, section)
-      : touchedPaths.some((path) => sectionOfPath(path) === section);
-    return started ? 'in-progress' : 'empty';
-  };
-
-  return {
-    basics: statusOf('basics'),
-    ingredients: statusOf('ingredients'),
-    steps: statusOf('steps'),
-    presentation: statusOf('presentation'),
-  };
 }

@@ -33,7 +33,7 @@ export interface FormDialogProps {
   maxWidth?: DialogProps['maxWidth'];
   /** Controls of the title row, placed before the X (a 'Preview' button) */
   titleActions?: React.ReactNode;
-  /** Fixed zone between the title row and the scrolling content (stepper, tabs, a bar) */
+  /** Fixed zone between the title row and the scrolling content (tabs, a bar) */
   headerSlot?: React.ReactNode;
   /** The pinned footer: the status line and the buttons. It never scrolls with the content */
   actions: React.ReactNode;

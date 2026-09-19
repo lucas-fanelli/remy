@@ -25,7 +25,7 @@ jest.mock('@/contexts/ToastContext', () => ({
 
 /** Two unrelated entry points, like the navigation and the feed */
 function EntryPoints() {
-  const { openCreate, closeCreate, isCreateOpen } = useCreateRecipeDialog();
+  const { openCreate } = useCreateRecipeDialog();
   return (
     <>
       <button type="button" onClick={openCreate}>
@@ -34,10 +34,6 @@ function EntryPoints() {
       <button type="button" onClick={openCreate}>
         From the feed
       </button>
-      <button type="button" onClick={closeCreate}>
-        Close from outside
-      </button>
-      <output>{isCreateOpen ? 'open' : 'closed'}</output>
     </>
   );
 }
@@ -62,7 +58,6 @@ describe('CreateRecipeContext', () => {
     renderWithProvider();
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('closed');
   });
 
   it("should open the one 'New recipe' dialog for a logged-in user", async () => {
@@ -94,16 +89,6 @@ describe('CreateRecipeContext', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('should let a consumer close it as well', async () => {
-    const user = renderWithProvider();
-    await user.click(screen.getByRole('button', { name: 'From the navigation' }));
-
-    // The open dialog hides the page behind it from the accessibility tree
-    await user.click(screen.getByRole('button', { name: 'Close from outside', hidden: true }));
-
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-  });
-
   it("should take the dialog off the screen when the author follows 'Log in again'", async () => {
     const tree = () => (
       <CreateRecipeProvider>
@@ -122,17 +107,15 @@ describe('CreateRecipeContext', () => {
 
     await user.click(link);
 
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('closed');
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('should do nothing outside the provider', async () => {
     render(<EntryPoints />);
 
     await userEvent.click(screen.getByRole('button', { name: 'From the feed' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Close from outside' }));
 
-    expect(screen.getByRole('status')).toHaveTextContent('closed');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(mockPush).not.toHaveBeenCalled();
   });
 });

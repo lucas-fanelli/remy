@@ -289,21 +289,6 @@ describe('FormStatus', () => {
       expect(screen.getByRole('link', { name: 'Log in again' })).toHaveAttribute('href', '/auth');
     });
 
-    it('should accept another login target', () => {
-      renderStatus(
-        {},
-        {
-          submitError: new RecipeSubmitError('Unauthorized', 401, 'unauthorized'),
-          loginHref: '/auth?next=recipe-new',
-        }
-      );
-
-      expect(screen.getByRole('link', { name: 'Log in again' })).toHaveAttribute(
-        'href',
-        '/auth?next=recipe-new'
-      );
-    });
-
     it('should tell the shell when the author leaves to log in again', async () => {
       const onLogin = jest.fn();
       const { user } = renderStatus({}, { sessionExpired: true, onLogin });

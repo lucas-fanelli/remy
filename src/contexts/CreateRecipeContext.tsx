@@ -16,8 +16,6 @@ export interface CreateRecipeContextValue {
    * FIXED token - never a URL - that the auth page maps back to this call after login.
    */
   openCreate: () => void;
-  closeCreate: () => void;
-  isCreateOpen: boolean;
 }
 
 /** `/auth?next=create`: the only value of `next` the auth page understands */
@@ -26,11 +24,7 @@ export const CREATE_LOGIN_HREF = `/auth?next=${CREATE_INTENT}`;
 
 // Outside the provider (an isolated component test, a page rendered on its own) the entry
 // points simply do nothing
-const FALLBACK: CreateRecipeContextValue = {
-  openCreate: () => undefined,
-  closeCreate: () => undefined,
-  isCreateOpen: false,
-};
+const FALLBACK: CreateRecipeContextValue = { openCreate: () => undefined };
 
 const CreateRecipeContext = createContext<CreateRecipeContextValue>(FALLBACK);
 
@@ -49,10 +43,9 @@ export function CreateRecipeProvider({ children }: { children: React.ReactNode }
 
   const closeCreate = useCallback(() => setCreateOpen(false), []);
 
-  const value = useMemo(
-    () => ({ openCreate, closeCreate, isCreateOpen }),
-    [openCreate, closeCreate, isCreateOpen]
-  );
+  // Only the handler: whether the dialog is open is nobody else's business, and keeping it
+  // out of the value keeps the navigation and the feed from rendering again on every toggle
+  const value = useMemo(() => ({ openCreate }), [openCreate]);
 
   return (
     <CreateRecipeContext.Provider value={value}>

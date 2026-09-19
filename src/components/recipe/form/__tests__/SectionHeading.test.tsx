@@ -35,14 +35,6 @@ describe('SectionHeading', () => {
     });
   });
 
-  it('should leave the room the shell asks for under a pinned header', () => {
-    renderWithTheme(<SectionHeading scrollMarginTop={72}>Basics</SectionHeading>);
-
-    expect(screen.getByRole('heading', { name: 'Basics' })).toHaveStyle({
-      scrollMarginTop: '72px',
-    });
-  });
-
   it('should merge an sx object from the shell', () => {
     renderWithTheme(<SectionHeading sx={{ marginBottom: '8px' }}>Basics</SectionHeading>);
 

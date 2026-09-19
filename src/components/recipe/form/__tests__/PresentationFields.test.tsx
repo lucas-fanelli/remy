@@ -417,7 +417,7 @@ describe('PresentationFields', () => {
   });
 
   // ImageUpload keeps uploading after it unmounts and then calls setField: the shell
-  // needs a cancel() that outlives the block (a wizard step, the other tab)
+  // needs a cancel() that outlives the block (the author went to the other tab)
   describe('coverHandleRef', () => {
     type UploadResponse = ReturnType<typeof okResponse>;
 
