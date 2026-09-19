@@ -565,6 +565,68 @@ describe('useRecipeDraft', () => {
       expect(storage.setItem).toHaveBeenCalledTimes(1);
     });
 
+    it('should keep the time the content was saved when only the section changes', () => {
+      const storage = createStorage();
+      const { rerender } = renderDraft({ storage });
+      const values = makeValues();
+      const now = () => SAVED_AT;
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'steps', storage, now });
+
+      typeAndWait(rerender, {
+        userId: 'user-1',
+        values,
+        section: 'presentation',
+        storage,
+        now: () => SAVED_AT + 60_000,
+      });
+
+      expect(savedIn(storage)).toMatchObject({ section: 'presentation', savedAt: SAVED_AT });
+    });
+
+    it("should not say 'Draft saved' again for a move to another section", () => {
+      const storage = createStorage({ [USER_KEY]: storedDraft() });
+      const { result, rerender } = renderDraft({ storage });
+      const values = makeValues();
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'steps', storage });
+
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'presentation', storage });
+
+      expect(savedIn(storage).section).toBe('presentation');
+      expect(result.current.savedAt).toBeNull();
+    });
+
+    it('should stamp the draft again when the content changes after a move', () => {
+      const storage = createStorage({ [USER_KEY]: storedDraft() });
+      const { rerender } = renderDraft({ storage });
+      const values = makeValues();
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'presentation', storage });
+
+      typeAndWait(rerender, {
+        userId: 'user-1',
+        values: makeValues({ title: 'Flan' }),
+        section: 'presentation',
+        storage,
+        now: () => SAVED_AT + 60_000,
+      });
+
+      expect(savedIn(storage).savedAt).toBe(SAVED_AT + 60_000);
+    });
+
+    it('should flag a section that could not be stored', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderDraft({ storage });
+      const values = makeValues();
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'steps', storage });
+      storage.setItem.mockImplementation(() => {
+        throw new Error('QuotaExceededError');
+      });
+
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'presentation', storage });
+
+      expect(result.current.saveFailed).toBe(true);
+      expect(savedIn(storage).section).toBe('steps');
+    });
+
     it('should save again once the author edits the restored draft', () => {
       const storage = createStorage({ [USER_KEY]: storedDraft() });
       const { rerender } = renderDraft({ storage });

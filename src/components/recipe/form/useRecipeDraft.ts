@@ -245,7 +245,11 @@ export interface UseRecipeDraftOptions {
    * `draft` and 'Draft saved' is forgotten. An editor that unmounts on close may omit it.
    */
   resetKey?: string;
-  /** Where the author is, stored along so a restore can return there */
+  /**
+   * Where the author is, stored along so a restore can return there. Once a draft exists, a
+   * move to another section is stored by itself too - same debounce, but the draft keeps
+   * the time of its CONTENT and 'Draft saved' is not said again: nothing new was written down
+   */
   section?: string;
   /** The free text the rows were written as, stored along with them (see RecipeDraftText) */
   text?: RecipeDraftText;
@@ -323,6 +327,9 @@ export function useRecipeDraft({
   // Where the stored draft says the author was. Once the author has MOVED (a shell that
   // never passes the restored section must not cause a write), moving is worth a write
   const storedSectionRef = useRef<string | null>(null);
+  // When the stored CONTENT was written: a draft that only follows the author to another
+  // section keeps it, so 'Draft restored from 10 min ago' stays true
+  const storedAtRef = useRef<number | null>(null);
   const mountSectionRef = useRef(section);
   const movedSinceMountRef = useRef(false);
   const mountSnapshotRef = useRef<string | null>(null);
@@ -336,6 +343,8 @@ export function useRecipeDraft({
     values: RecipeFormValuesInput;
     section: string;
     text?: RecipeDraftText;
+    /** Only the section changed: the draft keeps the time of its content */
+    keptSavedAt?: number;
   } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // `saveFailed` for callbacks: state is a render behind a write that has just happened
@@ -359,7 +368,7 @@ export function useRecipeDraft({
     if (!pending) return !lastWriteFailedRef.current;
 
     const draftValues = toDraftValues(pending.values);
-    const time = clock();
+    const time = pending.keptSavedAt ?? clock();
     const draft: RecipeDraft = {
       v: RECIPE_DRAFT_VERSION,
       savedAt: time,
@@ -374,11 +383,13 @@ export function useRecipeDraft({
     if (written) {
       storedSnapshotRef.current = snapshotOf(draftValues, pending.text);
       storedSectionRef.current = pending.section;
+      storedAtRef.current = time;
     }
     lastWriteFailedRef.current = !written;
     if (notify) {
       setSaveFailed(!written);
-      if (written) setSavedAt(time);
+      // 'Draft saved' answers an edit; walking to another section is none
+      if (written && pending.keptSavedAt === undefined) setSavedAt(time);
     }
     return written;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reads refs only
@@ -411,6 +422,7 @@ export function useRecipeDraft({
       ? snapshotOf(current.draft.values, current.draft.text)
       : null;
     storedSectionRef.current = current.draft ? current.draft.section : null;
+    storedAtRef.current = current.draft ? current.draft.savedAt : null;
     mountSectionRef.current = section;
     movedSinceMountRef.current = false;
     mountSnapshotRef.current = snapshotOf(toDraftValues(values), text);
@@ -440,7 +452,9 @@ export function useRecipeDraft({
     const justCleared = snapshot === clearedSnapshotRef.current;
     if (upToDate || blank || awaitingRestore || justCleared) return undefined;
 
-    pendingRef.current = { values, section, text };
+    // Same content in another section: the draft follows the author, not the clock
+    const keptSavedAt = snapshot === stored ? (storedAtRef.current ?? undefined) : undefined;
+    pendingRef.current = { values, section, text, keptSavedAt };
     timerRef.current = setTimeout(() => writePending(true), debounceMs);
     return cancelTimer;
     // The text is compared by content: callers build the object on every render
@@ -464,6 +478,7 @@ export function useRecipeDraft({
     clearedSnapshotRef.current = snapshotOf(toDraftValues(currentValues), currentText);
     if (currentKey && clearRecipeDraft(currentKey, resolveStorage())) {
       storedSnapshotRef.current = null;
+      storedAtRef.current = null;
     }
     setFound((prev) => (prev.draft ? { ...prev, draft: null } : prev));
     setSavedAt(null);
