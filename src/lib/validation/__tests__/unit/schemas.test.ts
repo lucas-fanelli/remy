@@ -313,6 +313,20 @@ describe('Validation Schemas - Unit Tests', () => {
         ZodError
       );
     });
+
+    it.each([
+      ['missing', undefined],
+      ['empty', ''],
+      ['too long', 'a'.repeat(257)],
+      ['not a string', 42],
+    ])('should use the generic invalid-link message for a %s token', (_case, token) => {
+      const result = resetPasswordSchema.safeParse({ token, password: 'Password1' });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.errors.map((e) => e.message)).toEqual([
+        'This reset link is invalid or has expired',
+      ]);
+    });
   });
 
   describe('updateProfileSchema', () => {

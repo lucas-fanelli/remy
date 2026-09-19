@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server';
 import { ZodError } from 'zod';
-import { InvalidResetTokenError, ValidationError } from '@/domain/errors';
+import {
+  INVALID_RESET_TOKEN_MESSAGE,
+  InvalidResetTokenError,
+  ValidationError,
+} from '@/domain/errors';
 import { ApiResponseHelper } from '@/lib/api/response';
 import { container } from '@/lib/container/container';
 import { clearAuthCookie } from '@/lib/utils/cookies';
@@ -32,6 +36,12 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     if (error instanceof ZodError) {
+      // A token that fails validation gets the generic invalid-link answer on its
+      // own, even when the password is wrong too: no password can fix that link
+      if (error.errors.some((e) => e.path[0] === 'token')) {
+        return ApiResponseHelper.badRequest(INVALID_RESET_TOKEN_MESSAGE);
+      }
+
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 

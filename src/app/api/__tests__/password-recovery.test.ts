@@ -286,6 +286,37 @@ describe('POST /api/auth/reset-password', () => {
     expect(mockService.resetPassword).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['missing', undefined],
+    ['empty', ''],
+    ['longer than 256 characters', 'a'.repeat(257)],
+  ])(
+    'should answer a %s token exactly like an unknown one so the client shows its invalid-link state',
+    async (_case, token) => {
+      // Arrange - what the service answers for an unknown token
+      mockService.resetPassword.mockRejectedValueOnce(new InvalidResetTokenError());
+      const unknown = await resetPOST(createJsonRequest(RESET_URL, validBody));
+
+      // Act
+      const malformed = await resetPOST(
+        createJsonRequest(RESET_URL, { token, password: 'NewPassword1' })
+      );
+
+      // Assert
+      expect(malformed.status).toBe(unknown.status);
+      expect(await malformed.json()).toEqual(await unknown.json());
+    }
+  );
+
+  it('should answer with the invalid-link error alone when the password is invalid too', async () => {
+    const response = await resetPOST(
+      createJsonRequest(RESET_URL, { token: 'a'.repeat(257), password: 'weak' })
+    );
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe('This reset link is invalid or has expired');
+  });
+
   it('should return 400 when the service rejects the password', async () => {
     mockService.resetPassword.mockRejectedValue(new ValidationError('Password is not acceptable'));
 

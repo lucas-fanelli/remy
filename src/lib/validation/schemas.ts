@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { INVALID_RESET_TOKEN_MESSAGE } from '@/domain/errors';
 import { getPasswordErrors } from './passwordRules';
 
 // Authentication Schemas
@@ -42,7 +43,15 @@ export const forgotPasswordSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Reset token is required').max(256, 'Reset token is invalid'),
+  // A malformed token is just another invalid link: same generic message as an
+  // unknown, used or expired one, so the client shows its invalid-link state
+  token: z
+    .string({
+      required_error: INVALID_RESET_TOKEN_MESSAGE,
+      invalid_type_error: INVALID_RESET_TOKEN_MESSAGE,
+    })
+    .min(1, INVALID_RESET_TOKEN_MESSAGE)
+    .max(256, INVALID_RESET_TOKEN_MESSAGE),
   password: passwordSchema,
 });
 
