@@ -1,6 +1,24 @@
 // TODO: Create typed mock factories to reduce 'any' usage in test files
 import '@testing-library/jest-dom';
 
+// next-intl, globally, for every test file.
+//
+// Components call useTranslations() without a provider in ~2900 existing tests, each with
+// its own render wrapper, so there is nowhere to add NextIntlClientProvider. Instead the
+// module itself is replaced by bindings backed by use-intl's REAL ICU translator bound to
+// the merged ENGLISH catalogue: a migrated component renders the same English text it used
+// to, plurals and t.rich actually run, and a test opts into Spanish with setTestLocale /
+// renderWithLocale from '@/i18n/testing'. See docs/I18N.md.
+//
+// next-intl and use-intl are ESM-only; `transpilePackages` in next.config.js is what makes
+// next/jest compile them instead of ignoring node_modules.
+jest.mock('next-intl', () => require('@/i18n/testing').createNextIntlModuleMock());
+
+beforeEach(() => {
+  // A test that switched to Spanish must not leak into the next one
+  require('@/i18n/testing').resetTestLocale();
+});
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {

@@ -86,6 +86,7 @@
     "empty": "Todavía no hay nada acá",
     "error": "Algo salió mal",
     "errorRetry": "Algo salió mal. Probá de nuevo.",
+    "errorWithRetry": "Algo salió mal. <retry>Probá de nuevo</retry>.",
     "imageUnavailable": "Imagen no disponible",
     "noResults": "No encontramos resultados",
     "offline": "Estás sin conexión"

@@ -59,4 +59,10 @@ const customJestConfig = {
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+//
+// Note on ESM: next-intl and the ICU packages underneath it ship ES modules only, and
+// jest.setup.js runs the REAL translator, so jest must compile them. next/jest builds
+// transformIgnorePatterns from `transpilePackages` in next.config.js (a custom
+// transformIgnorePatterns entry can only ADD ignores - the patterns are OR-ed), so that
+// list is where those packages are declared. See docs/I18N.md.
 module.exports = createJestConfig(customJestConfig);
