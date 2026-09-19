@@ -22,5 +22,9 @@ export interface IAuthService {
   register(data: RegisterDTO): Promise<AuthResponse>;
   login(data: LoginDTO): Promise<AuthResponse>;
   validateToken(token: string): Promise<Omit<User, 'password'> | null>;
-  changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void>;
+  /**
+   * Changing the password invalidates every session issued before it.
+   * Resolves with a fresh token so the caller can keep the current session alive.
+   */
+  changePassword(userId: string, oldPassword: string, newPassword: string): Promise<string>;
 }

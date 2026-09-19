@@ -18,6 +18,7 @@ describe('UserRepository - Unit Tests', () => {
     role: 'USER',
     isVerified: false,
     isPrivate: false,
+    passwordChangedAt: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   };
@@ -253,11 +254,12 @@ describe('UserRepository - Unit Tests', () => {
         where: { id: 'user-123' },
         data: {
           password: newHashedPassword,
+          passwordChangedAt: expect.any(Date),
         },
       });
     });
 
-    it('should only update password field', async () => {
+    it('should only update the password and its change timestamp', async () => {
       const newHashedPassword = 'new_hashed_password';
       const updatedUser = { ...mockUser, password: newHashedPassword };
       prismaMock.user.update.mockResolvedValue(updatedUser);
@@ -265,7 +267,21 @@ describe('UserRepository - Unit Tests', () => {
       await userRepository.updatePassword('user-123', newHashedPassword);
 
       const callData = prismaMock.user.update.mock.calls[0][0].data;
-      expect(Object.keys(callData)).toEqual(['password']);
+      expect(Object.keys(callData)).toEqual(['password', 'passwordChangedAt']);
+    });
+
+    it('should stamp passwordChangedAt with the current time', async () => {
+      // Arrange
+      jest.useFakeTimers().setSystemTime(new Date('2026-01-01T10:00:00.500Z'));
+      prismaMock.user.update.mockResolvedValue(mockUser);
+
+      // Act
+      await userRepository.updatePassword('user-123', 'new_hashed_password');
+
+      // Assert
+      const callData = prismaMock.user.update.mock.calls[0][0].data;
+      expect(callData.passwordChangedAt).toEqual(new Date('2026-01-01T10:00:00.500Z'));
+      jest.useRealTimers();
     });
   });
 

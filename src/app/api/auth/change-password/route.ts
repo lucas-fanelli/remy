@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { requireAuth } from '@/lib/api/auth';
 import { ApiResponseHelper } from '@/lib/api/response';
 import { container } from '@/lib/container/container';
+import { setAuthCookie } from '@/lib/utils/cookies';
 import { logServerError } from '@/lib/utils/logger';
 import { requireJsonContentType } from '@/lib/utils/request';
 import { changePasswordSchema } from '@/lib/validation/schemas';
@@ -28,10 +29,18 @@ export async function POST(request: NextRequest) {
     // Get auth service from container
     const authService = container.getAuthService();
 
-    // Change password
-    await authService.changePassword(user.id, validatedData.oldPassword, validatedData.newPassword);
+    // Change password — this invalidates every session issued before now
+    const token = await authService.changePassword(
+      user.id,
+      validatedData.oldPassword,
+      validatedData.newPassword
+    );
 
-    return ApiResponseHelper.success(null, 'Password changed successfully');
+    // Re-issue this session's cookie so the user who made the change stays
+    // logged in while every other session (other devices, a stolen token) dies
+    const response = ApiResponseHelper.success(null, 'Password changed successfully');
+    setAuthCookie(response, token);
+    return response;
   } catch (error) {
     if (error instanceof Error && error.message === 'Authentication required') {
       return ApiResponseHelper.unauthorized();

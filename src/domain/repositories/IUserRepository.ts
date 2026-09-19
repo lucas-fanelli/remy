@@ -33,6 +33,7 @@ export interface IUserRepository {
 
   // Update
   update(id: string, data: UpdateUserDTO): Promise<User>;
+  // Also stamps passwordChangedAt, which invalidates previously issued JWTs
   updatePassword(id: string, hashedPassword: string): Promise<User>;
   updateRole(id: string, role: Role): Promise<User>;
 

@@ -62,6 +62,8 @@ export class UserRepository implements IUserRepository {
       where: { id },
       data: {
         password: hashedPassword,
+        // JWTs issued before this moment are rejected by AuthService.validateToken
+        passwordChangedAt: new Date(),
       },
     });
   }
