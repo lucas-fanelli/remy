@@ -8,18 +8,18 @@ import type { ReactNode } from 'react';
  * empty helper line. Spans only: the slot is a <p>.
  */
 export function fieldHelper(message?: string, counter?: FieldCounter): ReactNode {
-  const showCounter = Boolean(counter?.visible);
-  if (!message && !showCounter) return undefined;
+  const visibleCounter = counter?.visible ? counter : undefined;
+  if (!message && !visibleCounter) return undefined;
 
   return (
     <Box component="span" sx={{ display: 'flex', gap: 1 }}>
       {message && <Box component="span">{message}</Box>}
-      {counter && showCounter && (
+      {visibleCounter && (
         <Box
           component="span"
-          sx={{ ml: 'auto', flexShrink: 0, ...(counter.emphasised && counterEmphasisSx) }}
+          sx={{ ml: 'auto', flexShrink: 0, ...(visibleCounter.emphasised && counterEmphasisSx) }}
         >
-          {counter.text}
+          {visibleCounter.text}
         </Box>
       )}
     </Box>

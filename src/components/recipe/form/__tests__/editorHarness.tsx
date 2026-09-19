@@ -14,6 +14,30 @@ import { RecipeFormApi, useRecipeForm } from '../useRecipeForm';
 
 const theme = createTheme();
 
+/**
+ * One false positive is filtered out of console.error, for the files that import this
+ * harness. The editors move focus inside an effect (add / move a row). user-event patches
+ * `element.focus()` to dispatch through Testing Library's `act`, so that focus() re-enters
+ * `act` while React is still flushing the outer one, and React 19 reports the unfinished
+ * queue as "A component suspended inside an `act` scope" - nothing suspends, and the
+ * assertions that follow (focus landed, state updated) prove the queue did flush.
+ */
+const FOCUS_IN_EFFECT_FALSE_POSITIVE = 'A component suspended inside an `act` scope';
+let consoleError: typeof console.error;
+
+beforeAll(() => {
+  consoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    const [first] = args;
+    if (typeof first === 'string' && first.includes(FOCUS_IN_EFFECT_FALSE_POSITIVE)) return;
+    consoleError.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = consoleError;
+});
+
 interface HarnessOptions {
   /** Edit mode: the recipe to prefill from */
   initial?: Recipe;

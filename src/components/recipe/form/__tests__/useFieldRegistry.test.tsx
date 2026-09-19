@@ -150,6 +150,34 @@ describe('useFieldRegistry', () => {
       expect(title.focus).not.toHaveBeenCalled();
     });
 
+    it('should not focus twice when the request is met before its field finishes mounting', async () => {
+      const registry = renderRegistry();
+      const title = makeField();
+      registry.current.focusField('title');
+      registry.current.registerField('title', title);
+
+      registry.current.focusField('title');
+      await flushMicrotasks();
+
+      expect(title.focus).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep waiting when the field unmounts again before it could take focus', async () => {
+      const registry = renderRegistry();
+      const first = makeField();
+      const second = makeField();
+      registry.current.focusField('title');
+      registry.current.registerField('title', first);
+      registry.current.registerField('title', null);
+      await flushMicrotasks();
+
+      registry.current.registerField('title', second);
+      await flushMicrotasks();
+
+      expect(first.focus).not.toHaveBeenCalled();
+      expect(second.focus).toHaveBeenCalledTimes(1);
+    });
+
     it('should drop a request nobody answered in time', async () => {
       const now = jest.spyOn(Date, 'now').mockReturnValue(1_000);
       const registry = renderRegistry();
