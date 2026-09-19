@@ -1,6 +1,7 @@
 'use client';
-import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
-import React, { useState } from 'react';
+import { Box, TextField, Button, Typography, Alert, CircularProgress, Link } from '@mui/material';
+import NextLink from 'next/link';
+import React, { useEffect, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,13 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordWasReset, setPasswordWasReset] = useState(false);
+
+  // ResetPasswordForm sends the user here as /auth?reset=success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setPasswordWasReset(params.get('reset') === 'success');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +75,13 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         </Typography>
       </Box>
 
+      {/* Password reset confirmation */}
+      {passwordWasReset && (
+        <Alert severity="success" role="status" sx={{ mb: 2 }}>
+          Your password was updated. Log in with your new password.
+        </Alert>
+      )}
+
       {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
@@ -112,6 +127,22 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         >
           {isLoading ? <CircularProgress size={24} /> : 'Log In'}
         </Button>
+      </Box>
+
+      {/* Forgot password */}
+      <Box sx={{ mt: 2, textAlign: 'center' }}>
+        <Link
+          component={NextLink}
+          href="/auth/forgot-password"
+          variant="body2"
+          sx={{
+            color: 'primary.main',
+            textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+        >
+          Forgot your password?
+        </Link>
       </Box>
 
       {/* Switch to Register */}

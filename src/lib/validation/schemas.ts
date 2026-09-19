@@ -1,16 +1,16 @@
 import { z } from 'zod';
+import { getPasswordErrors } from './passwordRules';
 
 // Authentication Schemas
 
 // Password rules shared by registration, change password and reset password.
-// The upper bound mirrors PasswordService.validate (bcrypt ignores input past 72 bytes).
-export const passwordSchema = z
-  .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(128, 'Password must be at most 128 characters')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/\d/, 'Password must contain at least one number');
+// The rules themselves live in passwordRules.ts so the client can show and check
+// the very same list without importing zod.
+export const passwordSchema = z.string().superRefine((password, ctx) => {
+  for (const message of getPasswordErrors(password)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  }
+});
 
 export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),

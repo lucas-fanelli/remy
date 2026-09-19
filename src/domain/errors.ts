@@ -21,8 +21,10 @@ export class ValidationError extends Error {
 
 // Deliberately generic: unknown, used and expired reset tokens are
 // indistinguishable to the caller.
+export const INVALID_RESET_TOKEN_MESSAGE = 'This reset link is invalid or has expired';
+
 export class InvalidResetTokenError extends Error {
-  constructor(message: string = 'This reset link is invalid or has expired') {
+  constructor(message: string = INVALID_RESET_TOKEN_MESSAGE) {
     super(message);
     this.name = 'InvalidResetTokenError';
   }
