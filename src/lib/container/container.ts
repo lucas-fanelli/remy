@@ -3,19 +3,23 @@ import { PrismaClient } from '@prisma/client';
 // Repositories
 import { INotificationRepository } from '@/domain/repositories/INotificationRepository';
 import { IPantryRepository } from '@/domain/repositories/IPantryRepository';
+import { IPasswordResetTokenRepository } from '@/domain/repositories/IPasswordResetTokenRepository';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { IAdminService } from '@/domain/services/IAdminService';
 import { IAuthService } from '@/domain/services/IAuthService';
+import { IEmailService } from '@/domain/services/IEmailService';
 import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
 import { INotificationService } from '@/domain/services/INotificationService';
 import { IPantryService } from '@/domain/services/IPantryService';
+import { IPasswordResetService } from '@/domain/services/IPasswordResetService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import { IRecipeService } from '@/domain/services/IRecipeService';
 import { ITokenService } from '@/domain/services/ITokenService';
 import { IUserService } from '@/domain/services/IUserService';
 import { NotificationRepository } from '@/infrastructure/repositories/NotificationRepository';
 import { PantryRepository } from '@/infrastructure/repositories/PantryRepository';
+import { PasswordResetTokenRepository } from '@/infrastructure/repositories/PasswordResetTokenRepository';
 import { RecipeRepository } from '@/infrastructure/repositories/RecipeRepository';
 import { UserRepository } from '@/infrastructure/repositories/UserRepository';
 
@@ -25,11 +29,14 @@ import { AuthService } from '@/infrastructure/services/AuthService';
 import { IngredientMatchService } from '@/infrastructure/services/IngredientMatchService';
 import { NotificationService } from '@/infrastructure/services/NotificationService';
 import { PantryService } from '@/infrastructure/services/PantryService';
+import { PasswordResetService } from '@/infrastructure/services/PasswordResetService';
 import { PasswordService } from '@/infrastructure/services/PasswordService';
 import { RecipeService } from '@/infrastructure/services/RecipeService';
+import { ResendEmailService } from '@/infrastructure/services/ResendEmailService';
 import { TokenService } from '@/infrastructure/services/TokenService';
 import { UserService } from '@/infrastructure/services/UserService';
 import prisma from '@/lib/database/prisma';
+import { getAppBaseUrl } from '@/lib/utils/appUrl';
 
 // Dependency Injection Container
 // Single Responsibility: Manages object creation and dependencies
@@ -74,9 +81,15 @@ class Container {
       new NotificationRepository(this.services.get('PrismaClient') as PrismaClient)
     );
 
+    this.services.set(
+      'IPasswordResetTokenRepository',
+      new PasswordResetTokenRepository(this.services.get('PrismaClient') as PrismaClient)
+    );
+
     // Register Basic Services
     this.services.set('IPasswordService', new PasswordService());
     this.services.set('ITokenService', new TokenService());
+    this.services.set('IEmailService', new ResendEmailService());
 
     this.services.set(
       'IAuthService',
@@ -84,6 +97,18 @@ class Container {
         this.services.get('IUserRepository') as IUserRepository,
         this.services.get('IPasswordService') as IPasswordService,
         this.services.get('ITokenService') as ITokenService
+      )
+    );
+
+    // Register Password Reset Service
+    this.services.set(
+      'IPasswordResetService',
+      new PasswordResetService(
+        this.services.get('IUserRepository') as IUserRepository,
+        this.services.get('IPasswordResetTokenRepository') as IPasswordResetTokenRepository,
+        this.services.get('IPasswordService') as IPasswordService,
+        this.services.get('IEmailService') as IEmailService,
+        getAppBaseUrl
       )
     );
 
@@ -174,6 +199,14 @@ class Container {
 
   public getTokenService(): ITokenService {
     return this.get<ITokenService>('ITokenService');
+  }
+
+  public getEmailService(): IEmailService {
+    return this.get<IEmailService>('IEmailService');
+  }
+
+  public getPasswordResetService(): IPasswordResetService {
+    return this.get<IPasswordResetService>('IPasswordResetService');
   }
 
   public getNotificationService(): INotificationService {
