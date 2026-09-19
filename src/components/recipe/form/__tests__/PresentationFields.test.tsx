@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { ImageUploadHandle } from '@/components/common/ImageUpload';
 import PresentationFields, { PresentationFieldsProps } from '../PresentationFields';
 import { RecipeFormValuesInput } from '../types';
 import { RecipeFormApi, useRecipeForm } from '../useRecipeForm';
@@ -23,10 +24,12 @@ function deferred<T>() {
 type HarnessProps = Omit<PresentationFieldsProps, 'form'> & {
   load?: RecipeFormValuesInput;
   api: { current: RecipeFormApi | null };
+  /** The shell moved to another step / tab: the block unmounts, the form lives on */
+  hidden?: boolean;
 };
 
 // The real engine feeds the block: only the network is mocked
-function Harness({ load, api, ...props }: HarnessProps) {
+function Harness({ load, api, hidden = false, ...props }: HarnessProps) {
   const form = useRecipeForm({ resetKey: 'test' });
   api.current = form;
   const loaded = React.useRef(false);
@@ -34,13 +37,15 @@ function Harness({ load, api, ...props }: HarnessProps) {
     if (load && !loaded.current) form.load(load);
     loaded.current = true;
   }, [form, load]);
-  return <PresentationFields form={form} {...props} />;
+  return hidden ? null : <PresentationFields form={form} {...props} />;
 }
 
 const renderFields = (props: Omit<HarnessProps, 'api'> = {}) => {
   const api: { current: RecipeFormApi | null } = { current: null };
   const view = render(<Harness api={api} {...props} />);
-  return { api, user: userEvent.setup(), ...view };
+  const setHidden = (hidden: boolean) =>
+    view.rerender(<Harness api={api} {...props} hidden={hidden} />);
+  return { api, user: userEvent.setup(), setHidden, ...view };
 };
 
 const getDescription = () => screen.getByRole('textbox', { name: /^Description/ });
@@ -386,7 +391,7 @@ describe('PresentationFields', () => {
       expect(registerField).toHaveBeenCalledWith('caption', getClosingNote());
       expect(registerField).toHaveBeenCalledWith(
         'imageUrl',
-        expect.objectContaining({ focus: expect.any(Function), cancel: expect.any(Function) })
+        expect.objectContaining({ focus: expect.any(Function) })
       );
     });
 
@@ -408,6 +413,120 @@ describe('PresentationFields', () => {
       expect(registerField).toHaveBeenCalledWith('imageUrl', null);
       expect(registerField).toHaveBeenCalledWith('description', null);
       expect(registerField).toHaveBeenCalledWith('caption', null);
+    });
+  });
+
+  // ImageUpload keeps uploading after it unmounts and then calls setField: the shell
+  // needs a cancel() that outlives the block (a wizard step, the other tab)
+  describe('coverHandleRef', () => {
+    type UploadResponse = ReturnType<typeof okResponse>;
+
+    const makeCoverHandleRef = (): React.MutableRefObject<ImageUploadHandle | null> => ({
+      current: null,
+    });
+
+    const startUpload = async (api: { current: RecipeFormApi | null }) => {
+      const request = deferred<UploadResponse>();
+      mockFetch.mockReturnValueOnce(request.promise);
+      selectFile(makeFile());
+      await waitFor(() => expect(api.current?.uploadsInFlight).toBe(1));
+      return request;
+    };
+
+    const settle = async (request: { resolve: (value: UploadResponse) => void }) => {
+      await act(async () => {
+        request.resolve(okResponse());
+      });
+    };
+
+    it('should hand the cover handle to the shell', () => {
+      const coverHandleRef = makeCoverHandleRef();
+
+      renderFields({ coverHandleRef });
+      act(() => coverHandleRef.current?.focus());
+
+      expect(getCoverTrigger()).toHaveFocus();
+    });
+
+    it('should keep the handle when the block unmounts', () => {
+      const coverHandleRef = makeCoverHandleRef();
+      const { setHidden } = renderFields({ coverHandleRef });
+
+      setHidden(true);
+
+      expect(coverHandleRef.current).toEqual(
+        expect.objectContaining({ cancel: expect.any(Function) })
+      );
+    });
+
+    it('should cancel the upload of the mounted cover', async () => {
+      const coverHandleRef = makeCoverHandleRef();
+      const { api } = renderFields({ coverHandleRef });
+      const request = await startUpload(api);
+
+      act(() => coverHandleRef.current?.cancel());
+      await settle(request);
+
+      expect(api.current?.uploadsInFlight).toBe(0);
+      expect(api.current?.values.imageUrl).toBe('');
+    });
+
+    it('should keep a late upload out of a form that was reset after the block unmounted', async () => {
+      const coverHandleRef = makeCoverHandleRef();
+      const { api, setHidden } = renderFields({ coverHandleRef });
+      const request = await startUpload(api);
+      setHidden(true);
+
+      act(() => {
+        coverHandleRef.current?.cancel();
+        api.current?.reset();
+      });
+      await settle(request);
+
+      expect(api.current?.values.imageUrl).toBe('');
+      expect(api.current?.uploadsInFlight).toBe(0);
+    });
+
+    it('should also cancel the upload started before the block unmounted and mounted again', async () => {
+      const coverHandleRef = makeCoverHandleRef();
+      const { api, setHidden } = renderFields({ coverHandleRef });
+      const request = await startUpload(api);
+      setHidden(true);
+      setHidden(false);
+
+      act(() => {
+        coverHandleRef.current?.cancel();
+        api.current?.reset();
+      });
+      await settle(request);
+
+      expect(api.current?.values.imageUrl).toBe('');
+      expect(api.current?.uploadsInFlight).toBe(0);
+    });
+
+    it('should still store the URL of an upload that nobody cancelled', async () => {
+      const coverHandleRef = makeCoverHandleRef();
+      const { api } = renderFields({ coverHandleRef });
+      const request = await startUpload(api);
+
+      await settle(request);
+
+      await waitFor(() => expect(api.current?.values.imageUrl).toBe(UPLOADED_URL));
+      expect(api.current?.uploadsInFlight).toBe(0);
+    });
+
+    it('should leave a cover that finished uploading alone', async () => {
+      const coverHandleRef = makeCoverHandleRef();
+      const { api, setHidden } = renderFields({ coverHandleRef });
+      const request = await startUpload(api);
+      await settle(request);
+      await waitFor(() => expect(api.current?.values.imageUrl).toBe(UPLOADED_URL));
+      setHidden(true);
+      setHidden(false);
+
+      act(() => coverHandleRef.current?.cancel());
+
+      expect(api.current?.values.imageUrl).toBe(UPLOADED_URL);
     });
   });
 });

@@ -10,8 +10,9 @@ export interface DraftRestoredBarProps {
   savedAt: number;
   /**
    * The author confirmed 'Start over' - the only destructive action of the editor. The
-   * shell then cancels running uploads, calls `clearDraft()` and `form.reset()`, hides this
-   * bar and moves the focus to the first field.
+   * shell then cancels running uploads FIRST (`coverHandleRef.current?.cancel()`, see
+   * PresentationFields), calls `clearDraft()` and `form.reset()`, hides this bar and moves
+   * the focus to the first field.
    */
   onStartOver: () => void;
   /** The X: hide the bar, keep the draft. The shell moves the focus to its section heading */

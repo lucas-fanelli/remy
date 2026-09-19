@@ -11,17 +11,20 @@ import type { RecipeFormApi } from './useRecipeForm';
 
 /**
  * What a shell keeps in its ref map (keyed by error path) to focus the first invalid
- * control. DOM elements and ImageUpload's handle both fit.
+ * control. DOM elements and ImageUpload's handle both fit. It is a FOCUS registry only:
+ * the entry goes away when the block unmounts, so it cannot be used to cancel the cover
+ * upload - that is what `coverHandleRef` is for.
  */
 export interface FieldFocusTarget {
   focus(): void;
   scrollIntoView?(options?: ScrollIntoViewOptions): void;
-  /** Upload fields only: abandon the upload in flight. Call it BEFORE resetting the form */
-  cancel?(): void;
 }
 
 /** Called with the target when a field mounts and with null when it unmounts */
 export type RegisterField = (path: RecipeFieldPath, target: FieldFocusTarget | null) => void;
+
+/** Owned by the shell (`useRef<ImageUploadHandle | null>(null)`), filled by this block */
+export type CoverHandleRef = React.MutableRefObject<ImageUploadHandle | null>;
 
 export type PresentationFieldsForm = Pick<
   RecipeFormApi,
@@ -35,11 +38,33 @@ export interface PresentationFieldsProps {
   disabled?: boolean;
   /** Registers 'imageUrl' (the ImageUpload handle), 'description' and 'caption' */
   registerField?: RegisterField;
+  /**
+   * Receives the cover's upload handle and KEEPS it when this block unmounts (a wizard
+   * step, the other tab): ImageUpload goes on uploading after an unmount and then writes
+   * the URL through `setField`, so a late upload would land in a form that was reset in
+   * the meantime. Call `coverHandleRef.current?.cancel()` BEFORE `form.reset()`,
+   * `form.load()`, Start over or Discard. `cancel()` reaches every upload started through
+   * this ref, also the one of a block that has unmounted and mounted again since.
+   */
+  coverHandleRef?: CoverHandleRef;
   /** The stored cover URL does not load (a restored draft whose asset is gone) */
   onCoverBrokenChange?: (broken: boolean) => void;
 }
 
 const COVER_PATH = 'imageUrl';
+
+// Cover uploads still running, per shell ref. It lives outside the component because it
+// has to outlast it: the block that started an upload may be gone when it is cancelled
+const runningUploads = new WeakMap<CoverHandleRef, Set<ImageUploadHandle>>();
+
+function runningUploadsOf(ref: CoverHandleRef): Set<ImageUploadHandle> {
+  let uploads = runningUploads.get(ref);
+  if (!uploads) {
+    uploads = new Set();
+    runningUploads.set(ref, uploads);
+  }
+  return uploads;
+}
 
 /** Spreadsheet cells, OneNote and Word put a PNG rendering of the text next to the text */
 function carriesText(clipboard: DataTransfer): boolean {
@@ -82,18 +107,37 @@ export default function PresentationFields({
   form,
   disabled = false,
   registerField,
+  coverHandleRef,
   onCoverBrokenChange,
 }: PresentationFieldsProps) {
   const { values, errors, setField, touch, setUploading } = form;
   const coverRef = useRef<ImageUploadHandle | null>(null);
   const coverBusy = useRef(false);
+  // Books this block's upload in the shell's set. Still called after the unmount
+  const trackUpload = useRef<(busy: boolean) => void>(() => undefined);
 
   const setCoverHandle = useCallback(
     (handle: ImageUploadHandle | null) => {
       coverRef.current = handle;
       registerField?.(COVER_PATH, handle);
+      // The shell's ref is never nulled: cancel() must stay reachable after the unmount
+      if (!handle || !coverHandleRef) return;
+      const uploads = runningUploadsOf(coverHandleRef);
+      trackUpload.current = (busy) => {
+        if (busy) uploads.add(handle);
+        else uploads.delete(handle);
+      };
+      coverHandleRef.current = {
+        ...handle,
+        cancel: () => {
+          handle.cancel();
+          // Uploads started by an earlier mount of this block. A cancelled upload
+          // reports 'not busy', which removes its entry: iterate over a copy
+          Array.from(uploads).forEach((earlier) => earlier.cancel());
+        },
+      };
     },
-    [registerField]
+    [registerField, coverHandleRef]
   );
   const setDescriptionInput = useCallback(
     (element: HTMLElement | null) => registerField?.('description', element),
@@ -110,6 +154,7 @@ export default function PresentationFields({
     (busy: boolean) => {
       coverBusy.current = busy;
       setUploading(COVER_PATH, busy);
+      trackUpload.current(busy);
     },
     [setUploading]
   );
