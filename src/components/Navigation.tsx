@@ -21,11 +21,9 @@ import {
   useMediaQuery,
   Typography,
   Dialog,
-  Slide,
   Snackbar,
   Alert,
 } from '@mui/material';
-import { TransitionProps } from '@mui/material/transitions';
 import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
@@ -35,6 +33,7 @@ import { useThemeMode } from '@/contexts/ThemeContext';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { useCreateRecipe } from '@/hooks/useCreateRecipe';
 import { useNotificationPolling } from '@/hooks/useNotificationPolling';
+import SlideUp from './common/SlideUp';
 import CreateRecipeDialog from './navigation/CreateRecipeDialog';
 import DesktopMenu from './navigation/DesktopMenu';
 import MobileBottomNav from './navigation/MobileBottomNav';
@@ -56,13 +55,6 @@ interface Notification {
   postId?: string | null;
   commentId?: string | null;
 }
-
-const SlideUp = React.forwardRef<
-  HTMLDivElement,
-  TransitionProps & { children: React.ReactElement }
->(function SlideUp(props, ref) {
-  return <Slide direction="up" ref={ref} {...props} />;
-});
 
 const desktopNavItems = [
   { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
