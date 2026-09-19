@@ -125,6 +125,26 @@ describe('recipe display blocks in Spanish', () => {
     expect(screen.getByText('TIEMPO TOTAL').parentElement).toHaveTextContent('45 min');
   });
 
+  it('should print the Spanish label of a unit that stays stored in English', () => {
+    renderInSpanish(
+      <ul>
+        <IngredientLine ingredient={{ name: 'harina', amount: '2', unit: 'cups' }} />
+      </ul>
+    );
+
+    expect(screen.getByRole('listitem')).toHaveTextContent(/^2 tazas harina$/);
+  });
+
+  it('should keep a unit it does not know exactly as the row stores it', () => {
+    renderInSpanish(
+      <ul>
+        <IngredientLine ingredient={{ name: 'cebolla', amount: '1', unit: 'whole' }} />
+      </ul>
+    );
+
+    expect(screen.getByRole('listitem')).toHaveTextContent(/^1 whole cebolla$/);
+  });
+
   it("should read '{name}, a gusto' for a to-taste row", () => {
     renderInSpanish(
       <ul>

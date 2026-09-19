@@ -1,6 +1,7 @@
 'use client';
 import { Box } from '@mui/material';
 import { useTranslations } from 'next-intl';
+import { useUnitLabels } from '@/i18n/units';
 import { StoredIngredient, getIngredientParts } from './displayFormat';
 
 export interface IngredientLineProps {
@@ -22,7 +23,9 @@ export default function IngredientLine({
   component = 'li',
 }: IngredientLineProps) {
   const t = useTranslations('recipe');
-  const { quantity, name, toTaste } = getIngredientParts(ingredient);
+  // The row keeps its stored 'cups'; the line prints 'tazas'
+  const units = useUnitLabels();
+  const { quantity, name, toTaste } = getIngredientParts(ingredient, units.label);
 
   return (
     <Box
