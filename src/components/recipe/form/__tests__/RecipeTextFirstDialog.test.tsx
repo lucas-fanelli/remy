@@ -1121,6 +1121,73 @@ describe('RecipeTextFirstDialog - create', () => {
       expect(onClose).not.toHaveBeenCalled();
       jest.useRealTimers();
     });
+
+    describe("what 'Draft saved' promises", () => {
+      const leave = () =>
+        act(() => {
+          jest.advanceTimersByTime(theme.transitions.duration.leavingScreen);
+        });
+
+      beforeEach(() => jest.useFakeTimers());
+      afterEach(() => jest.useRealTimers());
+
+      it('should ask, not promise, when the X comes before the first autosave could fail', async () => {
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const { onClose } = renderDialog({ draftStorage: null });
+        await user.type(titleBox(), 'Pan');
+
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        leave();
+
+        expect(screen.getByRole('dialog', { name: 'Discard your changes?' })).toBeInTheDocument();
+        expect(onClose).not.toHaveBeenCalled();
+        expect(mockShowInfo).not.toHaveBeenCalled();
+      });
+
+      it('should ask, not promise, when the editor has nobody to keep the draft for', async () => {
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const { onClose, rerender } = renderDialog();
+        mockUser = SOMEBODY_ELSE;
+        rerender({});
+        await user.type(titleBox(), 'Pan');
+
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        leave();
+
+        expect(screen.getByRole('dialog', { name: 'Discard your changes?' })).toBeInTheDocument();
+        expect(onClose).not.toHaveBeenCalled();
+        expect(mockShowInfo).not.toHaveBeenCalled();
+      });
+
+      it('should keep its word for what was typed after a silent logout', async () => {
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const { onClose, storage, rerender } = renderDialog();
+        mockUser = null;
+        rerender({});
+        await user.type(titleBox(), 'Pan');
+
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        leave();
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(storage.data.get(USER_KEY) ?? 'null').values.title).toBe('Pan');
+        expect(mockShowInfo).toHaveBeenCalledWith(DRAFT_SAVED_TOAST);
+      });
+
+      it('should close without a word when only a prefilled number was changed', async () => {
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const { onClose, storage } = renderDialog();
+        await user.click(checkTab());
+        await user.click(screen.getByRole('button', { name: 'More servings' }));
+
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        leave();
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(storage.data.has(USER_KEY)).toBe(false);
+        expect(mockShowInfo).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('preview', () => {

@@ -269,8 +269,14 @@ export interface UseRecipeDraftResult {
   savedAt: number | null;
   /** The last write threw or there is no storage: warn before unload while dirty */
   saveFailed: boolean;
-  /** Writes a pending autosave now (the hook also does it on unmount) */
-  flush(): void;
+  /**
+   * Writes a pending autosave now (the hook also does it on unmount) and answers whether
+   * storage holds what the hook was given to keep: false when that write failed, when the
+   * last one did and nothing was written since, and when there is no key to write under.
+   * Ask it before promising 'Draft saved': inside the debounce window `saveFailed` still
+   * describes the write BEFORE this one.
+   */
+  flush(): boolean;
   /** Removes the stored draft and cancels a pending write: after Publish and 'Start over' */
   clearDraft(): void;
 }
@@ -332,6 +338,8 @@ export function useRecipeDraft({
     text?: RecipeDraftText;
   } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // `saveFailed` for callbacks: state is a render behind a write that has just happened
+  const lastWriteFailedRef = useRef(false);
 
   const cancelTimer = () => {
     if (timerRef.current !== null) {
@@ -340,13 +348,15 @@ export function useRecipeDraft({
     }
   };
 
-  // `notify: false` touches no state, so it is safe while rendering and while unmounting
-  const writePending = useCallback((notify: boolean) => {
+  // `notify: false` touches no state, so it is safe while rendering and while unmounting.
+  // Returns whether storage is up to date as far as the hook can tell
+  const writePending = useCallback((notify: boolean): boolean => {
     const pending = pendingRef.current;
     const { key: currentKey, now: clock } = latestRef.current;
     pendingRef.current = null;
     cancelTimer();
-    if (!pending || !currentKey) return;
+    if (!currentKey) return false;
+    if (!pending) return !lastWriteFailedRef.current;
 
     const draftValues = toDraftValues(pending.values);
     const time = clock();
@@ -365,10 +375,12 @@ export function useRecipeDraft({
       storedSnapshotRef.current = snapshotOf(draftValues, pending.text);
       storedSectionRef.current = pending.section;
     }
+    lastWriteFailedRef.current = !written;
     if (notify) {
       setSaveFailed(!written);
       if (written) setSavedAt(time);
     }
+    return written;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reads refs only
   }, []);
 
@@ -389,6 +401,7 @@ export function useRecipeDraft({
     setFound(current);
     setSavedAt(null);
     setSaveFailed(false);
+    lastWriteFailedRef.current = false;
   }
 
   const trackedIdentityRef = useRef<string | null>(null);
@@ -435,7 +448,12 @@ export function useRecipeDraft({
   }, [values, section, text?.ingredients, text?.method, enabled, key, debounceMs, writePending]);
 
   // Closing the editor inside the debounce window must not lose the last keystrokes
-  useEffect(() => () => writePending(false), [writePending]);
+  useEffect(
+    () => () => {
+      writePending(false);
+    },
+    [writePending]
+  );
 
   const flush = useCallback(() => writePending(true), [writePending]);
 

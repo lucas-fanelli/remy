@@ -33,6 +33,8 @@ import { useFieldRegistry } from './useFieldRegistry';
 import {
   DraftStorage,
   RecipeDraft,
+  isBlankDraft,
+  toDraftValues,
   useRecipeDraft,
   useUnsavedChangesWarning,
 } from './useRecipeDraft';
@@ -285,19 +287,27 @@ function EditorSession({
   }, []);
 
   const handleClose = () => {
-    // Nothing keeps these changes: Edit has no draft, and neither has Create once storage fails
-    if (form.isDirty && (mode === 'edit' || draft.saveFailed)) {
+    // Servings and difficulty are prefilled and never make a draft: nothing to lose or keep
+    const worthKeeping =
+      form.isDirty && (mode === 'edit' || !isBlankDraft(toDraftValues(form.values)));
+    if (!worthKeeping) {
+      onClose();
+      return;
+    }
+    // Written NOW and asked, not read from `saveFailed`: inside the autosave debounce that
+    // still describes the write before this one. Nothing keeps these changes when it says
+    // no: Edit has no draft, and neither has Create without storage or without its owner
+    const draftKept = mode === 'create' && flush();
+    if (!draftKept) {
       setConfirmDiscard(true);
       return;
     }
     onClose();
-    if (mode === 'create' && form.isDirty) {
-      // A toast inside the editor would cover the pinned button: it waits for the dialog to leave
-      toastTimer.current = setTimeout(
-        () => showInfo(DRAFT_SAVED_TOAST),
-        theme.transitions.duration.leavingScreen
-      );
-    }
+    // A toast inside the editor would cover the pinned button: it waits for the dialog to leave
+    toastTimer.current = setTimeout(
+      () => showInfo(DRAFT_SAVED_TOAST),
+      theme.transitions.duration.leavingScreen
+    );
   };
 
   // 'Log in again' leaves for the login page: the editor must not stay on top of it. The

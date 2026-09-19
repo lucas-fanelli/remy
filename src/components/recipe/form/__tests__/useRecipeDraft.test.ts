@@ -662,6 +662,64 @@ describe('useRecipeDraft', () => {
       expect(storage.setItem).not.toHaveBeenCalled();
     });
 
+    describe('what flush answers', () => {
+      const flushed = (result: { current: { flush(): boolean } }): boolean => {
+        let answer = false;
+        act(() => {
+          answer = result.current.flush();
+        });
+        return answer;
+      };
+
+      it('should say yes when the pending draft was written', () => {
+        const storage = createStorage();
+        const { result, rerender } = renderDraft({ storage });
+        rerender({ userId: 'user-1', values: makeValues(), storage });
+
+        expect(flushed(result)).toBe(true);
+      });
+
+      it('should say no inside the debounce window when the write fails', () => {
+        const storage = throwingStorage();
+        const { result, rerender } = renderDraft({ storage });
+        rerender({ userId: 'user-1', values: makeValues(), storage });
+
+        expect(flushed(result)).toBe(false);
+        expect(result.current.saveFailed).toBe(true);
+      });
+
+      it('should say no where there is no storage at all', () => {
+        const { result, rerender } = renderDraft({ storage: null });
+        rerender({ userId: 'user-1', values: makeValues(), storage: null });
+
+        expect(flushed(result)).toBe(false);
+      });
+
+      it('should say no without a user to keep the draft for', () => {
+        const storage = createStorage();
+        const { result, rerender } = renderDraft({ storage, userId: null });
+        rerender({ userId: null, values: makeValues(), storage });
+
+        expect(flushed(result)).toBe(false);
+      });
+
+      it('should still say no after a failed write with nothing new to write', () => {
+        const storage = throwingStorage();
+        const { result, rerender } = renderDraft({ storage });
+        typeAndWait(rerender, { userId: 'user-1', values: makeValues(), storage });
+
+        expect(flushed(result)).toBe(false);
+      });
+
+      it('should say yes when storage is already up to date', () => {
+        const storage = createStorage();
+        const { result, rerender } = renderDraft({ storage });
+        typeAndWait(rerender, { userId: 'user-1', values: makeValues(), storage });
+
+        expect(flushed(result)).toBe(true);
+      });
+    });
+
     it('should write the last keystrokes when the editor closes inside the debounce window', () => {
       const storage = createStorage();
       const { rerender, unmount } = renderDraft({ storage });
