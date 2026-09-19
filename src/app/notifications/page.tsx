@@ -15,8 +15,10 @@ import {
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDateFnsLocale } from '@/i18n/dates';
 
 interface Notification {
   id: string;
@@ -36,6 +38,9 @@ interface Notification {
 const PAGE_SIZE = 20;
 
 export default function NotificationsPage() {
+  const t = useTranslations('notifications');
+  const tCommon = useTranslations('common');
+  const dateLocale = useDateFnsLocale();
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -129,22 +134,13 @@ export default function NotificationsPage() {
     }
   };
 
-  const getNotificationText = (notification: Notification) => {
-    const senderName = notification.sender.fullName || notification.sender.username;
-
-    switch (notification.type) {
-      case 'follow':
-        return `${senderName} started following you`;
-      case 'like':
-        return `${senderName} liked your recipe`;
-      case 'comment':
-        return `${senderName} commented on your recipe`;
-      case 'rating':
-        return `${senderName} rated your recipe`;
-      default:
-        return 'You have a new notification';
-    }
-  };
+  // One ICU `select` rather than four templates: each language decides where the sender's
+  // name goes, and an unknown type falls through to the generic sentence.
+  const getNotificationText = (notification: Notification) =>
+    t('text', {
+      type: notification.type,
+      name: notification.sender.fullName || notification.sender.username,
+    });
 
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read (best effort) before navigating
@@ -182,11 +178,11 @@ export default function NotificationsPage() {
     <Container maxWidth="md" sx={{ mt: 10, pb: 8 }}>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          Notifications
+          {t('title')}
         </Typography>
         {unreadCount > 0 && (
           <Button variant="text" onClick={markAllAsRead} disabled={markingAsRead} size="small">
-            {markingAsRead ? 'Marking...' : 'Mark all as read'}
+            {markingAsRead ? t('marking') : t('markAll')}
           </Button>
         )}
       </Box>
@@ -194,10 +190,10 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
-            No notifications yet
+            {t('empty.title')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            When someone follows you or interacts with your recipes, you&apos;ll see it here
+            {t('empty.description')}
           </Typography>
         </Paper>
       ) : (
@@ -236,6 +232,7 @@ export default function NotificationsPage() {
                       <Typography variant="caption" color="text.secondary" suppressHydrationWarning>
                         {formatDistanceToNow(new Date(notification.createdAt), {
                           addSuffix: true,
+                          locale: dateLocale,
                         })}
                       </Typography>
                     }
@@ -253,7 +250,7 @@ export default function NotificationsPage() {
           {hasMore && (
             <Box sx={{ p: 2, textAlign: 'center' }}>
               <Button variant="text" onClick={handleLoadMore} disabled={loadingMore}>
-                {loadingMore ? 'Loading...' : 'Load More'}
+                {loadingMore ? tCommon('status.loading') : t('loadMore')}
               </Button>
             </Box>
           )}
