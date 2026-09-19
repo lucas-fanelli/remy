@@ -130,12 +130,15 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       </Box>
 
       {/* Forgot password */}
-      <Box sx={{ mt: 2, textAlign: 'center' }}>
+      <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
         <Link
           component={NextLink}
           href="/auth/forgot-password"
           variant="body2"
           sx={{
+            // globals.css gives every link a 44px touch target; centre the text inside it
+            display: 'inline-flex',
+            alignItems: 'center',
             color: 'primary.main',
             textDecoration: 'none',
             '&:hover': { textDecoration: 'underline' },
@@ -148,7 +151,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       {/* Switch to Register */}
       <Box
         sx={{
-          mt: 2,
+          mt: 1,
           p: 2,
           backgroundColor: 'background.paper',
           borderRadius: 1,

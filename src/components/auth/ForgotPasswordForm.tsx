@@ -5,7 +5,10 @@ import React, { useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 
+// globals.css gives every link a 44px touch target; inline-flex centres the text inside it
 const linkSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
   color: 'primary.main',
   fontWeight: 600,
   textDecoration: 'none',
@@ -145,13 +148,14 @@ export default function ForgotPasswordForm() {
               variant="contained"
               type="submit"
               disabled={isLoading}
+              aria-label={isLoading ? 'Sending reset link' : undefined}
               sx={{
                 textTransform: 'none',
                 fontWeight: 600,
                 py: 1,
               }}
             >
-              {isLoading ? <CircularProgress size={24} aria-label="Sending" /> : 'Send reset link'}
+              {isLoading ? <CircularProgress size={24} aria-hidden /> : 'Send reset link'}
             </Button>
           </Box>
         </>
@@ -161,7 +165,8 @@ export default function ForgotPasswordForm() {
       <Box
         sx={{
           mt: 2,
-          p: 2,
+          px: 2,
+          py: 0.5,
           backgroundColor: 'background.paper',
           borderRadius: 1,
           border: 1,

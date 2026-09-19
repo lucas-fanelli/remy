@@ -29,7 +29,10 @@ interface ResetPasswordFormProps {
   token: string | null;
 }
 
+// globals.css gives every link a 44px touch target; inline-flex centres the text inside it
 const linkSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
   color: 'primary.main',
   fontWeight: 600,
   textDecoration: 'none',
@@ -284,13 +287,14 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               variant="contained"
               type="submit"
               disabled={isLoading}
+              aria-label={isLoading ? 'Saving new password' : undefined}
               sx={{
                 textTransform: 'none',
                 fontWeight: 600,
                 py: 1,
               }}
             >
-              {isLoading ? <CircularProgress size={24} aria-label="Saving" /> : 'Save new password'}
+              {isLoading ? <CircularProgress size={24} aria-hidden /> : 'Save new password'}
             </Button>
           </Box>
         </>
@@ -300,7 +304,8 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       <Box
         sx={{
           mt: 2,
-          p: 2,
+          px: 2,
+          py: 0.5,
           backgroundColor: 'background.paper',
           borderRadius: 1,
           border: 1,
