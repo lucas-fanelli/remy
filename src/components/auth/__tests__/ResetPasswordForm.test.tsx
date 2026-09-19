@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import '@testing-library/jest-dom';
+import { hardNavigate } from '@/lib/utils/navigation';
 import ResetPasswordForm from '../ResetPasswordForm';
 
 // Mock framer-motion
@@ -12,10 +13,17 @@ jest.mock('framer-motion', () => {
   return { motion: passthrough };
 });
 
-// Mock next/navigation
+// Mock next/navigation: the form must NOT use the soft router to leave the page
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockRouter = { push: mockPush, replace: mockReplace };
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => mockRouter,
+}));
+
+// jsdom cannot perform a real page load
+jest.mock('@/lib/utils/navigation', () => ({
+  hardNavigate: jest.fn(),
 }));
 
 const TOKEN = 'raw-token-from-the-email';
@@ -40,8 +48,14 @@ describe('ResetPasswordForm Component', () => {
 
   beforeEach(() => {
     mockPush.mockClear();
+    mockReplace.mockClear();
+    (hardNavigate as jest.Mock).mockClear();
     mockFetch = global.fetch as jest.Mock;
     mockFetch.mockReset();
+  });
+
+  afterEach(() => {
+    window.history.replaceState({}, '', '/');
   });
 
   const newPassword = () => screen.getByLabelText(/^new password/i);
@@ -87,7 +101,30 @@ describe('ResetPasswordForm Component', () => {
 
       await fillAndSubmit(GOOD_PASSWORD);
 
-      expect(mockPush).toHaveBeenCalledWith('/auth?reset=success');
+      expect(hardNavigate).toHaveBeenCalledWith('/auth?reset=success');
+    });
+
+    it('should leave with a full page load so a session that was open in this browser cannot linger', async () => {
+      // Arrange - AuthProvider only asks /api/auth/me on mount: after a soft
+      // navigation it would still hold the user whose session the reset killed
+      mockFetch.mockResolvedValue(jsonResponse(200));
+      renderForm();
+
+      // Act
+      await fillAndSubmit(GOOD_PASSWORD);
+
+      // Assert
+      expect(hardNavigate).toHaveBeenCalledTimes(1);
+      expect(mockPush).not.toHaveBeenCalled();
+    });
+
+    it('should stay disabled after a successful reset while the browser leaves the page', async () => {
+      mockFetch.mockResolvedValue(jsonResponse(200));
+      renderForm();
+
+      await fillAndSubmit(GOOD_PASSWORD);
+
+      expect(screen.getByRole('button', { name: /saving new password/i })).toBeDisabled();
     });
 
     it('should disable the fields and the button while saving', async () => {
@@ -106,6 +143,75 @@ describe('ResetPasswordForm Component', () => {
 
       resolveFetch(jsonResponse(500));
       await screen.findByRole('alert');
+    });
+  });
+
+  describe('token in the address bar', () => {
+    const openEmailedLink = () =>
+      window.history.replaceState({}, '', `/auth/reset-password?token=${TOKEN}`);
+
+    it('should remove the token from the URL as soon as the form mounts', () => {
+      // Arrange
+      openEmailedLink();
+
+      // Act
+      renderForm();
+
+      // Assert - nothing that records window.location from here on can see it
+      expect(window.location.pathname).toBe('/auth/reset-password');
+      expect(window.location.search).toBe('');
+      expect(window.location.href).not.toContain(TOKEN);
+    });
+
+    it('should make the clean URL the canonical one for the app router', () => {
+      // Arrange - seen in a real browser: the router kept the old URL and wrote the
+      // token back into the address bar on its next state change (router.refresh())
+      openEmailedLink();
+
+      // Act
+      renderForm();
+
+      // Assert
+      expect(mockReplace).toHaveBeenCalledWith('/auth/reset-password', { scroll: false });
+    });
+
+    it('should still submit the token after it left the URL', async () => {
+      // Arrange
+      openEmailedLink();
+      mockFetch.mockResolvedValue(jsonResponse(200));
+      renderForm();
+
+      // Act
+      await fillAndSubmit(GOOD_PASSWORD);
+
+      // Assert
+      expect(JSON.parse(mockFetch.mock.calls[0][1].body).token).toBe(TOKEN);
+    });
+
+    it('should keep the token when the page re-renders without it', async () => {
+      // Arrange - the server component re-rendered from the cleaned URL
+      mockFetch.mockResolvedValue(jsonResponse(200));
+      const { rerender } = renderForm();
+      rerender(
+        <ThemeProvider theme={createTheme()}>
+          <ResetPasswordForm token={null} />
+        </ThemeProvider>
+      );
+
+      // Act
+      await fillAndSubmit(GOOD_PASSWORD);
+
+      // Assert
+      expect(JSON.parse(mockFetch.mock.calls[0][1].body).token).toBe(TOKEN);
+    });
+
+    it('should leave the URL alone when the link carries no token', () => {
+      window.history.replaceState({}, '', '/auth/reset-password?utm=mail');
+
+      renderForm(null);
+
+      expect(window.location.search).toBe('?utm=mail');
+      expect(mockReplace).not.toHaveBeenCalled();
     });
   });
 
