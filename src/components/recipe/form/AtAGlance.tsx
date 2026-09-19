@@ -21,6 +21,7 @@ import { focusNextField } from './keyboard';
 import { NumericFieldValue } from './types';
 import { RegisterField, useFieldRef } from './useFieldRegistry';
 import { RecipeFormApi } from './useRecipeForm';
+import type { KeyboardEvent } from 'react';
 
 export interface AtAGlanceProps {
   /** The engine, or the slice of it this block reads */
@@ -192,6 +193,12 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
     touch('servings');
   };
 
+  // The handler sits on the field root, so it also hears the two stepper buttons. Enter on
+  // a button is the button's own (focusNextField would cancel its activation)
+  const handleServingsKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target instanceof HTMLInputElement) focusNextField(event);
+  };
+
   const atMinimum = typeof servings === 'number' && servings <= RECIPE_LIMITS.servings.min;
   const atMaximum = typeof servings === 'number' && servings >= RECIPE_LIMITS.servings.max;
   // aria-disabled, not disabled: a button that disables itself under the finger or the
@@ -258,7 +265,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
           value={servings === '' ? '' : String(servings)}
           onChange={(event) => handleServingsChange(event.target.value)}
           onBlur={handleServingsBlur}
-          onKeyDown={focusNextField}
+          onKeyDown={handleServingsKeyDown}
           error={Boolean(errors.servings)}
           helperText={errors.servings}
           disabled={disabled}

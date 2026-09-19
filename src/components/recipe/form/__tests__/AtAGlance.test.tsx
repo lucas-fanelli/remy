@@ -267,6 +267,36 @@ describe('AtAGlance', () => {
       expect(fewer).toHaveFocus();
     });
 
+    it.each([
+      ['Enter', 'More servings', '{Enter}', 5],
+      ['Space', 'More servings', ' ', 5],
+      ['Enter', 'Fewer servings', '{Enter}', 3],
+      ['Space', 'Fewer servings', ' ', 3],
+    ])('should step with %s on the focused "%s" button', async (_key, name, keys, expected) => {
+      const { user, form } = renderGlance();
+      const button = screen.getByRole('button', { name });
+      button.focus();
+
+      await user.keyboard(keys);
+
+      expect(form().values.servings).toBe(expected);
+      expect(button).toHaveFocus();
+    });
+
+    it('should still move on from the Servings input on Enter', async () => {
+      const { user } = renderEditor((form) => (
+        <>
+          <AtAGlance form={form} />
+          <input aria-label="Next field" />
+        </>
+      ));
+      await user.click(servingsField());
+
+      await user.keyboard('{Enter}');
+
+      expect(screen.getByRole('textbox', { name: 'Next field' })).toHaveFocus();
+    });
+
     it('should start from one when the field was emptied', async () => {
       const { user, form } = renderGlance();
       await user.clear(servingsField());
