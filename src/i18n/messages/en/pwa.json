@@ -1,1 +1,13 @@
-{}
+{
+  "install": {
+    "title": "Get the Full Experience",
+    "description": "Install {name} on your home screen for a faster, native-like experience.",
+    "dismiss": "Close install prompt",
+    "action": "Install App",
+    "ios": {
+      "intro": "To install on your device:",
+      "share": "1. Tap the <strong>Share</strong> button in Safari",
+      "addToHomeScreen": "2. Select <strong>\"Add to Home Screen\"</strong>"
+    }
+  }
+}
