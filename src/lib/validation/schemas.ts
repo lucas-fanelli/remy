@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { INVALID_RESET_TOKEN_MESSAGE } from '@/domain/errors';
+import messages from '@/i18n/messages/en/validation.json';
 import { getPasswordErrors } from './passwordRules';
+
+// The messages zod answers with live in the `validation` namespace, and the server reads the
+// ENGLISH catalogue: the API contract is that the sentence in the body never changes language
+// (see src/lib/api/errorCodes.ts). Spanish is there for the client that renders these per
+// field - it knows which field failed, which the joined sentence in the response does not say.
 
 // Authentication Schemas
 
@@ -14,23 +20,23 @@ export const passwordSchema = z.string().superRefine((password, ctx) => {
 });
 
 export const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email(messages.email.invalid),
   username: z
     .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(30, 'Username must be at most 30 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+    .min(3, messages.username.tooShort)
+    .max(30, messages.username.tooLong)
+    .regex(/^[a-zA-Z0-9_]+$/, messages.username.charset),
   password: passwordSchema,
   fullName: z.string().optional(),
 });
 
 export const loginSchema = z.object({
-  emailOrUsername: z.string().min(1, 'Email or username is required'),
-  password: z.string().min(1, 'Password is required'),
+  emailOrUsername: z.string().min(1, messages.emailOrUsername.required),
+  password: z.string().min(1, messages.password.required),
 });
 
 export const changePasswordSchema = z.object({
-  oldPassword: z.string().min(1, 'Old password is required'),
+  oldPassword: z.string().min(1, messages.password.oldRequired),
   newPassword: passwordSchema,
 });
 
@@ -38,8 +44,8 @@ export const forgotPasswordSchema = z.object({
   emailOrUsername: z
     .string()
     .trim()
-    .min(1, 'Email or username is required')
-    .max(254, 'Email or username is too long'),
+    .min(1, messages.emailOrUsername.required)
+    .max(254, messages.emailOrUsername.tooLong),
 });
 
 export const resetPasswordSchema = z.object({
@@ -57,15 +63,15 @@ export const resetPasswordSchema = z.object({
 
 // User Profile Schemas
 export const updateProfileSchema = z.object({
-  fullName: z.string().max(50, 'Full name must be at most 50 characters').nullable().optional(),
-  bio: z.string().max(300, 'Bio must be at most 300 characters').nullable().optional(),
+  fullName: z.string().max(50, messages.fullName.tooLong).nullable().optional(),
+  bio: z.string().max(300, messages.bio.tooLong).nullable().optional(),
   avatar: z.string().nullable().optional(), // Allow any string path (relative or absolute URL)
   website: z
     .union([
       z.literal(''),
       z
         .string()
-        .url('Invalid website URL')
+        .url(messages.website.invalid)
         .refine((url) => {
           try {
             const parsed = new URL(url);
@@ -73,14 +79,14 @@ export const updateProfileSchema = z.object({
           } catch {
             return true; // Let the .url() check handle invalid URLs
           }
-        }, 'URL must not contain credentials')
+        }, messages.website.credentials)
         .refine((url) => {
           try {
             return ['http:', 'https:'].includes(new URL(url).protocol);
           } catch {
             return false;
           }
-        }, 'Website must use http:// or https://'),
+        }, messages.website.protocol),
     ])
     .nullable()
     .optional()
@@ -95,7 +101,7 @@ export const paginationSchema = z.object({
 });
 
 export const searchSchema = z.object({
-  query: z.string().trim().min(1, 'Search query is required'),
+  query: z.string().trim().min(1, messages.search.queryRequired),
   limit: z.coerce.number().int().positive().max(50).default(20),
 });
 

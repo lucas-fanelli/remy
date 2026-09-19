@@ -1,1 +1,32 @@
-{}
+{
+  "bio": {
+    "tooLong": "La bio puede tener hasta 300 caracteres"
+  },
+  "email": {
+    "invalid": "El email no es válido"
+  },
+  "emailOrUsername": {
+    "required": "Escribí tu email o nombre de usuario",
+    "tooLong": "El email o nombre de usuario es demasiado largo"
+  },
+  "fullName": {
+    "tooLong": "El nombre puede tener hasta 50 caracteres"
+  },
+  "password": {
+    "oldRequired": "Escribí tu contraseña actual",
+    "required": "Escribí tu contraseña"
+  },
+  "search": {
+    "queryRequired": "Escribí algo para buscar"
+  },
+  "username": {
+    "charset": "El nombre de usuario solo puede tener letras, números y guiones bajos",
+    "tooLong": "El nombre de usuario puede tener hasta 30 caracteres",
+    "tooShort": "El nombre de usuario tiene que tener al menos 3 caracteres"
+  },
+  "website": {
+    "credentials": "La URL no puede tener credenciales",
+    "invalid": "La URL del sitio no es válida",
+    "protocol": "El sitio tiene que empezar con http:// o https://"
+  }
+}
