@@ -52,9 +52,17 @@ export default function TitleField({
       fullWidth
       value={values.title}
       onChange={(event) => setField('title', event.target.value)}
-      // 'Add a title' is a new helper line: never while the press that moved focus is still
-      // down, or the control under the pointer shifts and the click is dropped
-      onBlur={() => whenPointerSettles(() => touch('title'))}
+      onBlur={(event) => {
+        // Focus that leaves the EDITOR is not the author leaving the field: a dialog's focus
+        // trap hands it back to the button that opened it when it closes - and, under React's
+        // StrictMode, once on every opening, which turned an untouched title red in development
+        const editor = event.currentTarget.closest('form');
+        const next = event.relatedTarget;
+        if (editor && next instanceof Node && !editor.contains(next)) return;
+        // 'Add a title' is a new helper line: never while the press that moved focus is still
+        // down, or the control under the pointer shifts and the click is dropped
+        whenPointerSettles(() => touch('title'));
+      }}
       onKeyDown={focusNextField}
       error={Boolean(errors.title)}
       helperText={fieldHelper(

@@ -102,6 +102,19 @@ describe('TitleField', () => {
       expect(input).toHaveAccessibleDescription('Add a title');
     });
 
+    it('should say nothing when the focus leaves the editor altogether', () => {
+      renderTitle();
+      const input = screen.getByRole('textbox', { name: /^Title/ });
+      // What opened the editor: a dialog's focus trap hands the focus back to it
+      const opener = document.body.appendChild(document.createElement('button'));
+      act(() => input.focus());
+
+      act(() => opener.focus());
+
+      expect(input).not.toHaveAttribute('aria-invalid', 'true');
+      opener.remove();
+    });
+
     it('should clear the error as soon as the title is typed', async () => {
       const { user } = renderTitle();
       const input = screen.getByRole('textbox', { name: /^Title/ });

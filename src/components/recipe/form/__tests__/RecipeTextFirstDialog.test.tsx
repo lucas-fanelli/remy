@@ -260,6 +260,25 @@ describe('RecipeTextFirstDialog - create', () => {
         expect(titleBox()).toHaveFocus();
       });
 
+      // `next dev` runs every effect twice: the dialog's focus trap hands the focus back to
+      // the opener in between, which is a blur of the title the author never caused
+      it('should show nothing in red when React mounts the editor twice (StrictMode)', () => {
+        const opener = document.body.appendChild(document.createElement('button'));
+        opener.focus();
+
+        render(
+          <React.StrictMode>
+            <ThemeProvider theme={theme}>
+              <RecipeTextFirstDialog mode="create" open onClose={jest.fn()} draftStorage={null} />
+            </ThemeProvider>
+          </React.StrictMode>
+        );
+
+        expect(titleBox()).toHaveFocus();
+        expect(document.querySelector('.Mui-error')).toBeNull();
+        opener.remove();
+      });
+
       it('should leave the focus on the heading when the author comes back to Write', async () => {
         const { user } = renderDialog();
         await user.click(checkTab());
