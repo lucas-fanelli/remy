@@ -47,7 +47,7 @@
     "notFound": "No encontramos a ese usuario.",
     "profileFailed": "No pudimos cargar el perfil.",
     "profilePrivate": "Este perfil es privado.",
-    "statsFailed": "No pudimos cargar las métricas.",
+    "statsFailed": "No pudimos cargar las estadísticas.",
     "unfollowFailed": "No pudimos dejar de seguir a ese usuario."
   },
   "recipe": {
@@ -60,7 +60,7 @@
     "invalidDifficulty": "Esa dificultad no es válida.",
     "invalidIngredients": "Esa lista de ingredientes no es válida.",
     "invalidSort": "Ese orden no es válido.",
-    "likeFailed": "No pudimos registrar tu me gusta.",
+    "likeFailed": "No pudimos guardar tu me gusta.",
     "loadFailed": "No pudimos cargar la receta.",
     "matchFailed": "No pudimos buscar recetas con tu despensa.",
     "matchInProgress": "Ya estamos buscando recetas con tu despensa. Esperá un momento y probá de nuevo.",
