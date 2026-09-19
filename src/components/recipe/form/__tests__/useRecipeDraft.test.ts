@@ -847,6 +847,99 @@ describe('useRecipeDraft', () => {
   });
 });
 
+describe('the free text stored with a draft', () => {
+  const TEXT = { ingredients: '500 g harina\n2 huevos', method: 'Mezclar\n\nHornear' };
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const typeAndWait = (
+    rerender: (props: UseRecipeDraftOptions) => void,
+    props: UseRecipeDraftOptions
+  ) => {
+    rerender(props);
+    act(() => {
+      jest.advanceTimersByTime(RECIPE_DRAFT_DEBOUNCE_MS);
+    });
+  };
+
+  it('should read the text of a stored draft', () => {
+    const draft = parseRecipeDraft(storedDraft({ text: TEXT }));
+
+    expect(draft?.text).toEqual(TEXT);
+  });
+
+  it.each([
+    ['a string', 'harina'],
+    ['a list', ['harina']],
+    ['a half', { ingredients: 'harina' }],
+    ['numbers', { ingredients: 1, method: 2 }],
+  ])('should keep the draft and drop a text that is %s', (_label, text) => {
+    const draft = parseRecipeDraft(storedDraft({ text } as unknown as Partial<RecipeDraft>));
+
+    expect(draft).not.toBeNull();
+    expect(draft).not.toHaveProperty('text');
+  });
+
+  it('should write the text next to the values', () => {
+    const storage = createStorage();
+    const { rerender } = renderDraft({ storage });
+
+    typeAndWait(rerender, { userId: 'user-1', values: makeValues(), text: TEXT, storage });
+
+    expect(savedIn(storage).text).toEqual(TEXT);
+  });
+
+  it('should write again when only the wording changed', () => {
+    const storage = createStorage();
+    const { rerender } = renderDraft({ storage });
+    const values = makeValues();
+    typeAndWait(rerender, { userId: 'user-1', values, text: TEXT, storage });
+
+    typeAndWait(rerender, {
+      userId: 'user-1',
+      values,
+      text: { ...TEXT, method: 'Mezclar bien\n\nHornear' },
+      storage,
+    });
+
+    expect(storage.setItem).toHaveBeenCalledTimes(2);
+    expect(savedIn(storage).text.method).toBe('Mezclar bien\n\nHornear');
+  });
+
+  it('should not write again for an equal text in a new object', () => {
+    const storage = createStorage();
+    const { rerender } = renderDraft({ storage });
+    const values = makeValues();
+    typeAndWait(rerender, { userId: 'user-1', values, text: TEXT, storage });
+
+    typeAndWait(rerender, { userId: 'user-1', values, text: { ...TEXT }, storage });
+
+    expect(storage.setItem).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not rewrite a restored draft whose text is on screen again', () => {
+    const storage = createStorage({ [USER_KEY]: storedDraft({ text: TEXT }) });
+    const { rerender } = renderDraft({ storage });
+
+    typeAndWait(rerender, { userId: 'user-1', values: makeValues(), text: TEXT, storage });
+
+    expect(storage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('should not save the text that was on screen when the draft was cleared', () => {
+    const storage = createStorage();
+    const { result, rerender } = renderDraft({ storage });
+    const values = makeValues();
+    typeAndWait(rerender, { userId: 'user-1', values, text: TEXT, storage });
+
+    act(() => result.current.clearDraft());
+    typeAndWait(rerender, { userId: 'user-1', values, text: { ...TEXT }, storage });
+
+    expect(storage.data.has(USER_KEY)).toBe(false);
+  });
+});
+
 describe('useUnsavedChangesWarning', () => {
   const fireBeforeUnload = () => {
     const event = new Event('beforeunload', { cancelable: true });

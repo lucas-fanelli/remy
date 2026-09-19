@@ -111,6 +111,24 @@ describe('IngredientLine', () => {
     expect(screen.getByRole('listitem')).toHaveStyle({ marginBottom: '12px' });
   });
 
+  it('should render as a span inside a list item the caller owns', () => {
+    render(
+      <ul>
+        <li>
+          <IngredientLine
+            ingredient={{ name: 'flour', amount: '200', unit: 'g' }}
+            component="span"
+          />
+        </li>
+      </ul>
+    );
+
+    const line = screen.getByText('200 g').parentElement as HTMLElement;
+    expect(line.tagName).toBe('SPAN');
+    expect(line).toHaveStyle({ marginBottom: '0px' });
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+  });
+
   it('should render a dense line for the compact preview', () => {
     renderLine({ name: 'flour', amount: '200', unit: 'g' }, true);
 

@@ -123,6 +123,22 @@ describe('IngredientRow', () => {
     );
   });
 
+  it('should describe the fields with a note and mark it with an icon', () => {
+    renderRow({ note: 'No unit recognised - is "lata" part of the name?' });
+
+    const name = screen.getByRole('textbox', { name: 'Name of ingredient 2' });
+    expect(name).toHaveAccessibleDescription('No unit recognised - is "lata" part of the name?');
+    expect(name).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
+  });
+
+  it('should show the error instead of the note while the row is failing', () => {
+    renderRow({ note: 'Check this line', nameError: 'Ingredient 2: add a name, or clear the row' });
+
+    expect(screen.queryByText('Check this line')).not.toBeInTheDocument();
+    expect(screen.getByText('Ingredient 2: add a name, or clear the row')).toBeInTheDocument();
+  });
+
   it('should ignore Shift+Enter in the name', async () => {
     const { user, onNameEnter } = renderRow();
     await user.click(screen.getByRole('textbox', { name: 'Name of ingredient 2' }));

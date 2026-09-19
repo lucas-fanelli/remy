@@ -32,12 +32,23 @@ export type RecipeDraftValues = Omit<RecipeFormValuesInput, 'ingredients' | 'ste
   steps: { description: string; image: string }[];
 };
 
+/**
+ * The author's own wording, for an editor whose primary input is free text (one ingredient
+ * per line, one step per paragraph). Optional and additive: an editor that does not know it
+ * ignores the key, and a draft without it is still a valid draft.
+ */
+export interface RecipeDraftText {
+  ingredients: string;
+  method: string;
+}
+
 export interface RecipeDraft {
   v: typeof RECIPE_DRAFT_VERSION;
   /** Epoch milliseconds */
   savedAt: number;
   section: string;
   values: RecipeDraftValues;
+  text?: RecipeDraftText;
 }
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
@@ -130,6 +141,15 @@ const parseValues = (input: unknown): RecipeDraftValues | null => {
   });
 };
 
+const parseText = (input: unknown): RecipeDraftText | undefined =>
+  isRecord(input) && isString(input.ingredients) && isString(input.method)
+    ? { ingredients: input.ingredients, method: input.method }
+    : undefined;
+
+/** What is compared to tell whether storage is up to date: the values and, if any, the text */
+const snapshotOf = (values: RecipeDraftValues, text: RecipeDraftText | undefined): string =>
+  JSON.stringify(text ? [values, text.ingredients, text.method] : values);
+
 /**
  * Type guard + normaliser for whatever was found in storage. Returns null for anything
  * that is not a v1 draft with the expected shapes; an unknown `section` falls back to the
@@ -154,7 +174,9 @@ export function parseRecipeDraft(
 
   const section =
     isString(data.section) && sections.includes(data.section) ? data.section : sections[0];
-  return { v: RECIPE_DRAFT_VERSION, savedAt: data.savedAt, section, values };
+  const draft: RecipeDraft = { v: RECIPE_DRAFT_VERSION, savedAt: data.savedAt, section, values };
+  const text = parseText(data.text);
+  return text ? { ...draft, text } : draft;
 }
 
 /** window.localStorage, or null where it is missing or throws on access */
@@ -221,6 +243,8 @@ export interface UseRecipeDraftOptions {
   resetKey?: string;
   /** Where the author is, stored along so a restore can return there */
   section?: string;
+  /** The free text the rows were written as, stored along with them (see RecipeDraftText) */
+  text?: RecipeDraftText;
   /** False pauses autosave (Edit has no stored draft). Default true */
   enabled?: boolean;
   /** Section vocabulary of this build; an unknown stored section falls back to the first */
@@ -252,6 +276,7 @@ export function useRecipeDraft({
   values,
   resetKey,
   section = RECIPE_FORM_SECTIONS[0],
+  text,
   enabled = true,
   sections = RECIPE_FORM_SECTIONS,
   storage,
@@ -265,8 +290,8 @@ export function useRecipeDraft({
 
   // Latest props for the callbacks; the default storage is resolved on every access so a
   // window that appears after the first render (hydration) is still picked up
-  const latestRef = useRef({ key, now, storage, values });
-  latestRef.current = { key, now, storage, values };
+  const latestRef = useRef({ key, now, storage, values, text });
+  latestRef.current = { key, now, storage, values, text };
   const resolveStorage = (): DraftStorage | null => {
     const injected = latestRef.current.storage;
     return injected === undefined ? getDefaultDraftStorage() : injected;
@@ -290,7 +315,11 @@ export function useRecipeDraft({
   // Values that were on screen when the draft was cleared (published): never re-saved
   const clearedSnapshotRef = useRef<string | null>(null);
 
-  const pendingRef = useRef<{ values: RecipeFormValuesInput; section: string } | null>(null);
+  const pendingRef = useRef<{
+    values: RecipeFormValuesInput;
+    section: string;
+    text?: RecipeDraftText;
+  } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cancelTimer = () => {
@@ -310,12 +339,18 @@ export function useRecipeDraft({
 
     const draftValues = toDraftValues(pending.values);
     const time = clock();
+    const draft: RecipeDraft = {
+      v: RECIPE_DRAFT_VERSION,
+      savedAt: time,
+      section: pending.section,
+      values: draftValues,
+    };
     const written = writeRecipeDraft(
       currentKey,
-      { v: RECIPE_DRAFT_VERSION, savedAt: time, section: pending.section, values: draftValues },
+      pending.text ? { ...draft, text: pending.text } : draft,
       resolveStorage()
     );
-    if (written) storedSnapshotRef.current = JSON.stringify(draftValues);
+    if (written) storedSnapshotRef.current = snapshotOf(draftValues, pending.text);
     if (notify) {
       setSaveFailed(!written);
       if (written) setSavedAt(time);
@@ -343,8 +378,10 @@ export function useRecipeDraft({
   const trackedIdentityRef = useRef<string | null>(null);
   if (trackedIdentityRef.current !== identity) {
     trackedIdentityRef.current = identity;
-    storedSnapshotRef.current = current.draft ? JSON.stringify(current.draft.values) : null;
-    mountSnapshotRef.current = JSON.stringify(toDraftValues(values));
+    storedSnapshotRef.current = current.draft
+      ? snapshotOf(current.draft.values, current.draft.text)
+      : null;
+    mountSnapshotRef.current = snapshotOf(toDraftValues(values), text);
     changedSinceMountRef.current = false;
     clearedSnapshotRef.current = null;
   }
@@ -354,7 +391,7 @@ export function useRecipeDraft({
     if (!enabled || !key) return undefined;
 
     const draftValues = toDraftValues(values);
-    const snapshot = JSON.stringify(draftValues);
+    const snapshot = snapshotOf(draftValues, text);
     if (snapshot !== mountSnapshotRef.current) changedSinceMountRef.current = true;
     if (snapshot !== clearedSnapshotRef.current) clearedSnapshotRef.current = null;
 
@@ -367,10 +404,12 @@ export function useRecipeDraft({
     const justCleared = snapshot === clearedSnapshotRef.current;
     if (upToDate || blank || awaitingRestore || justCleared) return undefined;
 
-    pendingRef.current = { values, section };
+    pendingRef.current = { values, section, text };
     timerRef.current = setTimeout(() => writePending(true), debounceMs);
     return cancelTimer;
-  }, [values, section, enabled, key, debounceMs, writePending]);
+    // The text is compared by content: callers build the object on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [values, section, text?.ingredients, text?.method, enabled, key, debounceMs, writePending]);
 
   // Closing the editor inside the debounce window must not lose the last keystrokes
   useEffect(() => () => writePending(false), [writePending]);
@@ -380,8 +419,8 @@ export function useRecipeDraft({
   const clearDraft = useCallback(() => {
     pendingRef.current = null;
     cancelTimer();
-    const { key: currentKey, values: currentValues } = latestRef.current;
-    clearedSnapshotRef.current = JSON.stringify(toDraftValues(currentValues));
+    const { key: currentKey, values: currentValues, text: currentText } = latestRef.current;
+    clearedSnapshotRef.current = snapshotOf(toDraftValues(currentValues), currentText);
     if (currentKey && clearRecipeDraft(currentKey, resolveStorage())) {
       storedSnapshotRef.current = null;
     }

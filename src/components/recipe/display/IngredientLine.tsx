@@ -7,20 +7,26 @@ export interface IngredientLineProps {
   ingredient: StoredIngredient;
   /** Tighter line for the form's compact preview */
   dense?: boolean;
+  /** 'span' when the caller owns the list item (a row that is also a button). Default 'li' */
+  component?: 'li' | 'span';
 }
 
 /**
  * One `<li>` of the ingredient list: '<strong>200 g</strong> flour', '<strong>2</strong> eggs',
  * 'salt, to taste'. Render it inside a `<ul>` (`<Box component="ul" sx={{ pl: 2 }}>`).
  */
-export default function IngredientLine({ ingredient, dense = false }: IngredientLineProps) {
+export default function IngredientLine({
+  ingredient,
+  dense = false,
+  component = 'li',
+}: IngredientLineProps) {
   const { quantity, name, toTaste } = getIngredientParts(ingredient);
 
   return (
     <Box
-      component="li"
+      component={component}
       sx={{
-        mb: dense ? 0.75 : 1.5,
+        mb: component === 'li' ? (dense ? 0.75 : 1.5) : 0,
         typography: dense ? 'body2' : 'body1',
         '&::marker': { color: 'primary.main' },
       }}

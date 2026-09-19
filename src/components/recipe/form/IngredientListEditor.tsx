@@ -32,6 +32,11 @@ export interface IngredientListEditorProps {
   labelledBy?: string;
   /** After a row was removed with its button: what a shell needs to offer Undo (`restore`) */
   onRowRemoved?: (row: IngredientRowValue, index: number) => void;
+  /**
+   * Row id -> a non-blocking 'look here' note ('No unit recognised - is "lata" part of the
+   * name?'). Attention, not an error: the shell drops the entry once the row was edited.
+   */
+  rowNotes?: Readonly<Record<string, string>>;
 }
 
 const GRID_COLUMNS = '88px 128px 1fr 44px';
@@ -51,6 +56,7 @@ export default function IngredientListEditor({
   disabled = false,
   labelledBy,
   onRowRemoved,
+  rowNotes,
 }: IngredientListEditorProps) {
   const { values, errors, ingredients, touch } = form;
   const rows = values.ingredients;
@@ -182,6 +188,7 @@ export default function IngredientListEditor({
               amountError={errors[`ingredients.${row.id}.amount`]}
               unitError={errors[`ingredients.${row.id}.unit`]}
               nameError={errors[`ingredients.${row.id}.name`]}
+              note={rowNotes?.[row.id]}
               removable={!isTrailingBlank(rows, index)}
               coarsePointer={coarsePointer}
               disabled={disabled}

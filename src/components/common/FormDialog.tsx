@@ -31,6 +31,8 @@ export interface FormDialogProps {
   /** A submit is in flight: every way of closing is blocked and the form is `aria-busy` */
   busy?: boolean;
   maxWidth?: DialogProps['maxWidth'];
+  /** Controls of the title row, placed before the X (a 'Preview' button) */
+  titleActions?: React.ReactNode;
   /** Fixed zone between the title row and the scrolling content (stepper, tabs, a bar) */
   headerSlot?: React.ReactNode;
   /** The pinned footer: the status line and the buttons. It never scrolls with the content */
@@ -58,6 +60,7 @@ const FormDialog = forwardRef<HTMLDivElement, FormDialogProps>(function FormDial
     dirty = false,
     busy = false,
     maxWidth = 'md',
+    titleActions,
     headerSlot,
     actions,
     children,
@@ -116,9 +119,15 @@ const FormDialog = forwardRef<HTMLDivElement, FormDialogProps>(function FormDial
           pb: { xs: 1, sm: 1.5 },
         }}
       >
-        <Typography id={titleId} component="h2" variant="h6" sx={{ fontWeight: 600, minWidth: 0 }}>
+        <Typography
+          id={titleId}
+          component="h2"
+          variant="h6"
+          sx={{ fontWeight: 600, minWidth: 0, flex: '1 1 auto' }}
+        >
           {title}
         </Typography>
+        {titleActions}
         <IconButton
           type="button"
           aria-label="Close"

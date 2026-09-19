@@ -149,6 +149,14 @@ describe('FormDialog', () => {
       expect(slot).toHaveStyle({ flexShrink: '0' });
     });
 
+    it('should render the title actions in the title row, before the X', () => {
+      renderDialog({ titleActions: <button type="button">Preview</button> });
+
+      const preview = screen.getByRole('button', { name: 'Preview' });
+      expect(preview.previousElementSibling).toBe(screen.getByRole('heading', { level: 2 }));
+      expect(preview.nextElementSibling).toBe(screen.getByRole('button', { name: 'Close' }));
+    });
+
     it('should render no header zone when there is no header slot', () => {
       renderDialog();
 

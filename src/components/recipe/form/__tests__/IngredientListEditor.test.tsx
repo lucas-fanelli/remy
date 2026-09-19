@@ -512,6 +512,13 @@ describe('IngredientListEditor', () => {
       );
     });
 
+    it('should show a row note on the row it belongs to', () => {
+      renderFilled({ rowNotes: { i2: 'No unit recognised - is "dulce" part of the name?' } });
+
+      expect(within(row(2)).getByText(/is "dulce" part of the name/)).toBeInTheDocument();
+      expect(within(row(1)).queryByText(/part of the name/)).not.toBeInTheDocument();
+    });
+
     it('should show the name counter from 80% of the limit', () => {
       const values = makeValues({
         ingredients: [{ id: 'i1', name: 'x'.repeat(160), amount: '1', unit: 'g' }],

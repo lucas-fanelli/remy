@@ -1,10 +1,10 @@
 'use client';
-import { Close } from '@mui/icons-material';
+import { Close, WarningAmber } from '@mui/icons-material';
 import { Autocomplete, Box, Chip, FormHelperText, IconButton, TextField } from '@mui/material';
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { RECIPE_LIMITS, RECIPE_UNITS, RECIPE_UNIT_LABELS, RecipeUnit } from '@/lib/constants';
 import { fieldHelper } from './fieldHelper';
-import { getFieldCounter } from './formTokens';
+import { attentionColor, getFieldCounter } from './formTokens';
 import { isBlankIngredientRow, isToTasteRow } from './formValues';
 import { focusNextField, isBackspaceOnEmpty, isPlainEnter } from './keyboard';
 import { IngredientRowValue } from './types';
@@ -21,6 +21,11 @@ export interface IngredientRowProps {
   amountError?: string;
   unitError?: string;
   nameError?: string;
+  /**
+   * A non-blocking 'look here' line (attention bar + icon + text) shown while the row has no
+   * error: what a text parser was unsure about. Never an error, never colour alone.
+   */
+  note?: string;
   /** The engine's trailing blank row has nothing to remove, so it gets no Remove button */
   removable?: boolean;
   /** Coarse pointer: the unit input opens its list without raising the virtual keyboard */
@@ -77,6 +82,7 @@ function IngredientRow({
   amountError,
   unitError,
   nameError,
+  note,
   removable = true,
   coarsePointer = false,
   disabled = false,
@@ -137,7 +143,9 @@ function IngredientRow({
   const name = row.name.trim();
   const rowError = amountError || unitError || nameError;
   const helper = fieldHelper(rowError, getFieldCounter(row.name.length, RECIPE_LIMITS.name));
-  const describedBy = helper ? helperId : undefined;
+  // An error outranks the note: one helper line, one bar
+  const attention = rowError ? undefined : note;
+  const describedBy = helper || attention ? helperId : undefined;
 
   const handleFocus = (event: FocusEvent<HTMLElement>) => {
     // Landing on the chip or on Remove is not editing; landing in a field is
@@ -213,7 +221,7 @@ function IngredientRow({
         // Always 3px wide so a failing row does not shift; never colour alone: the helper
         // line below names the problem
         borderLeft: '3px solid',
-        borderLeftColor: rowError ? 'error.main' : 'transparent',
+        borderLeftColor: rowError ? 'error.main' : attention ? attentionColor : 'transparent',
       }}
     >
       {showToTasteChip ? (
@@ -354,8 +362,16 @@ function IngredientRow({
         </IconButton>
       )}
 
-      {helper && (
+      {(helper || attention) && (
         <FormHelperText id={helperId} error={Boolean(rowError)} sx={{ gridColumn: '1 / -1', m: 0 }}>
+          {attention && (
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <WarningAmber fontSize="small" sx={{ color: attentionColor }} />
+              <Box component="span" sx={{ color: 'text.secondary' }}>
+                {attention}
+              </Box>
+            </Box>
+          )}
           {helper}
         </FormHelperText>
       )}
