@@ -11,8 +11,6 @@ import RecipeTimeStrip from '@/components/recipe/display/RecipeTimeStrip';
 import StepNumber from '@/components/recipe/display/StepNumber';
 import { RecipeFieldPath, RecipeFormSection, RecipePayload } from './types';
 
-type HeadingTag = 'h2' | 'h3' | 'h4';
-
 export interface RecipePreviewProps {
   /**
    * `form.toPayload()` - never the raw values: the preview prints exactly what will be
@@ -31,8 +29,6 @@ export interface RecipePreviewProps {
   placeholders?: boolean;
   /** Names used by the Edit buttons ('Edit basics'); match them to the shell's own section names */
   sectionLabels?: Partial<Record<RecipeFormSection, string>>;
-  /** Tag of the recipe title; 'Ingredients' / 'Instructions' sit one level below. Default 'h3' */
-  titleComponent?: HeadingTag;
 }
 
 const DEFAULT_SECTION_LABELS: Record<RecipeFormSection, string> = {
@@ -41,8 +37,6 @@ const DEFAULT_SECTION_LABELS: Record<RecipeFormSection, string> = {
   steps: 'Steps',
   presentation: 'Photo and description',
 };
-
-const SUB_HEADING: Record<HeadingTag, 'h3' | 'h4' | 'h5'> = { h2: 'h3', h3: 'h4', h4: 'h5' };
 
 interface PlaceholderProps {
   name: string;
@@ -85,14 +79,12 @@ export default function RecipePreview({
   compact = false,
   placeholders = false,
   sectionLabels,
-  titleComponent = 'h3',
 }: RecipePreviewProps) {
   // Keyed by URL, so a replaced photo gets a fresh chance
   const [brokenImages, setBrokenImages] = useState<Record<string, true>>({});
   const markBroken = (url: string) => setBrokenImages((prev) => ({ ...prev, [url]: true }));
 
   const labels = { ...DEFAULT_SECTION_LABELS, ...sectionLabels };
-  const subHeading = SUB_HEADING[titleComponent];
   const bodyVariant = compact ? 'body2' : 'body1';
   const { title, description, imageUrl, caption, prepTime, cookingTime, servings } = payload;
   const hasCover = imageUrl !== '' && !brokenImages[imageUrl];
@@ -116,7 +108,7 @@ export default function RecipePreview({
 
   const listHeader = (section: 'ingredients' | 'steps', heading: string) => (
     <Box sx={{ ...headerSx, mb: 1 }}>
-      <Typography component={subHeading} variant={compact ? 'subtitle1' : 'h6'} fontWeight={600}>
+      <Typography component="h4" variant={compact ? 'subtitle1' : 'h6'} fontWeight={600}>
         {heading}
       </Typography>
       {editButton(section)}
@@ -197,7 +189,8 @@ export default function RecipePreview({
         <Box sx={headerSx}>
           {title !== '' && (
             <Typography
-              component={titleComponent}
+              // Under the 'Preview' h2 of its dialog; the list headings sit one level below
+              component="h3"
               variant={compact ? 'h6' : 'h5'}
               sx={{ fontWeight: 700, minWidth: 0, overflowWrap: 'anywhere' }}
             >

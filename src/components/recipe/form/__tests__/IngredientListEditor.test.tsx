@@ -591,18 +591,6 @@ describe('IngredientListEditor', () => {
 
       expect(screen.getByRole('status').textContent).toBe('Ingredient 1 removed ');
     });
-
-    it('should tell the shell what was removed so it can offer undo', async () => {
-      const onRowRemoved = jest.fn();
-      const { user } = renderFilled({ onRowRemoved });
-
-      await user.click(screen.getByRole('button', { name: 'Remove ingredient 2: Dulce de leche' }));
-
-      expect(onRowRemoved).toHaveBeenCalledWith(
-        { id: 'i2', name: 'Dulce de leche', amount: '400', unit: 'g' },
-        1
-      );
-    });
   });
 
   describe('backspace', () => {

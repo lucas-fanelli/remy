@@ -161,11 +161,11 @@ describe('RecipePreview', () => {
     });
 
     it('should put the list headings one level below the title', () => {
-      renderPreview({}, { titleComponent: 'h2' });
+      renderPreview();
 
-      expect(screen.getByRole('heading', { level: 2, name: 'Chocotorta' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { level: 3, name: 'Ingredients' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { level: 3, name: 'Instructions' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 3, name: 'Chocotorta' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 4, name: 'Ingredients' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 4, name: 'Instructions' })).toBeInTheDocument();
     });
 
     it('should render a compact variant', () => {

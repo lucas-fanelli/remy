@@ -28,8 +28,6 @@ export interface IngredientListEditorProps {
   disabled?: boolean;
   /** id of the SectionHeading that names this list; without it the group is 'Ingredients' */
   labelledBy?: string;
-  /** After a row was removed with its button: what a shell needs to offer Undo (`restore`) */
-  onRowRemoved?: (row: IngredientRowValue, index: number) => void;
   /**
    * Row id -> a non-blocking 'look here' note ('No unit recognised - is "lata" part of the
    * name?'). Attention, not an error: the shell drops the entry once the row was edited.
@@ -52,7 +50,6 @@ export default function IngredientListEditor({
   registerField,
   disabled = false,
   labelledBy,
-  onRowRemoved,
   rowNotes,
 }: IngredientListEditorProps) {
   const { values, errors, ingredients, touch } = form;
@@ -72,8 +69,8 @@ export default function IngredientListEditor({
   const coarsePointer = useMediaQuery('(pointer: coarse)');
 
   // Rows are memoised, so their callbacks keep one identity and read the latest props here
-  const latest = useRef({ rows, ingredients, touch, onRowRemoved });
-  latest.current = { rows, ingredients, touch, onRowRemoved };
+  const latest = useRef({ rows, ingredients, touch });
+  latest.current = { rows, ingredients, touch };
 
   const handleChange = useCallback((id: string, patch: IngredientPatch) => {
     latest.current.ingredients.update(id, patch);
@@ -100,7 +97,6 @@ export default function IngredientListEditor({
       if (neighbour) focusRow(neighbour, 'remove');
       else addButtonRef.current?.focus();
       announce(`Ingredient ${index + 1} removed`);
-      current.onRowRemoved?.(current.rows[index], index);
     },
     [announce, focusRow]
   );

@@ -370,15 +370,6 @@ describe('StepListEditor', () => {
 
       expect(screen.getByRole('status')).toHaveTextContent('Step 2 removed');
     });
-
-    it('should tell the shell what was removed so it can offer undo', async () => {
-      const onRowRemoved = jest.fn();
-      const { user } = renderList({ onRowRemoved }, threeSteps());
-
-      await user.click(screen.getByRole('button', { name: 'Remove step 2' }));
-
-      expect(onRowRemoved).toHaveBeenCalledWith({ id: 's2', description: 'Rest', image: '' }, 1);
-    });
   });
 
   describe('errors', () => {

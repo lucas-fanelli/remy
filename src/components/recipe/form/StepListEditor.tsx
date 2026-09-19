@@ -11,7 +11,6 @@ import { rowMotion } from './formMotion';
 import { attentionColor } from './formTokens';
 import { neighbourRowId } from './keyboard';
 import StepRow from './StepRow';
-import { StepRowValue } from './types';
 import { RegisterField } from './useFieldRegistry';
 import { usePointerSettled } from './usePointerSettled';
 import { RecipeFormApi, StepPatch } from './useRecipeForm';
@@ -28,8 +27,6 @@ export interface StepListEditorProps {
   disabled?: boolean;
   /** id of the SectionHeading that names this list; without it the group is 'Steps' */
   labelledBy?: string;
-  /** After a step was removed: what a shell needs to offer Undo (`form.steps.restore`) */
-  onRowRemoved?: (row: StepRowValue, index: number) => void;
 }
 
 /**
@@ -42,7 +39,6 @@ export default function StepListEditor({
   registerField,
   disabled = false,
   labelledBy,
-  onRowRemoved,
 }: StepListEditorProps) {
   const { values, errors, steps, touch, setUploading } = form;
   const rows = values.steps;
@@ -55,8 +51,8 @@ export default function StepListEditor({
   const errorId = useId();
 
   // Rows are memoised, so their callbacks keep one identity and read the latest props here
-  const latest = useRef({ rows, steps, touch, setUploading, onRowRemoved });
-  latest.current = { rows, steps, touch, setUploading, onRowRemoved };
+  const latest = useRef({ rows, steps, touch, setUploading });
+  latest.current = { rows, steps, touch, setUploading };
 
   const handleChange = useCallback((id: string, patch: StepPatch) => {
     latest.current.steps.update(id, patch);
@@ -83,7 +79,6 @@ export default function StepListEditor({
       if (neighbour) focusRow(neighbour, 'remove');
       else addButtonRef.current?.focus();
       announce(`Step ${index + 1} removed`);
-      current.onRowRemoved?.(current.rows[index], index);
     },
     [announce, focusRow]
   );
