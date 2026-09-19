@@ -18,12 +18,14 @@ import {
 } from '@mui/material';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useLayoutEffect, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 import { INVALID_RESET_TOKEN_MESSAGE } from '@/domain/errors';
+import { useTextDescriptor } from '@/i18n/text';
 import { hardNavigate } from '@/lib/utils/navigation';
-import { PASSWORD_RULES, getPasswordErrors } from '@/lib/validation/passwordRules';
+import { PASSWORD_RULES, getPasswordIssues } from '@/lib/validation/passwordRules';
 
 interface ResetPasswordFormProps {
   /** Raw token from the emailed link; null when the link carries none */
@@ -53,6 +55,11 @@ const visuallyHiddenSx = {
 const VISIBLE_RULES = PASSWORD_RULES.filter((rule) => rule.id !== 'maxLength');
 
 export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswordFormProps) {
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
+  // The password rules are a plain list with no locale of its own: it hands back
+  // descriptors and this is what turns them into text
+  const renderText = useTextDescriptor();
   // Held in memory only: the address bar is cleaned below, so the prop may come
   // back empty on a later render and must not take the token with it
   const [token] = useState(tokenFromLink);
@@ -86,16 +93,16 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
     const nextErrors: { password?: string; confirmPassword?: string } = {};
 
     if (!password) {
-      nextErrors.password = 'Enter a new password';
+      nextErrors.password = t('resetPassword.passwordRequired');
     } else {
-      const [firstProblem] = getPasswordErrors(password);
-      if (firstProblem) nextErrors.password = firstProblem;
+      const [firstProblem] = getPasswordIssues(password);
+      if (firstProblem) nextErrors.password = renderText(firstProblem);
     }
 
     if (!confirmPassword) {
-      nextErrors.confirmPassword = 'Confirm your new password';
+      nextErrors.confirmPassword = t('resetPassword.confirmRequired');
     } else if (confirmPassword !== password) {
-      nextErrors.confirmPassword = 'Passwords do not match';
+      nextErrors.confirmPassword = t('resetPassword.passwordsDoNotMatch');
     }
 
     setErrors(nextErrors);
@@ -128,16 +135,16 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
       const data = await response.json().catch(() => null);
 
       if (response.status === 429) {
-        setError('Too many attempts. Please wait a few minutes and try again.');
+        setError(t('errors.rateLimited'));
       } else if (response.status === 400 && data?.error === INVALID_RESET_TOKEN_MESSAGE) {
         setIsLinkInvalid(true);
       } else if (response.status === 400) {
-        setErrors({ password: data?.error || 'Choose a different password' });
+        setErrors({ password: data?.error || t('resetPassword.chooseDifferent') });
       } else {
-        setError('Something went wrong. Please try again.');
+        setError(tCommon('states.errorRetry'));
       }
     } catch {
-      setError('Could not reach the server. Check your connection and try again.');
+      setError(t('errors.network'));
     }
 
     setIsLoading(false);
@@ -167,7 +174,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
           sx={{ height: 60, width: 60 }}
         />
         <Typography variant="h5" component="h1" align="center" sx={{ fontWeight: 600 }}>
-          {isLinkInvalid ? 'Link not valid' : 'Choose a new password'}
+          {isLinkInvalid ? t('resetPassword.invalidTitle') : t('resetPassword.title')}
         </Typography>
       </Box>
 
@@ -175,7 +182,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
         <>
           {/* One generic state for missing, unknown, used and expired links */}
           <Alert severity="error" sx={{ mb: 2 }}>
-            {INVALID_RESET_TOKEN_MESSAGE}. Reset links work once and expire after 60 minutes.
+            {t('resetPassword.invalidLink')}
           </Alert>
           <Button
             fullWidth
@@ -184,7 +191,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
             href="/auth/forgot-password"
             sx={{ textTransform: 'none', fontWeight: 600, py: 1 }}
           >
-            Request a new link
+            {t('resetPassword.requestNewLink')}
           </Button>
         </>
       ) : (
@@ -203,7 +210,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
               size="small"
               id="reset-password-new"
               name="password"
-              label="New password"
+              label={t('resetPassword.newPassword')}
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={password}
@@ -224,7 +231,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
                     <InputAdornment position="end">
                       <IconButton
                         // Fixed name + aria-pressed: the state is announced, the name never flips
-                        aria-label="Show passwords"
+                        aria-label={t('resetPassword.showPasswords')}
                         aria-pressed={showPassword}
                         onClick={() => setShowPassword((prev) => !prev)}
                         onMouseDown={(e) => e.preventDefault()}
@@ -250,7 +257,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
             <Box
               component="ul"
               id="reset-password-rules"
-              aria-label="Password requirements"
+              aria-label={t('resetPassword.requirements')}
               sx={{ listStyle: 'none', p: 0, m: 0, mb: 2 }}
             >
               {VISIBLE_RULES.map((rule) => {
@@ -272,10 +279,10 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
                       <UncheckedIcon sx={{ fontSize: 16 }} aria-hidden />
                     )}
                     <Typography variant="caption" component="span">
-                      {rule.label}
+                      {renderText(rule.label)}
                       {/* Colour alone must not carry the state */}
                       <Box component="span" sx={visuallyHiddenSx}>
-                        {isMet ? ' (met)' : ' (not met yet)'}
+                        {isMet ? t('resetPassword.ruleMet') : t('resetPassword.ruleNotMet')}
                       </Box>
                     </Typography>
                   </Box>
@@ -288,7 +295,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
               size="small"
               id="reset-password-confirm"
               name="confirmPassword"
-              label="Confirm new password"
+              label={t('resetPassword.confirmPassword')}
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={confirmPassword}
@@ -310,14 +317,14 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
               variant="contained"
               type="submit"
               disabled={isLoading}
-              aria-label={isLoading ? 'Saving new password' : undefined}
+              aria-label={isLoading ? t('resetPassword.submitting') : undefined}
               sx={{
                 textTransform: 'none',
                 fontWeight: 600,
                 py: 1,
               }}
             >
-              {isLoading ? <CircularProgress size={24} aria-hidden /> : 'Save new password'}
+              {isLoading ? <CircularProgress size={24} aria-hidden /> : t('resetPassword.submit')}
             </Button>
           </Box>
         </>
@@ -339,7 +346,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
         }}
       >
         <Link component={NextLink} href="/auth" variant="body2" sx={linkSx}>
-          Back to log in
+          {t('resetPassword.backToLogin')}
         </Link>
       </Box>
     </MotionBox>

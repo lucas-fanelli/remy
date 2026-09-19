@@ -1,6 +1,7 @@
 'use client';
 import { Box, TextField, Button, Typography, Alert, CircularProgress, Link } from '@mui/material';
 import NextLink from 'next/link';
+import { useTranslations } from 'next-intl';
 import React, { useEffect, useRef, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
@@ -16,6 +17,8 @@ const linkSx = {
 } as const;
 
 export default function ForgotPasswordForm() {
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [error, setError] = useState('');
@@ -35,7 +38,7 @@ export default function ForgotPasswordForm() {
 
     const value = emailOrUsername.trim();
     if (!value) {
-      setFieldError('Enter your email or username');
+      setFieldError(t('forgotPassword.identifierRequired'));
       return;
     }
 
@@ -52,15 +55,15 @@ export default function ForgotPasswordForm() {
       if (response.ok) {
         setIsSubmitted(true);
       } else if (response.status === 429) {
-        setError('Too many attempts. Please wait a few minutes and try again.');
+        setError(t('errors.rateLimited'));
       } else if (response.status === 400) {
         const data = await response.json().catch(() => null);
-        setFieldError(data?.error || 'Enter a valid email or username');
+        setFieldError(data?.error || t('forgotPassword.identifierInvalid'));
       } else {
-        setError('Something went wrong. Please try again.');
+        setError(tCommon('states.errorRetry'));
       }
     } catch {
-      setError('Could not reach the server. Check your connection and try again.');
+      setError(t('errors.network'));
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +93,7 @@ export default function ForgotPasswordForm() {
           sx={{ height: 60, width: 60 }}
         />
         <Typography variant="h5" component="h1" align="center" sx={{ fontWeight: 600 }}>
-          Forgot your password?
+          {t('forgotPassword.title')}
         </Typography>
       </Box>
 
@@ -98,8 +101,7 @@ export default function ForgotPasswordForm() {
         <>
           {/* Neutral on purpose: it must not reveal whether the account exists */}
           <Alert severity="info" role="status" ref={confirmationRef} tabIndex={-1} sx={{ mb: 2 }}>
-            If an account matches, we sent a link to reset your password. Check your spam folder if
-            you don&apos;t see it. The link expires in 60 minutes.
+            {t('forgotPassword.confirmation')}
           </Alert>
           <Button
             fullWidth
@@ -110,13 +112,13 @@ export default function ForgotPasswordForm() {
             }}
             sx={{ textTransform: 'none', fontWeight: 600 }}
           >
-            Try a different email or username
+            {t('forgotPassword.tryAnother')}
           </Button>
         </>
       ) : (
         <>
           <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 3 }}>
-            Enter your email or username and we&apos;ll send you a link to choose a new password.
+            {t('forgotPassword.intro')}
           </Typography>
 
           {/* Error Alert */}
@@ -133,7 +135,7 @@ export default function ForgotPasswordForm() {
               size="small"
               id="forgot-password-identifier"
               name="emailOrUsername"
-              label="Email or username"
+              label={t('forgotPassword.identifier')}
               autoComplete="username"
               value={emailOrUsername}
               onChange={(e) => {
@@ -155,14 +157,14 @@ export default function ForgotPasswordForm() {
               variant="contained"
               type="submit"
               disabled={isLoading}
-              aria-label={isLoading ? 'Sending reset link' : undefined}
+              aria-label={isLoading ? t('forgotPassword.submitting') : undefined}
               sx={{
                 textTransform: 'none',
                 fontWeight: 600,
                 py: 1,
               }}
             >
-              {isLoading ? <CircularProgress size={24} aria-hidden /> : 'Send reset link'}
+              {isLoading ? <CircularProgress size={24} aria-hidden /> : t('forgotPassword.submit')}
             </Button>
           </Box>
         </>
@@ -185,10 +187,10 @@ export default function ForgotPasswordForm() {
         }}
       >
         <Typography variant="body2" component="span">
-          Remembered it?
+          {t('forgotPassword.rememberedIt')}
         </Typography>
         <Link component={NextLink} href="/auth" variant="body2" sx={linkSx}>
-          Back to log in
+          {t('forgotPassword.backToLogin')}
         </Link>
       </Box>
     </MotionBox>
