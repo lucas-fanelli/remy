@@ -815,6 +815,70 @@ describe('useRecipeDraft', () => {
     });
   });
 
+  describe('an editor that stays mounted while the user changes', () => {
+    const OTHER_KEY = 'remy:recipe-draft:v1:user-2';
+    const written = makeValues({ title: 'Secret recipe of user 1' });
+
+    it("should never write what the last user left on screen under the next user's key", () => {
+      const storage = createStorage();
+      const { rerender } = renderDraft({ storage });
+      typeAndWait(rerender, { userId: 'user-1', values: written, storage });
+      clearRecipeDraft(USER_KEY, storage);
+      rerender({ userId: null, values: written, storage });
+
+      typeAndWait(rerender, { userId: 'user-2', values: written, storage });
+
+      expect(storage.data.has(OTHER_KEY)).toBe(false);
+    });
+
+    it('should not bring back a draft that logout cleared when the same user logs in again', () => {
+      const storage = createStorage();
+      const { rerender } = renderDraft({ storage });
+      typeAndWait(rerender, { userId: 'user-1', values: written, storage });
+      clearRecipeDraft(USER_KEY, storage);
+      rerender({ userId: null, values: written, storage });
+
+      typeAndWait(rerender, { userId: 'user-1', values: written, storage });
+
+      expect(storage.data.has(USER_KEY)).toBe(false);
+    });
+
+    it('should not bring a published recipe back as a draft after a logout and a login', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderDraft({ storage });
+      typeAndWait(rerender, { userId: 'user-1', values: written, storage });
+      act(() => result.current.clearDraft());
+      rerender({ userId: null, values: written, storage });
+
+      typeAndWait(rerender, { userId: 'user-1', values: written, storage });
+
+      expect(storage.data.has(USER_KEY)).toBe(false);
+    });
+
+    it('should not write them when the author only moves to another section', () => {
+      const storage = createStorage();
+      const { rerender } = renderDraft({ storage, values: written });
+
+      typeAndWait(rerender, { userId: 'user-2', values: written, section: 'steps', storage });
+
+      expect(storage.data.has(OTHER_KEY)).toBe(false);
+    });
+
+    it('should save for the new user from the first real edit on', () => {
+      const storage = createStorage();
+      const { rerender } = renderDraft({ storage, values: written });
+      rerender({ userId: 'user-2', values: written, storage });
+
+      typeAndWait(rerender, {
+        userId: 'user-2',
+        values: makeValues({ title: 'Written by user 2' }),
+        storage,
+      });
+
+      expect(savedIn(storage, OTHER_KEY).values.title).toBe('Written by user 2');
+    });
+  });
+
   describe('clearDraft', () => {
     it('should remove the stored draft and forget the restored one', () => {
       const storage = createStorage({ [USER_KEY]: storedDraft() });

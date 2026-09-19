@@ -16,6 +16,10 @@ import { NumericFieldValue, RECIPE_FORM_SECTIONS, RecipeFormValuesInput } from '
  * Autosave only ever WRITES. A blank form is never taken for 'the author emptied it' - a
  * form that was re-initialised in place looks exactly the same - so the stored draft is
  * removed by `clearDraft()` ('Start over', Publish) and by logout, and by nothing else.
+ *
+ * A draft belongs to ONE user. When the key changes under a form that stays mounted (a
+ * logout, the next login), what is on screen was written under the old key: it is never
+ * saved under the new one until somebody edits it.
  */
 
 export const RECIPE_DRAFT_VERSION = 1;
@@ -317,7 +321,9 @@ export function useRecipeDraft({
   const movedSinceMountRef = useRef(false);
   const mountSnapshotRef = useRef<string | null>(null);
   const changedSinceMountRef = useRef(false);
-  // Values that were on screen when the draft was cleared (published): never re-saved
+  // Values that are never saved as they stand: what was on screen when the draft was cleared
+  // (published), and what was on screen when the KEY changed - that is the work of whoever
+  // held the old key, not something the new user wrote
   const clearedSnapshotRef = useRef<string | null>(null);
 
   const pendingRef = useRef<{
@@ -367,8 +373,10 @@ export function useRecipeDraft({
   }, []);
 
   let current = found;
+  // False on the first render: `found` was read with this very key
+  const keyChanged = found.key !== key;
   if (found.identity !== identity) {
-    if (found.key === key) {
+    if (!keyChanged) {
       // Same user, new form: what was typed inside the debounce window belongs to the form
       // that is going away and is written BEFORE storage is read again
       writePending(false);
@@ -394,7 +402,9 @@ export function useRecipeDraft({
     movedSinceMountRef.current = false;
     mountSnapshotRef.current = snapshotOf(toDraftValues(values), text);
     changedSinceMountRef.current = false;
-    clearedSnapshotRef.current = null;
+    // A closed editor that stays mounted through a logout and the next login still holds the
+    // last author's recipe: under the new key it waits for a real edit before it is saved
+    clearedSnapshotRef.current = keyChanged ? mountSnapshotRef.current : null;
   }
 
   useEffect(() => {
