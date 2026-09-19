@@ -7,10 +7,12 @@ import { useCallback, useState } from 'react';
  * 'Step 3 removed'. Errors never go through it - they are role=alert in FormStatus.
  */
 
+// Pixel STRINGS: in sx a bare 1 is a fraction (width: 100%), and a full-size absolute box
+// - clipped or not - adds its height to the scrollable overflow of the dialog or the page
 const visuallyHiddenSx = {
   position: 'absolute',
-  width: 1,
-  height: 1,
+  width: '1px',
+  height: '1px',
   m: '-1px',
   p: 0,
   border: 0,
