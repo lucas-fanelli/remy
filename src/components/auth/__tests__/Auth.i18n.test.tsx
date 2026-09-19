@@ -12,8 +12,12 @@ import ResetPasswordForm from '../ResetPasswordForm';
 /**
  * The counterpart of the suites next to this one: those assert the ENGLISH copy and were not
  * touched by the migration, this one proves the very same screens render Spanish when the
- * locale says so - including the two indirect paths, the password rules (a pure list that
- * hands back descriptors) and the auth context's error fallbacks.
+ * locale says so - including the password rules, a pure list that hands back descriptors and
+ * has no locale of its own.
+ *
+ * AuthContext is mocked below so the forms can be driven, so its own translated throws are
+ * NOT covered here: src/contexts/__tests__/AuthContext.i18n.test.tsx renders the real
+ * provider for those.
  */
 
 const mockUseAuth = jest.fn();
@@ -132,14 +136,14 @@ describe('Auth screens in Spanish', () => {
         screen.getByRole('heading', { name: '¿Olvidaste tu contraseña?' })
       ).toBeInTheDocument();
       expect(screen.getByLabelText(/Email o usuario/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Enviar link' })).toBeInTheDocument();
-      expect(screen.getByRole('link', { name: 'Volver a iniciar sesión' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Enviar enlace' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Volver al inicio de sesión' })).toBeInTheDocument();
     });
 
     it('should ask for the identifier in Spanish and not call the API', () => {
       renderInSpanish(<ForgotPasswordForm />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Enviar link' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }));
 
       expect(screen.getByText('Ingresá tu email o usuario')).toBeInTheDocument();
       expect(mockFetch).not.toHaveBeenCalled();
@@ -150,7 +154,7 @@ describe('Auth screens in Spanish', () => {
       renderInSpanish(<ForgotPasswordForm />);
 
       fireEvent.change(screen.getByLabelText(/Email o usuario/), { target: { value: 'chef' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Enviar link' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }));
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'No pudimos conectarnos. Revisá tu conexión y probá de nuevo.'
@@ -211,11 +215,11 @@ describe('Auth screens in Spanish', () => {
     it('should explain an invalid link in Spanish', () => {
       renderInSpanish(<ResetPasswordForm token={null} />);
 
-      expect(screen.getByRole('heading', { name: 'Link no válido' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Enlace no válido' })).toBeInTheDocument();
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Este link no es válido o ya venció. Los links de recuperación sirven una sola vez y vencen a los 60 minutos.'
+        'Este enlace no es válido o ya venció. Los enlaces de recuperación sirven una sola vez y vencen a los 60 minutos.'
       );
-      expect(screen.getByRole('link', { name: 'Pedir un link nuevo' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: 'Pedir un enlace nuevo' })).toBeInTheDocument();
     });
   });
 });
