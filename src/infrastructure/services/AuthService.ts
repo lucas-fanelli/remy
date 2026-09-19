@@ -1,6 +1,12 @@
 import { User, Role } from '@prisma/client';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
-import { IAuthService, RegisterDTO, LoginDTO, AuthResponse } from '@/domain/services/IAuthService';
+import {
+  IAuthService,
+  RegisterDTO,
+  LoginDTO,
+  AuthResponse,
+  SessionUser,
+} from '@/domain/services/IAuthService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import { ITokenService, TokenPayload } from '@/domain/services/ITokenService';
 
@@ -12,6 +18,12 @@ export class AuthService implements IAuthService {
     private readonly passwordService: IPasswordService,
     private readonly tokenService: ITokenService
   ) {}
+
+  /** Strip what must never leave the auth layer: the hash and the security metadata */
+  private toSessionUser(user: User): SessionUser {
+    const { password: _, passwordChangedAt: _changedAt, ...sessionUser } = user;
+    return sessionUser;
+  }
 
   /**
    * Check if email should be auto-promoted to admin based on ADMIN_EMAILS env var
@@ -74,10 +86,8 @@ export class AuthService implements IAuthService {
     });
 
     // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-
     return {
-      user: userWithoutPassword,
+      user: this.toSessionUser(user),
       token,
     };
   }
@@ -118,15 +128,13 @@ export class AuthService implements IAuthService {
     });
 
     // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-
     return {
-      user: userWithoutPassword,
+      user: this.toSessionUser(user),
       token,
     };
   }
 
-  async validateToken(token: string): Promise<Omit<User, 'password'> | null> {
+  async validateToken(token: string): Promise<SessionUser | null> {
     const payload = this.tokenService.verify(token);
     if (!payload) {
       return null;
@@ -142,8 +150,7 @@ export class AuthService implements IAuthService {
       return null;
     }
 
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return this.toSessionUser(user);
   }
 
   /**

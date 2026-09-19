@@ -12,8 +12,13 @@ export type LoginDTO = {
   password: string;
 };
 
+// What leaves the auth layer (and reaches the client through /api/auth/me, login
+// and register): no password hash, and no passwordChangedAt, which is security
+// metadata that only validateToken needs
+export type SessionUser = Omit<User, 'password' | 'passwordChangedAt'>;
+
 export type AuthResponse = {
-  user: Omit<User, 'password'>;
+  user: SessionUser;
   token: string;
 };
 
@@ -21,7 +26,7 @@ export type AuthResponse = {
 export interface IAuthService {
   register(data: RegisterDTO): Promise<AuthResponse>;
   login(data: LoginDTO): Promise<AuthResponse>;
-  validateToken(token: string): Promise<Omit<User, 'password'> | null>;
+  validateToken(token: string): Promise<SessionUser | null>;
   /**
    * Changing the password invalidates every session issued before it.
    * Resolves with a fresh token so the caller can keep the current session alive.

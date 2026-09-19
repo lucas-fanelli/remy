@@ -335,6 +335,60 @@ describe('AuthService - Unit Tests', () => {
     });
   });
 
+  describe('passwordChangedAt stays inside the auth layer', () => {
+    // These objects are what /api/auth/me, login and register send to the browser
+    const changedAt = new Date('2026-01-01T10:00:00.000Z');
+    const changedUser = { ...mockUser, passwordChangedAt: changedAt };
+
+    it('should not return passwordChangedAt from validateToken', async () => {
+      mockTokenService.verify = jest.fn().mockReturnValue({
+        userId: mockUser.id,
+        email: mockUser.email,
+        username: mockUser.username,
+        role: 'USER',
+        iat: Math.floor(changedAt.getTime() / 1000) + 60,
+      });
+      mockUserRepository.findById = jest.fn().mockResolvedValue(changedUser);
+
+      const result = await authService.validateToken('token');
+
+      expect(result?.id).toBe(mockUser.id);
+      expect(result).not.toHaveProperty('passwordChangedAt');
+      expect(result).not.toHaveProperty('password');
+    });
+
+    it('should not return passwordChangedAt from login', async () => {
+      mockUserRepository.findByEmail = jest.fn().mockResolvedValue(changedUser);
+      mockPasswordService.compare = jest.fn().mockResolvedValue(true);
+      mockTokenService.generate = jest.fn().mockReturnValue('jwt');
+
+      const result = await authService.login({
+        emailOrUsername: mockUser.email,
+        password: 'Password123',
+      });
+
+      expect(result.user).not.toHaveProperty('passwordChangedAt');
+      expect(result.user).not.toHaveProperty('password');
+    });
+
+    it('should not return passwordChangedAt from register', async () => {
+      mockPasswordService.validate = jest.fn().mockReturnValue(true);
+      mockPasswordService.hash = jest.fn().mockResolvedValue('hashed');
+      mockUserRepository.exists = jest.fn().mockResolvedValue(false);
+      mockUserRepository.create = jest.fn().mockResolvedValue(changedUser);
+      mockTokenService.generate = jest.fn().mockReturnValue('jwt');
+
+      const result = await authService.register({
+        email: mockUser.email,
+        username: mockUser.username,
+        password: 'Password123',
+      });
+
+      expect(result.user).not.toHaveProperty('passwordChangedAt');
+      expect(result.user).not.toHaveProperty('password');
+    });
+  });
+
   describe('changePassword', () => {
     it('should change password successfully', async () => {
       const userId = 'user-123';
