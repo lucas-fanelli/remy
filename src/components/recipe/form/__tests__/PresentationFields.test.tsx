@@ -56,6 +56,12 @@ const selectFile = (file: File) => {
 const pasteInto = (element: HTMLElement, files: File[]) =>
   fireEvent.paste(element, { clipboardData: { files, items: [] } });
 
+// What Excel, OneNote and Word put on the clipboard: the text AND a PNG rendering of it
+const pasteClipboard = (
+  element: HTMLElement,
+  clipboardData: { files: File[]; types?: string[]; getData?: (format: string) => string }
+) => fireEvent.paste(element, { clipboardData: { items: [], ...clipboardData } });
+
 describe('PresentationFields', () => {
   let mockFetch: jest.Mock;
 
@@ -287,6 +293,47 @@ describe('PresentationFields', () => {
 
       expect(notCancelled).toBe(true);
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should leave a paste that carries text next to its image rendering to the field', () => {
+      const { api } = renderFields({ load: makeValues({ imageUrl: COVER_URL }) });
+
+      const notCancelled = pasteClipboard(getDescription(), {
+        files: [makeFile('cells.png', 'image/png')],
+        types: ['text/plain', 'text/html', 'Files'],
+        getData: (format) => (format === 'text/plain' ? 'Flour 200 g' : ''),
+      });
+
+      expect(notCancelled).toBe(true);
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(api.current?.uploadsInFlight).toBe(0);
+      expect(api.current?.values.imageUrl).toBe(COVER_URL);
+    });
+
+    it('should detect the text of a clipboard that does not list its types', () => {
+      renderFields();
+
+      const notCancelled = pasteClipboard(getClosingNote(), {
+        files: [makeFile('cells.png', 'image/png')],
+        getData: (format) => (format === 'text/plain' ? 'Better the next day' : ''),
+      });
+
+      expect(notCancelled).toBe(true);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should still feed the cover with an image copied from a web page', async () => {
+      mockFetch.mockResolvedValueOnce(okResponse());
+      const { api } = renderFields();
+
+      // 'Copy image' in a browser: the file plus an <img> tag as text/html, no plain text
+      pasteClipboard(getDescription(), {
+        files: [makeFile('copied.png', 'image/png')],
+        types: ['text/html', 'Files'],
+        getData: () => '',
+      });
+
+      await waitFor(() => expect(api.current?.values.imageUrl).toBe(UPLOADED_URL));
     });
 
     it('should upload a pasted image once when it lands on the cover itself', async () => {

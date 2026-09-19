@@ -41,6 +41,12 @@ export interface PresentationFieldsProps {
 
 const COVER_PATH = 'imageUrl';
 
+/** Spreadsheet cells, OneNote and Word put a PNG rendering of the text next to the text */
+function carriesText(clipboard: DataTransfer): boolean {
+  if (Array.from(clipboard.types ?? []).includes('text/plain')) return true;
+  return Boolean(clipboard.getData?.('text/plain'));
+}
+
 const minutes = (value: NumericFieldValue): number => (value === '' ? 0 : value);
 
 /** The helperText slot: the message on the left, the 'n/max' counter right-aligned */
@@ -109,9 +115,12 @@ export default function PresentationFields({
   );
 
   // ImageUpload consumes (and stops) a paste that lands on the cover itself; this one
-  // catches an image pasted while the caret is in the description or the closing note
+  // catches an image pasted while the caret is in the description or the closing note.
+  // Only a PURE image paste feeds the cover: when the clipboard also carries text the
+  // author is pasting text, and it must reach the field untouched
   const handlePaste = (event: React.ClipboardEvent) => {
     if (disabled || coverBusy.current) return;
+    if (carriesText(event.clipboardData)) return;
     const file = firstFileFrom(event.clipboardData, true);
     if (!file) return;
     event.preventDefault();
