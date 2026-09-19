@@ -77,6 +77,7 @@ export default function DraftRestoredBar({
               size="small"
               onClick={() => setConfirmOpen(true)}
               disabled={disabled}
+              sx={{ whiteSpace: 'nowrap' }}
             >
               Start over
             </Button>
