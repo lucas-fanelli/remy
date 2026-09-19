@@ -61,10 +61,22 @@ describe('ResetPasswordForm Component', () => {
   const newPassword = () => screen.getByLabelText(/^new password/i);
   const confirmPassword = () => screen.getByLabelText(/^confirm new password/i);
 
+  // Long values are pasted: typing 129 characters twice is ~260 simulated keystrokes and
+  // blows the 5s test timeout when the whole suite runs in parallel.
+  const enter = async (
+    user: ReturnType<typeof userEvent.setup>,
+    field: HTMLElement,
+    value: string
+  ) => {
+    if (value.length <= 32) return user.type(field, value);
+    await user.click(field);
+    return user.paste(value);
+  };
+
   const fillAndSubmit = async (password: string, confirmation: string = password) => {
     const user = userEvent.setup();
-    if (password) await user.type(newPassword(), password);
-    if (confirmation) await user.type(confirmPassword(), confirmation);
+    if (password) await enter(user, newPassword(), password);
+    if (confirmation) await enter(user, confirmPassword(), confirmation);
     await user.click(screen.getByRole('button', { name: /save new password/i }));
     return user;
   };
