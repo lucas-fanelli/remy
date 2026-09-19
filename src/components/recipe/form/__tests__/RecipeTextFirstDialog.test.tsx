@@ -18,13 +18,14 @@ import { COVER_URL, STEP_URL, makeRecipe, makeValues } from './fixtures';
 const mockPush = jest.fn();
 const mockShowSuccess = jest.fn();
 const mockShowInfo = jest.fn();
+const mockLogout = jest.fn();
 let mockUser: { id: string; username: string } | null = { id: 'user-1', username: 'ana' };
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 jest.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: mockUser }),
+  useAuth: () => ({ user: mockUser, logout: mockLogout }),
 }));
 jest.mock('@/contexts/ToastContext', () => ({
   useToast: () => ({ showSuccess: mockShowSuccess, showInfo: mockShowInfo }),
@@ -39,6 +40,8 @@ jest.mock('@/components/recipe/form/formMotion', () => ({
 jest.setTimeout(30_000);
 
 const USER_KEY = 'remy:recipe-draft:v1:user-1';
+const AUTHOR = { id: 'user-1', username: 'ana' };
+const SOMEBODY_ELSE = { id: 'user-2', username: 'beto' };
 const theme = createTheme();
 
 const createStorage = (initial: Record<string, string> = {}) => {
@@ -155,6 +158,7 @@ beforeEach(() => {
   mockPush.mockReset();
   mockShowSuccess.mockReset();
   mockShowInfo.mockReset();
+  mockLogout.mockReset();
   mockFetch = global.fetch as jest.Mock;
   mockFetch.mockReset();
 });
@@ -646,6 +650,64 @@ describe('RecipeTextFirstDialog - create', () => {
       );
     });
 
+    describe('Log in again', () => {
+      // jsdom can not follow a link; the click itself still reaches the editor
+      const follow = async (user: ReturnType<typeof userEvent.setup>) => {
+        const link = await screen.findByRole('link', { name: 'Log in again' });
+        link.addEventListener('click', (event) => event.preventDefault());
+        await user.click(link);
+      };
+
+      it('should close the editor so it does not cover the login page', async () => {
+        answerRecipeWith(errorResponse(401, { error: 'Unauthorized' }));
+        const { user, onClose } = openComplete();
+        await user.click(publishButton());
+
+        await follow(user);
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('should end the session the server refused, so the login page does not bounce', async () => {
+        answerRecipeWith(errorResponse(401, { error: 'Unauthorized' }));
+        const { user } = openComplete();
+        await user.click(publishButton());
+
+        await follow(user);
+
+        expect(mockLogout).toHaveBeenCalledTimes(1);
+      });
+
+      it("should leave without the 'Draft saved' toast: the author is not done", async () => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        answerRecipeWith(errorResponse(401, { error: 'Unauthorized' }));
+        openComplete();
+        await user.click(publishButton());
+
+        await follow(user);
+        act(() => {
+          jest.advanceTimersByTime(theme.transitions.duration.leavingScreen * 2);
+        });
+
+        expect(mockShowInfo).not.toHaveBeenCalled();
+        jest.useRealTimers();
+      });
+
+      it('should keep what was typed after the session expired, up to the last key', async () => {
+        const { user, storage, rerender } = renderDialog();
+        await user.type(titleBox(), 'Pan');
+        mockUser = null;
+        rerender({});
+        await user.type(titleBox(), ' casero');
+
+        await follow(user);
+
+        expect(JSON.parse(storage.data.get(USER_KEY) ?? 'null').values.title).toBe('Pan casero');
+        expect(mockLogout).not.toHaveBeenCalled();
+      });
+    });
+
     it('should try again after a network failure', async () => {
       answerRecipeWith(new TypeError('Failed to fetch'));
       const { user } = openComplete();
@@ -876,6 +938,103 @@ describe('RecipeTextFirstDialog - create', () => {
 
       expect(screen.getByText('Draft saved')).toBeInTheDocument();
       jest.useRealTimers();
+    });
+
+    describe('a draft belongs to the author who wrote it', () => {
+      const wait = (ms: number) =>
+        act(() => {
+          jest.advanceTimersByTime(ms);
+        });
+
+      beforeEach(() => jest.useFakeTimers());
+      afterEach(() => jest.useRealTimers());
+
+      /** Writes a title and closes with X; the dialog stays mounted, as in the root layout */
+      const writeAndClose = async () => {
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const view = renderDialog();
+        await user.type(titleBox(), 'Secret recipe of Ana');
+        await user.click(screen.getByRole('button', { name: 'Close' }));
+        view.rerender({ open: false });
+        return view;
+      };
+
+      /** What Navigation does on a deliberate logout, then the next login in the same tab */
+      const logOutAndIn = (view: ReturnType<typeof renderDialog>, next: typeof mockUser) => {
+        view.storage.data.delete(USER_KEY);
+        mockUser = null;
+        view.rerender({ open: false });
+        mockUser = next;
+        view.rerender({ open: false });
+        wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
+      };
+
+      it('should write nothing for the user who logs in after the author logged out', async () => {
+        const view = await writeAndClose();
+
+        logOutAndIn(view, SOMEBODY_ELSE);
+
+        expect(Array.from(view.storage.data.keys())).toEqual([]);
+      });
+
+      it('should open blank for the user who logs in after the author logged out', async () => {
+        const view = await writeAndClose();
+        logOutAndIn(view, SOMEBODY_ELSE);
+
+        view.rerender({ open: true });
+
+        expect(titleBox()).toHaveValue('');
+        expect(screen.queryByText(/Draft restored/)).not.toBeInTheDocument();
+      });
+
+      it('should not bring back the draft a logout cleared when the author logs in again', async () => {
+        const view = await writeAndClose();
+
+        logOutAndIn(view, AUTHOR);
+        view.rerender({ open: true });
+
+        expect(view.storage.data.has(USER_KEY)).toBe(false);
+        expect(titleBox()).toHaveValue('');
+      });
+
+      it('should not bring a published recipe back as a draft after a logout and a login', async () => {
+        answerRecipeWith(okResponse({ recipe: { id: 'new-9' } }));
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const view = renderDialog({ draftStorage: createStorage({ [USER_KEY]: storedDraft() }) });
+        await user.click(publishButton());
+        await waitFor(() => expect(view.onClose).toHaveBeenCalledTimes(1));
+        view.rerender({ open: false });
+
+        logOutAndIn(view, AUTHOR);
+        view.rerender({ open: true });
+
+        expect(view.storage.data.has(USER_KEY)).toBe(false);
+        expect(screen.queryByText(/Draft restored/)).not.toBeInTheDocument();
+      });
+
+      it('should keep saving for an author whose session expired while writing', async () => {
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const { storage, rerender } = renderDialog();
+        mockUser = null;
+        rerender({});
+
+        await user.type(titleBox(), 'Pan');
+        wait(RECIPE_DRAFT_DEBOUNCE_MS);
+
+        expect(JSON.parse(storage.data.get(USER_KEY) ?? 'null').values.title).toBe('Pan');
+      });
+
+      it('should save nothing while somebody else is logged in over an open editor', async () => {
+        const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+        const { storage, rerender } = renderDialog();
+        mockUser = SOMEBODY_ELSE;
+        rerender({});
+
+        await user.type(titleBox(), 'Pan');
+        wait(RECIPE_DRAFT_DEBOUNCE_MS);
+
+        expect(Array.from(storage.data.keys())).toEqual([]);
+      });
     });
 
     it('should ask before closing when this device can not keep a draft', async () => {

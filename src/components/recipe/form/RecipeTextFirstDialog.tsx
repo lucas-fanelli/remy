@@ -135,12 +135,23 @@ const statusTextSx = {
   clip: { xs: 'rect(0 0 0 0)', sm: 'auto' },
 } as const;
 
-type SessionProps = Omit<RecipeTextFirstDialogProps, 'resetKey'>;
+interface SessionProps extends Omit<RecipeTextFirstDialogProps, 'resetKey'> {
+  /** Who opened this session: the only user its draft is ever read or written for */
+  ownerId: string | null;
+}
 
-function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }: SessionProps) {
+function EditorSession({
+  mode,
+  open,
+  onClose,
+  recipe,
+  onSuccess,
+  draftStorage,
+  ownerId,
+}: SessionProps) {
   const theme = useTheme();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { showSuccess, showInfo } = useToast();
   const createRecipe = useCreateRecipe();
   const updateRecipe = useUpdateRecipe();
@@ -161,9 +172,13 @@ function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }:
   // Once the author has moved between tabs the title no longer grabs the focus on mount
   const [hasSwitchedTab, setSwitchedTab] = useState(false);
 
+  // The draft belongs to whoever opened the session, never to whoever is logged in now. An
+  // expired session (no user) keeps saving while the editor is open - that is the draft
+  // FormStatus promises - but a closed one writes nothing until its owner is back
+  const ownsDraft = user ? user.id === ownerId : open;
   const draft = useRecipeDraft({
     // Edit has no stored draft: without a user id the hook is inert
-    userId: mode === 'create' ? user?.id : null,
+    userId: mode === 'create' && ownsDraft ? ownerId : null,
     values: form.values,
     text: capture.draftText,
     section: tab,
@@ -283,6 +298,16 @@ function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }:
         theme.transitions.duration.leavingScreen
       );
     }
+  };
+
+  // 'Log in again' leaves for the login page: the editor must not stay on top of it. The
+  // draft is written first and comes back when the login returns to 'New recipe'; no toast,
+  // the author is not done. After a 401 the app may still believe in the session the server
+  // refused, and the login page sends a logged-in visitor straight back: that session ends here
+  const handleLogin = () => {
+    flush();
+    onClose();
+    if (user) logout();
   };
 
   const handleDiscard = () => {
@@ -438,6 +463,7 @@ function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }:
         submitError={submitError}
         onRetry={handlePublish}
         sessionExpired={!user}
+        onLogin={handleLogin}
         draftSavedAt={draft.savedAt}
         attempt={attempts}
       />
@@ -593,24 +619,41 @@ function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }:
  * rows) and 'Check & publish' (the shared structured editors). Only Publish / Save
  * validates; tabs are never blocked.
  *
- * This outer component only decides when an editing SESSION starts: on every opening, and
- * when `resetKey` changes while open. The session is a keyed child, so all of its state -
- * form, texts, tab, errors - starts clean, and the closing dialog keeps its session until
- * the exit transition is over.
+ * This outer component only decides when an editing SESSION starts and ends: it starts on
+ * every opening, and when `resetKey` changes while open. The session is a keyed child, so
+ * all of its state - form, texts, tab, errors - starts clean, and the closing dialog keeps
+ * its session for the exit transition. It belongs to the user who opened it: once closed it
+ * is dropped as soon as anybody else, or nobody, is logged in.
  */
 export default function RecipeTextFirstDialog({ resetKey, ...props }: RecipeTextFirstDialogProps) {
   const { open, mode } = props;
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const key = resetKey ?? mode;
-  const [stored, setStored] = useState(() => ({ id: open ? 1 : 0, open, key }));
+  const [stored, setStored] = useState(() => ({
+    id: open ? 1 : 0,
+    open,
+    key,
+    ownerId: userId,
+    mounted: open,
+  }));
 
   let session = stored;
   if (stored.open !== open || stored.key !== key) {
     const startsNew = open && (!stored.open || stored.key !== key);
-    session = { id: startsNew ? stored.id + 1 : stored.id, open, key };
+    session = startsNew
+      ? { id: stored.id + 1, open, key, ownerId: userId, mounted: true }
+      : { ...stored, open, key };
+    setStored(session);
+  }
+  // A CLOSED session does not outlive its user. The dialog lives in the root layout, which
+  // survives a logout and the next login: the recipe of the last author must be gone by then
+  if (session.mounted && !open && session.ownerId !== userId) {
+    session = { ...session, mounted: false };
     setStored(session);
   }
 
-  // Never opened yet: no form, no storage read
-  if (session.id === 0) return null;
-  return <EditorSession key={session.id} {...props} />;
+  // Never opened yet, or dropped: no form, no storage read
+  if (!session.mounted) return null;
+  return <EditorSession key={session.id} {...props} ownerId={session.ownerId} />;
 }

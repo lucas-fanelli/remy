@@ -104,6 +104,28 @@ describe('CreateRecipeContext', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it("should take the dialog off the screen when the author follows 'Log in again'", async () => {
+    const tree = () => (
+      <CreateRecipeProvider>
+        <EntryPoints />
+      </CreateRecipeProvider>
+    );
+    const { rerender } = render(tree());
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'From the navigation' }));
+    // The session expires under the open editor (notification polling logs out silently)
+    mockUser = null;
+    rerender(tree());
+    const link = screen.getByRole('link', { name: 'Log in again' });
+    // jsdom can not follow a link; the login page is what the router shows next
+    link.addEventListener('click', (event) => event.preventDefault());
+
+    await user.click(link);
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('closed');
+  });
+
   it('should do nothing outside the provider', async () => {
     render(<EntryPoints />);
 

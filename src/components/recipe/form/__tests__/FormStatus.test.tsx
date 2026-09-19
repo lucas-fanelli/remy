@@ -304,6 +304,18 @@ describe('FormStatus', () => {
       );
     });
 
+    it('should tell the shell when the author leaves to log in again', async () => {
+      const onLogin = jest.fn();
+      const { user } = renderStatus({}, { sessionExpired: true, onLogin });
+      const link = screen.getByRole('link', { name: 'Log in again' });
+      // jsdom can not follow a link
+      link.addEventListener('click', (event) => event.preventDefault());
+
+      await user.click(link);
+
+      expect(onLogin).toHaveBeenCalledTimes(1);
+    });
+
     it('should show the same message when the session disappears while editing', () => {
       renderStatus({ issues: [COVER] }, { sessionExpired: true });
 

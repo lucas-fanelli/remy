@@ -47,6 +47,11 @@ export interface FormStatusProps {
   attempt?: number;
   /** Defaults to '/auth?next=create' (create) and '/auth' (edit) */
   loginHref?: string;
+  /**
+   * Runs when [Log in again] is activated, before the link navigates. A shell that is a
+   * dialog closes itself here: a dialog owned by the layout would stay on top of the login form
+   */
+  onLogin?: () => void;
   /** Put it in the PublishButton's aria-describedby */
   id?: string;
   sx?: SxProps<Theme>;
@@ -163,6 +168,7 @@ export default function FormStatus({
   draftSavedAt,
   attempt = 0,
   loginHref,
+  onLogin,
   id,
   sx,
 }: FormStatusProps) {
@@ -288,6 +294,7 @@ export default function FormStatus({
                 component={NextLink}
                 href={loginHref ?? (mode === 'create' ? '/auth?next=create' : '/auth')}
                 size="small"
+                onClick={onLogin}
               >
                 Log in again
               </Button>
