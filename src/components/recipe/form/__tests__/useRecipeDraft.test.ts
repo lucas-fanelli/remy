@@ -533,6 +533,38 @@ describe('useRecipeDraft', () => {
       expect(savedIn(storage).savedAt).toBe(SAVED_AT);
     });
 
+    it('should not write when the shell goes to the section of the restored draft', () => {
+      const storage = createStorage({ [USER_KEY]: storedDraft() });
+      const { rerender } = renderDraft({ storage });
+      const values = makeValues();
+
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'steps', storage });
+
+      expect(storage.setItem).not.toHaveBeenCalled();
+    });
+
+    it('should remember that the author moved on, even with nothing else changed', () => {
+      const storage = createStorage({ [USER_KEY]: storedDraft() });
+      const { rerender } = renderDraft({ storage });
+      const values = makeValues();
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'steps', storage });
+
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'presentation', storage });
+
+      expect(savedIn(storage).section).toBe('presentation');
+    });
+
+    it('should not write again for the section it has just stored', () => {
+      const storage = createStorage();
+      const { rerender } = renderDraft({ storage });
+      const values = makeValues();
+      typeAndWait(rerender, { userId: 'user-1', values, section: 'steps', storage });
+
+      typeAndWait(rerender, { userId: 'user-1', values: { ...values }, section: 'steps', storage });
+
+      expect(storage.setItem).toHaveBeenCalledTimes(1);
+    });
+
     it('should save again once the author edits the restored draft', () => {
       const storage = createStorage({ [USER_KEY]: storedDraft() });
       const { rerender } = renderDraft({ storage });

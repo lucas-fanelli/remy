@@ -799,6 +799,28 @@ describe('RecipeTextFirstDialog - create', () => {
       jest.useRealTimers();
     });
 
+    it('should reopen on the tab the author was on, texts and rows included', async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+      const { rerender } = renderDialog();
+      await paste(user, ingredientsBox(), '2 tazas de leche');
+      act(() => {
+        jest.advanceTimersByTime(RECIPE_DRAFT_DEBOUNCE_MS);
+      });
+      await user.click(checkTab());
+      await user.click(screen.getByRole('button', { name: 'Close' }));
+      rerender({ open: false });
+
+      rerender({ open: true });
+
+      expect(checkTab()).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByText(/^Draft restored from/)).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Name of ingredient 1' })).toHaveValue('leche');
+      await user.click(writeTab());
+      expect(ingredientsBox()).toHaveValue('2 tazas de leche');
+      jest.useRealTimers();
+    });
+
     it("should say 'Draft saved' only after the dialog has closed", async () => {
       jest.useFakeTimers();
       const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });

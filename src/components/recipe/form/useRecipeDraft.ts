@@ -310,6 +310,11 @@ export function useRecipeDraft({
   // What storage holds and what the form held when the hook mounted. A write happens only
   // once the author changed something: opening the form never refreshes `savedAt`.
   const storedSnapshotRef = useRef<string | null>(null);
+  // Where the stored draft says the author was. Once the author has MOVED (a shell that
+  // never passes the restored section must not cause a write), moving is worth a write
+  const storedSectionRef = useRef<string | null>(null);
+  const mountSectionRef = useRef(section);
+  const movedSinceMountRef = useRef(false);
   const mountSnapshotRef = useRef<string | null>(null);
   const changedSinceMountRef = useRef(false);
   // Values that were on screen when the draft was cleared (published): never re-saved
@@ -350,7 +355,10 @@ export function useRecipeDraft({
       pending.text ? { ...draft, text: pending.text } : draft,
       resolveStorage()
     );
-    if (written) storedSnapshotRef.current = snapshotOf(draftValues, pending.text);
+    if (written) {
+      storedSnapshotRef.current = snapshotOf(draftValues, pending.text);
+      storedSectionRef.current = pending.section;
+    }
     if (notify) {
       setSaveFailed(!written);
       if (written) setSavedAt(time);
@@ -381,6 +389,9 @@ export function useRecipeDraft({
     storedSnapshotRef.current = current.draft
       ? snapshotOf(current.draft.values, current.draft.text)
       : null;
+    storedSectionRef.current = current.draft ? current.draft.section : null;
+    mountSectionRef.current = section;
+    movedSinceMountRef.current = false;
     mountSnapshotRef.current = snapshotOf(toDraftValues(values), text);
     changedSinceMountRef.current = false;
     clearedSnapshotRef.current = null;
@@ -396,7 +407,9 @@ export function useRecipeDraft({
     if (snapshot !== clearedSnapshotRef.current) clearedSnapshotRef.current = null;
 
     const stored = storedSnapshotRef.current;
-    const upToDate = snapshot === stored;
+    if (section !== mountSectionRef.current) movedSinceMountRef.current = true;
+    const sameSection = !movedSinceMountRef.current || section === storedSectionRef.current;
+    const upToDate = snapshot === stored && sameSection;
     // Never written and never a reason to delete: a form that was reset in place (dialog
     // closed, 'Start over') is just as blank as one the author emptied by hand
     const blank = isBlankDraft(draftValues);
