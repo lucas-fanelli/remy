@@ -1,5 +1,6 @@
 'use client';
 
+import { MotionConfig } from 'framer-motion';
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 /**
@@ -62,7 +63,8 @@ export function MotionProvider({ children }: MotionProviderProps) {
         clearSource,
       }}
     >
-      {children}
+      {/* Honour the OS "reduce motion" setting in every framer-motion animation */}
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
     </MotionContext.Provider>
   );
 }
