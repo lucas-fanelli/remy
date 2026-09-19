@@ -29,6 +29,9 @@ model User {
   isVerified    Boolean   @default(false)
   isPrivate     Boolean   @default(false)
 
+  // Set whenever the password changes; JWTs issued before it are rejected
+  passwordChangedAt DateTime?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -45,6 +48,7 @@ model User {
   cookedRecipes CookedRecipe[]
   notifications Notification[] @relation("NotificationRecipient")
   sentNotifications Notification[] @relation("NotificationSender")
+  passwordResetTokens PasswordResetToken[]
 
   @@index([email])
   @@index([username])
@@ -302,4 +306,22 @@ model Notification {
   @@index([recipientId, isRead])
   @@index([recipientId, createdAt])
   @@map("notifications")
+}
+
+// Single-use password reset tokens. Only the SHA-256 hash of the token is
+// stored; the raw value exists solely in the emailed link.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique // SHA-256 hex digest of the raw token
+  expiresAt DateTime
+  usedAt    DateTime? // Set when the token is redeemed; a used token is never valid again
+  createdAt DateTime  @default(now())
+
+  // Relations
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }

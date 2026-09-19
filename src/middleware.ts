@@ -254,7 +254,9 @@ export async function middleware(request: NextRequest) {
 
     const isAuthEndpoint =
       request.nextUrl.pathname === '/api/auth/login' ||
-      request.nextUrl.pathname === '/api/auth/register';
+      request.nextUrl.pathname === '/api/auth/register' ||
+      request.nextUrl.pathname === '/api/auth/forgot-password' ||
+      request.nextUrl.pathname === '/api/auth/reset-password';
     const isUploadEndpoint = request.nextUrl.pathname.startsWith('/api/upload');
     const isMatchEndpoint = request.nextUrl.pathname === '/api/recipes/match';
     const isNotificationGet =

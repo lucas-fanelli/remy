@@ -49,6 +49,7 @@ export const MAX_DAILY_RECIPES = 10;
  *   48882 - Orphaned image cleanup script (key2 = 0, global)
  *   48883 - Recipe match endpoint (key2 = hashtext(userId), per-user)
  *   48884 - Recipe create daily-limit check (key2 = hashtext(userId), per-user)
+ *   48885 - Password reset request throttle (key2 = hashtext(userId), per-user)
  */
 export const PG_ADVISORY_LOCK_RECALC_RATINGS = 48879;
 export const PG_ADVISORY_LOCK_ADMIN_DELETE = 48880;
@@ -56,6 +57,7 @@ export const PG_ADVISORY_LOCK_COOKED_RECIPE = 48881;
 export const PG_ADVISORY_LOCK_CLEANUP = 48882;
 export const PG_ADVISORY_LOCK_MATCH = 48883;
 export const PG_ADVISORY_LOCK_RECIPE_CREATE = 48884;
+export const PG_ADVISORY_LOCK_PASSWORD_RESET = 48885;
 
 /** Canonical "to taste" unit value used across forms, validation, and display */
 export const UNIT_TO_TASTE = 'to taste';

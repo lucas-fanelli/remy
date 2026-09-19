@@ -21,6 +21,10 @@ interface EnvConfig {
   // AI (Optional for MVP)
   GEMINI_API_KEY?: string;
 
+  // Email (Optional - password reset emails are not sent without the key)
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
+
   // Application
   NODE_ENV: 'development' | 'production' | 'test';
 }
@@ -144,6 +148,12 @@ export function validateEnvironment(): EnvConfig {
   if (!process.env.GEMINI_API_KEY && process.env.NODE_ENV !== 'test') {
     console.warn('⚠️  GEMINI_API_KEY is not set. AI recipe generation features will not work.');
   }
+  if (!process.env.RESEND_API_KEY && process.env.NODE_ENV !== 'test') {
+    console.warn(
+      '⚠️  RESEND_API_KEY is not set. Password reset emails will not be sent' +
+        (process.env.NODE_ENV === 'development' ? ' (the link is printed to this console).' : '.')
+    );
+  }
 
   // If there are errors, throw
   if (errors.length > 0) {
@@ -172,6 +182,8 @@ export function validateEnvironment(): EnvConfig {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME!,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
     NODE_ENV: process.env.NODE_ENV as 'development' | 'production' | 'test',
   };
 }

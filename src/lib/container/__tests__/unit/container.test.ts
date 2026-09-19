@@ -445,4 +445,36 @@ describe('Container - Unit Tests', () => {
       expect(service1).toBe(service2);
     });
   });
+
+  describe('getEmailService', () => {
+    it('should return ResendEmailService instance', () => {
+      const emailService = container.getEmailService();
+
+      expect(emailService).toBeDefined();
+      expect(emailService.constructor.name).toBe('ResendEmailService');
+    });
+
+    it('should return same instance on multiple calls (singleton)', () => {
+      expect(container.getEmailService()).toBe(container.getEmailService());
+    });
+  });
+
+  describe('getPasswordResetService', () => {
+    it('should return PasswordResetService instance', () => {
+      const passwordResetService = container.getPasswordResetService();
+
+      expect(passwordResetService).toBeDefined();
+      expect(passwordResetService.constructor.name).toBe('PasswordResetService');
+    });
+
+    it('should return same instance on multiple calls (singleton)', () => {
+      expect(container.getPasswordResetService()).toBe(container.getPasswordResetService());
+    });
+
+    it('should register the reset token repository it depends on', () => {
+      const repository = container.get('IPasswordResetTokenRepository');
+
+      expect((repository as object).constructor.name).toBe('PasswordResetTokenRepository');
+    });
+  });
 });

@@ -19,6 +19,7 @@ describe('UserService - Unit Tests', () => {
     role: 'USER',
     isVerified: false,
     isPrivate: false,
+    passwordChangedAt: new Date('2026-01-01T10:00:00.000Z'),
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -26,6 +27,48 @@ describe('UserService - Unit Tests', () => {
   beforeEach(() => {
     mockUserRepository = mockDeep<IUserRepository>();
     userService = new UserService(mockUserRepository);
+  });
+
+  describe('security metadata', () => {
+    it('should not expose passwordChangedAt when looking a user up by id', async () => {
+      mockUserRepository.findById = jest.fn().mockResolvedValue(mockUser);
+
+      const result = await userService.getUserById('user-123');
+
+      expect(result).not.toHaveProperty('passwordChangedAt');
+    });
+
+    it('should not expose passwordChangedAt on a public profile', async () => {
+      mockUserRepository.findByUsername = jest.fn().mockResolvedValue(mockUser);
+
+      const result = await userService.getUserByUsername('testuser');
+
+      expect(result).not.toHaveProperty('passwordChangedAt');
+    });
+
+    it('should not expose passwordChangedAt after a profile update', async () => {
+      mockUserRepository.update = jest.fn().mockResolvedValue(mockUser);
+
+      const result = await userService.updateProfile('user-123', { bio: 'New bio' });
+
+      expect(result).not.toHaveProperty('passwordChangedAt');
+    });
+
+    it('should not expose passwordChangedAt in user listings', async () => {
+      mockUserRepository.findMany = jest.fn().mockResolvedValue([mockUser]);
+
+      const result = await userService.getUsers(1, 10);
+
+      expect(result[0]).not.toHaveProperty('passwordChangedAt');
+    });
+
+    it('should not expose passwordChangedAt in search results', async () => {
+      mockUserRepository.search = jest.fn().mockResolvedValue([mockUser]);
+
+      const result = await userService.searchUsers('test', 10);
+
+      expect(result[0]).not.toHaveProperty('passwordChangedAt');
+    });
   });
 
   describe('getUserById', () => {

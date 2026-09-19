@@ -1,6 +1,7 @@
 'use client';
-import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
-import React, { useState } from 'react';
+import { Box, TextField, Button, Typography, Alert, CircularProgress, Link } from '@mui/material';
+import NextLink from 'next/link';
+import React, { useEffect, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,23 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordWasReset, setPasswordWasReset] = useState(false);
+
+  // ResetPasswordForm sends the user here as /auth?reset=success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reset') !== 'success') return;
+
+    setPasswordWasReset(true);
+
+    // One-shot notice: drop the flag so a reload or a bookmark does not repeat it.
+    // Deferred so the app router has mounted and hears about the URL change.
+    const timer = window.setTimeout(
+      () => window.history.replaceState(null, '', window.location.pathname),
+      0
+    );
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +85,13 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         </Typography>
       </Box>
 
+      {/* Password reset confirmation */}
+      {passwordWasReset && (
+        <Alert severity="success" role="status" sx={{ mb: 2 }}>
+          Your password was updated. Log in with your new password.
+        </Alert>
+      )}
+
       {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
@@ -114,10 +139,29 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         </Button>
       </Box>
 
+      {/* Forgot password */}
+      <Box sx={{ mt: 1, display: 'flex', justifyContent: 'center' }}>
+        <Link
+          component={NextLink}
+          href="/auth/forgot-password"
+          variant="body2"
+          sx={{
+            // globals.css gives every link a 44px touch target; centre the text inside it
+            display: 'inline-flex',
+            alignItems: 'center',
+            color: 'primary.main',
+            textDecoration: 'none',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+        >
+          Forgot your password?
+        </Link>
+      </Box>
+
       {/* Switch to Register */}
       <Box
         sx={{
-          mt: 2,
+          mt: 1,
           p: 2,
           backgroundColor: 'background.paper',
           borderRadius: 1,

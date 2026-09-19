@@ -8,7 +8,8 @@ export type UpdateUserProfileDTO = {
   isPrivate?: boolean;
 };
 
-export type UserPublicProfile = Omit<User, 'password'>;
+// passwordChangedAt is security metadata, not profile data
+export type UserPublicProfile = Omit<User, 'password' | 'passwordChangedAt'>;
 
 // Interface for user management operations
 export interface IUserService {

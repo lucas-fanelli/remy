@@ -9,8 +9,12 @@ import Navigation from './Navigation';
 export default function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Don't show navigation on auth page
-  const hideNavigation = pathname === '/auth' || pathname === '/login' || pathname === '/register';
+  // Don't show navigation on auth pages (/auth, /auth/forgot-password, /auth/reset-password)
+  const hideNavigation =
+    pathname === '/auth' ||
+    pathname?.startsWith('/auth/') ||
+    pathname === '/login' ||
+    pathname === '/register';
 
   return (
     <>
