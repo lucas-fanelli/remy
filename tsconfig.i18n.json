@@ -1,0 +1,11 @@
+{
+  "//": "The i18n half of `npm run typecheck`. tsconfig.check.json deliberately ignores test files, so the message keys written in tests were never checked - see docs/I18N.md. This project adds back exactly the files where a key typo has to be a compile error: src/i18n/** and every *.i18n.test.tsx an area owner adds.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "types": ["node", "jest", "@testing-library/jest-dom"]
+  },
+  "include": ["next-env.d.ts", "src/i18n/**/*.ts", "src/i18n/**/*.tsx", "src/**/*.i18n.test.tsx"],
+  "exclude": ["node_modules", "coverage", ".next"]
+}

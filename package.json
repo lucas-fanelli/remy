@@ -11,7 +11,7 @@
     "lint:strict": "eslint src --ext .ts,.tsx --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-    "typecheck": "tsc --noEmit -p tsconfig.check.json",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json && tsc --noEmit -p tsconfig.i18n.json",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate:dev": "prisma migrate dev",

@@ -25,10 +25,31 @@ describe('text descriptors', () => {
     });
   });
 
+  it('should accept a key from any namespace, since a descriptor carries the full path', () => {
+    expect([text('nav.items.home'), text('errors.unauthorized')]).toEqual([
+      { key: 'nav.items.home' },
+      { key: 'errors.unauthorized' },
+    ]);
+  });
+
+  it('should reject a key the catalogue does not have', () => {
+    // The negative half of the contract: `tsconfig.i18n.json` typechecks this file, so tsc
+    // fails here if `MessageKey` ever stops rejecting a typo (an unused directive is an
+    // error too). At runtime the descriptor is just the object it was given.
+    // @ts-expect-error 'bogus.key.here' is not a key of the English catalogue
+    expect(text('bogus.key.here')).toEqual({ key: 'bogus.key.here' });
+  });
+
   it('should render a descriptor produced by a pure function in English', () => {
     render(<Rendered descriptor={text('common.form.tooLong', { max: 100 })} />);
 
     expect(screen.getByText('Use 100 characters or fewer')).toBeInTheDocument();
+  });
+
+  it('should render a descriptor whose namespace is not the one the component uses', () => {
+    render(<Rendered descriptor={text('errors.unauthorized')} />);
+
+    expect(screen.getByText('You need to log in to do that.')).toBeInTheDocument();
   });
 
   it('should render the same descriptor in Spanish', () => {

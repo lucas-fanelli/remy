@@ -1,5 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
+import type { Messages } from './messages';
 
 /**
  * How a PURE function hands user-facing text back to the UI.
@@ -31,10 +32,33 @@ import { useCallback } from 'react';
  * namespace of its own. It is checked against the English catalogue like any other key.
  */
 
-type RootTranslator = ReturnType<typeof useTranslations>;
+/** Every dotted path that leads to a message, built from the shape of the catalogue. */
+type NestedKeyOf<T> = T extends object
+  ? {
+      [K in keyof T & string]: T[K] extends string ? K : `${K}.${NestedKeyOf<T[K]>}`;
+    }[keyof T & string]
+  : never;
 
-/** Any key of the merged catalogue, 'namespace.some.key'. A typo is a compile error. */
-export type MessageKey = Parameters<RootTranslator>[0];
+/**
+ * Any key of the merged catalogue, 'namespace.some.key'. A typo is a compile error.
+ *
+ * It comes from the catalogue and NOT from `Parameters<ReturnType<typeof useTranslations>>`:
+ * that parameter is namespace-RELATIVE ('actions.save'), because the hook is normally bound
+ * to a namespace. A descriptor carries the full path instead - the pure function that built
+ * it has no namespace - and `useTextDescriptor` resolves it against the root translator.
+ */
+export type MessageKey = NestedKeyOf<Messages>;
+
+/**
+ * Compile-time proof of that contract, in a module `tsconfig.check.json` actually reads: the
+ * keys below are real full paths, and `npm run typecheck` fails the day `MessageKey` drifts
+ * back to relative keys. The negative half (a typo is rejected) is the `@ts-expect-error` in
+ * src/i18n/__tests__/helpers.test.tsx, which `tsconfig.i18n.json` typechecks.
+ */
+type AssertMessageKey<K extends MessageKey> = K;
+export type FullPathMessageKeys = AssertMessageKey<
+  'common.actions.save' | 'errors.unknown' | 'nav.items.home'
+>;
 
 /** The values an ICU message can be given. Rich text is a component's job, not a descriptor's. */
 export type MessageValues = Record<string, string | number | Date>;
