@@ -26,6 +26,9 @@ describe('UserRepository - Unit Tests', () => {
   beforeEach(() => {
     prismaMock = mockDeep<PrismaClient>();
     userRepository = new UserRepository(prismaMock);
+
+    // Run interactive transactions against the same mock client
+    prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
   });
 
   afterEach(() => {
@@ -140,6 +143,84 @@ describe('UserRepository - Unit Tests', () => {
       const result = await userRepository.findByUsername('nonexistent');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findAllByEmailIgnoringCase', () => {
+    it('should find the account registered with different casing', async () => {
+      const registered = { ...mockUser, email: 'Test@Example.com' };
+      prismaMock.user.findMany.mockResolvedValue([registered]);
+
+      const result = await userRepository.findAllByEmailIgnoringCase('test@example.com');
+
+      expect(result).toEqual([registered]);
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        where: { email: { equals: 'test@example.com', mode: 'insensitive' } },
+        take: 10,
+      });
+    });
+
+    it('should return every account that differs only by case', async () => {
+      const users = [
+        { ...mockUser, id: 'user-1', email: 'Test@example.com' },
+        { ...mockUser, id: 'user-2', email: 'TEST@example.com' },
+      ];
+      prismaMock.user.findMany.mockResolvedValue(users);
+
+      const result = await userRepository.findAllByEmailIgnoringCase('test@example.com');
+
+      expect(result).toHaveLength(2);
+    });
+
+    it('should drop rows that only matched because of an ILIKE wildcard', async () => {
+      // Arrange - "_" in the typed value matches any character in the database
+      prismaMock.user.findMany.mockResolvedValue([
+        { ...mockUser, id: 'user-1', email: 'a_b@example.com' },
+        { ...mockUser, id: 'user-2', email: 'aXb@example.com' },
+      ]);
+
+      // Act
+      const result = await userRepository.findAllByEmailIgnoringCase('A_B@example.com');
+
+      // Assert
+      expect(result.map((user) => user.id)).toEqual(['user-1']);
+    });
+  });
+
+  describe('findAllByUsernameIgnoringCase', () => {
+    it('should find the account registered with different casing', async () => {
+      const registered = { ...mockUser, username: 'TestUser' };
+      prismaMock.user.findMany.mockResolvedValue([registered]);
+
+      const result = await userRepository.findAllByUsernameIgnoringCase('testuser');
+
+      expect(result).toEqual([registered]);
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        where: { username: { equals: 'testuser', mode: 'insensitive' } },
+        take: 10,
+      });
+    });
+
+    it('should drop rows that only matched because of an ILIKE wildcard', async () => {
+      // Arrange - underscores are legal in usernames and wildcards in ILIKE
+      prismaMock.user.findMany.mockResolvedValue([
+        { ...mockUser, id: 'user-1', username: 'Probe_User' },
+        { ...mockUser, id: 'user-2', username: 'ProbeXUser' },
+      ]);
+
+      // Act
+      const result = await userRepository.findAllByUsernameIgnoringCase('probe_user');
+
+      // Assert
+      expect(result.map((user) => user.id)).toEqual(['user-1']);
+    });
+
+    it('should return an empty array when nothing matches', async () => {
+      prismaMock.user.findMany.mockResolvedValue([]);
+
+      const result = await userRepository.findAllByUsernameIgnoringCase('nobody');
+
+      expect(result).toEqual([]);
     });
   });
 
@@ -268,6 +349,20 @@ describe('UserRepository - Unit Tests', () => {
 
       const callData = prismaMock.user.update.mock.calls[0][0].data;
       expect(Object.keys(callData)).toEqual(['password', 'passwordChangedAt']);
+    });
+
+    it("should delete the user's password reset tokens in the same transaction", async () => {
+      // Arrange
+      prismaMock.user.update.mockResolvedValue(mockUser);
+
+      // Act
+      await userRepository.updatePassword('user-123', 'new_hashed_password');
+
+      // Assert - a link requested under the old password must not outlive it
+      expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+      expect(prismaMock.passwordResetToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
     });
 
     it('should stamp passwordChangedAt with the current time', async () => {

@@ -29,11 +29,16 @@ export interface IUserRepository {
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   findByUsername(username: string): Promise<User | null>;
+  // Account recovery only. The unique indexes are case-sensitive, so ignoring
+  // case can match several accounts: callers must handle more than one result.
+  findAllByEmailIgnoringCase(email: string): Promise<User[]>;
+  findAllByUsernameIgnoringCase(username: string): Promise<User[]>;
   findMany(skip?: number, take?: number): Promise<User[]>;
 
   // Update
   update(id: string, data: UpdateUserDTO): Promise<User>;
-  // Also stamps passwordChangedAt, which invalidates previously issued JWTs
+  // Also stamps passwordChangedAt, which invalidates previously issued JWTs,
+  // and deletes the user's password reset tokens (outstanding links die too)
   updatePassword(id: string, hashedPassword: string): Promise<User>;
   updateRole(id: string, role: Role): Promise<User>;
 
