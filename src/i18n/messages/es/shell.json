@@ -6,8 +6,7 @@
     },
     "intro": {
       "title": "¿Qué es {name}?",
-      "lead": "{name} es una red social de recetas inspirada en el amor por la cocina y por la comunidad. {tagline}",
-      "tagline": "Lleva el nombre de la famosa rata chef de Ratatouille y encarna la idea de que \"cualquiera puede cocinar\": todos tenemos algo rico para compartir.",
+      "lead": "{name} es una red social de recetas inspirada en el amor por la cocina y por la comunidad. Lleva el nombre de la famosa rata chef de Ratatouille y encarna la idea de que \"cualquiera puede cocinar\": todos tenemos algo rico para compartir.",
       "body": "Ya sea que estés dando tus primeros pasos en la cocina o que tengas recetas de familia pasadas de generación en generación, {name} te da un lugar para anotarlas, descubrir otras y conectarte con gente que ama la comida."
     },
     "features": {
@@ -26,7 +25,7 @@
         "description": "Explorá las recetas de otra gente que cocina en casa. Filtrá por ingredientes, tipo de cocina o preferencias alimentarias."
       },
       "saveFavorites": {
-        "title": "Guardá favoritas",
+        "title": "Guardá tus favoritas",
         "description": "Guardá en tu perfil las recetas que te gustan y tenelas a mano cada vez que necesites ideas."
       },
       "connect": {
@@ -35,7 +34,7 @@
       },
       "share": {
         "title": "Compartí",
-        "description": "Compartí tus creaciones con amigos y familia desde la misma app."
+        "description": "Compartí tus creaciones de cocina con amigos y familia desde las funciones sociales de la app."
       }
     },
     "creator": {
@@ -47,13 +46,13 @@
   },
   "error": {
     "title": "¡Uy! Algo salió mal",
-    "description": "Tuvimos un error inesperado. Quedate tranquilo: ya nos avisaron y lo estamos solucionando.",
+    "description": "Tuvimos un error inesperado. No te preocupes: ya nos avisaron y lo estamos solucionando.",
     "errorId": "ID del error: {digest}"
   },
   "notFound": {
     "title": "Página no encontrada",
     "description": "No encontramos la página que buscás. Puede que la hayan movido o borrado.",
-    "hint": "¿Perdido? Probá buscar recetas o mirá el feed de la comunidad."
+    "hint": "¿Te perdiste? Probá buscar recetas o mirá las recetas de la comunidad."
   },
   "offline": {
     "title": "Estás sin conexión",

@@ -35,7 +35,7 @@ describe('Error boundary in Spanish', () => {
     expect(screen.getByText('¡Uy! Algo salió mal')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Tuvimos un error inesperado. Quedate tranquilo: ya nos avisaron y lo estamos solucionando.'
+        'Tuvimos un error inesperado. No te preocupes: ya nos avisaron y lo estamos solucionando.'
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Probar de nuevo' })).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('Not found page in Spanish', () => {
       screen.getByText('No encontramos la página que buscás. Puede que la hayan movido o borrado.')
     ).toBeInTheDocument();
     expect(
-      screen.getByText('¿Perdido? Probá buscar recetas o mirá el feed de la comunidad.')
+      screen.getByText('¿Te perdiste? Probá buscar recetas o mirá las recetas de la comunidad.')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ir al inicio' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Volver' })).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe('About page in Spanish', () => {
     expect(screen.getByText('Compartí recetas')).toBeInTheDocument();
     expect(screen.getByText('Despensa inteligente')).toBeInTheDocument();
     expect(screen.getByText('Descubrí')).toBeInTheDocument();
-    expect(screen.getByText('Guardá favoritas')).toBeInTheDocument();
+    expect(screen.getByText('Guardá tus favoritas')).toBeInTheDocument();
     expect(screen.getByText('Conectate')).toBeInTheDocument();
     expect(screen.getByText('Compartí')).toBeInTheDocument();
   });

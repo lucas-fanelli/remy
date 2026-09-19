@@ -93,7 +93,7 @@ export default function AboutPage() {
             {t('about.intro.title', { name: BRANDING.name })}
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
-            {t('about.intro.lead', { name: BRANDING.name, tagline: t('about.intro.tagline') })}
+            {t('about.intro.lead', { name: BRANDING.name })}
           </Typography>
           <Typography variant="body1" color="text.secondary">
             {t('about.intro.body', { name: BRANDING.name })}

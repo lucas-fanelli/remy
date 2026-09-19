@@ -6,8 +6,7 @@
     },
     "intro": {
       "title": "What is {name}?",
-      "lead": "{name} is a recipe sharing social platform inspired by the love of cooking and community. {tagline}",
-      "tagline": "Named after the famous chef rat from Ratatouille, this platform embodies the belief that \"anyone can cook\" — and everyone has something delicious to share.",
+      "lead": "{name} is a recipe sharing social platform inspired by the love of cooking and community. Named after the famous chef rat from Ratatouille, this platform embodies the belief that \"anyone can cook\" — and everyone has something delicious to share.",
       "body": "Whether you're a beginner learning your first recipes or a seasoned home cook with family recipes passed down through generations, {name} provides a space to document, discover, and connect with fellow food enthusiasts."
     },
     "features": {
