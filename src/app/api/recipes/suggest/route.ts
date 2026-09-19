@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
     const { ingredients, filters, usePantry } = body;
 
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
 
       if (!pantry || pantry.ingredients.length === 0) {
         return NextResponse.json(
-          { error: 'Your pantry is empty. Please add ingredients first.' },
+          { error: 'Your pantry is empty. Please add ingredients first.', code: 'pantry.empty' },
           { status: 400 }
         );
       }
@@ -48,18 +51,27 @@ export async function POST(request: NextRequest) {
     // Option 2: Use provided ingredients
     else if (ingredients && Array.isArray(ingredients)) {
       if (!ingredients.every((i: unknown) => typeof i === 'string' && i.length <= 200)) {
-        return NextResponse.json({ error: 'Invalid ingredients format' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid ingredients format', code: 'recipe.invalidIngredients' },
+          { status: 400 }
+        );
       }
       userIngredients = ingredients.slice(0, 100);
     } else {
       return NextResponse.json(
-        { error: 'Either provide ingredients or set usePantry=true' },
+        {
+          error: 'Either provide ingredients or set usePantry=true',
+          code: 'recipe.ingredientsOrPantryRequired',
+        },
         { status: 400 }
       );
     }
 
     if (userIngredients.length === 0) {
-      return NextResponse.json({ error: 'No ingredients provided' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No ingredients provided', code: 'recipe.noIngredients' },
+        { status: 400 }
+      );
     }
 
     // Build filters
@@ -102,6 +114,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logServerError('Error suggesting recipes:', error);
-    return NextResponse.json({ error: 'Failed to suggest recipes' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to suggest recipes', code: 'recipe.suggestFailed' },
+      { status: 500 }
+    );
   }
 }

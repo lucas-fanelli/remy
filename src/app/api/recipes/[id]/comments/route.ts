@@ -14,7 +14,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id: recipeId } = await params;
 
     if (!UUID_REGEX.test(recipeId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -61,7 +64,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ comments: commentsWithRatings, total });
   } catch (error) {
     logServerError('Error fetching comments:', error);
-    return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch comments', code: 'comment.fetchFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -74,31 +80,40 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id: recipeId } = await params;
 
     if (!UUID_REGEX.test(recipeId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     let user;
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     let body;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
     const { text, rating, imageUrl } = body;
 
     if (!text || text.trim().length === 0) {
-      return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Comment text is required', code: 'comment.textRequired' },
+        { status: 400 }
+      );
     }
 
     if (text.length > MAX_COMMENT_LENGTH) {
       return NextResponse.json(
-        { error: 'Comment text must be 5000 characters or less' },
+        { error: 'Comment text must be 5000 characters or less', code: 'comment.textTooLong' },
         { status: 400 }
       );
     }
@@ -106,7 +121,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Validate rating if provided
     if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
       return NextResponse.json(
-        { error: 'Rating must be an integer between 1 and 5' },
+        { error: 'Rating must be an integer between 1 and 5', code: 'comment.invalidRating' },
         { status: 400 }
       );
     }
@@ -212,9 +227,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Recipe not found', code: 'recipe.notFound' },
+        { status: 404 }
+      );
     }
     logServerError('Error creating comment:', error);
-    return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create comment', code: 'comment.createFailed' },
+      { status: 500 }
+    );
   }
 }

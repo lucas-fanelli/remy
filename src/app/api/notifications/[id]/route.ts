@@ -14,13 +14,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const { id: notificationId } = await params;
 
     if (!UUID_REGEX.test(notificationId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     // Atomic ownership check + update in a single query.
@@ -38,6 +41,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ success: true });
   } catch (error) {
     logServerError('Error marking notification as read:', error);
-    return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to mark notification as read', code: 'notification.markReadFailed' },
+      { status: 500 }
+    );
   }
 }
