@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifySessionToken } from '@/lib/api/auth';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
@@ -22,8 +23,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
+    const payload = await verifySessionToken(token);
 
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });

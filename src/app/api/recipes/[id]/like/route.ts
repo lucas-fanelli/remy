@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api/auth';
+import { requireAuth, verifySessionToken } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
@@ -87,8 +87,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ liked: false, likesCount });
     }
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
+    const payload = await verifySessionToken(token);
 
     if (!payload) {
       return NextResponse.json({ liked: false, likesCount });

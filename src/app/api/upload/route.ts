@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifySessionToken } from '@/lib/api/auth';
 import { uploadToCloudinary } from '@/lib/cloudinary';
-import { container } from '@/lib/container/container';
 import { extractAuthToken } from '@/lib/utils/auth';
 import { validateImageMagicBytes } from '@/lib/utils/image-validation';
 import { logServerError } from '@/lib/utils/logger';
@@ -24,8 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(authToken);
+    const payload = await verifySessionToken(authToken);
 
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
