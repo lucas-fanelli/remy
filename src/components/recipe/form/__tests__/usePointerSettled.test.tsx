@@ -54,6 +54,45 @@ describe('usePointerSettled', () => {
     expect(job).toHaveBeenCalledTimes(1);
   });
 
+  // A tap: pointerdown and pointerup come first, focus only moves in the mousedown after
+  it('should hold a job during the compatibility mouse press of a tap', () => {
+    const { result } = renderHook(() => usePointerSettled());
+    const job = jest.fn();
+    fireEvent.pointerDown(document.body);
+    fireEvent.pointerUp(document.body);
+    fireEvent.mouseDown(document.body);
+
+    result.current(job);
+
+    expect(job).not.toHaveBeenCalled();
+  });
+
+  it('should run the job after the mouse release of a tap', () => {
+    const { result } = renderHook(() => usePointerSettled());
+    const job = jest.fn();
+    fireEvent.mouseDown(document.body);
+    result.current(job);
+
+    fireEvent.mouseUp(document.body);
+    jest.runAllTimers();
+
+    expect(job).toHaveBeenCalledTimes(1);
+  });
+
+  it('should run a held job once when pointer and mouse both report the release', () => {
+    const { result } = renderHook(() => usePointerSettled());
+    const job = jest.fn();
+    fireEvent.pointerDown(document.body);
+    fireEvent.mouseDown(document.body);
+    result.current(job);
+
+    fireEvent.pointerUp(document.body);
+    fireEvent.mouseUp(document.body);
+    jest.runAllTimers();
+
+    expect(job).toHaveBeenCalledTimes(1);
+  });
+
   it('should run jobs at once again after the release', () => {
     const { result } = renderHook(() => usePointerSettled());
     const job = jest.fn();
