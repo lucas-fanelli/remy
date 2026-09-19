@@ -494,9 +494,12 @@ function EditorSession({
             Next: Check &amp; publish
           </Button>
         ) : (
-          // Its own keyed node: it never inherits the DOM position of 'Next'
+          // Its own keyed node: it never inherits the DOM position of 'Next'. Edit has it on
+          // both tabs, and on a phone it grows into the spot 'Back' leaves behind: a node
+          // per tab re-arms its guard, so the second half of a double tap on 'Back' can
+          // not save a half-edited recipe
           <PublishButton
-            key="publish"
+            key={`publish-${tab}`}
             mode={mode}
             pending={isSubmitting}
             disabled={uploading}
