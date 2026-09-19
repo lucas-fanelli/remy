@@ -20,6 +20,15 @@ jest.mock('next-intl', () => {
   return mockI18nHarness.createNextIntlModuleMock();
 });
 
+// The server half of the same promise. A Server Component reads its messages from
+// getTranslations(), whose real implementation is bound to a request and throws "not
+// supported in Client Components" under jsdom - so a page with a generateMetadata would
+// otherwise need a mock of its own. Same English translator, same setTestLocale opt-in.
+jest.mock('next-intl/server', () => {
+  mockI18nHarness = require('@/i18n/testing');
+  return mockI18nHarness.createNextIntlServerModuleMock();
+});
+
 beforeEach(() => {
   // A test that switched to Spanish must not leak into the next one
   if (mockI18nHarness) mockI18nHarness.resetTestLocale();

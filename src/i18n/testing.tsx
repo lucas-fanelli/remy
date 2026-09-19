@@ -17,7 +17,7 @@
  */
 import React from 'react';
 import { createFormatter, createTranslator } from 'use-intl/core';
-import { DEFAULT_LOCALE, TIME_ZONE, type Locale } from './config';
+import { DEFAULT_LOCALE, TIME_ZONE, isLocale, type Locale } from './config';
 import { getMessages } from './messages';
 
 /**
@@ -105,8 +105,7 @@ export function getTestFormatter(locale: Locale = currentLocale) {
 
 /**
  * The module object jest.setup.js hands back for `next-intl`. Everything a client component
- * can import from it is here; server-only entry points (`next-intl/server`) are mocked
- * separately by the few tests that need them.
+ * can import from it is here; `next-intl/server` has its own factory below.
  */
 export function createNextIntlModuleMock() {
   return {
@@ -116,13 +115,55 @@ export function createNextIntlModuleMock() {
     useNow: () => currentNow,
     useTimeZone: () => TIME_ZONE,
     useMessages: () => getMessages(currentLocale),
-    // The provider is a pass-through: the translator above is already bound to the locale,
-    // so nesting a provider in a test changes nothing unless setTestLocale is used.
-    NextIntlClientProvider: ({ children }: { children?: React.ReactNode }) => (
-      <React.Fragment>{children}</React.Fragment>
-    ),
+    // The provider carries no context here - the translators above read the test locale
+    // directly - so it renders its children and nothing else. It does honour a `locale`
+    // prop, because a test that writes `<NextIntlClientProvider locale="es">` by hand means
+    // it, and silently rendering English would fail on an assertion that says nothing about
+    // why. Same semantics as renderWithLocale: the locale stays set for the rest of the test.
+    NextIntlClientProvider: ({
+      children,
+      locale,
+    }: {
+      children?: React.ReactNode;
+      locale?: string;
+    }) => {
+      if (isLocale(locale)) setTestLocale(locale);
+      return <React.Fragment>{children}</React.Fragment>;
+    },
     createTranslator,
     createFormatter,
+  };
+}
+
+/**
+ * The module object jest.setup.js hands back for `next-intl/server`.
+ *
+ * Server Components read their messages from `getTranslations()`, whose real implementation
+ * is bound to a request and throws "not supported in Client Components" under jsdom. The
+ * async shape is kept (every one of these is awaited) and the answers come from the same
+ * English translator as the client hooks, so a page with a `generateMetadata` needs no mock
+ * of its own and a Spanish test opts in with setTestLocale exactly as elsewhere.
+ */
+export function createNextIntlServerModuleMock() {
+  return {
+    getTranslations: async (
+      namespaceOrOptions?: string | { locale?: Locale; namespace?: string }
+    ) =>
+      typeof namespaceOrOptions === 'object'
+        ? getTestTranslator(
+            namespaceOrOptions.namespace,
+            namespaceOrOptions.locale ?? currentLocale
+          )
+        : getTestTranslator(namespaceOrOptions),
+    getFormatter: async (options?: { locale?: Locale }) =>
+      getTestFormatter(options?.locale ?? currentLocale),
+    getLocale: async () => currentLocale,
+    getMessages: async (options?: { locale?: Locale }) =>
+      getMessages(options?.locale ?? currentLocale),
+    getNow: async () => currentNow,
+    getTimeZone: async () => TIME_ZONE,
+    // Identity, so importing src/i18n/request.ts from a test does not need the real plugin.
+    getRequestConfig: <T,>(config: T) => config,
   };
 }
 

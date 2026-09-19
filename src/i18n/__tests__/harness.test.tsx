@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { useFormatter, useLocale, useTranslations } from 'next-intl';
+import { NextIntlClientProvider, useFormatter, useLocale, useTranslations } from 'next-intl';
+import { getLocale, getTranslations } from 'next-intl/server';
 import React from 'react';
 import { renderWithLocale, setTestLocale } from '../testing';
 
@@ -106,5 +107,58 @@ describe('i18n test harness', () => {
     renderWithLocale(render, 'es', <ErrorWithRetry onRetry={jest.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Probá de nuevo' })).toBeInTheDocument();
+  });
+
+  it('should render a subtree in the language its provider asks for', () => {
+    // renderWithLocale is the shorter way, but a provider written by hand must not be
+    // ignored: it would render English and fail on an assertion that explains nothing.
+    render(
+      <NextIntlClientProvider locale="es">
+        <Greeting />
+      </NextIntlClientProvider>
+    );
+
+    expect(screen.getByText('Guardar cambios')).toBeInTheDocument();
+  });
+
+  it('should leave the locale alone when the provider is given none', () => {
+    setTestLocale('es');
+
+    render(
+      <NextIntlClientProvider>
+        <Greeting />
+      </NextIntlClientProvider>
+    );
+
+    expect(screen.getByText('Guardar cambios')).toBeInTheDocument();
+  });
+});
+
+/** What a Server Component - a page's generateMetadata, say - does instead of the hooks. */
+describe('i18n test harness on the server', () => {
+  it('should translate without a request, in English by default', async () => {
+    const t = await getTranslations('metadata');
+
+    expect(t('title', { name: "Remy's" })).toBe("Remy's - Anyone can cook");
+  });
+
+  it('should follow the locale the test opted into', async () => {
+    setTestLocale('es');
+
+    const t = await getTranslations('common');
+
+    expect(t('actions.saveChanges')).toBe('Guardar cambios');
+  });
+
+  it('should answer the active locale', async () => {
+    setTestLocale('es');
+
+    await expect(getLocale()).resolves.toBe('es');
+  });
+
+  it('should translate in the locale it is explicitly given', async () => {
+    const t = await getTranslations({ locale: 'es', namespace: 'common' });
+
+    expect(t('actions.saveChanges')).toBe('Guardar cambios');
   });
 });
