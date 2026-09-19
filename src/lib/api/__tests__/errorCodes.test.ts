@@ -1,6 +1,15 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { LOCALES, ALL_MESSAGES } from '@/i18n/messages';
+import {
+  MAX_COMMENT_LENGTH,
+  MAX_DAILY_COOKS,
+  MAX_DAILY_RECIPES,
+  MAX_ITEM_NAME_LENGTH,
+  MAX_NOTES_LENGTH,
+  MAX_PANTRY_ITEMS,
+  MAX_UPLOAD_SIZE,
+} from '@/lib/constants';
 import { API_ERROR_CODES, isApiErrorCode } from '../errorCodes';
 
 /**
@@ -60,6 +69,38 @@ describe('API_ERROR_CODES', () => {
   it('should recognise its own codes and nothing else', () => {
     expect(isApiErrorCode('recipe.notFound')).toBe(true);
     expect(isApiErrorCode('recipe.thereIsNoSuchCode')).toBe(false);
+  });
+});
+
+/**
+ * Nine messages name a limit, because the English sentence they replace names it too ("Item
+ * name too long (max 200 characters)"): a user told only that the name is "too long" has no
+ * way to know how much to cut and retries blind.
+ *
+ * `t(code)` is called with no ICU values - the code is all the client has - so the number is
+ * part of the text, and JSON takes no comment saying which constant it mirrors. This table is
+ * that comment with teeth: move the constant and the catalogue fails here, in both languages,
+ * instead of drifting quietly away from what the server says.
+ */
+const LIMIT_IN_MESSAGE: ReadonlyArray<[string, number]> = [
+  ['pantry.nameTooLong', MAX_ITEM_NAME_LENGTH],
+  ['pantry.categoryTooLong', MAX_ITEM_NAME_LENGTH],
+  ['pantry.notesTooLong', MAX_NOTES_LENGTH],
+  ['pantry.limitReached', MAX_PANTRY_ITEMS],
+  ['comment.textTooLong', MAX_COMMENT_LENGTH],
+  ['recipe.dailyLimit', MAX_DAILY_RECIPES],
+  ['cooked.dailyLimit', MAX_DAILY_COOKS],
+  ['upload.tooLarge', MAX_UPLOAD_SIZE / 1024 / 1024],
+  // The two pantry routes spell this one out instead of reading a constant
+  // ('Unit too long (max 50 characters)'), so the catalogue mirrors the literal.
+  ['pantry.unitTooLong', 50],
+];
+
+describe.each(LOCALES)('the %s message of a limit', (locale) => {
+  it.each(LIMIT_IN_MESSAGE)('should still say the number in %s', (code, limit) => {
+    const message = messageAt(ALL_MESSAGES[locale].errors as MessageTree, code);
+
+    expect(message).toContain(String(limit));
   });
 });
 

@@ -48,6 +48,19 @@ describe('an API error in Spanish', () => {
     ).toBeInTheDocument();
   });
 
+  it('should keep the limit the pantry sentence names from POST /api/pantry', () => {
+    renderInSpanish(
+      <ApiError
+        body={{ error: 'Item name too long (max 200 characters)', code: 'pantry.nameTooLong' }}
+      />
+    );
+
+    // The English it replaces says 200; a user who is not told it retries blind
+    expect(
+      screen.getByText('Ese nombre es demasiado largo. El máximo es 200 caracteres.')
+    ).toBeInTheDocument();
+  });
+
   it('should translate the pantry duplicate from POST /api/pantry', () => {
     renderInSpanish(
       <ApiError
