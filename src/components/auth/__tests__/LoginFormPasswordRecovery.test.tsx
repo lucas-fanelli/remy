@@ -1,5 +1,5 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import AuthPageShell from '../AuthPageShell';
@@ -47,6 +47,28 @@ describe('LoginForm - password recovery entry points', () => {
 
     // Assert
     expect(await screen.findByRole('status')).toHaveTextContent(/your password was updated/i);
+  });
+
+  it('should drop the reset flag from the URL so a reload does not repeat the notice', async () => {
+    // Arrange
+    window.history.replaceState({}, '', '/auth?reset=success');
+
+    // Act
+    renderLoginForm();
+
+    // Assert
+    await waitFor(() => expect(window.location.search).toBe(''));
+    expect(window.location.pathname).toBe('/auth');
+    expect(screen.getByRole('status')).toHaveTextContent(/your password was updated/i);
+  });
+
+  it('should leave other query parameters alone on a normal visit', async () => {
+    window.history.replaceState({}, '', '/auth?next=/pantry');
+
+    renderLoginForm();
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    expect(window.location.search).toBe('?next=/pantry');
   });
 
   it('should not show the confirmation on a normal visit', () => {

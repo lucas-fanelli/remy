@@ -1,7 +1,7 @@
 'use client';
 import { Box, TextField, Button, Typography, Alert, CircularProgress, Link } from '@mui/material';
 import NextLink from 'next/link';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 
@@ -21,6 +21,13 @@ export default function ForgotPasswordForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const confirmationRef = useRef<HTMLDivElement>(null);
+
+  // The form (and the focused button) is replaced by the confirmation: move focus
+  // there, or keyboard and screen reader users are left on <body> with no announcement
+  useEffect(() => {
+    if (isSubmitted) confirmationRef.current?.focus();
+  }, [isSubmitted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +97,7 @@ export default function ForgotPasswordForm() {
       {isSubmitted ? (
         <>
           {/* Neutral on purpose: it must not reveal whether the account exists */}
-          <Alert severity="info" role="status" sx={{ mb: 2 }}>
+          <Alert severity="info" role="status" ref={confirmationRef} tabIndex={-1} sx={{ mb: 2 }}>
             If an account matches, we sent a link to reset your password. Check your spam folder if
             you don&apos;t see it. The link expires in 60 minutes.
           </Alert>

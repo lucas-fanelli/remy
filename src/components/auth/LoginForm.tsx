@@ -21,7 +21,17 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
   // ResetPasswordForm sends the user here as /auth?reset=success
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setPasswordWasReset(params.get('reset') === 'success');
+    if (params.get('reset') !== 'success') return;
+
+    setPasswordWasReset(true);
+
+    // One-shot notice: drop the flag so a reload or a bookmark does not repeat it.
+    // Deferred so the app router has mounted and hears about the URL change.
+    const timer = window.setTimeout(
+      () => window.history.replaceState(null, '', window.location.pathname),
+      0
+    );
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

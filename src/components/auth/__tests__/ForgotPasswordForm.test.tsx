@@ -80,6 +80,18 @@ describe('ForgotPasswordForm Component', () => {
     expect(status).toHaveTextContent(/expires in 60 minutes/i);
   });
 
+  it('should move focus to the confirmation so it is announced and not lost with the form', async () => {
+    // Arrange
+    mockFetch.mockResolvedValue(jsonResponse(200));
+    renderForm();
+
+    // Act
+    await submit('chef');
+
+    // Assert
+    expect(await screen.findByRole('status')).toHaveFocus();
+  });
+
   it('should not reveal in the confirmation what was typed or whether it exists', async () => {
     // Arrange
     mockFetch.mockResolvedValue(jsonResponse(200));
