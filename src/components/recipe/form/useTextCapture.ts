@@ -86,43 +86,148 @@ export function stepsMatchText(rows: { description: string }[], text: string): b
   );
 }
 
+/** Row id -> the normalised text a photo-only row had when its paragraph went away */
+export type OrphanTexts = ReadonlyMap<string, string>;
+
+const NO_ORPHAN_TEXTS: OrphanTexts = new Map();
+
+const hasText = (row: { description: string }): boolean => row.description.trim() !== '';
+
+// One more kept paragraph always beats any number of kept photos (a recipe has 50 steps)
+const SAME_TEXT = 1000;
+const HAS_PHOTO = 1;
+
+const photoOf = (row: { image: string }): number => (row.image !== '' ? HAS_PHOTO : 0);
+
+/** Sorts row index `a` before `b` when it is nearer to the paragraph at `index` */
+const distance = (a: number, b: number, index: number): number =>
+  Math.abs(a - index) - Math.abs(b - index);
+
+/**
+ * Which paragraph is which row when the texts are equal: the longest run of equal texts IN
+ * ORDER (what a diff does), so writing or deleting a paragraph above two equal ones never
+ * swaps them. Between two runs of the same length the one that keeps more photos wins.
+ * Returns paragraph index -> row index.
+ */
+function alignInOrder(
+  wanted: string[],
+  keys: (string | null)[],
+  current: StepRowValue[]
+): Map<number, number> {
+  // A photo-only row nothing is remembered about has a null key and equals no paragraph
+  const weight = (i: number, j: number): number =>
+    keys[j] === wanted[i] ? SAME_TEXT + photoOf(current[j]) : 0;
+
+  // best[i][j]: the best score for the paragraphs from i on against the rows from j on
+  const best = Array.from({ length: wanted.length + 1 }, () =>
+    new Array<number>(keys.length + 1).fill(0)
+  );
+  for (let i = wanted.length - 1; i >= 0; i -= 1) {
+    for (let j = keys.length - 1; j >= 0; j -= 1) {
+      const same = weight(i, j);
+      best[i][j] = Math.max(
+        best[i + 1][j],
+        best[i][j + 1],
+        same > 0 ? same + best[i + 1][j + 1] : 0
+      );
+    }
+  }
+
+  const pairs = new Map<number, number>();
+  let i = 0;
+  let j = 0;
+  while (i < wanted.length && j < keys.length) {
+    const same = weight(i, j);
+    if (same > 0 && best[i][j] === same + best[i + 1][j + 1]) {
+      pairs.set(i, j);
+      i += 1;
+      j += 1;
+    } else if (best[i + 1][j] >= best[i][j + 1]) {
+      i += 1;
+    } else {
+      j += 1;
+    }
+  }
+  return pairs;
+}
+
 /**
  * The rows for freshly parsed paragraphs, keeping ids (and so photos) where it can:
- *   1. a paragraph whose text equals a row's text IS that row, wherever it moved;
- *   2. the others take the row at their own position, if that row still has text;
- *   3. a row with a photo that nothing claimed is kept at the end, photo intact and text
+ *   1. paragraphs whose text equals a row's text, in the same order, ARE those rows;
+ *   2. a paragraph that MOVED (cut and pasted elsewhere) is the unclaimed row with its
+ *      text - the one with a photo first, then the nearest;
+ *   3. the others take the row at their own position, if that row still has text;
+ *   4. a row with a photo that nothing claimed is kept at the end, photo intact and text
  *      empty - the validator then names it. A photo is never dropped and never handed to
  *      a paragraph it was not taken for.
+ * A photo-only row made by rule 4 answers to the text it had (`orphanTexts`), so pasting
+ * the paragraph back, or undoing its deletion, gives it its photo again.
  */
-export function reconcileSteps(parsed: ParsedStep[], current: StepRowValue[]): StepRowInput[] {
-  const used = new Set<string>();
-  const claim = (row: StepRowValue, description: string): StepRowInput => {
-    used.add(row.id);
-    return { id: row.id, description, image: row.image };
-  };
-  const hasText = (row: StepRowValue) => row.description.trim() !== '';
+export function reconcileSteps(
+  parsed: ParsedStep[],
+  current: StepRowValue[],
+  orphanTexts: OrphanTexts = NO_ORPHAN_TEXTS
+): StepRowInput[] {
+  const wanted = parsed.map((step) => normaliseLine(step.description));
+  const keys = current.map((row) =>
+    hasText(row) ? normaliseLine(row.description) : (orphanTexts.get(row.id) ?? null)
+  );
 
-  const byText = parsed.map((step) => {
-    const wanted = normaliseLine(step.description);
-    const match = current.find(
-      (row) => !used.has(row.id) && hasText(row) && normaliseLine(row.description) === wanted
-    );
-    return match ? claim(match, step.description) : null;
+  const rowOf = alignInOrder(wanted, keys, current);
+  const used = new Set(rowOf.values());
+
+  wanted.forEach((text, index) => {
+    if (rowOf.has(index)) return;
+    const [moved] = keys
+      .map((_key, candidate) => candidate)
+      .filter((candidate) => keys[candidate] === text && !used.has(candidate))
+      .sort((a, b) => photoOf(current[b]) - photoOf(current[a]) || distance(a, b, index));
+    if (moved === undefined) return;
+    rowOf.set(index, moved);
+    used.add(moved);
   });
 
-  const rows = byText.map((row, index): StepRowInput => {
-    if (row) return row;
-    const candidate = current[index];
-    return candidate && !used.has(candidate.id) && hasText(candidate)
-      ? claim(candidate, parsed[index].description)
-      : { description: parsed[index].description, image: '' };
+  const rows = parsed.map((step, index): StepRowInput => {
+    let from = rowOf.get(index);
+    if (
+      from === undefined &&
+      index < current.length &&
+      !used.has(index) &&
+      hasText(current[index])
+    ) {
+      from = index;
+      used.add(index);
+    }
+    return from === undefined
+      ? { description: step.description, image: '' }
+      : { id: current[from].id, description: step.description, image: current[from].image };
   });
 
   const orphans = current
-    .filter((row) => !used.has(row.id) && row.image !== '')
+    .filter((row, index) => !used.has(index) && row.image !== '')
     .map((row): StepRowInput => ({ id: row.id, description: '', image: row.image }));
 
   return [...rows, ...orphans];
+}
+
+/**
+ * What the photo-only rows said before they lost their paragraph: kept for the rows that
+ * are still photo-only, added for the rows `next` has just orphaned, forgotten otherwise.
+ */
+export function rememberOrphanTexts(
+  known: OrphanTexts,
+  current: StepRowValue[],
+  next: StepRowInput[]
+): Map<string, string> {
+  const remembered = new Map<string, string>();
+  const before = new Map(current.map((row) => [row.id, row]));
+  next.forEach((row) => {
+    const was = row.id === undefined ? undefined : before.get(row.id);
+    if (!was || hasText(row)) return;
+    const text = hasText(was) ? normaliseLine(was.description) : known.get(was.id);
+    if (text !== undefined) remembered.set(was.id, text);
+  });
+  return remembered;
 }
 
 interface CaptureState {
@@ -171,11 +276,24 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
     formRef.current.ingredients.replaceAll(rows);
   }, []);
 
+  // What a photo-only row said before its paragraph was cut or deleted. Client-side only: it
+  // never reaches the engine, the draft or the payload
+  const orphanTexts = useRef<OrphanTexts>(NO_ORPHAN_TEXTS);
+
   const setMethodText = useCallback((text: string) => {
     const parsed = parseMethod(text);
     setState((prev) => ({ ...prev, methodText: text, stepsCapped: parsed.capped }));
+
+    // Bookkeeping on the rows as rendered, so the state update below stays a pure function
+    const shown = formRef.current.values.steps;
+    const known = orphanTexts.current;
+    orphanTexts.current = rememberOrphanTexts(
+      known,
+      shown,
+      reconcileSteps(parsed.steps, shown, known)
+    );
     // Inside the state update, so a photo that lands meanwhile is carried over too
-    formRef.current.steps.replaceAll((current) => reconcileSteps(parsed.steps, current));
+    formRef.current.steps.replaceAll((current) => reconcileSteps(parsed.steps, current, known));
   }, []);
 
   const confirmRow = useCallback((id: string) => {
@@ -236,6 +354,7 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
 
   const load = useCallback((draftValues: RecipeDraftValues, text?: RecipeDraftText) => {
     trustedLines.current = new Set();
+    orphanTexts.current = NO_ORPHAN_TEXTS;
     const ingredients = draftValues.ingredients.map((row) => ({ ...row, id: createRowId() }));
     const keepIngredients =
       text !== undefined && ingredientsMatchText(draftValues.ingredients, text.ingredients);
@@ -263,6 +382,7 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
 
   const clear = useCallback(() => {
     trustedLines.current = new Set();
+    orphanTexts.current = NO_ORPHAN_TEXTS;
     setState({
       ingredientsText: '',
       methodText: '',

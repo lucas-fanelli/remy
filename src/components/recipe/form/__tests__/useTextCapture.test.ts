@@ -7,6 +7,7 @@ import { useRecipeForm } from '../useRecipeForm';
 import {
   ingredientsMatchText,
   reconcileSteps,
+  rememberOrphanTexts,
   stepsMatchText,
   useTextCapture,
 } from '../useTextCapture';
@@ -118,6 +119,156 @@ describe('reconcileSteps', () => {
     const rows = reconcileSteps(parsed('Mix'), [step('blank', '')]);
 
     expect(rows).toEqual([{ description: 'Mix', image: '' }]);
+  });
+
+  describe('equal paragraphs', () => {
+    const current = [
+      step('a', 'Mix'),
+      step('b', 'Rest'),
+      step('c', 'Mix', STEP_URL),
+      step('d', 'Bake'),
+    ];
+
+    it('should keep the photo on the remaining one when the first of two is deleted', () => {
+      const rows = reconcileSteps(parsed('Rest\n\nMix\n\nBake'), current);
+
+      expect(rows).toEqual([
+        { id: 'b', description: 'Rest', image: '' },
+        { id: 'c', description: 'Mix', image: STEP_URL },
+        { id: 'd', description: 'Bake', image: '' },
+      ]);
+    });
+
+    it('should not swap them when a paragraph is written above both', () => {
+      const rows = reconcileSteps(parsed('Preheat\n\nMix\n\nRest\n\nMix\n\nBake'), current);
+
+      expect(rows.map((row) => row.id)).toEqual([undefined, 'a', 'b', 'c', 'd']);
+    });
+
+    it('should keep the one with a photo when only one of two neighbours is left', () => {
+      const rows = reconcileSteps(parsed('Stir'), [step('a', 'Stir'), step('b', 'Stir', STEP_URL)]);
+
+      expect(rows).toEqual([{ id: 'b', description: 'Stir', image: STEP_URL }]);
+    });
+  });
+
+  describe('a paragraph that moved', () => {
+    it('should follow a paragraph that was cut and pasted below the others', () => {
+      const current = [step('a', 'Alpha', STEP_URL), step('b', 'Beta'), step('c', 'Gamma')];
+
+      const rows = reconcileSteps(parsed('Beta\n\nGamma\n\nAlpha'), current);
+
+      expect(rows).toEqual([
+        { id: 'b', description: 'Beta', image: '' },
+        { id: 'c', description: 'Gamma', image: '' },
+        { id: 'a', description: 'Alpha', image: STEP_URL },
+      ]);
+    });
+
+    it('should take the row with a photo when two rows say what the moved paragraph says', () => {
+      const current = [
+        step('a', 'Stir', STEP_URL),
+        step('b', 'Stir'),
+        step('x', 'Rest'),
+        step('y', 'Bake'),
+      ];
+
+      const rows = reconcileSteps(parsed('Rest\n\nBake\n\nStir'), current);
+
+      expect(rows.map((row) => row.id)).toEqual(['x', 'y', 'a']);
+    });
+
+    it('should take the nearest row when neither has a photo', () => {
+      const current = [step('a', 'Stir'), step('b', 'Stir'), step('x', 'Rest'), step('y', 'Bake')];
+
+      const rows = reconcileSteps(parsed('Rest\n\nBake\n\nStir'), current);
+
+      expect(rows.map((row) => row.id)).toEqual(['x', 'y', 'b']);
+    });
+  });
+
+  describe('a photo-only row that remembers its text', () => {
+    const orphanTexts = new Map([['a', 'alpha']]);
+
+    it('should give the photo back when the paragraph is pasted somewhere else', () => {
+      const current = [step('b', 'Beta'), step('c', 'Gamma'), step('a', '', STEP_URL)];
+
+      const rows = reconcileSteps(parsed('Beta\n\nGamma\n\nAlpha'), current, orphanTexts);
+
+      expect(rows[2]).toEqual({ id: 'a', description: 'Alpha', image: STEP_URL });
+      expect(rows).toHaveLength(3);
+    });
+
+    it('should give the photo back when the deletion is undone', () => {
+      const current = [step('b', 'Beta'), step('a', '', STEP_URL)];
+
+      const rows = reconcileSteps(parsed('Alpha\n\nBeta'), current, orphanTexts);
+
+      expect(rows).toEqual([
+        { id: 'a', description: 'Alpha', image: STEP_URL },
+        { id: 'b', description: 'Beta', image: '' },
+      ]);
+    });
+
+    it('should still refuse a paragraph that says something else', () => {
+      const current = [step('b', 'Beta'), step('a', '', STEP_URL)];
+
+      const rows = reconcileSteps(parsed('Beta\n\nServe warm'), current, orphanTexts);
+
+      expect(rows[1]).toEqual({ description: 'Serve warm', image: '' });
+      expect(rows[2]).toEqual({ id: 'a', description: '', image: STEP_URL });
+    });
+  });
+});
+
+describe('rememberOrphanTexts', () => {
+  it('should remember what a row said when it has just lost its paragraph', () => {
+    const current = [step('a', 'Mix  the Filling', STEP_URL), step('b', 'Bake')];
+    const next = [
+      { id: 'b', description: 'Bake', image: '' },
+      { id: 'a', description: '', image: STEP_URL },
+    ];
+
+    const remembered = rememberOrphanTexts(new Map(), current, next);
+
+    expect(Array.from(remembered)).toEqual([['a', 'mix the filling']]);
+  });
+
+  it('should keep what it knows about a row that is still photo-only', () => {
+    const current = [step('a', '', STEP_URL)];
+    const next = [{ id: 'a', description: '', image: STEP_URL }];
+
+    const remembered = rememberOrphanTexts(new Map([['a', 'alpha']]), current, next);
+
+    expect(remembered.get('a')).toBe('alpha');
+  });
+
+  it('should know nothing about a row that was emptied by hand', () => {
+    const current = [step('a', '', STEP_URL)];
+    const next = [{ id: 'a', description: '', image: STEP_URL }];
+
+    const remembered = rememberOrphanTexts(new Map(), current, next);
+
+    expect(remembered.size).toBe(0);
+  });
+
+  it('should forget a row that has its paragraph again, and rows that are gone', () => {
+    const current = [step('a', '', STEP_URL), step('z', '', OTHER_URL)];
+    const next = [
+      { id: 'a', description: 'Alpha', image: STEP_URL },
+      { description: 'New', image: '' },
+    ];
+
+    const remembered = rememberOrphanTexts(
+      new Map([
+        ['a', 'alpha'],
+        ['z', 'zeta'],
+      ]),
+      current,
+      next
+    );
+
+    expect(remembered.size).toBe(0);
   });
 });
 
@@ -312,6 +463,69 @@ describe('useTextCapture', () => {
       expect(result.current.form.issues.map((issue) => issue.message)).toContain(
         'Step 2 has a photo but no text - describe it or remove the step'
       );
+    });
+
+    /** Three steps, the first one with a photo */
+    const writeWithPhotoOnFirst = (text: string) => {
+      const view = renderCapture();
+      act(() => view.result.current.capture.setMethodText(text));
+      const first = view.result.current.form.values.steps[0];
+      act(() => view.result.current.form.steps.update(first.id, { image: STEP_URL }));
+      return { ...view, first };
+    };
+
+    it('should move the photo with a paragraph that is cut and then pasted at the end', () => {
+      const { result, first } = writeWithPhotoOnFirst('Alpha\n\nBeta\n\nGamma');
+
+      act(() => result.current.capture.setMethodText('Beta\n\nGamma'));
+      act(() => result.current.capture.setMethodText('Beta\n\nGamma\n\nAlpha'));
+
+      expect(result.current.form.values.steps).toEqual([
+        expect.objectContaining({ description: 'Beta', image: '' }),
+        expect.objectContaining({ description: 'Gamma', image: '' }),
+        { id: first.id, description: 'Alpha', image: STEP_URL },
+      ]);
+    });
+
+    it('should give the photo back when the deletion of its paragraph is undone', () => {
+      const { result, first } = writeWithPhotoOnFirst('1. Alpha\n2. Beta');
+
+      act(() => result.current.capture.setMethodText('1. \n2. Beta'));
+      act(() => result.current.capture.setMethodText('1. Alpha\n2. Beta'));
+
+      expect(result.current.form.values.steps).toEqual([
+        { id: first.id, description: 'Alpha', image: STEP_URL },
+        expect.objectContaining({ description: 'Beta', image: '' }),
+      ]);
+    });
+
+    it('should give the photo back to a paragraph that is typed again letter by letter', () => {
+      const { result, first } = writeWithPhotoOnFirst('Alpha\n\nBeta');
+      act(() => result.current.capture.setMethodText('Beta'));
+
+      ['Beta\n\nA', 'Beta\n\nAl', 'Beta\n\nAlpha'].forEach((text) => {
+        act(() => result.current.capture.setMethodText(text));
+      });
+
+      expect(result.current.form.values.steps).toEqual([
+        expect.objectContaining({ description: 'Beta', image: '' }),
+        { id: first.id, description: 'Alpha', image: STEP_URL },
+      ]);
+    });
+
+    it('should keep the photo on the second of two equal steps when the first is deleted', () => {
+      const { result } = renderCapture();
+      act(() => result.current.capture.setMethodText('Mix\n\nRest\n\nMix\n\nBake'));
+      const second = result.current.form.values.steps[2];
+      act(() => result.current.form.steps.update(second.id, { image: STEP_URL }));
+
+      act(() => result.current.capture.setMethodText('Rest\n\nMix\n\nBake'));
+
+      expect(result.current.form.values.steps).toEqual([
+        expect.objectContaining({ description: 'Rest', image: '' }),
+        { id: second.id, description: 'Mix', image: STEP_URL },
+        expect.objectContaining({ description: 'Bake', image: '' }),
+      ]);
     });
   });
 
