@@ -6,12 +6,13 @@ import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { IEmailService } from '@/domain/services/IEmailService';
 import { IPasswordResetService } from '@/domain/services/IPasswordResetService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
+import { RESET_PASSWORD_PATH } from '@/lib/utils/resetLinkPrivacy';
 import { buildPasswordResetEmail } from './passwordResetEmail';
 
 export const RESET_TOKEN_TTL_MINUTES = 60;
 export const RESET_REQUEST_THROTTLE_MS = 2 * 60 * 1000; // one email per account every 2 minutes
 export const RESET_REQUEST_DAILY_LIMIT = 5; // and at most this many per account in 24 hours
-export const RESET_PATH = '/auth/reset-password';
+export const RESET_PATH = RESET_PASSWORD_PATH; // the page whose URLs telemetry and caches redact
 const RESET_TOKEN_BYTES = 32;
 
 /** SHA-256 hex digest — the only form of a reset token that is ever persisted. */
