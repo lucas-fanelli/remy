@@ -21,6 +21,8 @@ import { makeValues, STEP_URL } from './fixtures';
 
 const USER_KEY = 'remy:recipe-draft:v1:user-1';
 const SAVED_AT = 1_700_000_000_000;
+/** The sections of the editor under test: the hook takes whatever its shell calls them */
+const SECTIONS = ['basics', 'ingredients', 'steps', 'presentation'] as const;
 
 /** In-memory Storage: the boundary the hook talks to */
 const createStorage = (initial: Record<string, string> = {}) => {
@@ -72,16 +74,21 @@ const storedDraft = (overrides: Partial<RecipeDraft> = {}): string =>
     ...overrides,
   });
 
-const renderDraft = (
-  options: Partial<UseRecipeDraftOptions> & { storage: DraftStorage | null }
-) => {
-  const initialProps: UseRecipeDraftOptions = {
+/** What a test says about the editor; the author is in the first section unless it says so */
+type DraftProps = Omit<UseRecipeDraftOptions, 'section' | 'sections'> & { section?: string };
+
+const renderDraft = (options: Partial<DraftProps> & { storage: DraftStorage | null }) => {
+  const initialProps: DraftProps = {
     userId: 'user-1',
     values: blankValues(),
     now: () => SAVED_AT,
     ...options,
   };
-  return renderHook((props: UseRecipeDraftOptions) => useRecipeDraft(props), { initialProps });
+  return renderHook(
+    ({ section = SECTIONS[0], ...props }: DraftProps) =>
+      useRecipeDraft({ ...props, section, sections: SECTIONS }),
+    { initialProps }
+  );
 };
 
 const savedIn = (storage: ReturnType<typeof createStorage>, key = USER_KEY) =>
@@ -146,7 +153,7 @@ describe('isBlankDraft', () => {
 
 describe('parseRecipeDraft', () => {
   it('should accept a v1 draft', () => {
-    expect(parseRecipeDraft(storedDraft())).toEqual({
+    expect(parseRecipeDraft(storedDraft(), SECTIONS)).toEqual({
       v: 1,
       savedAt: SAVED_AT,
       section: 'steps',
@@ -165,7 +172,7 @@ describe('parseRecipeDraft', () => {
     ['a savedAt that is not finite', storedDraft({ savedAt: 'yesterday' as never })],
     ['values that are not an object', storedDraft({ values: 'oops' as never })],
   ])('should discard %s', (_name, raw) => {
-    expect(parseRecipeDraft(raw)).toBeNull();
+    expect(parseRecipeDraft(raw, SECTIONS)).toBeNull();
   });
 
   it.each([
@@ -183,25 +190,25 @@ describe('parseRecipeDraft', () => {
   ])('should discard a draft with %s', (_name, badValues) => {
     const values = { ...toDraftValues(makeValues()), ...badValues };
 
-    expect(parseRecipeDraft(storedDraft({ values: values as never }))).toBeNull();
+    expect(parseRecipeDraft(storedDraft({ values: values as never }), SECTIONS)).toBeNull();
   });
 
   it('should discard a draft with nothing in it', () => {
     const raw = storedDraft({ values: toDraftValues(blankValues()) });
 
-    expect(parseRecipeDraft(raw)).toBeNull();
+    expect(parseRecipeDraft(raw, SECTIONS)).toBeNull();
   });
 
   it('should fall back to the first section when the stored one is unknown', () => {
     const raw = storedDraft({ section: 'review-step-of-another-branch' });
 
-    expect(parseRecipeDraft(raw)?.section).toBe('basics');
+    expect(parseRecipeDraft(raw, SECTIONS)?.section).toBe('basics');
   });
 
   it('should fall back to the first section when the stored one is not a string', () => {
     const raw = storedDraft({ section: 3 as never });
 
-    expect(parseRecipeDraft(raw)?.section).toBe('basics');
+    expect(parseRecipeDraft(raw, SECTIONS)?.section).toBe('basics');
   });
 
   it('should accept the section vocabulary of the caller', () => {
@@ -214,14 +221,14 @@ describe('parseRecipeDraft', () => {
     const values = { ...toDraftValues(makeValues()), mood: 'hungry' };
     const raw = storedDraft({ values: values as never });
 
-    expect(parseRecipeDraft(raw)?.values).not.toHaveProperty('mood');
+    expect(parseRecipeDraft(raw, SECTIONS)?.values).not.toHaveProperty('mood');
   });
 
   it('should drop images that are not finished uploads', () => {
     const values = { ...toDraftValues(makeValues()), imageUrl: 'blob:http://localhost/1' };
     const raw = storedDraft({ values });
 
-    expect(parseRecipeDraft(raw)?.values.imageUrl).toBe('');
+    expect(parseRecipeDraft(raw, SECTIONS)?.values.imageUrl).toBe('');
   });
 });
 
@@ -233,37 +240,37 @@ describe('storage helpers', () => {
   it('should read a stored draft', () => {
     const storage = createStorage({ [USER_KEY]: storedDraft() });
 
-    expect(readRecipeDraft(USER_KEY, storage)?.savedAt).toBe(SAVED_AT);
+    expect(readRecipeDraft(USER_KEY, SECTIONS, storage)?.savedAt).toBe(SAVED_AT);
   });
 
   it('should read nothing when storage throws', () => {
-    expect(readRecipeDraft(USER_KEY, throwingStorage())).toBeNull();
+    expect(readRecipeDraft(USER_KEY, SECTIONS, throwingStorage())).toBeNull();
   });
 
   it('should read nothing when there is no storage', () => {
-    expect(readRecipeDraft(USER_KEY, null)).toBeNull();
+    expect(readRecipeDraft(USER_KEY, SECTIONS, null)).toBeNull();
   });
 
   it('should report a failed write when storage throws', () => {
-    const draft = parseRecipeDraft(storedDraft()) as RecipeDraft;
+    const draft = parseRecipeDraft(storedDraft(), SECTIONS) as RecipeDraft;
 
     expect(writeRecipeDraft(USER_KEY, draft, throwingStorage())).toBe(false);
   });
 
   it('should report a failed write when there is no storage', () => {
-    const draft = parseRecipeDraft(storedDraft()) as RecipeDraft;
+    const draft = parseRecipeDraft(storedDraft(), SECTIONS) as RecipeDraft;
 
     expect(writeRecipeDraft(USER_KEY, draft, null)).toBe(false);
   });
 
   it('should write a draft that reads back', () => {
     const storage = createStorage();
-    const draft = parseRecipeDraft(storedDraft()) as RecipeDraft;
+    const draft = parseRecipeDraft(storedDraft(), SECTIONS) as RecipeDraft;
 
     const written = writeRecipeDraft(USER_KEY, draft, storage);
 
     expect(written).toBe(true);
-    expect(readRecipeDraft(USER_KEY, storage)).toEqual(draft);
+    expect(readRecipeDraft(USER_KEY, SECTIONS, storage)).toEqual(draft);
   });
 
   it('should clear a stored draft, as logout does', () => {
@@ -313,7 +320,7 @@ describe('storage helpers', () => {
   });
 
   it('should write to and clear the default storage when none is passed', () => {
-    const draft = parseRecipeDraft(storedDraft()) as RecipeDraft;
+    const draft = parseRecipeDraft(storedDraft(), SECTIONS) as RecipeDraft;
 
     const written = writeRecipeDraft(USER_KEY, draft);
     const stored = window.localStorage.getItem(USER_KEY);
@@ -328,7 +335,7 @@ describe('storage helpers', () => {
   it('should use the default storage when none is passed', () => {
     window.localStorage.setItem(USER_KEY, storedDraft());
 
-    const draft = readRecipeDraft(USER_KEY);
+    const draft = readRecipeDraft(USER_KEY, SECTIONS);
 
     window.localStorage.removeItem(USER_KEY);
     expect(draft?.savedAt).toBe(SAVED_AT);
@@ -344,10 +351,7 @@ describe('useRecipeDraft', () => {
     jest.useRealTimers();
   });
 
-  const typeAndWait = (
-    rerender: (props: UseRecipeDraftOptions) => void,
-    props: UseRecipeDraftOptions
-  ) => {
+  const typeAndWait = (rerender: (props: DraftProps) => void, props: DraftProps) => {
     rerender(props);
     act(() => {
       jest.advanceTimersByTime(RECIPE_DRAFT_DEBOUNCE_MS);
@@ -426,7 +430,12 @@ describe('useRecipeDraft', () => {
       window.localStorage.setItem(USER_KEY, storedDraft());
 
       const { result } = renderHook(() =>
-        useRecipeDraft({ userId: 'user-1', values: blankValues() })
+        useRecipeDraft({
+          userId: 'user-1',
+          values: blankValues(),
+          section: SECTIONS[0],
+          sections: SECTIONS,
+        })
       );
 
       window.localStorage.removeItem(USER_KEY);
@@ -669,15 +678,6 @@ describe('useRecipeDraft', () => {
       expect(storage.setItem).not.toHaveBeenCalled();
     });
 
-    it('should not write while disabled', () => {
-      const storage = createStorage();
-      const { rerender } = renderDraft({ storage, enabled: false });
-
-      typeAndWait(rerender, { userId: 'user-1', values: makeValues(), storage, enabled: false });
-
-      expect(storage.setItem).not.toHaveBeenCalled();
-    });
-
     it('should not write without a user', () => {
       const storage = createStorage();
       const { rerender } = renderDraft({ storage, userId: undefined });
@@ -798,16 +798,16 @@ describe('useRecipeDraft', () => {
     const OPEN: EditorProps = { resetKey: 'create:true', userId: 'user-1' };
     const CLOSED: EditorProps = { resetKey: 'create:false', userId: 'user-1' };
 
-    // A dialog that stays mounted: closing it only flips the resetKey both hooks receive,
-    // and useRecipeForm answers with blank values in that same render
-    const renderEditor = (storage: DraftStorage, { passResetKey = true } = {}) =>
+    // The engine underneath goes blank in place: a new `resetKey`, or reset()
+    const renderEditor = (storage: DraftStorage) =>
       renderHook(
         ({ resetKey, userId }: EditorProps) => {
           const form = useRecipeForm({ resetKey });
           const draft = useRecipeDraft({
             userId,
             values: form.values,
-            resetKey: passResetKey ? resetKey : undefined,
+            section: SECTIONS[0],
+            sections: SECTIONS,
             storage,
             now: () => SAVED_AT,
           });
@@ -821,7 +821,7 @@ describe('useRecipeDraft', () => {
         jest.advanceTimersByTime(ms);
       });
 
-    it('should keep the stored draft when the dialog closes and the form goes blank', () => {
+    it('should keep the stored draft when the form is re-keyed and goes blank', () => {
       const storage = createStorage();
       const { result, rerender } = renderEditor(storage);
       act(() => result.current.form.setField('title', 'Chocotorta'));
@@ -831,18 +831,6 @@ describe('useRecipeDraft', () => {
       wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
 
       expect(result.current.form.values.title).toBe('');
-      expect(savedIn(storage).values.title).toBe('Chocotorta');
-    });
-
-    it('should keep the stored draft even when the shell does not pass the resetKey', () => {
-      const storage = createStorage();
-      const { result, rerender } = renderEditor(storage, { passResetKey: false });
-      act(() => result.current.form.setField('title', 'Chocotorta'));
-      wait(RECIPE_DRAFT_DEBOUNCE_MS);
-
-      rerender(CLOSED);
-      wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
-
       expect(savedIn(storage).values.title).toBe('Chocotorta');
     });
 
@@ -858,67 +846,28 @@ describe('useRecipeDraft', () => {
       expect(savedIn(storage).values.title).toBe('Chocotorta');
     });
 
-    it('should offer the draft written in this session when the dialog reopens', () => {
+    it('should forget Draft saved once the editor belongs to nobody', () => {
       const storage = createStorage();
       const { result, rerender } = renderEditor(storage);
       act(() => result.current.form.setField('title', 'Chocotorta'));
       wait(RECIPE_DRAFT_DEBOUNCE_MS);
-      rerender(CLOSED);
+      const savedBeforeLogout = result.current.draft.savedAt;
 
-      rerender(OPEN);
+      rerender({ resetKey: 'create:true', userId: null });
 
-      expect(result.current.draft.draft?.values.title).toBe('Chocotorta');
-    });
-
-    it('should write the keystrokes of the debounce window before the form is reset', () => {
-      const storage = createStorage();
-      const { result, rerender } = renderEditor(storage);
-      act(() => result.current.form.setField('title', 'Closing right away'));
-
-      rerender(CLOSED);
-
-      expect(savedIn(storage).values.title).toBe('Closing right away');
-      expect(result.current.draft.draft?.values.title).toBe('Closing right away');
-    });
-
-    it('should not save again when the restored draft is loaded after reopening', () => {
-      const storage = createStorage();
-      const { result, rerender } = renderEditor(storage);
-      act(() => result.current.form.setField('title', 'Chocotorta'));
-      wait(RECIPE_DRAFT_DEBOUNCE_MS);
-      rerender(CLOSED);
-      rerender(OPEN);
-      storage.setItem.mockClear();
-
-      act(() => result.current.form.load(result.current.draft.draft!.values));
-      wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
-
-      expect(result.current.form.values.title).toBe('Chocotorta');
-      expect(storage.setItem).not.toHaveBeenCalled();
-    });
-
-    it('should forget Draft saved once the form is reset', () => {
-      const storage = createStorage();
-      const { result, rerender } = renderEditor(storage);
-      act(() => result.current.form.setField('title', 'Chocotorta'));
-      wait(RECIPE_DRAFT_DEBOUNCE_MS);
-      const savedBeforeClosing = result.current.draft.savedAt;
-
-      rerender(CLOSED);
-
-      expect(savedBeforeClosing).toBe(SAVED_AT);
+      expect(savedBeforeLogout).toBe(SAVED_AT);
       expect(result.current.draft.savedAt).toBeNull();
     });
 
-    it('should forget a failed write once the form is reset', () => {
+    it('should forget a failed write once the editor belongs to nobody', () => {
       const { result, rerender } = renderEditor(throwingStorage());
       act(() => result.current.form.setField('title', 'Chocotorta'));
       wait(RECIPE_DRAFT_DEBOUNCE_MS);
-      const failedBeforeClosing = result.current.draft.saveFailed;
+      const failedBeforeLogout = result.current.draft.saveFailed;
 
-      rerender(CLOSED);
+      rerender({ resetKey: 'create:true', userId: null });
 
-      expect(failedBeforeClosing).toBe(true);
+      expect(failedBeforeLogout).toBe(true);
       expect(result.current.draft.saveFailed).toBe(false);
     });
 
@@ -1069,10 +1018,7 @@ describe('the free text stored with a draft', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  const typeAndWait = (
-    rerender: (props: UseRecipeDraftOptions) => void,
-    props: UseRecipeDraftOptions
-  ) => {
+  const typeAndWait = (rerender: (props: DraftProps) => void, props: DraftProps) => {
     rerender(props);
     act(() => {
       jest.advanceTimersByTime(RECIPE_DRAFT_DEBOUNCE_MS);
@@ -1080,7 +1026,7 @@ describe('the free text stored with a draft', () => {
   };
 
   it('should read the text of a stored draft', () => {
-    const draft = parseRecipeDraft(storedDraft({ text: TEXT }));
+    const draft = parseRecipeDraft(storedDraft({ text: TEXT }), SECTIONS);
 
     expect(draft?.text).toEqual(TEXT);
   });
@@ -1091,7 +1037,10 @@ describe('the free text stored with a draft', () => {
     ['a half', { ingredients: 'harina' }],
     ['numbers', { ingredients: 1, method: 2 }],
   ])('should keep the draft and drop a text that is %s', (_label, text) => {
-    const draft = parseRecipeDraft(storedDraft({ text } as unknown as Partial<RecipeDraft>));
+    const draft = parseRecipeDraft(
+      storedDraft({ text } as unknown as Partial<RecipeDraft>),
+      SECTIONS
+    );
 
     expect(draft).not.toBeNull();
     expect(draft).not.toHaveProperty('text');

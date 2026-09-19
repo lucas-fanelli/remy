@@ -46,9 +46,11 @@ export interface UseRecipeFormOptions {
   /** The recipe being edited; leave it out (or null) to create one */
   initial?: Recipe | null;
   /**
-   * The form re-initialises when this string changes, never on `initial`'s identity:
-   * `recipe.id + ':' + open` in dialogs, `recipe.id` on a route, any constant for Create.
-   * A shell that stays mounted gives the same string to `useRecipeDraft`.
+   * The form re-initialises when this string changes, never on `initial`'s identity: a
+   * parent may hand over a new object for the same recipe on every render. The recipe
+   * dialog gives every editing session a mount of its own and passes a constant. A shell
+   * that re-keys a mounted form instead flushes its draft first: `useRecipeDraft` reads
+   * storage again only when its user changes.
    */
   resetKey: string;
 }

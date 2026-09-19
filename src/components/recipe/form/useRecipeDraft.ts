@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { isBlankIngredientRow, isBlankStepRow, trimTrailingBlankRows } from './formValues';
-import { NumericFieldValue, RECIPE_FORM_SECTIONS, RecipeFormValuesInput } from './types';
+import { NumericFieldValue, RecipeFormValuesInput } from './types';
 
 /**
  * Autosaved draft of the recipe being created.
@@ -156,12 +156,12 @@ const snapshotOf = (values: RecipeDraftValues, text: RecipeDraftText | undefined
 
 /**
  * Type guard + normaliser for whatever was found in storage. Returns null for anything
- * that is not a v1 draft with the expected shapes; an unknown `section` falls back to the
- * first one.
+ * that is not a v1 draft with the expected shapes; a `section` that is not one of the
+ * editor's own `sections` (another build stored it) falls back to the first one.
  */
 export function parseRecipeDraft(
   raw: string | null | undefined,
-  sections: readonly string[] = RECIPE_FORM_SECTIONS
+  sections: readonly string[]
 ): RecipeDraft | null {
   if (!raw) return null;
   let data: unknown;
@@ -194,8 +194,8 @@ export function getDefaultDraftStorage(): DraftStorage | null {
 
 export function readRecipeDraft(
   key: string,
-  storage: DraftStorage | null = getDefaultDraftStorage(),
-  sections?: readonly string[]
+  sections: readonly string[],
+  storage: DraftStorage | null = getDefaultDraftStorage()
 ): RecipeDraft | null {
   try {
     return storage ? parseRecipeDraft(storage.getItem(key), sections) : null;
@@ -239,24 +239,15 @@ export interface UseRecipeDraftOptions {
   /** The live form values (`form.values`) */
   values: RecipeFormValuesInput;
   /**
-   * The string `useRecipeForm` gets as its `resetKey`. A change means the form was
-   * re-initialised in place (a dialog that stays mounted was closed or reopened): the
-   * autosave still pending for the old form is written first, storage is read again into
-   * `draft` and 'Draft saved' is forgotten. An editor that unmounts on close may omit it.
-   */
-  resetKey?: string;
-  /**
    * Where the author is, stored along so a restore can return there. Once a draft exists, a
    * move to another section is stored by itself too - same debounce, but the draft keeps
    * the time of its CONTENT and 'Draft saved' is not said again: nothing new was written down
    */
-  section?: string;
+  section: string;
+  /** The editor's own sections (its tabs); an unknown stored section falls back to the first */
+  sections: readonly string[];
   /** The free text the rows were written as, stored along with them (see RecipeDraftText) */
   text?: RecipeDraftText;
-  /** False pauses autosave (Edit has no stored draft). Default true */
-  enabled?: boolean;
-  /** Section vocabulary of this build; an unknown stored section falls back to the first */
-  sections?: readonly string[];
   /** Injectable storage; defaults to window.localStorage. null disables persistence */
   storage?: DraftStorage | null;
   /** Injectable key; defaults to `recipeDraftKey(userId)` */
@@ -267,7 +258,7 @@ export interface UseRecipeDraftOptions {
 }
 
 export interface UseRecipeDraftResult {
-  /** The draft found in storage when the hook mounted (or the key / resetKey changed), if any */
+  /** The draft found in storage when the hook mounted (or its key changed), if any */
   draft: RecipeDraft | null;
   /** Time of the last successful write in this session ('Draft saved') */
   savedAt: number | null;
@@ -288,19 +279,16 @@ export interface UseRecipeDraftResult {
 export function useRecipeDraft({
   userId,
   values,
-  resetKey,
-  section = RECIPE_FORM_SECTIONS[0],
+  section,
+  sections,
   text,
-  enabled = true,
-  sections = RECIPE_FORM_SECTIONS,
   storage,
   storageKey,
   debounceMs = RECIPE_DRAFT_DEBOUNCE_MS,
   now = Date.now,
 }: UseRecipeDraftOptions): UseRecipeDraftResult {
+  // One editing session of one user: storage is read again only when the key changes
   const key = storageKey ?? (userId ? recipeDraftKey(userId) : null);
-  // One form of one user: storage is read again whenever either half changes
-  const identity = JSON.stringify([key, resetKey]);
 
   // Latest props for the callbacks; the default storage is resolved on every access so a
   // window that appears after the first render (hydration) is still picked up
@@ -312,9 +300,8 @@ export function useRecipeDraft({
   };
 
   const readDraft = () => ({
-    identity,
     key,
-    draft: key ? readRecipeDraft(key, resolveStorage(), sections) : null,
+    draft: key ? readRecipeDraft(key, sections, resolveStorage()) : null,
   });
 
   const [found, setFound] = useState(readDraft);
@@ -357,8 +344,8 @@ export function useRecipeDraft({
     }
   };
 
-  // `notify: false` touches no state, so it is safe while rendering and while unmounting.
-  // Returns whether storage is up to date as far as the hook can tell
+  // `notify: false` touches no state, so it is safe while unmounting. Returns whether
+  // storage is up to date as far as the hook can tell
   const writePending = useCallback((notify: boolean): boolean => {
     const pending = pendingRef.current;
     const { key: currentKey, now: clock } = latestRef.current;
@@ -398,16 +385,10 @@ export function useRecipeDraft({
   let current = found;
   // False on the first render: `found` was read with this very key
   const keyChanged = found.key !== key;
-  if (found.identity !== identity) {
-    if (!keyChanged) {
-      // Same user, new form: what was typed inside the debounce window belongs to the form
-      // that is going away and is written BEFORE storage is read again
-      writePending(false);
-    } else {
-      // Another user, or logout (which clears the draft): never written back
-      pendingRef.current = null;
-      cancelTimer();
-    }
+  if (keyChanged) {
+    // Another user, or logout (which clears the draft): never written back
+    pendingRef.current = null;
+    cancelTimer();
     current = readDraft();
     setFound(current);
     setSavedAt(null);
@@ -415,9 +396,10 @@ export function useRecipeDraft({
     lastWriteFailedRef.current = false;
   }
 
-  const trackedIdentityRef = useRef<string | null>(null);
-  if (trackedIdentityRef.current !== identity) {
-    trackedIdentityRef.current = identity;
+  // undefined until the first render has been tracked: null is a key too (nobody logged in)
+  const trackedKeyRef = useRef<string | null | undefined>(undefined);
+  if (trackedKeyRef.current !== key) {
+    trackedKeyRef.current = key;
     storedSnapshotRef.current = current.draft
       ? snapshotOf(current.draft.values, current.draft.text)
       : null;
@@ -434,7 +416,7 @@ export function useRecipeDraft({
 
   useEffect(() => {
     pendingRef.current = null;
-    if (!enabled || !key) return undefined;
+    if (!key) return undefined;
 
     const draftValues = toDraftValues(values);
     const snapshot = snapshotOf(draftValues, text);
@@ -445,8 +427,8 @@ export function useRecipeDraft({
     if (section !== mountSectionRef.current) movedSinceMountRef.current = true;
     const sameSection = !movedSinceMountRef.current || section === storedSectionRef.current;
     const upToDate = snapshot === stored && sameSection;
-    // Never written and never a reason to delete: a form that was reset in place (dialog
-    // closed, 'Start over') is just as blank as one the author emptied by hand
+    // Never written and never a reason to delete: a form that was reset in place ('Start
+    // over') is just as blank as one the author emptied by hand
     const blank = isBlankDraft(draftValues);
     const awaitingRestore = stored !== null && !changedSinceMountRef.current;
     const justCleared = snapshot === clearedSnapshotRef.current;
@@ -459,7 +441,7 @@ export function useRecipeDraft({
     return cancelTimer;
     // The text is compared by content: callers build the object on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values, section, text?.ingredients, text?.method, enabled, key, debounceMs, writePending]);
+  }, [values, section, text?.ingredients, text?.method, key, debounceMs, writePending]);
 
   // Closing the editor inside the debounce window must not lose the last keystrokes
   useEffect(
