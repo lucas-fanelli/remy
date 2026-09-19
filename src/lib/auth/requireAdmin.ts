@@ -18,7 +18,10 @@ export async function requireAdmin(request: NextRequest): Promise<AdminAuthResul
   const token = extractAuthToken(request);
 
   if (!token) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Authentication required', code: 'auth.required' },
+      { status: 401 }
+    );
   }
 
   try {
@@ -28,12 +31,18 @@ export async function requireAdmin(request: NextRequest): Promise<AdminAuthResul
     const user = await container.getAuthService().validateToken(token);
 
     if (!user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid token', code: 'auth.invalidToken' },
+        { status: 401 }
+      );
     }
 
     // Current role from the DB row (the JWT role claim could be stale after demotion)
     if (user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin access required', code: 'admin.accessRequired' },
+        { status: 403 }
+      );
     }
 
     return {
@@ -44,7 +53,10 @@ export async function requireAdmin(request: NextRequest): Promise<AdminAuthResul
       isAdmin: true,
     };
   } catch {
-    return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    return NextResponse.json(
+      { error: 'Invalid or expired token', code: 'auth.sessionExpired' },
+      { status: 401 }
+    );
   }
 }
 
