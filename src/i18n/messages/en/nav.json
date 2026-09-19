@@ -1,0 +1,48 @@
+{
+  "items": {
+    "add": "New recipe",
+    "home": "Home",
+    "pantry": "Pantry",
+    "search": "Search"
+  },
+  "menu": {
+    "about": "About Us",
+    "admin": "Admin",
+    "contact": "Contact",
+    "darkMode": "Dark Mode",
+    "guest": "Guest",
+    "lightMode": "Light Mode",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "openMenu": "Open menu",
+    "profile": "Profile",
+    "settings": "Settings",
+    "signIn": "Sign In",
+    "tapToSignIn": "Tap to sign in",
+    "youtube": "YouTube"
+  },
+  "search": {
+    "placeholder": "Search recipes, ingredients...",
+    "placeholderShort": "Search...",
+    "title": "Search"
+  },
+  "notificationsPaused": "Notifications temporarily paused",
+  "logoutWarning": "Could not fully sign out. Your session may persist until the cookie expires.",
+  "footer": {
+    "about": "About Us",
+    "contact": "Contact",
+    "switchToDark": "Switch to Dark Mode",
+    "switchToLight": "Switch to Light Mode",
+    "youtubeChannel": "YouTube Channel"
+  },
+  "contactDialog": {
+    "email": "Your Email",
+    "mailBody": "Name: {name}\nEmail: {email}\n\nMessage:\n{message}",
+    "mailSubject": "Contact from {name}",
+    "message": "Message",
+    "messageTooLong": "Your message is too long for email. Please shorten it or email us directly at {email}",
+    "name": "Your Name",
+    "send": "Send Email",
+    "title": "Contact"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "currentPasswordIncorrect": "La contraseña actual no es correcta",
+  "forbidden": "No tenés permiso para hacer eso.",
+  "invalidRequest": "Hay datos que no son válidos. Revisalos y probá de nuevo.",
+  "network": "No pudimos conectarnos. Revisá tu conexión y probá de nuevo.",
+  "notFound": "No encontramos lo que buscabas.",
+  "rateLimited": "Demasiados intentos. Esperá un momento y probá de nuevo.",
+  "serverError": "Algo falló de nuestro lado. Probá de nuevo en un rato.",
+  "unauthorized": "Tenés que iniciar sesión para hacer eso.",
+  "unknown": "Algo salió mal. Probá de nuevo."
+}

@@ -1,0 +1,31 @@
+{
+  "label": {
+    "cups": "{count, plural, one {taza} other {tazas}}",
+    "g": "g",
+    "kg": "kg",
+    "L": "L",
+    "lb": "lb",
+    "mL": "mL",
+    "oz": "oz",
+    "pinch": "{count, plural, one {pizca} other {pizcas}}",
+    "tbsp": "cda",
+    "toTaste": "a gusto",
+    "tsp": "cdta",
+    "units": "{count, plural, one {unidad} other {unidades}}"
+  },
+  "name": {
+    "cups": "tazas",
+    "g": "gramos",
+    "kg": "kilogramos",
+    "L": "litros",
+    "lb": "libras",
+    "mL": "mililitros",
+    "oz": "onzas",
+    "pinch": "pizca",
+    "tbsp": "cucharadas",
+    "toTaste": "sin cantidad exacta",
+    "tsp": "cucharaditas",
+    "units": "unidades enteras"
+  },
+  "option": "{label} - {name}"
+}

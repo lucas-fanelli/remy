@@ -60,6 +60,7 @@
     "jsonwebtoken": "^9.0.2",
     "next": "16.0.10",
     "next-auth": "^4.24.0",
+    "next-intl": "^4.14.5",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "serwist": "^9.2.3",
