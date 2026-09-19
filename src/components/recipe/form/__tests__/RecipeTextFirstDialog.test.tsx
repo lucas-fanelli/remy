@@ -725,6 +725,66 @@ describe('RecipeTextFirstDialog - create', () => {
         expect(JSON.parse(storage.data.get(USER_KEY) ?? 'null').values.title).toBe('Pan casero');
         expect(mockLogout).not.toHaveBeenCalled();
       });
+
+      describe('on a device that can not keep a draft', () => {
+        afterEach(() => jest.useRealTimers());
+
+        const expireWithoutDraft = async () => {
+          const view = renderDialog({ draftStorage: null });
+          await view.user.type(titleBox(), 'Pan');
+          mockUser = null;
+          view.rerender({});
+          return view;
+        };
+
+        it('should ask first and keep the link from leaving the page', async () => {
+          const { onClose } = await expireWithoutDraft();
+
+          const followed = fireEvent.click(screen.getByRole('link', { name: 'Log in again' }));
+
+          expect(followed).toBe(false);
+          expect(screen.getByRole('dialog', { name: 'Discard your changes?' })).toBeInTheDocument();
+          expect(onClose).not.toHaveBeenCalled();
+        });
+
+        it('should stay in the editor when the author keeps editing', async () => {
+          const { user, onClose } = await expireWithoutDraft();
+          fireEvent.click(screen.getByRole('link', { name: 'Log in again' }));
+
+          await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+
+          expect(onClose).not.toHaveBeenCalled();
+          expect(mockPush).not.toHaveBeenCalled();
+          expect(await screen.findByRole('textbox', { name: /^Title/ })).toHaveValue('Pan');
+        });
+
+        it('should go to the login page once the author gives the recipe up', async () => {
+          const { user, onClose } = await expireWithoutDraft();
+          fireEvent.click(screen.getByRole('link', { name: 'Log in again' }));
+
+          await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+          expect(onClose).toHaveBeenCalledTimes(1);
+          expect(mockPush).toHaveBeenCalledWith('/auth?next=create');
+        });
+
+        it('should not say that the recipe is saved as a draft', async () => {
+          jest.useFakeTimers();
+          const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+          const { rerender } = renderDialog({ draftStorage: null });
+          await user.type(titleBox(), 'Pan');
+          act(() => {
+            jest.advanceTimersByTime(RECIPE_DRAFT_DEBOUNCE_MS);
+          });
+
+          mockUser = null;
+          rerender({});
+
+          expect(screen.getByRole('alert')).toHaveTextContent(
+            'Your session expired and this device could not save a draft - copy what you wrote before you log in again.'
+          );
+        });
+      });
     });
 
     it('should try again after a network failure', async () => {
@@ -1474,8 +1534,71 @@ describe('RecipeTextFirstDialog - edit', () => {
     await user.click(saveButton());
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Your session expired. Log in again to save your changes.'
+      'Your session expired. Your changes are not saved - copy what you need before you log in again.'
     );
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  describe('Log in again', () => {
+    const loginLink = () => screen.findByRole('link', { name: 'Log in again' });
+
+    /** The author changed the title, and Save was refused: the session is gone */
+    const refuseTheSave = async () => {
+      answerRecipeWith(errorResponse(401, { error: 'Unauthorized' }));
+      const view = renderEdit();
+      await view.user.click(writeTab());
+      await view.user.type(titleBox(), '!');
+      await view.user.click(saveButton());
+      return view;
+    };
+
+    it('should ask before the changes are lost and keep the link from leaving the page', async () => {
+      const { onClose } = await refuseTheSave();
+
+      const followed = fireEvent.click(await loginLink());
+
+      expect(followed).toBe(false);
+      expect(screen.getByRole('dialog', { name: 'Discard your changes?' })).toBeInTheDocument();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(mockLogout).not.toHaveBeenCalled();
+    });
+
+    it('should keep the changes when the author stays', async () => {
+      const { user, onClose } = await refuseTheSave();
+      fireEvent.click(await loginLink());
+
+      await user.click(screen.getByRole('button', { name: 'Keep editing' }));
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(await screen.findByRole('textbox', { name: /^Title/ })).toHaveValue('Chocotorta!');
+    });
+
+    it('should end the refused session and go to the login page on Discard', async () => {
+      const { user, onClose } = await refuseTheSave();
+      fireEvent.click(await loginLink());
+
+      await user.click(screen.getByRole('button', { name: 'Discard' }));
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith('/auth');
+    });
+
+    it('should leave at once when nothing was changed', async () => {
+      const { user, onClose, rerender } = renderEdit();
+      mockUser = null;
+      rerender({});
+      const link = await loginLink();
+      // jsdom can not follow a link
+      link.addEventListener('click', (event) => event.preventDefault());
+
+      await user.click(link);
+
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(
+        screen.queryByRole('dialog', { name: 'Discard your changes?' })
+      ).not.toBeInTheDocument();
+    });
   });
 });

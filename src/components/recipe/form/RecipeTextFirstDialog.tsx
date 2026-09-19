@@ -22,7 +22,7 @@ import { RecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
 import CheckTab from './CheckTab';
 import DraftRestoredBar from './DraftRestoredBar';
 import { fadeMotion } from './formMotion';
-import FormStatus from './FormStatus';
+import FormStatus, { loginHref } from './FormStatus';
 import { attentionColor } from './formTokens';
 import { isBlankIngredientRow } from './formValues';
 import PublishButton from './PublishButton';
@@ -168,7 +168,8 @@ function EditorSession({
   const [isSubmitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [attempts, setAttempts] = useState(0);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // Set while the author is asked whether to lose the work, and to where they were going
+  const [confirmDiscard, setConfirmDiscard] = useState<'close' | 'login' | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [coverBroken, setCoverBroken] = useState(false);
   // Once the author has moved between tabs the title no longer grabs the focus on mount
@@ -286,20 +287,22 @@ function EditorSession({
     selectTabRef.current(tabForPath(path), path);
   }, []);
 
+  // Servings and difficulty are prefilled and never make a draft: nothing to lose or keep
+  const worthKeeping = () =>
+    form.isDirty && (mode === 'edit' || !isBlankDraft(toDraftValues(form.values)));
+
+  // Written NOW and asked, not read from `saveFailed`: inside the autosave debounce that
+  // still describes the write before this one. Nothing keeps the work when it says no:
+  // Edit has no draft, and neither has Create without storage or without its owner
+  const keepDraft = () => mode === 'create' && flush();
+
   const handleClose = () => {
-    // Servings and difficulty are prefilled and never make a draft: nothing to lose or keep
-    const worthKeeping =
-      form.isDirty && (mode === 'edit' || !isBlankDraft(toDraftValues(form.values)));
-    if (!worthKeeping) {
+    if (!worthKeeping()) {
       onClose();
       return;
     }
-    // Written NOW and asked, not read from `saveFailed`: inside the autosave debounce that
-    // still describes the write before this one. Nothing keeps these changes when it says
-    // no: Edit has no draft, and neither has Create without storage or without its owner
-    const draftKept = mode === 'create' && flush();
-    if (!draftKept) {
-      setConfirmDiscard(true);
+    if (!keepDraft()) {
+      setConfirmDiscard('close');
       return;
     }
     onClose();
@@ -314,16 +317,33 @@ function EditorSession({
   // draft is written first and comes back when the login returns to 'New recipe'; no toast,
   // the author is not done. After a 401 the app may still believe in the session the server
   // refused, and the login page sends a logged-in visitor straight back: that session ends here
-  const handleLogin = () => {
-    flush();
+  const leaveForLogin = () => {
     onClose();
     if (user) logout();
   };
 
+  // Like every other way out, it asks first when nothing would keep the work. The link does
+  // not navigate then: 'Discard' goes to the login page, 'Keep editing' stays
+  const handleLogin = (event: React.MouseEvent<HTMLElement>) => {
+    const draftKept = keepDraft();
+    if (worthKeeping() && !draftKept) {
+      event.preventDefault();
+      setConfirmDiscard('login');
+      return;
+    }
+    leaveForLogin();
+  };
+
   const handleDiscard = () => {
     coverHandleRef.current?.cancel();
-    setConfirmDiscard(false);
-    onClose();
+    const leavingFor = confirmDiscard;
+    setConfirmDiscard(null);
+    if (leavingFor === 'login') {
+      leaveForLogin();
+      router.push(loginHref(mode));
+    } else {
+      onClose();
+    }
   };
 
   const handleStartOver = () => {
@@ -483,6 +503,7 @@ function EditorSession({
         sessionExpired={!user}
         onLogin={handleLogin}
         draftSavedAt={draft.savedAt}
+        draftFailed={draft.saveFailed || !ownsDraft}
         attempt={attempts}
       />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
@@ -617,8 +638,8 @@ function EditorSession({
       />
 
       <ConfirmDialog
-        open={open && confirmDiscard}
-        onClose={() => setConfirmDiscard(false)}
+        open={open && confirmDiscard !== null}
+        onClose={() => setConfirmDiscard(null)}
         onConfirm={handleDiscard}
         title="Discard your changes?"
         message={

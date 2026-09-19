@@ -41,15 +41,22 @@ export interface FormStatusProps {
   /** `useRecipeDraft().savedAt`: prints 'Draft saved' (polite) after every write */
   draftSavedAt?: number | null;
   /**
+   * Nothing keeps this recipe on the device (`useRecipeDraft().saveFailed`, or a session with
+   * no draft of its own): no message may say 'saved as a draft' then
+   */
+  draftFailed?: boolean;
+  /**
    * Bump it on every failed Publish so 'N things to fix' is announced again, once per
    * event. Without it the alert is announced only when `publishAttempted` turns true.
    */
   attempt?: number;
   /**
    * Runs when [Log in again] is activated, before the link navigates. A shell that is a
-   * dialog closes itself here: a dialog owned by the layout would stay on top of the login form
+   * dialog closes itself here: a dialog owned by the layout would stay on top of the login
+   * form. `event.preventDefault()` keeps the link from navigating - the shell that has to
+   * ask before work is lost goes to `loginHref(mode)` itself once the author has answered
    */
-  onLogin?: () => void;
+  onLogin?: (event: React.MouseEvent<HTMLElement>) => void;
   /** Put it in the PublishButton's aria-describedby */
   id?: string;
   sx?: SxProps<Theme>;
@@ -84,6 +91,30 @@ interface SubmitErrorView {
   action?: 'login' | 'retry';
 }
 
+/** Create comes back to 'New recipe' and its draft; Edit has nothing stored */
+export const loginHref = (mode: RecipeFormMode): string =>
+  mode === 'create' ? '/auth?next=create' : '/auth';
+
+interface SubmitErrorContext {
+  mode: RecipeFormMode;
+  hasIssues: boolean;
+  isDirty: boolean;
+  draftFailed: boolean;
+}
+
+// [Log in again] leaves the editor. Only a stored draft survives that: Edit has none, and
+// neither has Create on a device that could not write one - the copy never says otherwise
+const sessionExpiredMessage = ({ mode, isDirty, draftFailed }: SubmitErrorContext): string => {
+  if (mode === 'edit') {
+    return isDirty
+      ? 'Your session expired. Your changes are not saved - copy what you need before you log in again.'
+      : 'Your session expired. Log in again to edit this recipe.';
+  }
+  return draftFailed
+    ? 'Your session expired and this device could not save a draft - copy what you wrote before you log in again.'
+    : 'Your session expired. Your recipe is saved as a draft on this device.';
+};
+
 // Anything that is not a typed error (a thrown TypeError...) reads as 'could not reach'
 const codeOf = (error: unknown): RecipeSubmitErrorCode =>
   error instanceof RecipeSubmitError ? error.code : 'server';
@@ -91,21 +122,18 @@ const codeOf = (error: unknown): RecipeSubmitErrorCode =>
 const toSubmitErrorView = (
   code: RecipeSubmitErrorCode,
   error: unknown,
-  mode: RecipeFormMode,
-  hasIssues: boolean
+  context: SubmitErrorContext
 ): SubmitErrorView | null => {
   switch (code) {
     case 'unauthorized':
-      return {
-        message:
-          mode === 'create'
-            ? 'Your session expired. Your recipe is saved as a draft on this device.'
-            : 'Your session expired. Log in again to save your changes.',
-        action: 'login',
-      };
+      return { message: sessionExpiredMessage(context), action: 'login' };
     case 'daily_limit':
       return {
-        message: `You have published ${MAX_DAILY_RECIPES} recipes in the last 24 hours. This one is saved as a draft - publish it tomorrow.`,
+        message: `You have published ${MAX_DAILY_RECIPES} recipes in the last 24 hours. ${
+          context.draftFailed
+            ? 'This device could not save a draft - copy what you wrote and publish it tomorrow.'
+            : 'This one is saved as a draft - publish it tomorrow.'
+        }`,
       };
     case 'rate_limited': {
       const seconds = error instanceof RecipeSubmitError ? error.retryAfter : undefined;
@@ -115,7 +143,7 @@ const toSubmitErrorView = (
     case 'validation':
       // The shell re-ran validate(): the fields say what is wrong. The server's own text is
       // only the fallback for a rule the client does not know
-      if (hasIssues) return null;
+      if (context.hasIssues) return null;
       return {
         message:
           (error instanceof Error && error.message) || 'The recipe was rejected - check the fields',
@@ -164,6 +192,7 @@ export default function FormStatus({
   onRetry,
   sessionExpired = false,
   draftSavedAt,
+  draftFailed = false,
   attempt = 0,
   onLogin,
   id,
@@ -181,11 +210,12 @@ export default function FormStatus({
   const issueCountRef = useRef(issueCount);
   issueCountRef.current = issueCount;
 
+  const errorContext = { mode, hasIssues: issueCount > 0, isDirty, draftFailed };
   let errorView: SubmitErrorView | null = null;
   if (sessionExpired) {
-    errorView = toSubmitErrorView('unauthorized', null, mode, issueCount > 0);
+    errorView = toSubmitErrorView('unauthorized', null, errorContext);
   } else if (submitError != null) {
-    errorView = toSubmitErrorView(codeOf(submitError), submitError, mode, issueCount > 0);
+    errorView = toSubmitErrorView(codeOf(submitError), submitError, errorContext);
   }
 
   // A new failure is a new alert node, so the same sentence is announced again
@@ -287,13 +317,7 @@ export default function FormStatus({
               {errorView.message}
             </Typography>
             {errorView.action === 'login' && (
-              <Button
-                component={NextLink}
-                // Create comes back to 'New recipe' and its draft; Edit has nothing stored
-                href={mode === 'create' ? '/auth?next=create' : '/auth'}
-                size="small"
-                onClick={onLogin}
-              >
+              <Button component={NextLink} href={loginHref(mode)} size="small" onClick={onLogin}>
                 Log in again
               </Button>
             )}

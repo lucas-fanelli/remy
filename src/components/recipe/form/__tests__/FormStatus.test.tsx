@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { RecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
@@ -277,16 +277,41 @@ describe('FormStatus', () => {
       );
     });
 
-    it('should not promise a draft when an edit hits an expired session', () => {
+    it('should not promise a draft, or a save, when an edit hits an expired session', () => {
       renderStatus(
         { mode: 'edit' },
         { submitError: new RecipeSubmitError('Unauthorized', 401, 'unauthorized') }
       );
 
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Your session expired. Log in again to save your changes.'
+        'Your session expired. Your changes are not saved - copy what you need before you log in again.'
       );
       expect(screen.getByRole('link', { name: 'Log in again' })).toHaveAttribute('href', '/auth');
+    });
+
+    it('should only ask an edit with no changes to log in again', () => {
+      renderStatus({ mode: 'edit', isDirty: false }, { sessionExpired: true });
+
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Your session expired. Log in again to edit this recipe.'
+      );
+    });
+
+    it('should not promise a draft the device could not save', () => {
+      renderStatus({}, { sessionExpired: true, draftFailed: true });
+
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Your session expired and this device could not save a draft - copy what you wrote before you log in again.'
+      );
+    });
+
+    it('should let the shell keep the link from navigating', () => {
+      const onLogin = jest.fn((event: React.MouseEvent<HTMLElement>) => event.preventDefault());
+      renderStatus({}, { sessionExpired: true, onLogin });
+
+      const followed = fireEvent.click(screen.getByRole('link', { name: 'Log in again' }));
+
+      expect(followed).toBe(false);
     });
 
     it('should tell the shell when the author leaves to log in again', async () => {
@@ -315,6 +340,20 @@ describe('FormStatus', () => {
 
       expect(screen.getByRole('alert')).toHaveTextContent(
         'You have published 10 recipes in the last 24 hours. This one is saved as a draft - publish it tomorrow.'
+      );
+    });
+
+    it('should not call a recipe over the daily limit a draft when none could be saved', () => {
+      renderStatus(
+        {},
+        {
+          submitError: new RecipeSubmitError('Daily recipe limit', 429, 'daily_limit'),
+          draftFailed: true,
+        }
+      );
+
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'You have published 10 recipes in the last 24 hours. This device could not save a draft - copy what you wrote and publish it tomorrow.'
       );
     });
 
