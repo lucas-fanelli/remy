@@ -1,1 +1,63 @@
-{}
+{
+  "about": {
+    "hero": {
+      "title": "About {name}",
+      "subtitle": "A modern recipe sharing platform where home cooks come together to discover, create, and share delicious recipes."
+    },
+    "intro": {
+      "title": "What is {name}?",
+      "lead": "{name} is a recipe sharing social platform inspired by the love of cooking and community. {tagline}",
+      "tagline": "Named after the famous chef rat from Ratatouille, this platform embodies the belief that \"anyone can cook\" — and everyone has something delicious to share.",
+      "body": "Whether you're a beginner learning your first recipes or a seasoned home cook with family recipes passed down through generations, {name} provides a space to document, discover, and connect with fellow food enthusiasts."
+    },
+    "features": {
+      "title": "Features",
+      "subtitle": "Everything you need to organize your recipes and connect with other food lovers.",
+      "shareRecipes": {
+        "title": "Share Recipes",
+        "description": "Create and share your favorite recipes with the community. Add photos, ingredients, and step-by-step instructions."
+      },
+      "smartPantry": {
+        "title": "Smart Pantry",
+        "description": "Track ingredients in your pantry and discover recipes you can make with what you already have."
+      },
+      "discover": {
+        "title": "Discover",
+        "description": "Explore recipes from other home cooks. Filter by ingredients, cuisine, or dietary preferences."
+      },
+      "saveFavorites": {
+        "title": "Save Favorites",
+        "description": "Save recipes you love to your profile for quick access anytime you need inspiration."
+      },
+      "connect": {
+        "title": "Connect",
+        "description": "Follow your favorite home cooks, comment on recipes, and build a community around food."
+      },
+      "share": {
+        "title": "Share",
+        "description": "Share your culinary creations with friends and family through social features."
+      }
+    },
+    "creator": {
+      "title": "Created By",
+      "bio": "Full-stack developer passionate about creating beautiful, functional web applications. {name} was built as a labor of love, combining a passion for technology and food."
+    },
+    "techStack": { "title": "Built With" },
+    "backHome": "← Back to Home"
+  },
+  "error": {
+    "title": "Oops! Something went wrong",
+    "description": "We encountered an unexpected error. Don't worry, our team has been notified and we're working on it.",
+    "errorId": "Error ID: {digest}"
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "Sorry, we couldn't find the page you're looking for. It might have been moved or deleted.",
+    "hint": "Lost? Try searching for recipes or exploring our community feed."
+  },
+  "offline": {
+    "title": "You're Offline",
+    "description": "It looks like you've lost your internet connection. Some features may be unavailable until you're back online."
+  },
+  "actions": { "tryAgain": "Try Again" }
+}
