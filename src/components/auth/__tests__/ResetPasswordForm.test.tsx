@@ -61,10 +61,23 @@ describe('ResetPasswordForm Component', () => {
   const newPassword = () => screen.getByLabelText(/^new password/i);
   const confirmPassword = () => screen.getByLabelText(/^confirm new password/i);
 
-  const fillAndSubmit = async (password: string, confirmation: string = password) => {
+  const fillAndSubmit = async (
+    password: string,
+    confirmation: string = password,
+    // Typing sends one keystroke at a time, which is the point when the test is about what
+    // happens WHILE you type. When it is only about the value the form ends up with, a long
+    // password costs seconds for nothing: pasting fills the field in one event.
+    { byPaste = false }: { byPaste?: boolean } = {}
+  ) => {
     const user = userEvent.setup();
-    if (password) await user.type(newPassword(), password);
-    if (confirmation) await user.type(confirmPassword(), confirmation);
+    const fill = async (field: HTMLElement, value: string) => {
+      if (!byPaste) return user.type(field, value);
+      await user.click(field);
+      return user.paste(value);
+    };
+
+    if (password) await fill(newPassword(), password);
+    if (confirmation) await fill(confirmPassword(), confirmation);
     await user.click(screen.getByRole('button', { name: /save new password/i }));
     return user;
   };
@@ -257,22 +270,17 @@ describe('ResetPasswordForm Component', () => {
       ['PASSWORD1', 'Password must contain at least one lowercase letter'],
       ['Passwordd', 'Password must contain at least one number'],
       [`Aa1${'x'.repeat(126)}`, 'Password must be at most 128 characters'],
-    ])(
-      'should reject "%s" under the password field without calling the API',
-      async (pw, msg) => {
-        renderForm();
+    ])('should reject "%s" under the password field without calling the API', async (pw, msg) => {
+      renderForm();
 
-        await fillAndSubmit(pw);
+      // Pasted, not typed: the subject is the value the form rejects, and the over-length
+      // row is 129 characters twice over - typing it took ~4.2s of the default 5s budget.
+      await fillAndSubmit(pw, pw, { byPaste: true });
 
-        expect(screen.getByText(msg)).toBeInTheDocument();
-        expect(newPassword()).toHaveAttribute('aria-invalid', 'true');
-        expect(mockFetch).not.toHaveBeenCalled();
-      },
-      // The over-length case types 129 characters one keystroke at a time. Under `jest
-      // --coverage` that alone takes ~4.2s on an idle machine, so the 5s default left no
-      // room for the contention of a full parallel run.
-      20000
-    );
+      expect(screen.getByText(msg)).toBeInTheDocument();
+      expect(newPassword()).toHaveAttribute('aria-invalid', 'true');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
 
     it('should ask for a password when the field is empty', async () => {
       renderForm();

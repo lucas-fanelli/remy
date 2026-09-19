@@ -46,6 +46,10 @@ const customJestConfig = {
     '/node_modules/',
     '/e2e/', // Playwright E2E tests - run with npm run test:e2e
   ],
+  // Inert, and kept only because it predates this config: next/jest inserts its own SWC
+  // entry for '^.+\\.(js|jsx|ts|tsx|mjs)$' BEFORE this one and jest uses the first pattern
+  // that matches, so tests are compiled by SWC and never typechecked. `npm run typecheck`
+  // is where a message key written in a test is verified - see tsconfig.i18n.json.
   transform: {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
