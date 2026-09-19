@@ -22,11 +22,23 @@ export type AuthResponse = {
   token: string;
 };
 
+export type ValidatedSession = {
+  user: SessionUser;
+  // Fresh token when the presented one is past the renewal threshold, otherwise null
+  renewedToken: string | null;
+};
+
 // Interface Segregation Principle: Clean interface for authentication operations
 export interface IAuthService {
   register(data: RegisterDTO): Promise<AuthResponse>;
   login(data: LoginDTO): Promise<AuthResponse>;
   validateToken(token: string): Promise<SessionUser | null>;
+  /**
+   * validateToken plus sliding renewal: same rejections (bad signature, expired,
+   * unknown user, issued before a password change), and a token that passes them
+   * and is old enough comes back with a replacement carrying the user's CURRENT role.
+   */
+  validateSession(token: string): Promise<ValidatedSession | null>;
   /**
    * Changing the password invalidates every session issued before it.
    * Resolves with a fresh token so the caller can keep the current session alive.

@@ -6,9 +6,11 @@ import {
   LoginDTO,
   AuthResponse,
   SessionUser,
+  ValidatedSession,
 } from '@/domain/services/IAuthService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import { ITokenService, TokenPayload } from '@/domain/services/ITokenService';
+import { getSessionRenewAfterSeconds } from '@/lib/auth/session';
 
 // Single Responsibility Principle: Only handles authentication logic
 // Dependency Inversion Principle: Depends on abstractions (interfaces)
@@ -135,6 +137,36 @@ export class AuthService implements IAuthService {
   }
 
   async validateToken(token: string): Promise<SessionUser | null> {
+    const session = await this.resolveSession(token);
+    return session ? this.toSessionUser(session.user) : null;
+  }
+
+  async validateSession(token: string): Promise<ValidatedSession | null> {
+    const session = await this.resolveSession(token);
+    if (!session) {
+      return null;
+    }
+
+    const { user, payload } = session;
+
+    // Sliding renewal: claims come from the database row, never from the old token,
+    // so a role change reaches the JWT at the next renewal
+    const renewedToken = this.isDueForRenewal(payload)
+      ? this.tokenService.generate({
+          userId: user.id,
+          email: user.email,
+          username: user.username,
+          role: user.role,
+        })
+      : null;
+
+    return { user: this.toSessionUser(user), renewedToken };
+  }
+
+  /** Every check a token must pass to stand for a user; shared by validateToken and validateSession */
+  private async resolveSession(
+    token: string
+  ): Promise<{ user: User; payload: TokenPayload } | null> {
     const payload = this.tokenService.verify(token);
     if (!payload) {
       return null;
@@ -150,7 +182,14 @@ export class AuthService implements IAuthService {
       return null;
     }
 
-    return this.toSessionUser(user);
+    return { user, payload };
+  }
+
+  /** Renewing on every request would re-set the cookie each time; once per threshold is enough */
+  private isDueForRenewal(payload: TokenPayload): boolean {
+    // A token without iat is renewed so that it has one from then on
+    const issuedAt = typeof payload.iat === 'number' ? payload.iat : 0;
+    return Math.floor(Date.now() / 1000) - issuedAt >= getSessionRenewAfterSeconds();
   }
 
   /**
