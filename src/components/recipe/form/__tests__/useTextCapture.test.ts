@@ -6,14 +6,24 @@ import { toDraftValues } from '../useRecipeDraft';
 import { useRecipeForm } from '../useRecipeForm';
 import {
   ingredientsMatchText,
+  readIngredientLines,
   reconcileSteps,
   rememberOrphanTexts,
   stepsMatchText,
   useTextCapture,
+  writtenLinesOf,
 } from '../useTextCapture';
 import { makeRecipe, makeValues, STEP_URL } from './fixtures';
 
 const OTHER_URL = 'https://res.cloudinary.com/demo/image/upload/recipes/other.jpg';
+
+/** Units of the old form and of the seeds: none of them is a unit the parser knows */
+const LEGACY_INGREDIENTS = [
+  { name: 'eggs', amount: '2', unit: 'pieces' },
+  { name: 'onion', amount: '1', unit: 'whole' },
+  { name: 'olive oil', amount: '80', unit: 'ml' },
+];
+const LEGACY_TEXT = '2 pieces eggs\n1 whole onion\n80 ml olive oil';
 
 /** The real engine underneath: the hook is only ever used on top of it */
 const renderCapture = (initial?: Recipe) =>
@@ -272,8 +282,103 @@ describe('rememberOrphanTexts', () => {
   });
 });
 
+describe('readIngredientLines', () => {
+  const values = (rows: { name: string; amount: string; unit: string }[]) =>
+    rows.map(({ name, amount, unit }) => ({ name, amount, unit }));
+
+  it('should parse a line that was not written from a row', () => {
+    expect(readIngredientLines('2 tazas de leche').rows).toEqual([
+      { name: 'leche', amount: '2', unit: 'cups', reason: '' },
+    ]);
+  });
+
+  it('should read a line that was written from a row as that row, unit included', () => {
+    const written = writtenLinesOf(LEGACY_INGREDIENTS);
+
+    expect(values(readIngredientLines(LEGACY_TEXT, written).rows)).toEqual(LEGACY_INGREDIENTS);
+  });
+
+  it('should read the lines between the written ones with the parser', () => {
+    const written = writtenLinesOf(LEGACY_INGREDIENTS);
+
+    const { rows } = readIngredientLines('2 pieces eggs\n1 tsp salt\n1 whole onion', written);
+
+    expect(values(rows)).toEqual([
+      LEGACY_INGREDIENTS[0],
+      { name: 'salt', amount: '1', unit: 'tsp' },
+      LEGACY_INGREDIENTS[1],
+    ]);
+  });
+
+  it('should take a change of case for an edit of the line', () => {
+    const written = writtenLinesOf([{ name: 'eggs', amount: '2', unit: 'pieces' }]);
+
+    expect(values(readIngredientLines('2 pieces Eggs', written).rows)).toEqual([
+      { name: 'pieces Eggs', amount: '2', unit: 'units' },
+    ]);
+  });
+
+  it('should not mind the spacing of a written line', () => {
+    const written = writtenLinesOf([{ name: 'olive  oil', amount: '80', unit: 'ml' }]);
+
+    expect(values(readIngredientLines('  80 ml   olive oil ', written).rows)).toEqual([
+      { name: 'olive  oil', amount: '80', unit: 'ml' },
+    ]);
+  });
+
+  it('should hand out two rows that were written as the same line in their order', () => {
+    const rows = [
+      { name: 'eggs', amount: '2', unit: 'pieces' },
+      { name: 'pieces eggs', amount: '2', unit: 'units' },
+    ];
+
+    const read = readIngredientLines('2 pieces eggs\n2 pieces eggs', writtenLinesOf(rows));
+
+    expect(values(read.rows)).toEqual(rows);
+  });
+
+  it('should read a further copy of a written line like the row it was copied from', () => {
+    const written = writtenLinesOf([{ name: 'eggs', amount: '2', unit: 'pieces' }]);
+
+    const read = readIngredientLines('2 pieces eggs\n2 pieces eggs', written);
+
+    expect(read.rows.map((row) => row.unit)).toEqual(['pieces', 'pieces']);
+  });
+
+  it('should doubt a parsed line and never a written one', () => {
+    const written = writtenLinesOf([{ name: 'lata de tomate', amount: '1', unit: 'units' }]);
+
+    const read = readIngredientLines('1 lata de tomate\n3 dientes de ajo', written);
+
+    expect(read.rows.map((row) => row.reason)).toEqual([
+      '',
+      'No unit recognised - is "dientes" part of the name?',
+    ]);
+  });
+
+  it('should know no line of a blank row', () => {
+    expect(writtenLinesOf([{ name: '', amount: '', unit: '' }]).size).toBe(0);
+  });
+
+  it('should say when the text holds more lines than a recipe has ingredients', () => {
+    const text = Array.from({ length: 101 }, (_, index) => `${index + 1} g cosa`).join('\n');
+
+    expect(readIngredientLines(text).capped).toBe(true);
+  });
+});
+
 describe('ingredientsMatchText', () => {
   const rows = makeValues().ingredients;
+
+  it('should match the lines the rows were written as, whatever the parser makes of them', () => {
+    const written = writtenLinesOf(LEGACY_INGREDIENTS);
+
+    expect(ingredientsMatchText(LEGACY_INGREDIENTS, LEGACY_TEXT, written)).toBe(true);
+  });
+
+  it('should not match rows with a unit the parser does not know when nothing was written', () => {
+    expect(ingredientsMatchText(LEGACY_INGREDIENTS, LEGACY_TEXT)).toBe(false);
+  });
 
   it('should match the text the rows were read from, whatever its wording', () => {
     expect(ingredientsMatchText(rows, '500 gr de Chocolinas\n- 400 g Dulce de leche')).toBe(true);
@@ -637,6 +742,78 @@ describe('useTextCapture', () => {
     });
   });
 
+  describe('lines written from rows', () => {
+    const renderLegacy = () => renderCapture(makeRecipe({ ingredients: LEGACY_INGREDIENTS }));
+
+    it('should leave the rows of an existing recipe alone when a line is added', () => {
+      const { result } = renderLegacy();
+
+      act(() => result.current.capture.setIngredientsText(`${LEGACY_TEXT}\n1 tsp salt`));
+
+      expect(filledIngredients(result.current.form.values.ingredients)).toEqual([
+        ...LEGACY_INGREDIENTS,
+        { name: 'salt', amount: '1', unit: 'tsp' },
+      ]);
+      expect(result.current.capture.checkCount).toBe(0);
+    });
+
+    it('should call the recipe unchanged again once an edit of its text is undone', () => {
+      const { result } = renderLegacy();
+      act(() => result.current.capture.setIngredientsText(`${LEGACY_TEXT}s`));
+
+      act(() => result.current.capture.setIngredientsText(LEGACY_TEXT));
+
+      expect(result.current.form.isDirty).toBe(false);
+    });
+
+    it('should give the rows back when their lines are cut and pasted back', () => {
+      const { result } = renderLegacy();
+      act(() => result.current.capture.setIngredientsText(''));
+
+      act(() => result.current.capture.setIngredientsText(LEGACY_TEXT));
+
+      expect(filledIngredients(result.current.form.values.ingredients)).toEqual(LEGACY_INGREDIENTS);
+    });
+
+    it('should keep the wording of the new lines when the text is looked at again', () => {
+      const { result } = renderLegacy();
+      act(() => result.current.capture.setIngredientsText(`${LEGACY_TEXT}\n1 cucharadita de sal`));
+
+      act(() => result.current.capture.syncFromRows());
+
+      expect(result.current.capture.ingredientsText).toBe(`${LEGACY_TEXT}\n1 cucharadita de sal`);
+    });
+
+    it('should read a line it wrote from a row edited by hand as that row', () => {
+      const { result } = renderCapture();
+      act(() => result.current.capture.setIngredientsText('2 cup noodles'));
+      const [noodles] = result.current.form.values.ingredients;
+      act(() => {
+        result.current.form.ingredients.update(noodles.id, { name: 'cup noodles', unit: 'units' });
+        result.current.capture.confirmRow(noodles.id);
+      });
+      act(() => result.current.capture.syncFromRows());
+
+      act(() => result.current.capture.setIngredientsText('2 cup noodles\n2 huevos'));
+
+      expect(filledIngredients(result.current.form.values.ingredients)).toEqual([
+        { name: 'cup noodles', amount: '2', unit: 'units' },
+        { name: 'huevos', amount: '2', unit: 'units' },
+      ]);
+    });
+
+    it('should parse every line again after Start over', () => {
+      const { result } = renderLegacy();
+      act(() => result.current.capture.clear());
+
+      act(() => result.current.capture.setIngredientsText('2 pieces eggs'));
+
+      expect(filledIngredients(result.current.form.values.ingredients)).toEqual([
+        { name: 'pieces eggs', amount: '2', unit: 'units' },
+      ]);
+    });
+  });
+
   describe('load', () => {
     const draftValues = () =>
       toDraftValues(
@@ -700,6 +877,32 @@ describe('useTextCapture', () => {
       act(() => result.current.capture.load(draftValues()));
 
       expect(result.current.capture.ingredientsText).toBe('500 g harina\n1 lata de tomate');
+    });
+
+    it('should read the lines it wrote from the rows of a draft as those rows', () => {
+      const { result } = renderCapture();
+      const values = toDraftValues(
+        makeValues({ ingredients: [{ id: 'x1', name: 'cup noodles', amount: '2', unit: 'units' }] })
+      );
+      act(() => result.current.capture.load(values));
+
+      act(() => result.current.capture.setIngredientsText('2 cup noodles\n2 huevos'));
+
+      expect(filledIngredients(result.current.form.values.ingredients)[0]).toEqual({
+        name: 'cup noodles',
+        amount: '2',
+        unit: 'units',
+      });
+    });
+
+    it('should parse the wording of a draft that still fits its rows', () => {
+      const { result } = renderCapture();
+      const text = { ingredients: '500 gr harina\n1 lata de tomate', method: 'Mezclar\nHornear' };
+      act(() => result.current.capture.load(draftValues(), text));
+
+      act(() => result.current.capture.setIngredientsText(`${text.ingredients}\n2 huevos`));
+
+      expect(result.current.capture.checkCount).toBe(1);
     });
   });
 

@@ -172,7 +172,8 @@ const STEP_MARKER =
 // Longer lines are prose, not 'name amount unit': the lazy scan is not worth running
 const TRAILING_AMOUNT_MAX_LENGTH = 250;
 
-const collapse = (text: string): string => text.trim().replace(/\s+/g, ' ');
+/** A line as `sourceText` reports it: trimmed, every run of spaces closed up, the case kept */
+export const collapse = (text: string): string => text.trim().replace(/\s+/g, ' ');
 
 /** How lines are compared: case and spacing do not make a line a different one */
 export const normaliseLine = (text: string): string => collapse(text).toLowerCase();

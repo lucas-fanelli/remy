@@ -1352,6 +1352,27 @@ describe('RecipeTextFirstDialog - edit', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
+  it('should save the rows nobody touched as they were when a line is added on Write', async () => {
+    // Units of the old form and of the seeds: the parser knows none of them
+    const stored = [
+      { name: 'eggs', amount: '2', unit: 'pieces' },
+      { name: 'onion', amount: '1', unit: 'whole' },
+      { name: 'olive oil', amount: '80', unit: 'ml' },
+    ];
+    answerRecipeWith(okResponse({ recipe: recipe() }));
+    const { user } = renderEdit({ recipe: recipe({ ingredients: stored }) });
+    await user.click(writeTab());
+
+    await user.type(ingredientsBox(), '\n1 tsp salt');
+    await user.click(saveButton());
+
+    await waitFor(() => expect(recipeCalls()).toHaveLength(1));
+    expect(JSON.parse(recipeCalls()[0][1].body).ingredients).toEqual([
+      ...stored,
+      { name: 'salt', amount: '1', unit: 'tsp' },
+    ]);
+  });
+
   it('should keep a step photo when the method is reworked as text', async () => {
     answerRecipeWith(okResponse({ recipe: recipe() }));
     const { user } = renderEdit();

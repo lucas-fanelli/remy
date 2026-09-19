@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
+  collapse,
   normaliseLine,
   parseIngredientLines,
   parseMethod,
@@ -23,8 +24,9 @@ import type { RecipeFormApi } from './useRecipeForm';
  * The 'Write' tab's view over the form engine. ROWS stay the single source of truth for
  * validation, draft, preview and payload; the two texts are how the author writes them.
  *
- *   text -> rows   every change of a text is parsed at once and replaces that list. Steps
- *                  keep their id - and with it their photo - through `reconcileSteps`.
+ *   text -> rows   every change of a text is read at once and replaces that list. Steps
+ *                  keep their id - and with it their photo - through `reconcileSteps`; an
+ *                  ingredient line the hook wrote itself is its row again (`WrittenLines`).
  *   rows -> text   a text is rewritten from its rows only when the rows no longer say what
  *                  the text says (they were edited by hand on the other tab, or the recipe
  *                  was loaded): `syncFromRows()` on entering 'Write'. Otherwise the author's
@@ -59,6 +61,60 @@ export interface TextCaptureApi {
   draftText: RecipeDraftText;
 }
 
+type IngredientReading = Omit<IngredientRowInput, 'id'>;
+
+/**
+ * Line -> the rows it was WRITTEN from, in their order. A line the hook wrote from a row,
+ * and that still reads the same, IS that row - amount, unit and name - and is not parsed
+ * again. The parser only knows RECIPE_UNITS: read back, the old form's 'pieces', 'whole' or
+ * 'cloves' would move into the name ('2 pieces eggs' -> 2 units of 'pieces eggs') and a
+ * lower-case 'ml' would be respelled, in rows the author never touched. Lines are compared
+ * with their case: 'Eggs' for 'eggs' is an edit. Because the text alone decides, cutting a
+ * line and pasting it back, or undoing an edit, gives the row back as well.
+ */
+export type WrittenLines = ReadonlyMap<string, readonly IngredientReading[]>;
+
+const NO_WRITTEN_LINES: WrittenLines = new Map();
+
+export function writtenLinesOf(rows: IngredientRowInput[]): WrittenLines {
+  const written = new Map<string, IngredientReading[]>();
+  rows
+    .filter((row) => !isBlankIngredientRow(row))
+    .forEach(({ name, amount, unit }) => {
+      const line = collapse(serialiseIngredient({ name, amount, unit }));
+      written.set(line, [...(written.get(line) ?? []), { name, amount, unit }]);
+    });
+  return written;
+}
+
+export interface ReadIngredient extends IngredientReading {
+  /** Why the parser was unsure; '' for a sure line and for a line that was not parsed */
+  reason: string;
+}
+
+/**
+ * The rows the ingredients text stands for: `written` lines are their rows, the others are
+ * parsed. Rows that were written as the same line are handed out in their order, and a
+ * further copy of the line reads like the last of them.
+ */
+export function readIngredientLines(
+  text: string,
+  written: WrittenLines = NO_WRITTEN_LINES
+): { rows: ReadIngredient[]; capped: boolean } {
+  const parsed = parseIngredientLines(text);
+  const taken = new Map<string, number>();
+  const rows = parsed.rows.map((line): ReadIngredient => {
+    const readings = written.get(line.sourceText);
+    if (!readings) {
+      return { name: line.name, amount: line.amount, unit: line.unit, reason: line.reason };
+    }
+    const turn = taken.get(line.sourceText) ?? 0;
+    taken.set(line.sourceText, turn + 1);
+    return { ...readings[Math.min(turn, readings.length - 1)], reason: '' };
+  });
+  return { rows, capped: parsed.capped };
+}
+
 const comparable = (row: IngredientRowInput): string => {
   const normalised = normaliseIngredientRow(row);
   // 'to taste' chosen from the unit list and 'no amount, no unit' are the same row
@@ -66,13 +122,17 @@ const comparable = (row: IngredientRowInput): string => {
   return JSON.stringify([normalised.amount, unit, normalised.name.trim()]);
 };
 
-/** True when parsing `text` gives exactly these rows (blank rows aside) */
-export function ingredientsMatchText(rows: IngredientRowInput[], text: string): boolean {
-  const parsed = parseIngredientLines(text).rows;
+/** True when reading `text` gives exactly these rows (blank rows aside) */
+export function ingredientsMatchText(
+  rows: IngredientRowInput[],
+  text: string,
+  written: WrittenLines = NO_WRITTEN_LINES
+): boolean {
+  const read = readIngredientLines(text, written).rows;
   const filled = rows.filter((row) => !isBlankIngredientRow(row));
   return (
-    parsed.length === filled.length &&
-    parsed.every((row, index) => comparable(row) === comparable(filled[index]))
+    read.length === filled.length &&
+    read.every((row, index) => comparable(row) === comparable(filled[index]))
   );
 }
 
@@ -233,6 +293,8 @@ export function rememberOrphanTexts(
 interface CaptureState {
   ingredientsText: string;
   methodText: string;
+  /** The lines of `ingredientsText` that were written from rows, and those rows */
+  writtenLines: WrittenLines;
   checks: Record<string, string>;
   ingredientsCapped: boolean;
   stepsCapped: boolean;
@@ -245,6 +307,7 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
   const [state, setState] = useState<CaptureState>(() => ({
     ingredientsText: serialiseIngredients(values.ingredients),
     methodText: serialiseSteps(values.steps),
+    writtenLines: writtenLinesOf(values.ingredients),
     checks: {},
     ingredientsCapped: false,
     stepsCapped: false,
@@ -253,25 +316,25 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
   const formRef = useRef(form);
   formRef.current = form;
 
-  // Lines written FROM rows the author had settled: reading them back is not a new doubt
-  const trustedLines = useRef(new Set<string>());
+  // Lines written FROM rows the author had settled: reading them back changes nothing in
+  // those rows and is not a new doubt
+  const writtenLines = useRef(state.writtenLines);
+  writtenLines.current = state.writtenLines;
 
   const setIngredientsText = useCallback((text: string) => {
-    const parsed = parseIngredientLines(text);
+    const read = readIngredientLines(text, writtenLines.current);
     const checks: Record<string, string> = {};
-    const rows = parsed.rows.map((row) => {
+    const rows = read.rows.map(({ reason, ...row }) => {
       const id = createRowId();
-      if (row.confidence === 'check' && !trustedLines.current.has(normaliseLine(row.sourceText))) {
-        checks[id] = row.reason;
-      }
-      return { id, name: row.name, amount: row.amount, unit: row.unit };
+      if (reason !== '') checks[id] = reason;
+      return { id, ...row };
     });
 
     setState((prev) => ({
       ...prev,
       ingredientsText: text,
       checks,
-      ingredientsCapped: parsed.capped,
+      ingredientsCapped: read.capped,
     }));
     formRef.current.ingredients.replaceAll(rows);
   }, []);
@@ -305,8 +368,8 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
   }, []);
 
   const ingredientsInSync = useMemo(
-    () => ingredientsMatchText(values.ingredients, state.ingredientsText),
-    [values.ingredients, state.ingredientsText]
+    () => ingredientsMatchText(values.ingredients, state.ingredientsText, state.writtenLines),
+    [values.ingredients, state.ingredientsText, state.writtenLines]
   );
   const stepsInSync = useMemo(
     () => stepsMatchText(values.steps, state.methodText),
@@ -335,17 +398,13 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
 
   const syncFromRows = useCallback(() => {
     const current = latest.current;
-    if (!current.ingredientsInSync) {
-      trustedLines.current = new Set(
-        formRef.current.values.ingredients
-          .filter((row) => !isBlankIngredientRow(row) && !(row.id in current.checks))
-          .map((row) => normaliseLine(serialiseIngredient(row)))
-      );
-    }
+    // A row that is still the parser's guess is read - and doubted - again
+    const settled = formRef.current.values.ingredients.filter((row) => !(row.id in current.checks));
     setState((prev) => ({
       ...prev,
       ingredientsText: current.draftText.ingredients,
       methodText: current.draftText.method,
+      writtenLines: current.ingredientsInSync ? prev.writtenLines : writtenLinesOf(settled),
       // The rewritten text is exactly the rows: nothing of it is beyond the limit
       ingredientsCapped: current.ingredientsInSync && prev.ingredientsCapped,
       stepsCapped: current.draftText.method === prev.methodText && prev.stepsCapped,
@@ -353,7 +412,6 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
   }, []);
 
   const load = useCallback((draftValues: RecipeDraftValues, text?: RecipeDraftText) => {
-    trustedLines.current = new Set();
     orphanTexts.current = NO_ORPHAN_TEXTS;
     const ingredients = draftValues.ingredients.map((row) => ({ ...row, id: createRowId() }));
     const keepIngredients =
@@ -374,6 +432,7 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
         ? text.ingredients
         : serialiseIngredients(draftValues.ingredients),
       methodText: keepMethod ? text.method : serialiseSteps(draftValues.steps),
+      writtenLines: keepIngredients ? NO_WRITTEN_LINES : writtenLinesOf(draftValues.ingredients),
       checks,
       ingredientsCapped: parsed?.capped ?? false,
       stepsCapped: keepMethod && parseMethod(text.method).capped,
@@ -381,11 +440,11 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
   }, []);
 
   const clear = useCallback(() => {
-    trustedLines.current = new Set();
     orphanTexts.current = NO_ORPHAN_TEXTS;
     setState({
       ingredientsText: '',
       methodText: '',
+      writtenLines: NO_WRITTEN_LINES,
       checks: {},
       ingredientsCapped: false,
       stepsCapped: false,
