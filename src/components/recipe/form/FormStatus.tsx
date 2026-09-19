@@ -257,17 +257,15 @@ export default function FormStatus({
         </Typography>
       );
     }
-    if (issueCount === 0) {
-      return (
-        <Box sx={lineSx}>
-          <CheckCircle fontSize="small" sx={{ color: 'success.main' }} />
-          <Typography variant="body2" color="text.primary">
-            {mode === 'create' ? 'Ready to publish' : 'Ready to save'}
-          </Typography>
-        </Box>
-      );
-    }
-    return null;
+    // Only reached with nothing missing: with issues the line is the menu button
+    return (
+      <Box sx={lineSx}>
+        <CheckCircle fontSize="small" sx={{ color: 'success.main' }} />
+        <Typography variant="body2" color="text.primary">
+          {mode === 'create' ? 'Ready to publish' : 'Ready to save'}
+        </Typography>
+      </Box>
+    );
   };
 
   return (

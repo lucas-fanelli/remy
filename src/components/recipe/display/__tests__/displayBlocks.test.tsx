@@ -84,6 +84,16 @@ describe('IngredientLine', () => {
     expect(line.querySelector('strong')).toBeNull();
   });
 
+  it('should use the roomy line of the recipe page by default', () => {
+    render(
+      <ul>
+        <IngredientLine ingredient={{ name: 'flour', amount: '200', unit: 'g' }} />
+      </ul>
+    );
+
+    expect(screen.getByRole('listitem')).toHaveStyle({ marginBottom: '12px' });
+  });
+
   it('should render a dense line for the compact preview', () => {
     renderLine({ name: 'flour', amount: '200', unit: 'g' }, true);
 
@@ -112,6 +122,22 @@ describe('RecipeTimeStrip', () => {
     expect(screen.getByText('PREP TIME').parentElement?.parentElement).toHaveStyle({
       marginBottom: '24px',
     });
+  });
+});
+
+describe('sx passthrough', () => {
+  it('should accept an sx array on the time strip', () => {
+    render(<RecipeTimeStrip prepTime={0} cookingTime={10} sx={[{ marginBottom: '8px' }]} />);
+
+    expect(screen.getByText('PREP TIME').parentElement?.parentElement).toHaveStyle({
+      marginBottom: '8px',
+    });
+  });
+
+  it('should accept an sx array on the closing quote', () => {
+    render(<CaptionQuote caption="Enjoy" sx={[{ marginTop: '8px' }]} />);
+
+    expect(screen.getByText(/Enjoy/).closest('.MuiPaper-root')).toHaveStyle({ marginTop: '8px' });
   });
 });
 
