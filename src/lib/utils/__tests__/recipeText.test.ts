@@ -45,6 +45,17 @@ const CONFIDENT_LINES: [string, string, string, string][] = [
   ['harina (500 g)', '500', 'g', 'harina'],
   ['azúcar 1 1/2 tazas', '1.5', 'cups', 'azúcar'],
   ['harina 000 500 g', '500', 'g', 'harina 000'],
+  // A flour grade and a percentage are part of the name, not a second amount
+  ['harina 0000', '', '', 'harina 0000'],
+  ['500 g harina 0000', '500', 'g', 'harina 0000'],
+  ['200 g chocolate 70% cacao', '200', 'g', 'chocolate 70% cacao'],
+  // The Spanish way to say a mixed number
+  ['1 y 1/2 taza de harina', '1.5', 'cups', 'harina'],
+  ['2 y ½ kg de papas', '2.5', 'kg', 'papas'],
+  ['harina ½ kg', '0.5', 'kg', 'harina'],
+  // A size is not a measure: nothing to point at
+  ['1 lb large shrimp', '1', 'lb', 'large shrimp'],
+  ['1 cucharada de café molido', '1', 'tbsp', 'café molido'],
 ];
 
 /** [line as typed, amount, unit, name, what the reason must mention] */
@@ -52,11 +63,24 @@ const DOUBTFUL_LINES: [string, string, string, string, RegExp][] = [
   ['1 lata de tomate', '1', 'units', 'lata de tomate', /is "lata" part of the name/],
   ['3 dientes de ajo', '3', 'units', 'dientes de ajo', /is "dientes" part of the name/],
   ['1 can of tomatoes', '1', 'units', 'can of tomatoes', /is "can" part of the name/],
-  ['harina 0000', '', '', 'harina 0000', /could not read it as an amount/],
+  ['harina 1 puñado', '', '', 'harina 1 puñado', /could not read it as an amount/],
   ['2 cdas de aceite, a gusto', '2', 'tbsp', 'aceite, a gusto', /keep one/],
   ['2 limones a gusto', '2', 'units', 'limones a gusto', /keep one/],
   ['500 g', '500', 'g', '', /No ingredient name/],
   ['250', '250', 'units', '', /No ingredient name/],
+  // Split, but what is left in the name says the split may be wrong: never silently
+  ['1 taza (250 ml) de leche', '1', 'cups', '(250 ml) de leche', /still holds a number/],
+  ['100 g de azúcar + 50 g extra', '100', 'g', 'azúcar + 50 g extra', /still holds a number/],
+  ['leche 1 taza (250 ml)', '250', 'mL', 'leche 1 taza', /still holds a number/],
+  ['2 paquetes 7 g levadura', '2', 'units', 'paquetes 7 g levadura', /still holds a number/],
+  ['500 g harina o media taza', '500', 'g', 'harina o media taza', /"taza" looks like a unit/],
+  ['1 taza y media de harina', '1', 'cups', 'y media de harina', /seems to go on in the name/],
+  ['2 cdas + un chorrito de aceite', '2', 'tbsp', '+ un chorrito de aceite', /seems to go on/],
+  ['1 cucharada sopera de aceite', '1', 'tbsp', 'sopera de aceite', /"sopera" was kept/],
+  ['2 tbsp heaped cocoa', '2', 'tbsp', 'heaped cocoa', /"heaped" was kept/],
+  ['1 cucharada de postre de azúcar', '1', 'tbsp', 'postre de azúcar', /"postre" was kept/],
+  ['una taza de harina', '', '', 'una taza de harina', /"taza" looks like a unit but no amount/],
+  ['media cucharadita de sal a gusto', '', '', 'media cucharadita de sal', /no amount was read/],
 ];
 
 describe('parseIngredientLines', () => {
@@ -145,6 +169,22 @@ describe('parseIngredientLines', () => {
     expect(row.reason).toMatch(/shorten the name/);
   });
 
+  it('should say only that the name is too long when the amount comes after it', () => {
+    const name = 'x'.repeat(RECIPE_LIMITS.name + 1);
+
+    const [row] = parseIngredientLines(`${name} 500 g`).rows;
+
+    expect(row).toMatchObject({ amount: '500', unit: 'g', name, confidence: 'check' });
+    expect(row.reason).toMatch(/shorten the name/);
+  });
+
+  it('should ask for a name when the line only says to taste', () => {
+    const [row] = parseIngredientLines('a gusto').rows;
+
+    expect(row).toMatchObject({ amount: '', unit: '', name: '', confidence: 'check' });
+    expect(row.reason).toMatch(/No ingredient name/);
+  });
+
   it('should keep a very long line whole without scanning it for a trailing amount', () => {
     const line = `${'palabra '.repeat(60)}500 g`;
 
@@ -171,8 +211,9 @@ describe('parseIngredientLines', () => {
   // Property-style: whatever the line, no word the author typed may disappear. A word may
   // only be used up as a unit alias, as the connecting 'de' / 'of' or as a to-taste marker
   const MARKER_WORDS = ['a', 'al', 'gusto', 'to', 'taste', 'cantidad', 'necesaria', 'c/n'];
+  // 'y' joins the halves of a Spanish mixed number ('1 y 1/2'), which is read as one amount
   const isUsedUp = (word: string): boolean =>
-    word in UNIT_ALIASES || ['de', 'del', 'of'].includes(word) || MARKER_WORDS.includes(word);
+    word in UNIT_ALIASES || ['de', 'del', 'of', 'y'].includes(word) || MARKER_WORDS.includes(word);
   const SAMPLES = [
     ...CONFIDENT_LINES.map(([line]) => line),
     ...DOUBTFUL_LINES.map(([line]) => line),

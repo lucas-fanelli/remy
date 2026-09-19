@@ -132,9 +132,11 @@ export const UNIT_ALIASES: Readonly<Record<string, RecipeUnit>> = {
 
 const UNICODE_FRACTIONS = '½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒';
 const NUMBER = '\\d+(?:[.,]\\d+)?';
-// Longest first: a range, 'n a/b', 'a/b', 'n½' / '½', a decimal, an integer
+// Longest first: a range, 'n y a/b' (the Spanish way to say a mixed number), 'n a/b', 'a/b',
+// 'n½' / '½', a decimal, an integer
 const AMOUNT = [
   `${NUMBER}\\s*[-–]\\s*${NUMBER}`,
+  `\\d+\\s+y\\s+(?:\\d+\\s*/\\s*\\d+|[${UNICODE_FRACTIONS}])`,
   '\\d+\\s+\\d+\\s*/\\s*\\d+',
   '\\d+\\s*/\\s*\\d+',
   `\\d*\\s*[${UNICODE_FRACTIONS}]`,
@@ -149,7 +151,20 @@ const CONNECTOR = /^(?:de|del|of)\s+/i;
 const CONTAINER_OF = /^(\S+)\s+(?:de|del|of)\s+\S/i;
 const TO_TASTE_MARKER =
   /[\s,;(–-]*\b(?:a gusto|al gusto|to taste|cantidad necesaria|c\/n)(?:\b|(?=\s|$))\)?/i;
-const HAS_DIGIT = /\d/;
+const HAS_NUMBER = new RegExp(`[\\d${UNICODE_FRACTIONS}]`);
+// The 'y' of '1 y 1/2': the amount reads the same without it
+const MIXED_NUMBER_JOINER = /\s+y\s+/i;
+// A number inside a NAME. Flour grades ('harina 0000') and percentages ('chocolate 70%')
+// are part of what the ingredient is called; any other number may be a second amount
+const NUMBER_IN_NAME = new RegExp(`\\d+(?:[.,]\\d+)?\\s*%?|[${UNICODE_FRACTIONS}]`, 'g');
+// Words after a unit that belong to the MEASURE ('1 cucharada sopera de aceite', '1 cucharada
+// de postre de azucar', '2 tbsp heaped ...'): kept in the name like everything that can not
+// be placed, and pointed out. Sizes ('large', 'grandes') are left alone: '1 lb large shrimp'
+const MEASURE_QUALIFIER =
+  /^(?:(?:soperas?|colmad[ao]s?|ras[ao]s?|al ras|heaped|heaping|level|rounded|scant|generous)(?=\s|$)|(?:postre|t[eé]|caf[eé])(?=\s+del?\s))/i;
+// A name that starts like the rest of a sentence: '1 taza y media de harina', '2 cdas o 30 g'
+const NAME_GOES_ON = /^(?:[+&]|(?:y|e|o|u|and|or)\s)/i;
+const WORD = /[\p{L}]+/gu;
 
 // '1.', '1)', 'Paso 1:', 'Step 1 -', '-'. A bare '5 - 10 min' or '1.5 kg' is not numbering
 const STEP_MARKER =
@@ -193,6 +208,49 @@ const withNameChecks = (row: ParsedIngredient): ParsedIngredient => {
   return row;
 };
 
+const holdsNumber = (name: string): boolean =>
+  (name.match(NUMBER_IN_NAME) ?? []).some((run) => !run.endsWith('%') && /[^0\s.,]/.test(run));
+
+// One-letter aliases ('g', 'l', 'u') are too easily a word of their own to point at
+const unitWordIn = (name: string): string | undefined =>
+  (name.match(WORD) ?? []).find((word) => word.length > 1 && lookUpUnit(word) !== undefined);
+
+/**
+ * The line was split, but what is left in the name says the split may be wrong: a second
+ * number ('100 g de azúcar + 50 g extra', '1 taza (250 ml) de leche'), a second unit, the
+ * rest of a sentence ('1 taza y media de harina') or a word that belongs to the measure
+ * ('1 cucharada sopera de aceite'). The stored amount and unit feed pantry matching, so
+ * these are pointed out instead of being accepted silently. Nothing is moved: the name
+ * keeps every word.
+ */
+const withLeftoverChecks = (row: ParsedIngredient, unitWasRead: boolean): ParsedIngredient => {
+  if (row.confidence === 'check') return row;
+  if (holdsNumber(row.name)) {
+    return check(row, 'The name still holds a number - is the amount right?');
+  }
+  const unitWord = unitWordIn(row.name);
+  if (unitWord) return check(row, `"${unitWord}" looks like a unit - is the amount right?`);
+  if (NAME_GOES_ON.test(row.name)) {
+    return check(row, 'The amount seems to go on in the name - is it right?');
+  }
+  const qualifier = unitWasRead ? MEASURE_QUALIFIER.exec(row.name) : null;
+  return qualifier
+    ? check(row, `"${qualifier[0]}" was kept in the name - is the unit right?`)
+    : row;
+};
+
+/** No amount was read, yet the line names a unit: 'una taza de harina', 'media taza de leche' */
+const withUnitButNoAmountCheck = (row: ParsedIngredient): ParsedIngredient => {
+  if (row.confidence === 'check') return row;
+  const unitWord = unitWordIn(row.name);
+  return unitWord
+    ? check(row, `"${unitWord}" looks like a unit but no amount was read - add one, or leave it`)
+    : row;
+};
+
+/** '1,5' -> '1.5', '1 1/2' -> '1.5', and the Spanish '1 y 1/2' the same */
+const readAmount = (raw: string): string => normaliseAmount(raw.replace(MIXED_NUMBER_JOINER, ' '));
+
 function parseIngredientLine(line: string): ParsedIngredient {
   const sourceText = collapse(line);
   const text = collapse(line.replace(LIST_MARKER, ''));
@@ -201,7 +259,7 @@ function parseIngredientLine(line: string): ParsedIngredient {
   const hasMarker = TO_TASTE_MARKER.test(text);
 
   if (leading) {
-    const amount = normaliseAmount(leading[1]);
+    const amount = readAmount(leading[1]);
     const rest = leading[2];
     const token = UNIT_TOKEN.exec(rest);
     const unit = token ? lookUpUnit(token[1]) : undefined;
@@ -209,9 +267,10 @@ function parseIngredientLine(line: string): ParsedIngredient {
     if (token && unit) {
       const name = collapse(token[2].replace(CONNECTOR, ''));
       const row = withNameChecks(ok(sourceText, amount, unit, name));
-      return hasMarker && row.confidence === 'ok'
+      if (row.confidence === 'check') return row;
+      return hasMarker
         ? check(row, "An amount and 'to taste' on one line - keep one")
-        : row;
+        : withLeftoverChecks(row, true);
     }
 
     // The server needs a unit, so a bare count is stored as 'units' ('2 huevos')
@@ -222,40 +281,40 @@ function parseIngredientLine(line: string): ParsedIngredient {
     const container = CONTAINER_OF.exec(row.name);
     return container
       ? check(row, `No unit recognised - is "${container[1]}" part of the name?`)
-      : row;
+      : withLeftoverChecks(row, false);
   }
 
   if (hasMarker) {
     const name = collapse(text.replace(TO_TASTE_MARKER, ' '));
-    return withNameChecks(ok(sourceText, '', '', name));
+    return withUnitButNoAmountCheck(withNameChecks(ok(sourceText, '', '', name)));
   }
 
   // 'harina 500 g', 'harina: 500g', 'harina (500 g)'
   const trailing =
-    HAS_DIGIT.test(text) && text.length <= TRAILING_AMOUNT_MAX_LENGTH
+    HAS_NUMBER.test(text) && text.length <= TRAILING_AMOUNT_MAX_LENGTH
       ? TRAILING_AMOUNT.exec(text)
       : null;
   const trailingUnit = trailing ? lookUpUnit(trailing[3]) : undefined;
   if (trailing && trailingUnit && trailing[1].trim() !== '') {
-    return withNameChecks(
-      ok(sourceText, normaliseAmount(trailing[2]), trailingUnit, collapse(trailing[1]))
-    );
+    const row = ok(sourceText, readAmount(trailing[2]), trailingUnit, collapse(trailing[1]));
+    return withLeftoverChecks(withNameChecks(row), false);
   }
 
   // No amount at all is 'to taste' (Pantry's model); a number that could not be placed
   // stays in the name and is pointed out
   const row = withNameChecks(ok(sourceText, '', '', text));
   if (row.confidence === 'check') return row;
-  return HAS_DIGIT.test(text)
+  return holdsNumber(text)
     ? check(row, 'Found a number but could not read it as an amount')
-    : row;
+    : withUnitButNoAmountCheck(row);
 }
 
 /**
  * One ingredient per non-empty line. Bullets and list numbering are dropped, a leading
  * amount and a known unit are read, a connecting 'de' / 'of' is skipped and the rest is the
  * name. 'a gusto' / 'c/n' / 'to taste', or no amount at all, make a to-taste row (empty
- * amount AND unit). Never throws.
+ * amount AND unit). A line whose split leaves a number, a unit or a piece of the measure in
+ * the name is flagged 'check' with the reason. Never throws.
  */
 export function parseIngredientLines(text: string): ParsedIngredients {
   const lines = toLines(text).filter((line) => line.trim() !== '');
