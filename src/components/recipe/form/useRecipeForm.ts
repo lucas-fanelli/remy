@@ -50,6 +50,7 @@ export interface UseRecipeFormOptions {
   /**
    * The form re-initialises when this string changes, never on `initial`'s identity:
    * `recipe.id + ':' + open` in dialogs, `recipe.id` on a route, any constant for Create.
+   * A shell that stays mounted gives the same string to `useRecipeDraft`.
    */
   resetKey: string;
 }

@@ -16,6 +16,7 @@ import {
   useUnsavedChangesWarning,
   writeRecipeDraft,
 } from '../useRecipeDraft';
+import { useRecipeForm } from '../useRecipeForm';
 import { makeValues, STEP_URL } from './fixtures';
 
 const USER_KEY = 'remy:recipe-draft:v1:user-1';
@@ -71,10 +72,17 @@ const storedDraft = (overrides: Partial<RecipeDraft> = {}): string =>
     ...overrides,
   });
 
-const renderDraft = (options: Partial<UseRecipeDraftOptions> & { storage: DraftStorage | null }) =>
-  renderHook((props: UseRecipeDraftOptions) => useRecipeDraft(props), {
-    initialProps: { userId: 'user-1', values: blankValues(), now: () => SAVED_AT, ...options },
-  });
+const renderDraft = (
+  options: Partial<UseRecipeDraftOptions> & { storage: DraftStorage | null }
+) => {
+  const initialProps: UseRecipeDraftOptions = {
+    userId: 'user-1',
+    values: blankValues(),
+    now: () => SAVED_AT,
+    ...options,
+  };
+  return renderHook((props: UseRecipeDraftOptions) => useRecipeDraft(props), { initialProps });
+};
 
 const savedIn = (storage: ReturnType<typeof createStorage>, key = USER_KEY) =>
   JSON.parse(storage.data.get(key) ?? 'null');
@@ -535,14 +543,36 @@ describe('useRecipeDraft', () => {
       expect(savedIn(storage).values.title).toBe('Flan');
     });
 
-    it('should remove the stored draft when the author empties the form again', () => {
+    it('should never delete the stored draft because the form went blank', () => {
       const storage = createStorage({ [USER_KEY]: storedDraft() });
       const { rerender } = renderDraft({ storage });
       rerender({ userId: 'user-1', values: makeValues(), storage });
 
       typeAndWait(rerender, { userId: 'user-1', values: blankValues(), storage });
 
-      expect(storage.data.has(USER_KEY)).toBe(false);
+      expect(storage.removeItem).not.toHaveBeenCalled();
+      expect(savedIn(storage).savedAt).toBe(SAVED_AT);
+    });
+
+    it('should not write a blank form over the stored draft', () => {
+      const storage = createStorage({ [USER_KEY]: storedDraft() });
+      const { rerender } = renderDraft({ storage });
+      rerender({ userId: 'user-1', values: makeValues(), storage });
+
+      typeAndWait(rerender, { userId: 'user-1', values: blankValues(), storage });
+
+      expect(storage.setItem).not.toHaveBeenCalled();
+    });
+
+    it('should not overwrite a stored draft with values the author has not touched', () => {
+      const storage = createStorage({ [USER_KEY]: storedDraft() });
+      renderDraft({ storage, values: makeValues({ title: 'Prefilled elsewhere' }) });
+
+      act(() => {
+        jest.advanceTimersByTime(RECIPE_DRAFT_DEBOUNCE_MS * 2);
+      });
+
+      expect(storage.setItem).not.toHaveBeenCalled();
     });
 
     it('should not write while disabled', () => {
@@ -581,19 +611,6 @@ describe('useRecipeDraft', () => {
       expect(result.current.saveFailed).toBe(true);
     });
 
-    it('should flag a failed removal when storage throws', () => {
-      const storage = createStorage({ [USER_KEY]: storedDraft() });
-      const { result, rerender } = renderDraft({ storage });
-      rerender({ userId: 'user-1', values: makeValues(), storage });
-      storage.removeItem.mockImplementation(() => {
-        throw new Error('SecurityError');
-      });
-
-      typeAndWait(rerender, { userId: 'user-1', values: blankValues(), storage });
-
-      expect(result.current.saveFailed).toBe(true);
-    });
-
     it('should write the pending draft on flush without waiting', () => {
       const storage = createStorage();
       const { result, rerender } = renderDraft({ storage });
@@ -621,6 +638,148 @@ describe('useRecipeDraft', () => {
       unmount();
 
       expect(savedIn(storage).values.title).toBe('Closing soon');
+    });
+  });
+
+  describe('a form that is reset in place', () => {
+    type EditorProps = { resetKey: string; userId: string | null };
+    const OPEN: EditorProps = { resetKey: 'create:true', userId: 'user-1' };
+    const CLOSED: EditorProps = { resetKey: 'create:false', userId: 'user-1' };
+
+    // A dialog that stays mounted: closing it only flips the resetKey both hooks receive,
+    // and useRecipeForm answers with blank values in that same render
+    const renderEditor = (storage: DraftStorage, { passResetKey = true } = {}) =>
+      renderHook(
+        ({ resetKey, userId }: EditorProps) => {
+          const form = useRecipeForm({ resetKey });
+          const draft = useRecipeDraft({
+            userId,
+            values: form.values,
+            resetKey: passResetKey ? resetKey : undefined,
+            storage,
+            now: () => SAVED_AT,
+          });
+          return { form, draft };
+        },
+        { initialProps: OPEN }
+      );
+
+    const wait = (ms: number) =>
+      act(() => {
+        jest.advanceTimersByTime(ms);
+      });
+
+    it('should keep the stored draft when the dialog closes and the form goes blank', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderEditor(storage);
+      act(() => result.current.form.setField('title', 'Chocotorta'));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS);
+
+      rerender(CLOSED);
+      wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
+
+      expect(result.current.form.values.title).toBe('');
+      expect(savedIn(storage).values.title).toBe('Chocotorta');
+    });
+
+    it('should keep the stored draft even when the shell does not pass the resetKey', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderEditor(storage, { passResetKey: false });
+      act(() => result.current.form.setField('title', 'Chocotorta'));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS);
+
+      rerender(CLOSED);
+      wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
+
+      expect(savedIn(storage).values.title).toBe('Chocotorta');
+    });
+
+    it('should keep the stored draft when reset() blanks the form', () => {
+      const storage = createStorage();
+      const { result } = renderEditor(storage);
+      act(() => result.current.form.setField('title', 'Chocotorta'));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS);
+
+      act(() => result.current.form.reset());
+      wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
+
+      expect(savedIn(storage).values.title).toBe('Chocotorta');
+    });
+
+    it('should offer the draft written in this session when the dialog reopens', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderEditor(storage);
+      act(() => result.current.form.setField('title', 'Chocotorta'));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS);
+      rerender(CLOSED);
+
+      rerender(OPEN);
+
+      expect(result.current.draft.draft?.values.title).toBe('Chocotorta');
+    });
+
+    it('should write the keystrokes of the debounce window before the form is reset', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderEditor(storage);
+      act(() => result.current.form.setField('title', 'Closing right away'));
+
+      rerender(CLOSED);
+
+      expect(savedIn(storage).values.title).toBe('Closing right away');
+      expect(result.current.draft.draft?.values.title).toBe('Closing right away');
+    });
+
+    it('should not save again when the restored draft is loaded after reopening', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderEditor(storage);
+      act(() => result.current.form.setField('title', 'Chocotorta'));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS);
+      rerender(CLOSED);
+      rerender(OPEN);
+      storage.setItem.mockClear();
+
+      act(() => result.current.form.load(result.current.draft.draft!.values));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
+
+      expect(result.current.form.values.title).toBe('Chocotorta');
+      expect(storage.setItem).not.toHaveBeenCalled();
+    });
+
+    it('should forget Draft saved once the form is reset', () => {
+      const storage = createStorage();
+      const { result, rerender } = renderEditor(storage);
+      act(() => result.current.form.setField('title', 'Chocotorta'));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS);
+      const savedBeforeClosing = result.current.draft.savedAt;
+
+      rerender(CLOSED);
+
+      expect(savedBeforeClosing).toBe(SAVED_AT);
+      expect(result.current.draft.savedAt).toBeNull();
+    });
+
+    it('should forget a failed write once the form is reset', () => {
+      const { result, rerender } = renderEditor(throwingStorage());
+      act(() => result.current.form.setField('title', 'Chocotorta'));
+      wait(RECIPE_DRAFT_DEBOUNCE_MS);
+      const failedBeforeClosing = result.current.draft.saveFailed;
+
+      rerender(CLOSED);
+
+      expect(failedBeforeClosing).toBe(true);
+      expect(result.current.draft.saveFailed).toBe(false);
+    });
+
+    it('should not write a pending autosave back after logout cleared the draft', () => {
+      const storage = createStorage({ [USER_KEY]: storedDraft() });
+      const { result, rerender } = renderEditor(storage);
+      act(() => result.current.form.setField('title', 'Typed just before logging out'));
+      clearRecipeDraft(USER_KEY, storage);
+
+      rerender({ resetKey: 'create:true', userId: null });
+      wait(RECIPE_DRAFT_DEBOUNCE_MS * 2);
+
+      expect(storage.data.has(USER_KEY)).toBe(false);
     });
   });
 

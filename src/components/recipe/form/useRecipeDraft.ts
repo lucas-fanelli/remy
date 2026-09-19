@@ -12,6 +12,10 @@ import { NumericFieldValue, RECIPE_FORM_SECTIONS, RecipeFormValuesInput } from '
  * never reach storage. Every storage access is wrapped in try/catch (private windows,
  * blocked site data, a full quota) and whatever is read goes through a type guard, so a
  * draft written by another build of the form can be ignored but can never crash this one.
+ *
+ * Autosave only ever WRITES. A blank form is never taken for 'the author emptied it' - a
+ * form that was re-initialised in place looks exactly the same - so the stored draft is
+ * removed by `clearDraft()` ('Start over', Publish) and by logout, and by nothing else.
  */
 
 export const RECIPE_DRAFT_VERSION = 1;
@@ -208,6 +212,13 @@ export interface UseRecipeDraftOptions {
   userId: string | null | undefined;
   /** The live form values (`form.values`) */
   values: RecipeFormValuesInput;
+  /**
+   * The string `useRecipeForm` gets as its `resetKey`. A change means the form was
+   * re-initialised in place (a dialog that stays mounted was closed or reopened): the
+   * autosave still pending for the old form is written first, storage is read again into
+   * `draft` and 'Draft saved' is forgotten. An editor that unmounts on close may omit it.
+   */
+  resetKey?: string;
   /** Where the author is, stored along so a restore can return there */
   section?: string;
   /** False pauses autosave (Edit has no stored draft). Default true */
@@ -224,7 +235,7 @@ export interface UseRecipeDraftOptions {
 }
 
 export interface UseRecipeDraftResult {
-  /** The draft found in storage when the hook mounted (or the key changed), if any */
+  /** The draft found in storage when the hook mounted (or the key / resetKey changed), if any */
   draft: RecipeDraft | null;
   /** Time of the last successful write in this session ('Draft saved') */
   savedAt: number | null;
@@ -239,6 +250,7 @@ export interface UseRecipeDraftResult {
 export function useRecipeDraft({
   userId,
   values,
+  resetKey,
   section = RECIPE_FORM_SECTIONS[0],
   enabled = true,
   sections = RECIPE_FORM_SECTIONS,
@@ -248,6 +260,8 @@ export function useRecipeDraft({
   now = Date.now,
 }: UseRecipeDraftOptions): UseRecipeDraftResult {
   const key = storageKey ?? (userId ? recipeDraftKey(userId) : null);
+  // One form of one user: storage is read again whenever either half changes
+  const identity = JSON.stringify([key, resetKey]);
 
   // Latest props for the callbacks; the default storage is resolved on every access so a
   // window that appears after the first render (hydration) is still picked up
@@ -258,37 +272,23 @@ export function useRecipeDraft({
     return injected === undefined ? getDefaultDraftStorage() : injected;
   };
 
-  const readDraft = (): { key: string | null; draft: RecipeDraft | null } => ({
+  const readDraft = () => ({
+    identity,
     key,
     draft: key ? readRecipeDraft(key, resolveStorage(), sections) : null,
   });
 
   const [found, setFound] = useState(readDraft);
-  let current = found;
-  if (found.key !== key) {
-    current = readDraft();
-    setFound(current);
-  }
-
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
 
   // What storage holds and what the form held when the hook mounted. A write happens only
-  // once the author changed something: opening the form never refreshes `savedAt`, and
-  // the blank form that is about to receive a restored draft never wipes that draft.
+  // once the author changed something: opening the form never refreshes `savedAt`.
   const storedSnapshotRef = useRef<string | null>(null);
   const mountSnapshotRef = useRef<string | null>(null);
   const changedSinceMountRef = useRef(false);
   // Values that were on screen when the draft was cleared (published): never re-saved
   const clearedSnapshotRef = useRef<string | null>(null);
-  const trackedKeyRef = useRef<string | null | undefined>(undefined);
-  if (trackedKeyRef.current !== key) {
-    trackedKeyRef.current = key;
-    storedSnapshotRef.current = current.draft ? JSON.stringify(current.draft.values) : null;
-    mountSnapshotRef.current = JSON.stringify(toDraftValues(values));
-    changedSinceMountRef.current = false;
-    clearedSnapshotRef.current = null;
-  }
 
   const pendingRef = useRef<{ values: RecipeFormValuesInput; section: string } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -300,6 +300,7 @@ export function useRecipeDraft({
     }
   };
 
+  // `notify: false` touches no state, so it is safe while rendering and while unmounting
   const writePending = useCallback((notify: boolean) => {
     const pending = pendingRef.current;
     const { key: currentKey, now: clock } = latestRef.current;
@@ -308,29 +309,45 @@ export function useRecipeDraft({
     if (!pending || !currentKey) return;
 
     const draftValues = toDraftValues(pending.values);
-    const snapshot = JSON.stringify(draftValues);
-
-    if (isBlankDraft(draftValues)) {
-      // The author emptied the form again: the stale draft must not come back
-      const removed = clearRecipeDraft(currentKey, resolveStorage());
-      if (removed) storedSnapshotRef.current = null;
-      if (notify) setSaveFailed(!removed);
-      return;
-    }
-
     const time = clock();
     const written = writeRecipeDraft(
       currentKey,
       { v: RECIPE_DRAFT_VERSION, savedAt: time, section: pending.section, values: draftValues },
       resolveStorage()
     );
-    if (written) storedSnapshotRef.current = snapshot;
+    if (written) storedSnapshotRef.current = JSON.stringify(draftValues);
     if (notify) {
       setSaveFailed(!written);
       if (written) setSavedAt(time);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reads refs only
   }, []);
+
+  let current = found;
+  if (found.identity !== identity) {
+    if (found.key === key) {
+      // Same user, new form: what was typed inside the debounce window belongs to the form
+      // that is going away and is written BEFORE storage is read again
+      writePending(false);
+    } else {
+      // Another user, or logout (which clears the draft): never written back
+      pendingRef.current = null;
+      cancelTimer();
+    }
+    current = readDraft();
+    setFound(current);
+    setSavedAt(null);
+    setSaveFailed(false);
+  }
+
+  const trackedIdentityRef = useRef<string | null>(null);
+  if (trackedIdentityRef.current !== identity) {
+    trackedIdentityRef.current = identity;
+    storedSnapshotRef.current = current.draft ? JSON.stringify(current.draft.values) : null;
+    mountSnapshotRef.current = JSON.stringify(toDraftValues(values));
+    changedSinceMountRef.current = false;
+    clearedSnapshotRef.current = null;
+  }
 
   useEffect(() => {
     pendingRef.current = null;
@@ -343,10 +360,12 @@ export function useRecipeDraft({
 
     const stored = storedSnapshotRef.current;
     const upToDate = snapshot === stored;
-    const nothingToStore = stored === null && isBlankDraft(draftValues);
+    // Never written and never a reason to delete: a form that was reset in place (dialog
+    // closed, 'Start over') is just as blank as one the author emptied by hand
+    const blank = isBlankDraft(draftValues);
     const awaitingRestore = stored !== null && !changedSinceMountRef.current;
     const justCleared = snapshot === clearedSnapshotRef.current;
-    if (upToDate || nothingToStore || awaitingRestore || justCleared) return undefined;
+    if (upToDate || blank || awaitingRestore || justCleared) return undefined;
 
     pendingRef.current = { values, section };
     timerRef.current = setTimeout(() => writePending(true), debounceMs);
