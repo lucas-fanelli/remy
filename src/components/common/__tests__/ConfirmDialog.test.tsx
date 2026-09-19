@@ -1,8 +1,8 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import ConfirmDialog from '../ConfirmDialog';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const mockTheme = createTheme();
 
@@ -168,42 +168,14 @@ describe('ConfirmDialog', () => {
     expect(screen.getByText('Test')).toBeInTheDocument();
   });
 
-  it('should handle fullScreen on mobile', () => {
-    // Mock useMediaQuery to return true (mobile)
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: jest.fn().mockImplementation((query) => ({
-        matches: query === '(max-width:600px)',
-        media: query,
-        onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
-      })),
-    });
-
-    renderWithTheme(
-      <ConfirmDialog
-        open={true}
-        onClose={mockOnClose}
-        onConfirm={mockOnConfirm}
-        title="Mobile Test"
-        message="Testing mobile view"
-      />
-    );
-
-    expect(screen.getByText('Mobile Test')).toBeInTheDocument();
-  });
-
-  describe('Mobile Viewport - line 53', () => {
+  describe('fullScreen is opt-in', () => {
     let originalMatchMedia: typeof window.matchMedia;
 
     beforeEach(() => {
+      // A phone: every max-width query matches
       originalMatchMedia = window.matchMedia;
       window.matchMedia = jest.fn().mockImplementation((query) => ({
-        matches: query.includes('max-width') || query.includes('(max-width:599.95px)'),
+        matches: query.includes('max-width'),
         media: query,
         onchange: null,
         addListener: jest.fn(),
@@ -218,7 +190,21 @@ describe('ConfirmDialog', () => {
       window.matchMedia = originalMatchMedia;
     });
 
-    it('should render fullscreen dialog with zero borderRadius on mobile - line 53', () => {
+    it('should stay a small dialog on a phone by default', () => {
+      renderWithTheme(
+        <ConfirmDialog
+          open={true}
+          onClose={mockOnClose}
+          onConfirm={mockOnConfirm}
+          title="Mobile Dialog"
+          message="Testing mobile"
+        />
+      );
+
+      expect(screen.getByRole('dialog')).not.toHaveClass('MuiDialog-paperFullScreen');
+    });
+
+    it('should go full screen when the caller asks for it', () => {
       renderWithTheme(
         <ConfirmDialog
           open={true}
@@ -226,11 +212,11 @@ describe('ConfirmDialog', () => {
           onConfirm={mockOnConfirm}
           title="Mobile Dialog"
           message="Testing mobile fullscreen"
+          fullScreen
         />
       );
 
-      expect(screen.getByText('Mobile Dialog')).toBeInTheDocument();
-      expect(screen.getByText('Testing mobile fullscreen')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toHaveClass('MuiDialog-paperFullScreen');
     });
   });
 });

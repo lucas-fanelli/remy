@@ -1,15 +1,19 @@
 import { CreateRecipeDTO } from '@/domain/types/recipe';
+import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
 
 /**
- * Shared hook for creating recipes — used by both home page and navigation.
- * Returns a function that POSTs the recipe and calls onSuccess on completion.
- * Feed refresh is handled by the onSuccess callback (e.g., Navigation calls loadRecipes(true)).
+ * Shared hook for creating recipes — used by the one 'New recipe' editor
+ * (RecipeTextFirstDialog). Returns a function that POSTs the recipe and calls the optional
+ * onSuccess on completion; the editor itself navigates to the new recipe afterwards.
+ *
+ * Failures reject with a RecipeSubmitError: `message` is the server's text, `code` tells
+ * the form which copy and recovery to show.
  */
 export function useCreateRecipe(onSuccess?: () => void) {
   const createRecipe = async (data: CreateRecipeDTO) => {
     // The API schema is strict: the author comes from the session (userId is rejected),
-    // and a step's image must be a Cloudinary URL or absent — the form keeps '' for
-    // steps without a photo, so drop it here.
+    // and a step's image must be a Cloudinary URL or absent. The editor's toPayload()
+    // already leaves '' out; this keeps the promise for any other caller.
     const { userId: _userId, ...recipe } = data;
     const payload = {
       ...recipe,
@@ -18,20 +22,24 @@ export function useCreateRecipe(onSuccess?: () => void) {
       ),
     };
 
-    const response = await fetch('/api/recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-      credentials: 'same-origin',
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create recipe');
+    let response: Response;
+    try {
+      response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      throw toNetworkSubmitError(error, 'Failed to create recipe');
     }
 
-    // Feed refresh is handled by the onSuccess callback — RecipeFeed uses
-    // direct fetch (not React Query), so no query invalidation is needed.
+    if (!response.ok) {
+      throw await toRecipeSubmitError(response, 'Failed to create recipe');
+    }
+
+    // No query invalidation: RecipeFeed uses direct fetch (not React Query), and the editor
+    // leaves for the new recipe's page, which loads fresh.
     onSuccess?.();
     return response.json();
   };

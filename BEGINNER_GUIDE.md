@@ -7,7 +7,9 @@ This project was built by a professional developer with help from Claude AI, fol
 ## What You Need to Know
 
 ### The Project
+
 This is a recipe sharing platform. Users can:
+
 - Create accounts and log in
 - Share recipes with photos
 - Search and browse recipes
@@ -15,6 +17,7 @@ This is a recipe sharing platform. Users can:
 - (More features coming!)
 
 ### The Technology
+
 - **Next.js 15**: A React framework (frontend + backend)
 - **TypeScript**: JavaScript with type safety
 - **PostgreSQL**: Database for storing data
@@ -30,34 +33,40 @@ This is a recipe sharing platform. Users can:
 1. **Open Terminal** in this project folder
 
 2. **Start the database**:
+
    ```bash
    npm run docker:db:start
    ```
-   *This starts PostgreSQL in Docker*
+
+   _This starts PostgreSQL in Docker_
 
 3. **Set up the database**:
+
    ```bash
    npm run db:generate
    npm run db:push
    ```
-   *This creates all the tables*
+
+   _This creates all the tables_
 
 4. **Run the tests**:
+
    ```bash
    npm test
    ```
-   *You should see "359 passed" - all tests passing!*
+
+   _You should see "359 passed" - all tests passing!_
 
 5. **Start the app**:
    ```bash
    npm run dev
    ```
-   *Open http://localhost:3000 in your browser*
+   _Open http://localhost:3000 in your browser_
 
 ### Step 2: Try the Application
 
 1. Click "Sign Up" and create an account
-2. Click "Share Recipe" and fill out the form
+2. Click "New recipe", write the ingredients one per line and the method one step per paragraph, then check and publish
 3. You'll see your recipe in the feed
 4. Hover over YOUR recipe card - you'll see a three-dot menu (⋮)
 5. Click it to see "Edit Recipe" and "Delete Recipe" options
@@ -80,7 +89,8 @@ src/
 │   ├── recipe/           # Recipe components
 │   │   ├── RecipeCard.tsx      # Single recipe card (NEW: has edit/delete)
 │   │   ├── RecipeFeed.tsx      # List of recipes (NEW: has delete dialog)
-│   │   └── CreateRecipeForm.tsx
+│   │   ├── EditRecipeModal.tsx # "Edit recipe" (thin wrapper over the editor)
+│   │   └── form/               # The recipe editor: RecipeTextFirstDialog + form engine
 │   └── Navigation.tsx    # Top navbar
 │
 ├── domain/               # Business logic interfaces
@@ -106,28 +116,38 @@ src/
 The code follows 5 important rules that make it easy to work with:
 
 ### 1. Single Responsibility
+
 **"Each file does ONE thing"**
+
 - `PasswordService.ts` - Only handles passwords
 - `TokenService.ts` - Only handles tokens
 - `RecipeService.ts` - Only handles recipe business logic
 
 ### 2. Open/Closed
+
 **"Easy to add features, no need to change existing code"**
+
 - Want a new database? Just create a new repository!
 - Want OAuth login? Just add a new auth service!
 
 ### 3. Liskov Substitution
+
 **"Can swap implementations easily"**
+
 - The code uses "interfaces" (contracts)
 - Any implementation following the contract works
 
 ### 4. Interface Segregation
+
 **"Small, focused interfaces"**
+
 - Not one giant interface with 50 methods
 - Instead: small interfaces like `IPasswordService` with 3 methods
 
 ### 5. Dependency Inversion
+
 **"Code depends on interfaces, not concrete classes"**
+
 ```typescript
 // ✅ Good: Depends on interface
 constructor(private repository: IRecipeRepository)
@@ -141,34 +161,41 @@ constructor(private repository: PrismaRecipeRepository)
 Let's say you want to add a "Like" feature:
 
 ### Step 1: Plan
+
 1. Users can like recipes
 2. Users can unlike recipes
 3. See how many likes a recipe has
 
 ### Step 2: Database (Domain)
+
 1. Create types in `src/domain/types/like.ts`
 2. Create interface in `src/domain/repositories/ILikeRepository.ts`
 3. Create service interface in `src/domain/services/ILikeService.ts`
 
 ### Step 3: Implementation (Infrastructure)
+
 1. Create `src/infrastructure/repositories/LikeRepository.ts`
 2. Create `src/infrastructure/services/LikeService.ts`
 
 ### Step 4: Tests ⚠️ IMPORTANT!
+
 1. Create `src/infrastructure/repositories/__tests__/unit/LikeRepository.test.ts`
 2. Create `src/infrastructure/services/__tests__/unit/LikeService.test.ts`
 3. Aim for 98%+ coverage!
 
 ### Step 5: API Route
+
 1. Create `src/app/api/recipes/[id]/like/route.ts`
 2. Handle POST (like) and DELETE (unlike)
 
 ### Step 6: UI Component
+
 1. Update `RecipeCard.tsx` to show like button
 2. Add like count display
 3. Handle click to toggle like
 
 ### Step 7: Test Everything
+
 ```bash
 npm test                 # Run all tests
 npm run dev              # Test in browser
@@ -177,22 +204,27 @@ npm run dev              # Test in browser
 ## Common Tasks
 
 ### Adding a New npm Package
+
 ```bash
 npm install package-name
 ```
 
 ### Adding a Database Field
+
 1. Edit `prisma/schema.prisma`
 2. Run: `npx prisma migrate dev --name add-field-name`
 3. Run: `npm run db:generate`
 
 ### Viewing Database Content
+
 ```bash
 npm run db:studio
 ```
-*Opens a GUI at http://localhost:5555*
+
+_Opens a GUI at http://localhost:5555_
 
 ### Fixing Test Coverage
+
 1. Run `npm test` to see coverage report
 2. Find files below 98%
 3. Look at "Uncovered Line #s" column
@@ -201,6 +233,7 @@ npm run db:studio
 ### Common Test Patterns
 
 **Testing a Service:**
+
 ```typescript
 import { mockDeep } from 'jest-mock-extended';
 
@@ -229,6 +262,7 @@ describe('MyService', () => {
 ## Understanding the Tests
 
 ### What is "Coverage"?
+
 Coverage tells you what % of your code is tested.
 
 ```
@@ -239,12 +273,14 @@ After tests              | 100.00% | ✅ Everything tested
 ```
 
 ### Why 98% Coverage?
+
 - Catches bugs before users find them
 - Makes you think about edge cases
 - Gives confidence when changing code
 - Industry best practice for quality code
 
 ### Reading a Test
+
 ```typescript
 it('should create a recipe with valid data', async () => {
   // Arrange - Set up test data
@@ -261,16 +297,19 @@ it('should create a recipe with valid data', async () => {
 ## What to Work On Next
 
 ### Option 1: Finish Test Coverage (Recommended for Beginners) ⭐
+
 **Why?**: Learn the codebase by writing tests
 **Time**: 2-3 hours
 **Difficulty**: ⭐⭐☆☆☆
 
 Files that need more tests:
+
 - `AIProviderFactory.ts` (66% → 98%)
 - `Container.ts` (85% → 98%)
 - `TokenService.ts` (92% → 98%)
 
 **How to start**:
+
 ```bash
 npm run test:watch     # This will auto-run tests as you type
 ```
@@ -278,11 +317,13 @@ npm run test:watch     # This will auto-run tests as you type
 Open `src/infrastructure/ai/__tests__/unit/AIProviderFactory.test.ts` and add more tests.
 
 ### Option 2: Recipe Detail Page 📖
+
 **Why?**: Create a full-page view for recipes
 **Time**: 4-6 hours
 **Difficulty**: ⭐⭐⭐☆☆
 
 **What to build**:
+
 1. Create `src/app/recipe/[id]/page.tsx`
 2. Show large recipe photo
 3. List all ingredients
@@ -291,35 +332,41 @@ Open `src/infrastructure/ai/__tests__/unit/AIProviderFactory.test.ts` and add mo
 6. Add like/comment buttons
 
 **How to start**:
+
 1. Look at `src/app/page.tsx` for page structure
 2. Copy the pattern for `[id]` routing
 3. Use RecipeCard as reference for styling
 
-### Option 3: Recipe Editing Modal ✏️
-**Why?**: Allow users to edit their recipes
-**Time**: 3-4 hours
+### Option 3: Recipe Editing ✏️ (already built - read it, don't copy it)
+
+**Why?**: See how ONE editor serves both "New recipe" and "Edit recipe"
+**Time**: 1-2 hours of reading
 **Difficulty**: ⭐⭐⭐☆☆
 
-**What to build**:
-1. Create `src/components/recipe/EditRecipeModal.tsx`
-2. Copy from `CreateRecipeForm.tsx`
-3. Pre-fill form with existing data
-4. Connect to PUT endpoint `/api/recipes/[id]`
+**Where it lives**:
+
+1. `src/components/recipe/form/RecipeTextFirstDialog.tsx` - the editor, `mode="create"` or `mode="edit"`
+2. `src/components/recipe/EditRecipeModal.tsx` - a thin wrapper that opens it with a `recipe`
+3. `src/components/recipe/form/useRecipeForm.ts` - the form engine; `toPayload()` builds what is sent
+4. `src/hooks/useCreateRecipe.ts` (POST `/api/recipes`) and `src/hooks/useUpdateRecipe.ts` (PUT `/api/recipes/[id]`)
 
 **How to start**:
-1. Duplicate `CreateRecipeForm.tsx`
-2. Add a `recipe` prop
-3. Use `recipe.title`, `recipe.ingredients`, etc. as default values
+
+1. Never duplicate the editor for a new case - add a `mode` or a prop instead
+2. Follow a recipe from `recipe` prop -> `useRecipeForm({ initial })` -> `toPayload()` -> PUT
+3. Read `src/components/recipe/form/__tests__/RecipeTextFirstDialog.test.tsx` to see every behaviour
 
 ## Learning Resources
 
 ### For This Project
+
 - [ARCHITECTURE.md](ARCHITECTURE.md) - How the code is organized
 - [TESTING.md](TESTING.md) - How to write tests
 - [ROADMAP.md](ROADMAP.md) - What features are planned
 - [SESSION_SUMMARY.md](SESSION_SUMMARY.md) - What was just built
 
 ### General Learning
+
 - [Next.js Tutorial](https://nextjs.org/learn)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
 - [React Docs](https://react.dev/learn)
@@ -329,27 +376,32 @@ Open `src/infrastructure/ai/__tests__/unit/AIProviderFactory.test.ts` and add mo
 ## Getting Help
 
 ### Error: "Cannot find module"
+
 ```bash
 npm install              # Reinstall dependencies
 ```
 
 ### Error: "Database connection failed"
+
 ```bash
 npm run docker:db:start  # Make sure database is running
 npm run db:push          # Recreate tables
 ```
 
 ### Error: "Tests failing"
+
 ```bash
 npm test -- --clearCache # Clear Jest cache
 npm test                 # Run again
 ```
 
 ### Error: "Port 3000 already in use"
+
 - Close any other apps using port 3000
 - Or change port: `npm run dev -- -p 3001`
 
 ### Still Stuck?
+
 1. Read the error message carefully
 2. Google the error message
 3. Check GitHub Issues
@@ -358,6 +410,7 @@ npm test                 # Run again
 ## Best Practices (Always Follow These!)
 
 ### ✅ DO:
+
 - Write tests for ALL new code
 - Follow existing code patterns
 - Keep functions small and focused
@@ -367,6 +420,7 @@ npm test                 # Run again
 - Run `npm run lint` to check code style
 
 ### ❌ DON'T:
+
 - Skip writing tests
 - Put business logic in UI components
 - Hardcode values (use environment variables)

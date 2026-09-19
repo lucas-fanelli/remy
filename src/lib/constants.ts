@@ -62,3 +62,60 @@ export const UNIT_TO_TASTE = 'to taste';
 
 /** Username: alphanumeric + underscore, 3-30 chars (matches registration schema) */
 export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,30}$/;
+
+/**
+ * Recipe form limits. They mirror the zod schemas in src/app/api/recipes/route.ts and
+ * RecipeService.validateRecipeData; a text-based parity test keeps the numbers in sync
+ * (the route's schemas are not exported).
+ */
+export const RECIPE_LIMITS = {
+  title: 100,
+  description: 500,
+  caption: 500,
+  cook: { min: 1, max: 720 },
+  prep: { min: 0, max: 480 },
+  servings: { min: 1, max: 100 },
+  ingredients: 100,
+  name: 200,
+  amount: 50,
+  unit: 50,
+  steps: 50,
+  stepText: 5000,
+} as const;
+
+/** The closed, metric-first unit list offered by the recipe form */
+export const RECIPE_UNITS = [
+  'g',
+  'kg',
+  'mL',
+  'L',
+  'units',
+  'tsp',
+  'tbsp',
+  'cups',
+  'pinch',
+  'oz',
+  'lb',
+  UNIT_TO_TASTE,
+] as const;
+
+export type RecipeUnit = (typeof RECIPE_UNITS)[number];
+
+/** Expanded option text for the unit list ('g - grams'); the stored value stays short */
+export const RECIPE_UNIT_LABELS: Record<RecipeUnit, string> = {
+  g: 'grams',
+  kg: 'kilograms',
+  mL: 'millilitres',
+  L: 'litres',
+  units: 'whole items',
+  tsp: 'teaspoons',
+  tbsp: 'tablespoons',
+  cups: 'cups',
+  pinch: 'pinch',
+  oz: 'ounces',
+  lb: 'pounds',
+  [UNIT_TO_TASTE]: 'no exact amount',
+};
+
+/** Unit filled in when an ingredient has an amount but no unit (the server requires one) */
+export const RECIPE_DEFAULT_UNIT: RecipeUnit = 'units';

@@ -1,0 +1,68 @@
+import { Recipe, UpdateRecipeDTO } from '@/domain/types/recipe';
+import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
+
+export interface UpdateRecipeResponse {
+  recipe: Recipe;
+  message?: string;
+}
+
+/**
+ * PUT /api/recipes/[id] has NO schema: the route casts the body to UpdateRecipeDTO and the
+ * service only checks the fields it knows, so any extra key would be STORED. The body is
+ * therefore rebuilt from the known fields only — a client-only row id can not get through.
+ */
+const toUpdateBody = (data: UpdateRecipeDTO): UpdateRecipeDTO => {
+  const body: UpdateRecipeDTO = {};
+  if (data.title !== undefined) body.title = data.title;
+  if (data.description !== undefined) body.description = data.description;
+  if (data.imageUrl !== undefined) body.imageUrl = data.imageUrl;
+  if (data.cookingTime !== undefined) body.cookingTime = data.cookingTime;
+  if (data.prepTime !== undefined) body.prepTime = data.prepTime;
+  if (data.servings !== undefined) body.servings = data.servings;
+  if (data.difficulty !== undefined) body.difficulty = data.difficulty;
+  if (data.caption !== undefined) body.caption = data.caption;
+  if (data.ingredients !== undefined) {
+    body.ingredients = data.ingredients.map(({ name, amount, unit }) => ({ name, amount, unit }));
+  }
+  if (data.instructions !== undefined) {
+    // Same rule as useCreateRecipe: a step without a photo carries no `image` key
+    body.instructions = data.instructions.map(({ step, description, image }) =>
+      image ? { step, description, image } : { step, description }
+    );
+  }
+  return body;
+};
+
+/**
+ * Shared hook for updating a recipe. Returns a function that PUTs the changes, calls
+ * onSuccess with the updated recipe and resolves with the API's `{ recipe, message }`.
+ * Failures reject with a RecipeSubmitError, mapped exactly as in useCreateRecipe.
+ */
+export function useUpdateRecipe(onSuccess?: (recipe: Recipe) => void) {
+  const updateRecipe = async (
+    recipeId: string,
+    data: UpdateRecipeDTO
+  ): Promise<UpdateRecipeResponse> => {
+    let response: Response;
+    try {
+      response = await fetch(`/api/recipes/${recipeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin',
+        body: JSON.stringify(toUpdateBody(data)),
+      });
+    } catch (error) {
+      throw toNetworkSubmitError(error, 'Failed to update recipe');
+    }
+
+    if (!response.ok) {
+      throw await toRecipeSubmitError(response, 'Failed to update recipe');
+    }
+
+    const result: UpdateRecipeResponse = await response.json();
+    onSuccess?.(result.recipe);
+    return result;
+  };
+
+  return updateRecipe;
+}

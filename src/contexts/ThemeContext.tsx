@@ -104,7 +104,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                   main: '#26A69A', // Modern teal for dark mode
                   light: '#4DB6AC', // Light teal
                   dark: '#00897B', // Deep teal
-                  contrastText: '#FFFFFF',
+                  // White on #26A69A is only 3.0:1; dark text is ~6.2:1 (WCAG AA)
+                  contrastText: 'rgba(0,0,0,0.87)',
                 },
           secondary:
             mode === 'light'
@@ -256,6 +257,32 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             styleOverrides: {
               root: {
                 transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+              },
+            },
+          },
+          MuiDialog: {
+            styleOverrides: {
+              paper: {
+                borderRadius: 16,
+              },
+              paperFullScreen: {
+                borderRadius: 0,
+              },
+            },
+          },
+          MuiDialogTitle: {
+            styleOverrides: {
+              root: {
+                fontSize: '1.25rem',
+                fontWeight: 600,
+                padding: '16px 24px',
+              },
+            },
+          },
+          MuiDialogActions: {
+            styleOverrides: {
+              root: {
+                padding: '12px 24px 16px',
               },
             },
           },

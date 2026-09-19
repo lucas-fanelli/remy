@@ -235,26 +235,26 @@ describe('RecipeFeed Component', () => {
     await waitForLoadingComplete(container);
   });
 
-  it('should render Share Recipe button when onCreateRecipe prop is provided', async () => {
+  it('should render New recipe button when onCreateRecipe prop is provided', async () => {
     setupSuccessfulFetch();
     const mockOnCreateRecipe = jest.fn();
 
     renderWithProviders(<RecipeFeed onCreateRecipe={mockOnCreateRecipe} />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /share recipe/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^new recipe$/i })).toBeInTheDocument();
     });
   });
 
-  it('should call onCreateRecipe when Share Recipe button is clicked', async () => {
+  it('should call onCreateRecipe when New recipe button is clicked', async () => {
     setupSuccessfulFetch();
     const mockOnCreateRecipe = jest.fn();
 
     renderWithProviders(<RecipeFeed onCreateRecipe={mockOnCreateRecipe} />);
 
     await waitFor(() => {
-      const shareButton = screen.getByRole('button', { name: /share recipe/i });
-      fireEvent.click(shareButton);
+      const createButton = screen.getByRole('button', { name: /^new recipe$/i });
+      fireEvent.click(createButton);
     });
 
     expect(mockOnCreateRecipe).toHaveBeenCalled();
@@ -300,7 +300,7 @@ describe('RecipeFeed Component', () => {
       expect(screen.getByText('No recipes found')).toBeInTheDocument();
     });
 
-    const createButtons = screen.getAllByRole('button', { name: /share/i });
+    const createButtons = screen.getAllByRole('button', { name: /publish your first recipe/i });
     expect(createButtons.length).toBeGreaterThan(0);
   });
 
@@ -1209,12 +1209,12 @@ describe('RecipeFeed Component', () => {
       const { container } = renderWithProviders(<RecipeFeed onCreateRecipe={mockOnCreateRecipe} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /share recipe/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^new recipe$/i })).toBeInTheDocument();
       });
 
       // Button should render (fullWidth prop is applied based on isMobile)
-      const shareButton = screen.getByRole('button', { name: /share recipe/i });
-      expect(shareButton).toBeInTheDocument();
+      const createButton = screen.getByRole('button', { name: /^new recipe$/i });
+      expect(createButton).toBeInTheDocument();
 
       await waitForLoadingComplete(container);
     });
@@ -1248,7 +1248,7 @@ describe('RecipeFeed Component', () => {
       });
 
       // Should show large button in empty state on mobile
-      const createButton = screen.getByRole('button', { name: /share your first recipe/i });
+      const createButton = screen.getByRole('button', { name: /publish your first recipe/i });
       expect(createButton).toBeInTheDocument();
     });
   });
@@ -1426,14 +1426,14 @@ describe('RecipeFeed Component', () => {
       window.matchMedia = originalMatchMedia;
     });
 
-    it('should render mobile-sized Share Recipe button - line 379', async () => {
+    it('should render mobile-sized New recipe button - line 379', async () => {
       setupSuccessfulFetch();
       const mockOnCreateRecipe = jest.fn();
 
       renderWithProviders(<RecipeFeed onCreateRecipe={mockOnCreateRecipe} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /share recipe/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /^new recipe$/i })).toBeInTheDocument();
       });
     });
   });

@@ -178,13 +178,17 @@ src/
 │   │   ├── RecipeCard.tsx     # Reusable recipe cards
 │   │   ├── RecipeFeed.tsx     # Recipe feed with infinite scroll
 │   │   ├── MatchedRecipes.tsx # Pantry-based recipe matching
-│   │   └── CreateRecipeForm.tsx
+│   │   ├── EditRecipeModal.tsx # 'Edit recipe' (thin wrapper over the recipe editor)
+│   │   ├── form/              # Recipe editor (create + edit): RecipeTextFirstDialog,
+│   │   │                      #   the form engine, the shared blocks, draft autosave
+│   │   └── display/           # Display blocks shared by the recipe page and the preview
 │   ├── auth/                   # Authentication UI
 │   ├── settings/               # Settings components
 │   └── Navigation.tsx          # Main navigation system
 │
 ├── contexts/                     # React Context (State Management)
 │   ├── AuthContext.tsx         # Authentication state
+│   ├── CreateRecipeContext.tsx # The one 'New recipe' dialog + openCreate()
 │   ├── ThemeContext.tsx        # Dark/light mode theme
 │   └── ToastContext.tsx        # Global notifications
 │
