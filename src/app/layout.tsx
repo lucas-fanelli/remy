@@ -1,6 +1,8 @@
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { Nunito } from 'next/font/google';
 import { headers } from 'next/headers';
+import { NextIntlClientProvider } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import AppAnalytics from '@/components/analytics/AppAnalytics';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
@@ -11,6 +13,9 @@ import { MotionProvider } from '@/contexts/MotionContext';
 import { PwaProvider } from '@/contexts/PwaContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { OPEN_GRAPH_LOCALES } from '@/i18n/config';
+import { getServerLocale } from '@/i18n/locale';
+import { getMessages } from '@/i18n/messages';
 import QueryProvider from '@/providers/QueryProvider';
 import type { Metadata } from 'next';
 import './globals.css';
@@ -23,71 +28,94 @@ const nunito = Nunito({
   variable: '--font-nunito',
 });
 
-export const metadata: Metadata = {
-  title: `${BRANDING.name} - ${BRANDING.tagline}`,
-  description: BRANDING.description,
-  keywords: ['recipes', 'cooking', 'food', 'AI recipes', 'recipe sharing', 'meal planning'],
-  authors: [{ name: BRANDING.name }],
-  creator: BRANDING.name,
-  publisher: BRANDING.name,
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: '/',
-    siteName: BRANDING.name,
-    title: `${BRANDING.name} - ${BRANDING.tagline}`,
-    description: BRANDING.description,
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: `${BRANDING.name} - Share and discover amazing recipes`,
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: `${BRANDING.name} - ${BRANDING.tagline}`,
-    description: BRANDING.description,
-    images: ['/og-image.png'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getServerLocale();
+  const t = await getTranslations('metadata');
+
+  const title = t('title', { name: BRANDING.name });
+  const description = t('description');
+
+  return {
+    title,
+    description,
+    keywords: t('keywords')
+      .split(',')
+      .map((keyword) => keyword.trim()),
+    authors: [{ name: BRANDING.name }],
+    creator: BRANDING.name,
+    publisher: BRANDING.name,
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+    openGraph: {
+      type: 'website',
+      locale: OPEN_GRAPH_LOCALES[locale],
+      url: '/',
+      siteName: BRANDING.name,
+      title,
+      description,
+      images: [
+        {
+          url: '/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: t('ogImageAlt', { name: BRANDING.name }),
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ['/og-image.png'],
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
-  },
-  icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/rat-apple-icon-v3.png',
-  },
-  manifest: '/site.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: BRANDING.name,
-  },
-  formatDetection: {
-    telephone: false,
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-  },
-};
+    icons: {
+      icon: '/favicon.ico',
+      shortcut: '/favicon.ico',
+      apple: '/rat-apple-icon-v3.png',
+    },
+    manifest: '/site.webmanifest',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: BRANDING.name,
+    },
+    formatDetection: {
+      telephone: false,
+    },
+    other: {
+      'mobile-web-app-capable': 'yes',
+      // The app translates itself now; Chrome's auto-translate must not translate it AGAIN
+      // on top (that second pass is what made the words jump on every refresh).
+      google: 'notranslate',
+    },
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // Resolved from the cookie on the server, so this first HTML is already in the right
+  // language - logged in or out, before and after login, with no flash and no re-render.
+  const locale = await getServerLocale();
 
   return (
-    <html lang="en" suppressHydrationWarning className={nunito.variable}>
+    <html
+      lang={locale}
+      // The app owns its translations now. Without this Chrome would auto-translate the
+      // already-translated page and swap words around on every refresh.
+      translate="no"
+      suppressHydrationWarning
+      className={nunito.variable}
+    >
       <head>
         <meta name="theme-color" content="#000000" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -127,24 +155,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
-        <AppRouterCacheProvider options={{ key: 'mui', nonce }}>
-          <QueryProvider>
-            <ThemeProvider>
-              <ToastProvider>
-                <AuthProvider>
-                  <PwaProvider>
-                    <MotionProvider>
-                      <CreateRecipeProvider>
-                        <LayoutWrapper>{children}</LayoutWrapper>
-                        <InstallPrompt />
-                      </CreateRecipeProvider>
-                    </MotionProvider>
-                  </PwaProvider>
-                </AuthProvider>
-              </ToastProvider>
-            </ThemeProvider>
-          </QueryProvider>
-        </AppRouterCacheProvider>
+        {/* Outermost provider: every client component below can call useTranslations(),
+            and the messages travel with the first HTML so nothing re-renders to translate */}
+        <NextIntlClientProvider locale={locale} messages={getMessages(locale)}>
+          <AppRouterCacheProvider options={{ key: 'mui', nonce }}>
+            <QueryProvider>
+              <ThemeProvider>
+                <ToastProvider>
+                  <AuthProvider>
+                    <PwaProvider>
+                      <MotionProvider>
+                        <CreateRecipeProvider>
+                          <LayoutWrapper>{children}</LayoutWrapper>
+                          <InstallPrompt />
+                        </CreateRecipeProvider>
+                      </MotionProvider>
+                    </PwaProvider>
+                  </AuthProvider>
+                </ToastProvider>
+              </ThemeProvider>
+            </QueryProvider>
+          </AppRouterCacheProvider>
+        </NextIntlClientProvider>
         <AppAnalytics />
       </body>
     </html>

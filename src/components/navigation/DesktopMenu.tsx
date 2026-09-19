@@ -1,7 +1,9 @@
 'use client';
 import { Logout, Settings, Person, Login, AdminPanelSettings } from '@mui/icons-material';
-import { Menu, MenuItem, ListItemIcon, Divider } from '@mui/material';
+import { Menu, MenuItem, ListItemIcon, Divider, Box } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React from 'react';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 
 interface DesktopMenuProps {
   anchorEl: HTMLElement | null;
@@ -20,6 +22,8 @@ export default function DesktopMenu({
   onNavigate,
   onLogout,
 }: DesktopMenuProps) {
+  const t = useTranslations('nav');
+
   return (
     <Menu
       anchorEl={anchorEl}
@@ -51,7 +55,7 @@ export default function DesktopMenu({
               <ListItemIcon>
                 <Person fontSize="small" />
               </ListItemIcon>
-              Profile
+              {t('menu.profile')}
             </MenuItem>,
             <MenuItem
               key="settings"
@@ -63,7 +67,7 @@ export default function DesktopMenu({
               <ListItemIcon>
                 <Settings fontSize="small" />
               </ListItemIcon>
-              Settings
+              {t('menu.settings')}
             </MenuItem>,
             ...(isAdmin
               ? [
@@ -77,7 +81,7 @@ export default function DesktopMenu({
                     <ListItemIcon>
                       <AdminPanelSettings fontSize="small" />
                     </ListItemIcon>
-                    Admin
+                    {t('menu.admin')}
                   </MenuItem>,
                 ]
               : []),
@@ -85,13 +89,13 @@ export default function DesktopMenu({
               <ListItemIcon>
                 <Logout fontSize="small" />
               </ListItemIcon>
-              Logout
+              {t('menu.logout')}
             </MenuItem>,
           ]
         : [
             // Guest menu
             <MenuItem key="guest" disabled>
-              <strong>Guest</strong>
+              <strong>{t('menu.guest')}</strong>
             </MenuItem>,
             <Divider key="divider2" />,
             <MenuItem
@@ -104,9 +108,14 @@ export default function DesktopMenu({
               <ListItemIcon>
                 <Login fontSize="small" />
               </ListItemIcon>
-              Sign In
+              {t('menu.signIn')}
             </MenuItem>,
           ]}
+      {/* Last, and outside the ternary: a guest has to be able to pick a language too */}
+      <Divider key="divider-language" />
+      <Box key="language" sx={{ px: 2, py: 1 }}>
+        <LanguageSwitcher onChanged={onClose} />
+      </Box>
     </Menu>
   );
 }

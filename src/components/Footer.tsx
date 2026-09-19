@@ -17,11 +17,14 @@ import {
   Tooltip,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useEffect, useRef, useState } from 'react';
 import { BRANDING } from '@/config/branding';
 import { useThemeMode } from '@/contexts/ThemeContext';
 
 export default function Footer() {
+  const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const theme = useTheme();
   const router = useRouter();
   const { mode, toggleTheme } = useThemeMode();
@@ -63,7 +66,7 @@ export default function Footer() {
   const handleSendEmail = () => {
     if (sending) return;
     if (!isValidEmail(formData.email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(tCommon('form.invalidEmail'));
       return;
     }
     setEmailError('');
@@ -74,17 +77,15 @@ export default function Footer() {
     const message = sanitize(formData.message);
     const name = sanitize(formData.name);
     const email = sanitize(formData.email);
-    const mailtoLink = `mailto:${BRANDING.contactEmail}?subject=${encodeURIComponent('Contact from ' + name)}&body=${encodeURIComponent(
-      `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
-    )}`;
+    // The email the visitor is about to send is written in THEIR language, not the owner's
+    const mailtoLink = `mailto:${BRANDING.contactEmail}?subject=${encodeURIComponent(
+      t('contactDialog.mailSubject', { name })
+    )}&body=${encodeURIComponent(t('contactDialog.mailBody', { name, email, message }))}`;
     // Check length AFTER encoding — encoded characters expand the URL significantly.
     // 1500 chars is a conservative limit for mailto URIs — IE supported 2083,
     // modern browsers support more, but some email clients have lower limits.
     if (mailtoLink.length > 1500) {
-      setMailtoError(
-        'Your message is too long for email. Please shorten it or email us directly at ' +
-          BRANDING.contactEmail
-      );
+      setMailtoError(t('contactDialog.messageTooLong', { email: BRANDING.contactEmail }));
       return;
     }
     setMailtoError('');
@@ -138,7 +139,7 @@ export default function Footer() {
               },
             }}
           >
-            Contact
+            {t('footer.contact')}
           </Button>
           <Typography color="text.disabled">|</Typography>
           <Button
@@ -153,13 +154,13 @@ export default function Footer() {
               },
             }}
           >
-            About Us
+            {t('footer.about')}
           </Button>
         </Box>
 
         {/* Right: YouTube + Theme Toggle */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Tooltip title="YouTube Channel">
+          <Tooltip title={t('footer.youtubeChannel')}>
             <IconButton
               component={Link}
               href={BRANDING.youtube}
@@ -171,7 +172,7 @@ export default function Footer() {
               <YouTube />
             </IconButton>
           </Tooltip>
-          <Tooltip title={mode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+          <Tooltip title={mode === 'dark' ? t('footer.switchToLight') : t('footer.switchToDark')}>
             <IconButton onClick={toggleTheme} size="small" sx={{ color: 'text.secondary' }}>
               {mode === 'dark' ? <LightMode /> : <DarkMode />}
             </IconButton>
@@ -195,7 +196,7 @@ export default function Footer() {
           sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
         >
           <Typography variant="h6" component="span">
-            Contact
+            {t('contactDialog.title')}
           </Typography>
           <IconButton onClick={handleCloseContact} size="small">
             <Close />
@@ -209,7 +210,7 @@ export default function Footer() {
               </Alert>
             )}
             <TextField
-              label="Your Name"
+              label={t('contactDialog.name')}
               value={formData.name}
               onChange={handleInputChange('name')}
               fullWidth
@@ -217,7 +218,7 @@ export default function Footer() {
               inputProps={{ maxLength: 100 }}
             />
             <TextField
-              label="Your Email"
+              label={t('contactDialog.email')}
               type="email"
               value={formData.email}
               onChange={(e) => {
@@ -231,7 +232,7 @@ export default function Footer() {
               helperText={emailError}
             />
             <TextField
-              label="Message"
+              label={t('contactDialog.message')}
               value={formData.message}
               onChange={handleInputChange('message')}
               fullWidth
@@ -244,14 +245,14 @@ export default function Footer() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={handleCloseContact} color="inherit">
-            Cancel
+            {tCommon('actions.cancel')}
           </Button>
           <Button
             onClick={handleSendEmail}
             variant="contained"
             disabled={!formData.name || !formData.email || !formData.message || sending}
           >
-            Send Email
+            {t('contactDialog.send')}
           </Button>
         </DialogActions>
       </Dialog>

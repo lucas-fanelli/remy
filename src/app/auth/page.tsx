@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { Suspense, useState, useEffect, useRef } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { CREATE_INTENT, useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 
@@ -96,6 +97,12 @@ export default function AuthPage() {
               Continue as Guest
             </Link>
           </Typography>
+
+          {/* A visitor who has not logged in yet must be able to choose the language too:
+              the choice lives in a cookie, not in the session, so it survives logging in */}
+          <Box sx={{ mt: 3 }}>
+            <LanguageSwitcher />
+          </Box>
         </Box>
       </Container>
     </Box>

@@ -42,6 +42,19 @@ export function isLocale(value: unknown): value is Locale {
 }
 
 /**
+ * The `document.cookie` assignment the language switcher writes: the client-side twin of the
+ * Set-Cookie the middleware sends, so both persist the choice identically.
+ *
+ * No `Secure` flag on purpose. This is a language preference, not a credential, and a proxy
+ * that terminates TLS can leave the app thinking the request was plain http - marking the
+ * cookie Secure there would make the browser drop it, and the language would stop sticking,
+ * which is the very bug this module exists to fix.
+ */
+export function localeCookieString(locale: Locale): string {
+  return `${LOCALE_COOKIE}=${locale}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; samesite=lax`;
+}
+
+/**
  * Accept-Language negotiation: any Spanish variant the browser accepts ('es', 'es-AR',
  * 'es-419'...) means Spanish, any other header means English, no header means the default.
  */

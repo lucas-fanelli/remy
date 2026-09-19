@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import { MotionPaper } from '@/components/motion';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -148,6 +149,12 @@ export default function SettingsPage() {
               </Box>
             }
           />
+
+          {/* Language sits with the other presentation choices, and is stored the same way:
+              a cookie, so it survives logging out and back in */}
+          <Box sx={{ mt: { xs: 2, md: 3 } }}>
+            <LanguageSwitcher showLabel showDescription />
+          </Box>
         </MotionPaper>
 
         {/* Privacy & Security */}
