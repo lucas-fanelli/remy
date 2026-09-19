@@ -1,9 +1,13 @@
 import { CreateRecipeDTO } from '@/domain/types/recipe';
+import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
 
 /**
  * Shared hook for creating recipes — used by both home page and navigation.
  * Returns a function that POSTs the recipe and calls onSuccess on completion.
  * Feed refresh is handled by the onSuccess callback (e.g., Navigation calls loadRecipes(true)).
+ *
+ * Failures reject with a RecipeSubmitError: `message` is the server's text, `code` tells
+ * the form which copy and recovery to show.
  */
 export function useCreateRecipe(onSuccess?: () => void) {
   const createRecipe = async (data: CreateRecipeDTO) => {
@@ -18,16 +22,20 @@ export function useCreateRecipe(onSuccess?: () => void) {
       ),
     };
 
-    const response = await fetch('/api/recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-      credentials: 'same-origin',
-      body: JSON.stringify(payload),
-    });
+    let response: Response;
+    try {
+      response = await fetch('/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      });
+    } catch (error) {
+      throw toNetworkSubmitError(error, 'Failed to create recipe');
+    }
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create recipe');
+      throw await toRecipeSubmitError(response, 'Failed to create recipe');
     }
 
     // Feed refresh is handled by the onSuccess callback — RecipeFeed uses
