@@ -26,7 +26,6 @@ import {
   Avatar,
   CardContent,
   Alert,
-  Paper,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -44,12 +43,16 @@ import { useRouter, useParams } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { MotionBox, MotionCard } from '@/components/motion';
 import CommentsSection from '@/components/recipe/CommentsSection';
+import CaptionQuote from '@/components/recipe/display/CaptionQuote';
+import DifficultyChip from '@/components/recipe/display/DifficultyChip';
+import IngredientLine from '@/components/recipe/display/IngredientLine';
+import RecipeTimeStrip from '@/components/recipe/display/RecipeTimeStrip';
+import StepNumber from '@/components/recipe/display/StepNumber';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus, ApiRecipe } from '@/hooks/useRecipe';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
-import { getDifficultyColor } from '@/lib/utils/recipe';
 
 /** Adapt the API recipe shape to the DomainRecipe type expected by EditRecipeModal. */
 function toEditableRecipe(apiRecipe: ApiRecipe): DomainRecipe {
@@ -567,19 +570,10 @@ export default function RecipeDetailPage() {
                     mb: { xs: 1.5, md: 2 },
                   }}
                 >
-                  <Chip
-                    label={recipe.difficulty}
-                    color={getDifficultyColor(recipe.difficulty)}
+                  <DifficultyChip
+                    difficulty={recipe.difficulty}
                     size={isMobile ? 'small' : 'medium'}
-                    sx={{
-                      textTransform: 'capitalize',
-                      fontWeight: 600,
-                      fontSize: { xs: '0.75rem', md: '0.8125rem' },
-                      color: 'common.white',
-                      '& .MuiChip-label': {
-                        color: 'common.white',
-                      },
-                    }}
+                    sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
                   />
                   <Chip
                     icon={<Person sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
@@ -648,7 +642,11 @@ export default function RecipeDetailPage() {
                 variant="body1"
                 color="text.secondary"
                 paragraph
-                sx={{ fontSize: { xs: '0.9375rem', sm: '1rem', md: '1.1rem' } }}
+                sx={{
+                  fontSize: { xs: '0.9375rem', sm: '1rem', md: '1.1rem' },
+                  // Line breaks typed by the author survive
+                  whiteSpace: 'pre-line',
+                }}
               >
                 {recipe.description}
               </Typography>
@@ -750,75 +748,16 @@ export default function RecipeDetailPage() {
               <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
               {/* Time Breakdown */}
-              <Box
+              <RecipeTimeStrip
+                prepTime={recipe.prepTime}
+                cookingTime={recipe.cookingTime}
                 sx={{
-                  display: 'flex',
-                  gap: { xs: 2, sm: 3, md: 4 },
                   mb: { xs: 2, md: 3 },
-                  flexWrap: 'wrap',
+                  // This page's type scale; the block itself uses the theme defaults
+                  '& .MuiTypography-caption': { fontSize: { xs: '0.7rem', md: '0.75rem' } },
+                  '& .MuiTypography-h6': { fontSize: { xs: '1.125rem', md: '1.25rem' } },
                 }}
-              >
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                    sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
-                  >
-                    PREP TIME
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 600,
-                      color: 'text.primary',
-                      fontSize: { xs: '1.125rem', md: '1.25rem' },
-                    }}
-                  >
-                    {recipe.prepTime} min
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                    sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
-                  >
-                    COOK TIME
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 600,
-                      color: 'text.primary',
-                      fontSize: { xs: '1.125rem', md: '1.25rem' },
-                    }}
-                  >
-                    {recipe.cookingTime} min
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    display="block"
-                    sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
-                  >
-                    TOTAL TIME
-                  </Typography>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 600,
-                      color: 'text.primary',
-                      fontSize: { xs: '1.125rem', md: '1.25rem' },
-                    }}
-                  >
-                    {totalTime} min
-                  </Typography>
-                </Box>
-              </Box>
+              />
             </MotionBox>
 
             {/* Ingredients Section */}
@@ -835,20 +774,7 @@ export default function RecipeDetailPage() {
                 <Box component="ul" sx={{ pl: 2 }}>
                   {recipe.ingredients.map(
                     (ingredient: { name: string; amount: string; unit: string }, index: number) => (
-                      <Box
-                        component="li"
-                        key={index}
-                        sx={{
-                          mb: 1.5,
-                          typography: 'body1',
-                          '&::marker': { color: 'primary.main' },
-                        }}
-                      >
-                        <strong>
-                          {ingredient.amount} {ingredient.unit}
-                        </strong>{' '}
-                        {ingredient.name}
-                      </Box>
+                      <IngredientLine key={index} ingredient={ingredient} />
                     )
                   )}
                 </Box>
@@ -873,24 +799,16 @@ export default function RecipeDetailPage() {
                       index: number
                     ) => (
                       <Box key={index} sx={{ mb: 3, display: 'flex', gap: 2 }}>
-                        <Box
-                          sx={{
-                            minWidth: 40,
-                            height: 40,
-                            borderRadius: '50%',
-                            backgroundColor: 'primary.main',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: '1.1rem',
-                          }}
-                        >
-                          {instruction.step}
-                        </Box>
+                        <StepNumber
+                          number={instruction.step}
+                          responsive={false}
+                          decorative={false}
+                        />
                         <Box sx={{ flex: 1 }}>
-                          <Typography variant="body1" sx={{ lineHeight: 1.8 }}>
+                          <Typography
+                            variant="body1"
+                            sx={{ lineHeight: 1.8, whiteSpace: 'pre-line' }}
+                          >
                             {instruction.description}
                           </Typography>
                           {instruction.image && isCloudinaryUrl(instruction.image) && (
@@ -953,17 +871,7 @@ export default function RecipeDetailPage() {
                 transition={{ duration: 0.5, delay: 0.4 }}
                 sx={{ mb: 3 }}
               >
-                <Paper
-                  sx={{
-                    p: 3,
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
-                  }}
-                >
-                  <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
-                    &ldquo;{recipe.caption}&rdquo;
-                  </Typography>
-                </Paper>
+                <CaptionQuote caption={recipe.caption} />
               </MotionBox>
             )}
 
