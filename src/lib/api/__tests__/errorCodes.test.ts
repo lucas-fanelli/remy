@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from 'fs';
+import { join } from 'path';
 import { LOCALES, ALL_MESSAGES } from '@/i18n/messages';
 import { API_ERROR_CODES, isApiErrorCode } from '../errorCodes';
 
@@ -58,5 +60,43 @@ describe('API_ERROR_CODES', () => {
   it('should recognise its own codes and nothing else', () => {
     expect(isApiErrorCode('recipe.notFound')).toBe(true);
     expect(isApiErrorCode('recipe.thereIsNoSuchCode')).toBe(false);
+  });
+});
+
+/**
+ * The routes answer with `NextResponse.json({ error, code })`, an object literal TypeScript
+ * does not check against ApiErrorCode. A typo there would ship a code the client cannot
+ * translate and the errors.json key would never be reached, so read the sources instead.
+ */
+describe('the codes the API actually sends', () => {
+  const SOURCE_ROOT = join(__dirname, '..', '..', '..');
+  const SOURCES = [
+    join(SOURCE_ROOT, 'app', 'api'),
+    join(SOURCE_ROOT, 'lib', 'api'),
+    join(SOURCE_ROOT, 'lib', 'auth'),
+    join(SOURCE_ROOT, 'lib', 'utils', 'request.ts'),
+    join(SOURCE_ROOT, 'lib', 'utils', 'cloudinary-validation.ts'),
+  ];
+
+  function sourceFiles(path: string): string[] {
+    if (statSync(path).isFile()) return path.endsWith('.ts') ? [path] : [];
+
+    return readdirSync(path, { withFileTypes: true })
+      .filter((entry) => entry.name !== '__tests__')
+      .flatMap((entry) => sourceFiles(join(path, entry.name)));
+  }
+
+  const used = SOURCES.flatMap(sourceFiles).flatMap((file) => {
+    const source = readFileSync(file, 'utf8');
+    return [...source.matchAll(/\bcode: '([^']+)'/g)].map((match) => match[1]);
+  });
+
+  it('should send codes the catalogue knows', () => {
+    expect(used.filter((code) => !isApiErrorCode(code))).toEqual([]);
+  });
+
+  it('should send enough of them to be worth the contract', () => {
+    // A blunt guard against a refactor that quietly drops the codes again
+    expect(new Set(used).size).toBeGreaterThan(80);
   });
 });
