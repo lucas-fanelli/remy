@@ -1,6 +1,6 @@
 'use client';
 import { FavoriteBorder, Menu as MenuIcon } from '@mui/icons-material';
-import { AppBar, Toolbar, Box, IconButton, Avatar, Badge } from '@mui/material';
+import { AppBar, Toolbar, Box, IconButton, Avatar, Badge, Tooltip } from '@mui/material';
 import { motion } from 'framer-motion';
 import React from 'react';
 import { BRANDING } from '@/config/branding';
@@ -115,18 +115,21 @@ export default function MobileBottomNav({
             const Icon = activeTab === item.id ? item.activeIcon : item.icon;
             return (
               <motion.div key={item.id} whileTap={{ scale: 0.9 }}>
-                <IconButton
-                  onClick={() => onTabClick(item.id)}
-                  size="small"
-                  sx={{ p: { xs: 0.5, sm: 1 } }}
-                >
-                  <Icon
-                    sx={{
-                      color: activeTab === item.id ? 'text.primary' : 'text.secondary',
-                      fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                    }}
-                  />
-                </IconButton>
+                <Tooltip title={item.label}>
+                  <IconButton
+                    onClick={() => onTabClick(item.id)}
+                    size="small"
+                    aria-label={item.label}
+                    sx={{ p: { xs: 0.5, sm: 1 } }}
+                  >
+                    <Icon
+                      sx={{
+                        color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                        fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
               </motion.div>
             );
           })}

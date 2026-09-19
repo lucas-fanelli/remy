@@ -29,16 +29,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
-import { CreateRecipeDTO } from '@/domain/types/recipe';
-import { useCreateRecipe } from '@/hooks/useCreateRecipe';
 import { useNotificationPolling } from '@/hooks/useNotificationPolling';
 import SlideUp from './common/SlideUp';
-import CreateRecipeDialog from './navigation/CreateRecipeDialog';
 import DesktopMenu from './navigation/DesktopMenu';
 import MobileBottomNav from './navigation/MobileBottomNav';
 import MobileDrawer from './navigation/MobileDrawer';
 import NotificationDropdown from './navigation/NotificationDropdown';
+import { clearRecipeDraft, recipeDraftKey } from './recipe/form/useRecipeDraft';
 import PersistentSearchBar from './search/PersistentSearchBar';
 
 interface Notification {
@@ -59,13 +58,13 @@ interface Notification {
 const desktopNavItems = [
   { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
   { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen, label: 'Pantry' },
-  { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'Create Recipe' },
+  { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'New recipe' },
 ];
 
 const mobileNavItems = [
   { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
   { id: 'search', icon: Search, activeIcon: Search, label: 'Search' },
-  { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'Add' },
+  { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'New recipe' },
   { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen, label: 'Pantry' },
 ];
 
@@ -77,7 +76,7 @@ export default function Navigation() {
   const router = useRouter();
   const { user, logout, isAdmin } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
-  const createRecipe = useCreateRecipe(() => router.refresh());
+  const { openCreate } = useCreateRecipeDialog();
   const [activeTab, setActiveTab] = useState('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -97,7 +96,6 @@ export default function Navigation() {
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<null | HTMLElement>(null);
 
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [createRecipeOpen, setCreateRecipeOpen] = useState(false);
   const [logoutWarning, setLogoutWarning] = useState(false);
 
   // Listen for failed logout cookie clear to show a user-facing warning
@@ -108,6 +106,12 @@ export default function Navigation() {
   }, []);
 
   const handleTabClick = (tabId: string) => {
+    // 'New recipe' opens a dialog over the current page: it is not a place to be "on", so
+    // it never becomes the active tab (the icon would stay highlighted after closing)
+    if (tabId === 'add') {
+      openCreate();
+      return;
+    }
     setActiveTab(tabId);
     switch (tabId) {
       case 'home':
@@ -119,13 +123,6 @@ export default function Navigation() {
       case 'search':
         if (isMobile) setMobileSearchOpen(true);
         break;
-      case 'add':
-        if (!user) {
-          router.push('/auth');
-          return;
-        }
-        setCreateRecipeOpen(true);
-        break;
     }
   };
 
@@ -133,6 +130,9 @@ export default function Navigation() {
   const handleMenuClose = () => setAnchorEl(null);
 
   const handleLogout = () => {
+    // A deliberate logout takes the recipe draft with it. The silent one (notification
+    // polling finding the session gone) keeps it: the editor then says 'saved as a draft'
+    if (user) clearRecipeDraft(recipeDraftKey(user.id));
     logout();
     handleMenuClose();
     router.push('/auth?tab=register');
@@ -175,12 +175,6 @@ export default function Navigation() {
     } else if (notification.postId) {
       router.push(`/recipe/${notification.postId}`);
     }
-  };
-
-  const handleCreateRecipe = async (data: CreateRecipeDTO) => {
-    await createRecipe(data);
-    setCreateRecipeOpen(false);
-    router.push('/');
   };
 
   const handleProfileClick = () => {
@@ -269,18 +263,21 @@ export default function Navigation() {
             const Icon = activeTab === item.id ? item.activeIcon : item.icon;
             return (
               <motion.div key={item.id} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <IconButton
-                  onClick={() => handleTabClick(item.id)}
-                  size={isSmallDesktop ? 'small' : 'medium'}
-                  sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                >
-                  <Icon
-                    sx={{
-                      color: activeTab === item.id ? 'text.primary' : 'text.secondary',
-                      fontSize: { sm: '1.25rem', md: '1.5rem' },
-                    }}
-                  />
-                </IconButton>
+                <Tooltip title={item.label}>
+                  <IconButton
+                    onClick={() => handleTabClick(item.id)}
+                    size={isSmallDesktop ? 'small' : 'medium'}
+                    aria-label={item.label}
+                    sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                  >
+                    <Icon
+                      sx={{
+                        color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                        fontSize: { sm: '1.25rem', md: '1.5rem' },
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
               </motion.div>
             );
           })}
@@ -450,12 +447,6 @@ export default function Navigation() {
           </Box>
         </Box>
       </Dialog>
-
-      <CreateRecipeDialog
-        open={createRecipeOpen}
-        onClose={() => setCreateRecipeOpen(false)}
-        onSubmit={handleCreateRecipe}
-      />
 
       {/* Warning shown when server-side logout cookie clear fails */}
       <Snackbar

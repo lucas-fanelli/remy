@@ -1,43 +1,22 @@
 'use client';
 
-import {
-  Box,
-  Container,
-  useTheme,
-  useMediaQuery,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  Toolbar,
-} from '@mui/material';
+import { Box, Container, Toolbar } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
-import CreateRecipeForm from '@/components/recipe/CreateRecipeForm';
+import React from 'react';
 import MatchedRecipes from '@/components/recipe/MatchedRecipes';
 import RecipeFeed from '@/components/recipe/RecipeFeed';
 import { useAuth } from '@/contexts/AuthContext';
-import { CreateRecipeDTO } from '@/domain/types/recipe';
-import { useCreateRecipe } from '@/hooks/useCreateRecipe';
+import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 
 export default function Home() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-  const createRecipe = useCreateRecipe();
+  const { isLoading } = useAuth();
+  // The one 'New recipe' dialog lives in CreateRecipeProvider; this page only asks for it
+  const { openCreate } = useCreateRecipeDialog();
   const shouldReduceMotion = useReducedMotion();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   if (isLoading) {
     return null;
   }
-
-  const handleCreateRecipe = async (data: CreateRecipeDTO) => {
-    if (!isAuthenticated) throw new Error('Not authenticated');
-    await createRecipe(data);
-    setCreateDialogOpen(false);
-  };
 
   return (
     <motion.div
@@ -66,38 +45,9 @@ export default function Home() {
             <Box sx={{ my: { xs: 4, md: 6 } }} />
 
             {/* All Recipes Feed */}
-            <RecipeFeed
-              onCreateRecipe={() => {
-                if (!isAuthenticated) {
-                  router.push('/auth');
-                  return;
-                }
-                setCreateDialogOpen(true);
-              }}
-            />
+            <RecipeFeed onCreateRecipe={openCreate} />
           </motion.div>
         </Container>
-
-        {/* Create Recipe Dialog */}
-        <Dialog
-          open={createDialogOpen}
-          onClose={() => setCreateDialogOpen(false)}
-          maxWidth="md"
-          fullWidth
-          fullScreen={isMobile}
-        >
-          <DialogTitle sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }}>
-            Create New Recipe
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ pt: { xs: 1, md: 2 } }}>
-              <CreateRecipeForm
-                onSubmit={handleCreateRecipe}
-                onCancel={() => setCreateDialogOpen(false)}
-              />
-            </Box>
-          </DialogContent>
-        </Dialog>
       </Box>
     </motion.div>
   );

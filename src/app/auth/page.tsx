@@ -2,22 +2,40 @@
 
 import { Box, Container, Typography, Link } from '@mui/material';
 import NextLink from 'next/link';
-import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { useAuth } from '@/contexts/AuthContext';
+import { CREATE_INTENT, useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
+
+/**
+ * The only post-login redirect. `next` is a FIXED token mapped here, never a URL, so there
+ * is no open-redirect surface: 'create' returns the visitor to what they came for - the
+ * 'New recipe' dialog, with their draft if they have one. Reads the query string, so it
+ * sits under Suspense like the search page does.
+ */
+function PostLoginRedirect() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { openCreate } = useCreateRecipeDialog();
+  const wantsCreate = searchParams.get('next') === CREATE_INTENT;
+  const handled = useRef(false);
+
+  useEffect(() => {
+    if (isLoading || !isAuthenticated || handled.current) return;
+    handled.current = true;
+    router.push('/');
+    if (wantsCreate) openCreate();
+  }, [isAuthenticated, isLoading, router, wantsCreate, openCreate]);
+
+  return null;
+}
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push('/');
-    }
-  }, [isAuthenticated, isLoading, router]);
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -45,6 +63,9 @@ export default function AuthPage() {
         backgroundColor: 'background.default',
       }}
     >
+      <Suspense fallback={null}>
+        <PostLoginRedirect />
+      </Suspense>
       <Container maxWidth="sm">
         <Box
           sx={{

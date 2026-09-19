@@ -49,63 +49,15 @@ jest.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
 }));
 
-// Mock CreateRecipeForm to allow triggering onSubmit for testing handleCreateRecipe
-let mockCreateRecipeFormSubmit: ((data: any) => Promise<void>) | null = null;
-const mockShouldAutoSubmit = false;
-jest.mock('@/components/recipe/CreateRecipeForm', () => {
-  return function MockCreateRecipeForm({ onSubmit, onCancel }: any) {
-    mockCreateRecipeFormSubmit = onSubmit;
-    const [error, setError] = React.useState('');
-
-    React.useEffect(() => {
-      if (mockShouldAutoSubmit) {
-        const testData = {
-          title: 'Test Recipe',
-          description: 'Test Description',
-          imageUrl: 'https://example.com/image.jpg',
-          cookingTime: 30,
-          prepTime: 15,
-          servings: 4,
-          difficulty: 'medium' as const,
-          caption: '',
-          ingredients: [{ name: 'Flour', amount: '2', unit: 'cups' }],
-          instructions: [{ step: 1, description: 'Mix ingredients', image: '' }],
-          userId: '',
-        };
-        onSubmit(testData);
-      }
-    }, [onSubmit]);
-
-    const handleSubmit = async () => {
-      try {
-        const testData = {
-          title: 'Test Recipe',
-          description: 'Test Description',
-          imageUrl: 'https://example.com/image.jpg',
-          cookingTime: 30,
-          prepTime: 15,
-          servings: 4,
-          difficulty: 'medium' as const,
-          caption: '',
-          ingredients: [{ name: 'Flour', amount: '2', unit: 'cups' }],
-          instructions: [{ step: 1, description: 'Mix ingredients', image: '' }],
-          userId: '',
-        };
-        await onSubmit(testData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to create recipe');
-      }
-    };
-
-    return (
-      <div data-testid="create-recipe-form">
-        {error && <div data-testid="form-error">{error}</div>}
-        <button onClick={handleSubmit}>Submit Test Recipe</button>
-        <button onClick={onCancel}>Cancel</button>
-      </div>
-    );
-  };
-});
+// The one 'New recipe' dialog is owned by CreateRecipeProvider: Navigation only calls it
+const mockOpenCreate = jest.fn();
+jest.mock('@/contexts/CreateRecipeContext', () => ({
+  useCreateRecipeDialog: () => ({
+    openCreate: mockOpenCreate,
+    closeCreate: jest.fn(),
+    isCreateOpen: false,
+  }),
+}));
 
 // Mock SearchResults component
 jest.mock('../SearchResults', () => {
@@ -1419,186 +1371,129 @@ describe('Navigation Component', () => {
     });
   });
 
-  // Create Recipe Dialog Tests - lines 355-377, 1030-1042
-  describe('Create Recipe Dialog - Full Coverage', () => {
-    const mockUser = {
-      id: '1',
-      username: 'testuser',
-      email: 'test@example.com',
-      fullName: 'Test User',
-      avatar: '/test-avatar.jpg',
+  // The one 'New recipe' dialog lives in CreateRecipeProvider: every entry point of the
+  // navigation only asks the context for it
+  describe('New recipe entry points', () => {
+    const authenticated = (user: any = { id: '1', username: 'testuser', email: 't@t.com' }) => ({
+      user,
+      token: null,
+      isLoading: false,
+      isAuthenticated: Boolean(user),
+      isAdmin: false,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: jest.fn(),
+    });
+
+    const setViewport = (isMobile: boolean) => {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation((query: string) => ({
+          matches: isMobile && query.includes('max-width'),
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
     };
 
     beforeEach(() => {
-      mockUseAuth.mockReturnValue({
-        user: mockUser,
-        token: null,
-        isLoading: false,
-        isAuthenticated: true,
-        login: jest.fn(),
-        register: jest.fn(),
-        logout: jest.fn(),
-        updateProfile: jest.fn(),
-      });
-
+      mockOpenCreate.mockClear();
+      mockUseAuth.mockReturnValue(authenticated());
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({ notifications: [], unreadCount: 0 }),
       });
     });
 
-    it('should open create recipe dialog when add button clicked - line 1030-1042', async () => {
+    it('should open the editor from the labelled desktop button', async () => {
+      setViewport(false);
       renderWithProviders(<Navigation />);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
-      });
+      fireEvent.click(screen.getByRole('button', { name: 'New recipe' }));
 
-      // Find and click the Create Recipe button (AddBox icon)
-      const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
-
-      expect(addButton).toBeDefined();
-      fireEvent.click(addButton!);
-
-      // Dialog should open with title
-      await waitFor(() => {
-        expect(screen.getByText('Create New Recipe')).toBeInTheDocument();
-      });
+      expect(mockOpenCreate).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
     });
 
-    it('should render CreateRecipeForm in dialog with onCancel prop - line 1042', async () => {
+    it('should leave the login redirect of a visitor to the context', () => {
+      setViewport(false);
+      mockUseAuth.mockReturnValue(authenticated(null));
       renderWithProviders(<Navigation />);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
-      });
+      fireEvent.click(screen.getByRole('button', { name: 'New recipe' }));
 
-      const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
-
-      fireEvent.click(addButton!);
-
-      await waitFor(() => {
-        expect(screen.getByText('Create New Recipe')).toBeInTheDocument();
-      });
-
-      // Verify dialog content renders with CreateRecipeForm
-      // The form component itself handles cancel which calls onCancel={() => setCreateRecipeOpen(false)}
-      expect(screen.getByText('Create New Recipe')).toBeInTheDocument();
+      expect(mockOpenCreate).toHaveBeenCalledTimes(1);
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
-    it('should successfully create recipe and reload page - lines 355-374', async () => {
-      const mockReload = jest.fn();
-      Object.defineProperty(window, 'location', {
-        writable: true,
-        value: { reload: mockReload },
-      });
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ notifications: [], unreadCount: 0 }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ id: 'recipe-123', title: 'Test Recipe' }),
-        });
-
+    it('should not navigate or stay highlighted after opening the editor', () => {
+      setViewport(false);
       renderWithProviders(<Navigation />);
+      const iconColor = (name: string) =>
+        getComputedStyle(screen.getByRole('button', { name }).querySelector('svg')!).color;
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
+      fireEvent.click(screen.getByRole('button', { name: 'New recipe' }));
 
-      const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
-
-      fireEvent.click(addButton!);
-
-      await waitFor(() => {
-        expect(screen.getByText('Create New Recipe')).toBeInTheDocument();
-      });
-
-      // Find the CreateRecipeForm and trigger submit
-      // Since CreateRecipeForm is mocked in some tests, we need to test the handleCreateRecipe callback
-      // We'll simulate this by finding the form's submit handler
-      const createRecipeData = {
-        title: 'Test Recipe',
-        description: 'Test description',
-        ingredients: [],
-        instructions: [],
-      };
-
-      // Trigger the submit by calling the form's onSubmit prop
-      // In a real scenario, CreateRecipeForm would call this
-      const form = screen.getByText('Create New Recipe').closest('div');
-      expect(form).toBeInTheDocument();
-
-      // Mock the recipe creation API call
-      await act(async () => {
-        // Simulate form submission
-        const response = await fetch('/api/recipes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(createRecipeData),
-        });
-        expect(response.ok).toBe(true);
-      });
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(iconColor('New recipe')).toBe(iconColor('Pantry'));
+      expect(iconColor('New recipe')).not.toBe(iconColor('Home'));
     });
 
-    it('should handle recipe creation error - lines 365-377', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ notifications: [], unreadCount: 0 }),
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: async () => ({ error: 'Failed to create recipe' }),
-        });
-
+    it('should name the desktop button in a tooltip', async () => {
+      setViewport(false);
       renderWithProviders(<Navigation />);
 
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
+      fireEvent.mouseOver(screen.getByRole('button', { name: 'New recipe' }));
 
-      const buttons = screen.getAllByRole('button');
-      const addButton = buttons.find((btn) => btn.querySelector('[data-testid="AddBoxIcon"]'));
+      expect(await screen.findByRole('tooltip', {}, { timeout: 2000 })).toHaveTextContent(
+        'New recipe'
+      );
+    });
 
-      fireEvent.click(addButton!);
+    it('should open the editor from the labelled button of the mobile bottom bar', () => {
+      setViewport(true);
+      renderWithProviders(<Navigation />);
 
-      await waitFor(() => {
-        expect(screen.getByText('Create New Recipe')).toBeInTheDocument();
-      });
+      fireEvent.click(screen.getByRole('button', { name: 'New recipe' }));
 
-      // Simulate failed recipe creation
-      await act(async () => {
-        try {
-          const response = await fetch('/api/recipes', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ title: 'Test' }),
-          });
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to create recipe');
-          }
-        } catch (error) {
-          console.error('Error creating recipe:', error);
-        }
-      });
+      expect(mockOpenCreate).toHaveBeenCalledTimes(1);
+    });
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating recipe:', expect.any(Error));
+    it('should open the editor from the mobile drawer', async () => {
+      setViewport(true);
+      renderWithProviders(<Navigation />);
+      const menuButton = screen
+        .getAllByRole('button')
+        .find((button) => button.querySelector('[data-testid="MenuIcon"]'));
+      fireEvent.click(menuButton!);
 
-      consoleErrorSpy.mockRestore();
+      fireEvent.click(await screen.findByText('New recipe'));
+
+      expect(mockOpenCreate).toHaveBeenCalledTimes(1);
+    });
+
+    it('should take the recipe draft of the user along on a deliberate logout', async () => {
+      setViewport(false);
+      const removeItem = jest.spyOn(Storage.prototype, 'removeItem');
+      const auth = authenticated();
+      mockUseAuth.mockReturnValue(auth);
+      renderWithProviders(<Navigation />);
+      const avatarButton = screen
+        .getAllByRole('button')
+        .find((button) => button.querySelector('.MuiAvatar-root'));
+      fireEvent.click(avatarButton!);
+
+      fireEvent.click(await screen.findByText(/log ?out/i));
+
+      expect(removeItem).toHaveBeenCalledWith('remy:recipe-draft:v1:1');
+      expect(auth.logout).toHaveBeenCalled();
+      removeItem.mockRestore();
     });
   });
 
@@ -1857,167 +1752,6 @@ describe('Navigation Component', () => {
 
         unmount();
       });
-    });
-
-    it('should open create recipe dialog when add button clicked - lines 353-377, 1010-1022', async () => {
-      renderWithProviders(<Navigation />);
-
-      // In mobile view, find AddBox button in the bottom navigation
-      const buttons = screen.getAllByRole('button');
-      const addButtons = buttons.filter((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'AddBoxIcon';
-      });
-
-      // Should have at least one AddBox button (mobile bottom nav)
-      expect(addButtons.length).toBeGreaterThan(0);
-
-      // Click the add button to open create recipe dialog
-      fireEvent.click(addButtons[0]);
-
-      // Wait for dialog to open
-      await waitFor(() => {
-        expect(screen.getByText(/create new recipe/i)).toBeInTheDocument();
-      });
-
-      // Dialog should be open
-      expect(screen.getByText(/create new recipe/i)).toBeInTheDocument();
-    });
-
-    it('should successfully create recipe via handleCreateRecipe - lines 352-372', async () => {
-      // Mock successful recipe creation FIRST
-      mockFetch.mockImplementation((url: string, options?: any) => {
-        if (url === '/api/recipes' && options?.method === 'POST') {
-          return Promise.resolve({
-            ok: true,
-            json: async () => ({ id: 'recipe-123', title: 'Test Recipe' }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      });
-
-      // Setup user with token for authenticated request
-      mockUseAuth.mockReturnValue({
-        user: {
-          id: '1',
-          username: 'testuser',
-          email: 'test@test.com',
-          displayName: 'Test User',
-          bio: null,
-          profileImage: null,
-          createdAt: new Date(),
-        },
-        token: null,
-        isLoading: false,
-        isAuthenticated: true,
-        login: jest.fn(),
-        register: jest.fn(),
-        logout: jest.fn(),
-        updateProfile: jest.fn(),
-      });
-
-      renderWithProviders(<Navigation />);
-
-      // Open create recipe dialog
-      const buttons = screen.getAllByRole('button');
-      const addButtons = buttons.filter((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'AddBoxIcon';
-      });
-      fireEvent.click(addButtons[0]);
-
-      // Wait for dialog and mocked form
-      await waitFor(() => {
-        expect(screen.getByTestId('create-recipe-form')).toBeInTheDocument();
-      });
-
-      // Click the submit button in the mocked form
-      const submitButton = screen.getByText('Submit Test Recipe');
-      fireEvent.click(submitButton);
-
-      // Wait for handleCreateRecipe to call fetch
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          '/api/recipes',
-          expect.objectContaining({
-            method: 'POST',
-            headers: expect.objectContaining({
-              'Content-Type': 'application/json',
-            }),
-          })
-        );
-      });
-
-      // Verify router.push was called to navigate home
-      expect(mockPush).toHaveBeenCalledWith('/');
-    });
-
-    it('should handle recipe creation failure - lines 363-376', async () => {
-      // Mock failed recipe creation FIRST
-      mockFetch.mockImplementation((url: string, options?: any) => {
-        if (url === '/api/recipes' && options?.method === 'POST') {
-          return Promise.resolve({
-            ok: false,
-            json: async () => ({ error: 'Recipe validation failed' }),
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      });
-
-      // Setup user with token
-      mockUseAuth.mockReturnValue({
-        user: {
-          id: '1',
-          username: 'testuser',
-          email: 'test@test.com',
-          displayName: 'Test User',
-          bio: null,
-          profileImage: null,
-          createdAt: new Date(),
-        },
-        token: null,
-        isLoading: false,
-        isAuthenticated: true,
-        login: jest.fn(),
-        register: jest.fn(),
-        logout: jest.fn(),
-        updateProfile: jest.fn(),
-      });
-
-      renderWithProviders(<Navigation />);
-
-      // Open create recipe dialog
-      const buttons = screen.getAllByRole('button');
-      const addButtons = buttons.filter((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'AddBoxIcon';
-      });
-      fireEvent.click(addButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('create-recipe-form')).toBeInTheDocument();
-      });
-
-      // Click submit to trigger handleCreateRecipe with failure
-      const submitButton = screen.getByText('Submit Test Recipe');
-      fireEvent.click(submitButton);
-
-      // The useCreateRecipe hook throws on failure, and the error propagates
-      // to the mock form component which catches it and displays it
-      await waitFor(
-        () => {
-          const formError = screen.queryByTestId('form-error');
-          expect(formError).toBeInTheDocument();
-          expect(formError).toHaveTextContent(/recipe validation failed/i);
-        },
-        { timeout: 3000 }
-      );
     });
 
     it('should generate and render breadcrumbs for various paths - lines 360-390', () => {
@@ -2595,68 +2329,6 @@ describe('Navigation Component', () => {
       if (youtubeLink) {
         expect(youtubeLink).toHaveAttribute('href', 'https://www.youtube.com/@9QNA-4I');
       }
-    });
-  });
-
-  // ==================== CREATE RECIPE DIALOG (lines 1096-1115) ====================
-  describe('Create Recipe Dialog - lines 1096-1115', () => {
-    beforeEach(() => {
-      Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        value: jest.fn().mockImplementation((query: string) => ({
-          matches: query.includes('max-width'),
-          media: query,
-          onchange: null,
-          addListener: jest.fn(),
-          removeListener: jest.fn(),
-          addEventListener: jest.fn(),
-          removeEventListener: jest.fn(),
-          dispatchEvent: jest.fn(),
-        })),
-      });
-    });
-
-    it('should open create recipe dialog when clicking create recipe in drawer - lines 1096-1115', async () => {
-      mockUseAuth.mockReturnValue({
-        user: { id: '1', username: 'testuser', email: 'test@test.com' },
-        token: null,
-        isLoading: false,
-        isAuthenticated: true,
-        isAdmin: false,
-        login: jest.fn(),
-        register: jest.fn(),
-        logout: jest.fn(),
-        updateProfile: jest.fn(),
-      });
-
-      renderWithProviders(<Navigation />);
-
-      // Open drawer
-      const buttons = screen.getAllByRole('button');
-      const menuButton = buttons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MenuIcon';
-      });
-
-      if (!menuButton) return;
-
-      fireEvent.click(menuButton);
-
-      // Find Create Recipe button in drawer
-      await waitFor(() => {
-        const createButton = screen.queryByText('Create Recipe');
-        if (createButton) {
-          fireEvent.click(createButton);
-        }
-      });
-
-      // Check for dialog
-      await waitFor(() => {
-        const dialogTitle = screen.queryByText('Create New Recipe');
-        if (dialogTitle) {
-          expect(dialogTitle).toBeInTheDocument();
-        }
-      });
     });
   });
 
