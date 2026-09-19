@@ -18,6 +18,7 @@ import {
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ interface ChangePasswordDialogProps {
 export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProps) {
   const { isAuthenticated } = useAuth();
   const { showSuccess, showError } = useToast();
+  const apiErrorMessage = useApiErrorMessage();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -129,7 +131,9 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to change password');
+        // The server's machine `code` when it sent one this build knows ('the current
+        // password is wrong'), its own English sentence when it did not (zod field errors).
+        throw new Error(apiErrorMessage(data, 'Failed to change password'));
       }
 
       showSuccess('Password changed successfully!');
