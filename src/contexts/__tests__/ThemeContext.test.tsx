@@ -1,3 +1,4 @@
+import { useTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
@@ -11,6 +12,22 @@ function TestComponent() {
     <div>
       <div data-testid="current-mode">{mode}</div>
       <button onClick={toggleTheme}>Toggle Theme</button>
+    </div>
+  );
+}
+
+// Exposes the MUI theme tokens the recipe form relies on (S15)
+function ThemeProbe() {
+  const theme = useTheme();
+  const dialog = theme.components?.MuiDialog?.styleOverrides as Record<string, any> | undefined;
+
+  return (
+    <div>
+      <div data-testid="primary-contrast">{theme.palette.primary.contrastText}</div>
+      <div data-testid="dialog-radius">{String(dialog?.paper?.borderRadius)}</div>
+      <div data-testid="dialog-fullscreen-radius">
+        {String(dialog?.paperFullScreen?.borderRadius)}
+      </div>
     </div>
   );
 }
@@ -161,6 +178,40 @@ describe('ThemeContext', () => {
     expect(document.documentElement.className).not.toContain('dark-mode');
     expect(document.documentElement.style.colorScheme).toBe('light');
     expect(document.documentElement.style.backgroundColor).toBe('rgb(250, 250, 250)');
+  });
+
+  it('should keep white text on the light purple primary', () => {
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId('primary-contrast')).toHaveTextContent('#FFFFFF');
+  });
+
+  it('should use dark text on the dark teal primary for AA contrast', () => {
+    render(
+      <ThemeProvider>
+        <TestComponent />
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    fireEvent.click(screen.getByText('Toggle Theme'));
+
+    expect(screen.getByTestId('primary-contrast')).toHaveTextContent('rgba(0,0,0,0.87)');
+  });
+
+  it('should round dialog papers except full-screen ones', () => {
+    render(
+      <ThemeProvider>
+        <ThemeProbe />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByTestId('dialog-radius')).toHaveTextContent('16');
+    expect(screen.getByTestId('dialog-fullscreen-radius')).toHaveTextContent('0');
   });
 
   it('should enable transitions after initial load - lines 187-192', async () => {
