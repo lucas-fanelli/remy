@@ -6,6 +6,7 @@ import { fieldHelper } from './fieldHelper';
 import { getFieldCounter } from './formTokens';
 import { focusNextField } from './keyboard';
 import { RegisterField } from './useFieldRegistry';
+import { usePointerSettled } from './usePointerSettled';
 import { RecipeFormApi } from './useRecipeForm';
 
 export interface TitleFieldProps {
@@ -27,6 +28,7 @@ export default function TitleField({
   const { values, errors, setField, touch } = form;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autoFocusOnMount = useRef(autoFocus);
+  const whenPointerSettles = usePointerSettled();
 
   const setInput = useCallback(
     (element: HTMLInputElement | null) => {
@@ -50,7 +52,9 @@ export default function TitleField({
       fullWidth
       value={values.title}
       onChange={(event) => setField('title', event.target.value)}
-      onBlur={() => touch('title')}
+      // 'Add a title' is a new helper line: never while the press that moved focus is still
+      // down, or the control under the pointer shifts and the click is dropped
+      onBlur={() => whenPointerSettles(() => touch('title'))}
       onKeyDown={focusNextField}
       error={Boolean(errors.title)}
       helperText={fieldHelper(

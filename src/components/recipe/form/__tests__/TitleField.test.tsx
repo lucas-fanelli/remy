@@ -1,7 +1,7 @@
 import { act, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TitleField from '../TitleField';
-import { renderEditor } from './editorHarness';
+import { renderEditor, settlePointer } from './editorHarness';
 import { makeValues } from './fixtures';
 
 const renderTitle = (props: { autoFocus?: boolean; disabled?: boolean } = {}) =>
@@ -9,6 +9,7 @@ const renderTitle = (props: { autoFocus?: boolean; disabled?: boolean } = {}) =>
     <>
       <TitleField form={form} registerField={registry.registerField} {...props} />
       <input aria-label="Next field" />
+      <button type="button">Below the title</button>
     </>
   ));
 
@@ -70,6 +71,34 @@ describe('TitleField', () => {
       await user.tab();
 
       expect(input).toHaveAttribute('aria-invalid', 'true');
+      expect(input).toHaveAccessibleDescription('Add a title');
+    });
+
+    // 'Add a title' is a new line: shown during the press it would push the pressed control
+    // from under the pointer and the browser would drop the click
+    it('should not show the error while a control below is being pressed', async () => {
+      const { user } = renderTitle();
+      const input = screen.getByRole('textbox', { name: /^Title/ });
+      await user.click(input);
+
+      await user.pointer({
+        keys: '[MouseLeft>]',
+        target: screen.getByRole('button', { name: 'Below the title' }),
+      });
+
+      expect(input).not.toHaveFocus();
+      expect(input).not.toHaveAttribute('aria-invalid', 'true');
+      expect(input).not.toHaveAccessibleDescription();
+    });
+
+    it('should show the error once the press that moved focus is released', async () => {
+      const { user } = renderTitle();
+      const input = screen.getByRole('textbox', { name: /^Title/ });
+      await user.click(input);
+
+      await user.click(screen.getByRole('button', { name: 'Below the title' }));
+      await settlePointer();
+
       expect(input).toHaveAccessibleDescription('Add a title');
     });
 

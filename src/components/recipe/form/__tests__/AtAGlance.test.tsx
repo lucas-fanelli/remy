@@ -1,7 +1,7 @@
 import { act, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AtAGlance, { AtAGlanceProps } from '../AtAGlance';
-import { renderEditor, renderWithTheme } from './editorHarness';
+import { renderEditor, renderWithTheme, settlePointer } from './editorHarness';
 import { makeValues } from './fixtures';
 
 const renderGlance = (props: { disabled?: boolean } = {}) =>
@@ -211,6 +211,69 @@ describe('AtAGlance', () => {
       await user.keyboard('{Enter}');
 
       expect(cookField()).toHaveFocus();
+    });
+  });
+
+  // Validating on the blur that a mouse press causes adds a helper line above the chips:
+  // they would move from under the pointer before the release and the click would be lost
+  describe('pointer press while a field is focused', () => {
+    it('should not validate the empty field while a chip below it is being pressed', async () => {
+      const { user } = renderGlance();
+      await user.click(prepField());
+
+      await user.pointer({
+        keys: '[MouseLeft>]',
+        target: within(prepPicks()).getByRole('button', { name: '15 minutes' }),
+      });
+
+      expect(prepField()).not.toHaveFocus();
+      expect(prepField()).not.toHaveAttribute('aria-invalid', 'true');
+      expect(prepField()).not.toHaveAccessibleDescription();
+    });
+
+    it('should set the value from a chip pressed while the field is focused and empty', async () => {
+      const { user, form } = renderGlance();
+      await user.click(prepField());
+
+      await user.click(within(prepPicks()).getByRole('button', { name: '15 minutes' }));
+      await settlePointer();
+
+      expect(form().values.prepTime).toBe(15);
+      expect(prepField()).not.toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('should validate the field once a press that fixed nothing is released', async () => {
+      const { user } = renderGlance();
+      await user.click(cookField());
+
+      await user.click(within(difficulty()).getByRole('button', { name: 'Hard' }));
+      await settlePointer();
+
+      expect(cookField()).toHaveAccessibleDescription('Cook time: whole minutes between 1 and 720');
+    });
+
+    it('should not validate an emptied Servings while its stepper is being pressed', async () => {
+      const { user } = renderGlance();
+      await user.clear(servingsField());
+
+      await user.pointer({
+        keys: '[MouseLeft>]',
+        target: screen.getByRole('button', { name: 'More servings' }),
+      });
+
+      expect(servingsField()).not.toHaveFocus();
+      expect(servingsField()).not.toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('should fill an emptied Servings from the stepper without ever showing an error', async () => {
+      const { user, form } = renderGlance();
+      await user.clear(servingsField());
+
+      await user.click(screen.getByRole('button', { name: 'More servings' }));
+      await settlePointer();
+
+      expect(form().values.servings).toBe(1);
+      expect(servingsField()).not.toHaveAttribute('aria-invalid', 'true');
     });
   });
 

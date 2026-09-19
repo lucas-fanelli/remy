@@ -20,6 +20,7 @@ import { formSpacing } from './formTokens';
 import { focusNextField } from './keyboard';
 import { NumericFieldValue } from './types';
 import { RegisterField, useFieldRef } from './useFieldRegistry';
+import { usePointerSettled } from './usePointerSettled';
 import { RecipeFormApi } from './useRecipeForm';
 import type { KeyboardEvent } from 'react';
 
@@ -168,6 +169,7 @@ function TimeCell({
 export default function AtAGlance({ form, registerField, disabled = false }: AtAGlanceProps) {
   const { values, errors, setField, touch } = form;
   const difficultyLabelId = useId();
+  const whenPointerSettles = usePointerSettled();
 
   const prepRef = useFieldRef<HTMLInputElement>(registerField, 'prepTime');
   const cookRef = useFieldRef<HTMLInputElement>(registerField, 'cookingTime');
@@ -188,9 +190,14 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
     setField('servings', next === '' ? '' : Math.min(next, RECIPE_LIMITS.servings.max));
   };
 
+  // A failed validation adds a helper line above the chips, the stepper and the toggle:
+  // never while the press that moved focus is still down, or the control under the
+  // pointer shifts and the browser drops the click
+  const handleBlur = (path: TimePath | 'servings') => whenPointerSettles(() => touch(path));
+
   const handleServingsBlur = () => {
     if (typeof servings === 'number') setField('servings', clampServings(servings));
-    touch('servings');
+    handleBlur('servings');
   };
 
   // The handler sits on the field root, so it also hears the two stepper buttons. Enter on
@@ -224,7 +231,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
         disabled={disabled}
         inputRef={prepRef}
         onChange={setField}
-        onBlur={touch}
+        onBlur={handleBlur}
       />
       <TimeCell
         path="cookingTime"
@@ -235,7 +242,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
         disabled={disabled}
         inputRef={cookRef}
         onChange={setField}
-        onBlur={touch}
+        onBlur={handleBlur}
       />
 
       {hasTime && (
