@@ -3,6 +3,7 @@
 import { Box, Container, Typography, Link } from '@mui/material';
 import NextLink from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { Suspense, useState, useEffect, useRef } from 'react';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
@@ -35,6 +36,8 @@ function PostLoginRedirect() {
 }
 
 export default function AuthPage() {
+  const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
   const [isLogin, setIsLogin] = useState(true);
   const { isLoading } = useAuth();
 
@@ -49,7 +52,7 @@ export default function AuthPage() {
           backgroundColor: 'background.default',
         }}
       >
-        Loading...
+        {tCommon('status.loading')}
       </Box>
     );
   }
@@ -81,21 +84,24 @@ export default function AuthPage() {
             <RegisterForm onSwitchToLogin={() => setIsLogin(true)} />
           )}
 
-          {/* Browse as Guest */}
+          {/* Browse as Guest - one message, so the link can sit where the sentence needs it */}
           <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-            Just browsing?{' '}
-            <Link
-              component={NextLink}
-              href="/"
-              sx={{
-                color: 'primary.main',
-                textDecoration: 'none',
-                fontWeight: 500,
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              Continue as Guest
-            </Link>
+            {t.rich('page.guest', {
+              link: (chunks) => (
+                <Link
+                  component={NextLink}
+                  href="/"
+                  sx={{
+                    color: 'primary.main',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                    '&:hover': { textDecoration: 'underline' },
+                  }}
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
           </Typography>
 
           {/* A visitor who has not logged in yet must be able to choose the language too:

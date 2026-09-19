@@ -1,5 +1,6 @@
 'use client';
 import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
@@ -10,6 +11,7 @@ interface RegisterFormProps {
 }
 
 export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
+  const t = useTranslations('auth');
   const { register } = useAuth();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -27,7 +29,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       await register(email, username, password, fullName || undefined);
       // Navigation will happen automatically via AuthContext
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : t('errors.registrationFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +77,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         color="text.secondary"
         sx={{ mb: 3, fontWeight: 600 }}
       >
-        {BRANDING.registrationMessage}
+        {t('register.tagline')}
       </Typography>
 
       {/* Error Alert */}
@@ -91,7 +93,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           fullWidth
           size="small"
           type="email"
-          placeholder="Email"
+          placeholder={t('register.email')}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isLoading}
@@ -102,7 +104,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         <TextField
           fullWidth
           size="small"
-          placeholder="Full Name"
+          placeholder={t('register.fullName')}
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           disabled={isLoading}
@@ -112,7 +114,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         <TextField
           fullWidth
           size="small"
-          placeholder="Username"
+          placeholder={t('register.username')}
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           disabled={isLoading}
@@ -124,13 +126,13 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           fullWidth
           size="small"
           type="password"
-          placeholder="Password"
+          placeholder={t('register.password')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
           sx={{ mb: 1.5 }}
           required
-          helperText="Password must contain uppercase, lowercase, and number"
+          helperText={t('register.passwordHelper')}
         />
 
         <Typography
@@ -139,7 +141,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           align="center"
           sx={{ display: 'block', mb: 2, fontSize: '11px' }}
         >
-          By signing up, you agree to our Terms, Data Policy and Cookies Policy.
+          {t('register.terms')}
         </Typography>
 
         <Button
@@ -153,7 +155,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             py: 1,
           }}
         >
-          {isLoading ? <CircularProgress size={24} /> : 'Sign Up'}
+          {isLoading ? <CircularProgress size={24} /> : t('register.submit')}
         </Button>
       </Box>
 
@@ -173,7 +175,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         }}
       >
         <Typography variant="body2" component="span">
-          Have an account?
+          {t('register.haveAccount')}
         </Typography>
         <Box component="span" translate="no">
           <Typography
@@ -189,7 +191,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
             }}
             onClick={onSwitchToLogin}
           >
-            Log in
+            {t('register.switchToLogin')}
           </Typography>
         </Box>
       </Box>
