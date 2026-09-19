@@ -88,6 +88,25 @@ function deferred<T>() {
 
 const getTrigger = () => screen.getByRole('button', { name: /add a cover photo/i });
 
+const buttonNames = () =>
+  screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'));
+
+/**
+ * A request that never answers and, like the browser, rejects with an AbortError
+ * once its signal is aborted. Returns the signals it was called with.
+ */
+const stallUntilAborted = (mockFetch: jest.Mock) => {
+  const signals: AbortSignal[] = [];
+  mockFetch.mockImplementation((_url: string, init: RequestInit) => {
+    const signal = init.signal as AbortSignal;
+    signals.push(signal);
+    return new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    });
+  });
+  return signals;
+};
+
 describe('ImageUpload', () => {
   let mockFetch: jest.Mock;
   const onChange = jest.fn();
@@ -285,7 +304,7 @@ describe('ImageUpload', () => {
       selectFile(makeFile());
 
       await screen.findByRole('progressbar');
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+      expect(buttonNames()).toEqual(['Cancel upload']);
     });
 
     it('should upload without a preview when object URLs are unavailable', async () => {
@@ -378,6 +397,8 @@ describe('ImageUpload', () => {
       expect(valueSetter).toHaveBeenCalledWith('');
     });
 
+    // The legitimate late delivery: the user moved to another section mid-upload.
+    // A form that resets instead must call cancel() first - see 'cancelling an upload'.
     it('should keep delivering the url after the field unmounts', async () => {
       const onUploadingChange = jest.fn();
       const pending = deferred<ReturnType<typeof okResponse>>();
@@ -456,6 +477,132 @@ describe('ImageUpload', () => {
       await act(async () => first.reject(new TypeError('Failed to fetch')));
 
       expect(screen.queryByText('Upload failed')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('cancelling an upload', () => {
+    const startStalledUpload = async (props: HarnessProps = {}) => {
+      const signals = stallUntilAborted(mockFetch);
+      renderWithTheme(<Harness onChange={onChange} {...props} />);
+      selectFile(makeFile());
+      const cancel = await screen.findByRole('button', { name: 'Cancel upload' });
+      return { cancel, signals };
+    };
+
+    it('should move focus to Cancel while the photo uploads', async () => {
+      const { cancel } = await startStalledUpload();
+
+      expect(cancel).toHaveFocus();
+    });
+
+    it('should abort the request', async () => {
+      const { cancel, signals } = await startStalledUpload();
+
+      fireEvent.click(cancel);
+
+      expect(signals).toHaveLength(1);
+      expect(signals[0].aborted).toBe(true);
+    });
+
+    it('should go back to rest and focus the trigger', async () => {
+      const { cancel } = await startStalledUpload();
+
+      fireEvent.click(cancel);
+
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(getTrigger()).toHaveFocus();
+    });
+
+    it('should not report the aborted request as a failure', async () => {
+      const { cancel } = await startStalledUpload();
+
+      await act(async () => {
+        fireEvent.click(cancel);
+      });
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.queryByText('Upload failed')).not.toBeInTheDocument();
+    });
+
+    it('should report that the upload settled', async () => {
+      const onUploadingChange = jest.fn();
+      const { cancel } = await startStalledUpload({ onUploadingChange });
+
+      fireEvent.click(cancel);
+
+      expect(onUploadingChange.mock.calls).toEqual([[true], [false]]);
+    });
+
+    it('should release the blob preview', async () => {
+      const { cancel } = await startStalledUpload();
+
+      fireEvent.click(cancel);
+
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    });
+
+    it('should never deliver the url of a cancelled upload', async () => {
+      const pending = deferred<ReturnType<typeof okResponse>>();
+      mockFetch.mockReturnValueOnce(pending.promise);
+      renderWithTheme(<Harness onChange={onChange} />);
+      selectFile(makeFile());
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel upload' }));
+
+      await act(async () => pending.resolve(okResponse()));
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(getTrigger()).toBeInTheDocument();
+    });
+
+    it('should go back to the current photo when a replacement is cancelled', async () => {
+      const { cancel } = await startStalledUpload({ initialValue: EXISTING_URL });
+
+      fireEvent.click(cancel);
+
+      expect(screen.getByAltText('Cover photo preview')).toHaveAttribute('src', EXISTING_URL);
+      expect(screen.getByRole('button', { name: 'Replace photo' })).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('should stay available while the form is disabled', async () => {
+      mockFetch.mockReturnValueOnce(deferred().promise);
+      const { rerender } = renderWithTheme(<ImageUpload value="" onChange={onChange} />);
+      selectFile(makeFile());
+      await screen.findByRole('progressbar');
+
+      rerender(
+        <ThemeProvider theme={theme}>
+          <ImageUpload value="" onChange={onChange} disabled />
+        </ThemeProvider>
+      );
+
+      expect(screen.getByRole('button', { name: 'Cancel upload' })).toBeEnabled();
+    });
+
+    it('should abort the older request when a newer upload supersedes it', async () => {
+      const signals = stallUntilAborted(mockFetch);
+      const handle = React.createRef<ImageUploadHandle>();
+      renderWithTheme(<Harness onChange={onChange} handleRef={handle} />);
+      selectFile(makeFile('first.jpg'));
+      await waitFor(() => expect(signals).toHaveLength(1));
+
+      act(() => handle.current!.uploadFile(makeFile('second.jpg')));
+
+      await waitFor(() => expect(signals).toHaveLength(2));
+      expect(signals.map((signal) => signal.aborted)).toEqual([true, false]);
+    });
+
+    it('should still upload where AbortController does not exist', async () => {
+      const original = global.AbortController;
+      (global as any).AbortController = undefined;
+      mockFetch.mockResolvedValueOnce(okResponse());
+      renderWithTheme(<Harness onChange={onChange} />);
+
+      selectFile(makeFile());
+
+      await waitFor(() => expect(onChange).toHaveBeenCalledWith(UPLOADED_URL));
+      expect(mockFetch.mock.calls[0][1].signal).toBeUndefined();
+      global.AbortController = original;
     });
   });
 
@@ -1033,7 +1180,37 @@ describe('ImageUpload', () => {
         'blob:mock-url'
       );
       expect(screen.getByRole('progressbar')).toBeInTheDocument();
-      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+      expect(buttonNames()).toEqual(['Cancel upload']);
+    });
+
+    it('should cancel an upload from the floating X', async () => {
+      const pending = deferred<ReturnType<typeof okResponse>>();
+      mockFetch.mockReturnValueOnce(pending.promise);
+      renderWithTheme(<Harness onChange={onChange} variant="inline" />);
+      selectFile(makeFile());
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel upload' }));
+      await act(async () => pending.resolve(okResponse()));
+
+      expect(screen.getByRole('button', { name: 'Add photo' })).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('should keep the floating cancel available while the form is disabled', async () => {
+      mockFetch.mockReturnValueOnce(deferred().promise);
+      const { rerender } = renderWithTheme(
+        <ImageUpload value="" onChange={onChange} variant="inline" />
+      );
+      selectFile(makeFile());
+      await screen.findByRole('progressbar');
+
+      rerender(
+        <ThemeProvider theme={theme}>
+          <ImageUpload value="" onChange={onChange} variant="inline" disabled />
+        </ThemeProvider>
+      );
+
+      expect(screen.getByRole('button', { name: 'Cancel upload' })).toBeEnabled();
     });
 
     it('should offer Replace and a floating remove once filled', async () => {
@@ -1160,6 +1337,128 @@ describe('ImageUpload', () => {
       act(() => handle.current!.uploadFile(makeFile()));
 
       expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should focus Cancel while uploading', async () => {
+      const handle = React.createRef<ImageUploadHandle>();
+      mockFetch.mockReturnValueOnce(deferred().promise);
+      renderWithTheme(<Harness handleRef={handle} onChange={onChange} />);
+      selectFile(makeFile());
+      const cancel = await screen.findByRole('button', { name: 'Cancel upload' });
+      cancel.blur();
+
+      act(() => handle.current!.focus());
+
+      expect(cancel).toHaveFocus();
+    });
+
+    it('should cancel the upload in flight for the form', async () => {
+      const handle = React.createRef<ImageUploadHandle>();
+      const signals = stallUntilAborted(mockFetch);
+      renderWithTheme(<Harness handleRef={handle} onChange={onChange} />);
+      selectFile(makeFile());
+      await screen.findByRole('progressbar');
+
+      await act(async () => handle.current!.cancel());
+
+      expect(signals[0].aborted).toBe(true);
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('should not write a late url into a form that moved on to another recipe', async () => {
+      const OTHER_URL = 'https://res.cloudinary.com/remy/other-recipe.jpg';
+      const pending = deferred<ReturnType<typeof okResponse>>();
+      mockFetch.mockReturnValueOnce(pending.promise);
+      const handle = React.createRef<ImageUploadHandle>();
+      // An always-mounted editor: Discard closes it, Edit other reopens it on recipe B
+      function Editor() {
+        const [cover, setCover] = useState('');
+        const [open, setOpen] = useState(true);
+        const discard = () => {
+          handle.current?.cancel();
+          setOpen(false);
+        };
+        const editOther = () => {
+          setCover(OTHER_URL);
+          setOpen(true);
+        };
+        return (
+          <>
+            <button onClick={discard}>Discard</button>
+            <button onClick={editOther}>Edit other</button>
+            <output>{cover}</output>
+            {open && <ImageUpload ref={handle} value={cover} onChange={setCover} />}
+          </>
+        );
+      }
+      renderWithTheme(<Editor />);
+      selectFile(makeFile());
+      await screen.findByRole('progressbar');
+      fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edit other' }));
+
+      await act(async () => pending.resolve(okResponse()));
+
+      expect(screen.getByRole('status')).toHaveTextContent(OTHER_URL);
+      expect(screen.getByAltText('Cover photo preview')).toHaveAttribute('src', OTHER_URL);
+    });
+
+    it('should clear a failed upload on cancel', async () => {
+      const handle = React.createRef<ImageUploadHandle>();
+      mockFetch.mockResolvedValueOnce(errorResponse(500, {}));
+      renderWithTheme(<Harness handleRef={handle} onChange={onChange} />);
+      selectFile(makeFile());
+      await screen.findByRole('alert');
+
+      act(() => handle.current!.cancel());
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(getTrigger()).toBeInTheDocument();
+    });
+
+    it('should change nothing when there is nothing to cancel', () => {
+      const handle = React.createRef<ImageUploadHandle>();
+      const onUploadingChange = jest.fn();
+      renderWithTheme(
+        <Harness
+          handleRef={handle}
+          initialValue={EXISTING_URL}
+          onChange={onChange}
+          onUploadingChange={onUploadingChange}
+        />
+      );
+
+      act(() => handle.current!.cancel());
+
+      expect(screen.getByAltText('Cover photo preview')).toHaveAttribute('src', EXISTING_URL);
+      expect(onChange).not.toHaveBeenCalled();
+      expect(onUploadingChange).not.toHaveBeenCalled();
+    });
+
+    it('should still cancel through a handle kept after the field unmounted', async () => {
+      const handle = React.createRef<ImageUploadHandle>();
+      const onUploadingChange = jest.fn();
+      const pending = deferred<ReturnType<typeof okResponse>>();
+      mockFetch.mockReturnValueOnce(pending.promise);
+      const { unmount } = renderWithTheme(
+        <ImageUpload
+          ref={handle}
+          value=""
+          onChange={onChange}
+          onUploadingChange={onUploadingChange}
+        />
+      );
+      selectFile(makeFile());
+      await screen.findByRole('progressbar');
+      const kept = handle.current!;
+      unmount();
+
+      act(() => kept.cancel());
+      await act(async () => pending.resolve(okResponse()));
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(onUploadingChange.mock.calls).toEqual([[true], [false]]);
     });
 
     it('should not throw where scrollIntoView does not exist (jsdom)', () => {

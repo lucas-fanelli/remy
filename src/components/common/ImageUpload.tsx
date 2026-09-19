@@ -36,6 +36,15 @@ import {
 
 export interface ImageUploadProps {
   value: string;
+  /**
+   * Receives the uploaded URL, or '' on Remove. An upload outlives the field: if it
+   * unmounts half-way (the user moved to another section) the URL is still delivered
+   * to the last `onChange` it was rendered with. A consumer that can be reset or
+   * pointed at another record while an upload runs (Start over, Discard, the next
+   * recipe in an always-mounted modal) must call `cancel()` on the handle BEFORE it
+   * resets, or drop late URLs itself by comparing the reset epoch (`resetKey`) this
+   * callback was created under with the current one.
+   */
   onChange: (url: string) => void;
   label?: string;
   required?: boolean;
@@ -50,7 +59,7 @@ export interface ImageUploadProps {
   variant?: 'cover' | 'inline';
   /** Painted over the FILLED cover (difficulty chip, time pill). Never blocks clicks. */
   overlay?: React.ReactNode;
-  /** true when an upload starts, false when it settles - also after an unmount. */
+  /** true when an upload starts, false when it settles or is cancelled - also after an unmount. */
   onUploadingChange?: (busy: boolean) => void;
   /** A `<fieldset disabled>` does not disable a non-form trigger, so pass this too. */
   disabled?: boolean;
@@ -64,11 +73,18 @@ export interface ImageUploadHandle {
   scrollIntoView: (options?: ScrollIntoViewOptions) => void;
   openPicker: () => void;
   uploadFile: (file: File) => void;
+  /**
+   * Abandons the attempt in progress - an upload in flight (the request is aborted
+   * and its URL never reaches `onChange`) or a failed one waiting for Retry - and
+   * shows the current `value` again. Safe to call at any time, also on a handle kept
+   * after the field unmounted. Forms call it on reset / discard.
+   */
+  cancel: () => void;
 }
 
 type Phase = 'idle' | 'uploading' | 'failed';
 type View = 'rest' | 'uploading' | 'failed' | 'broken' | 'filled';
-type FocusTarget = 'trigger' | 'action' | null;
+type FocusTarget = 'trigger' | 'action' | 'cancel' | null;
 
 export const BROKEN_IMAGE_MESSAGE = 'This photo could not be loaded - Replace';
 
@@ -109,6 +125,10 @@ function createPreviewUrl(file: File): string | null {
 function revokePreviewUrl(url: string | null) {
   if (!url || typeof URL === 'undefined' || typeof URL.revokeObjectURL !== 'function') return;
   URL.revokeObjectURL(url);
+}
+
+function createAbortController(): AbortController | null {
+  return typeof AbortController === 'function' ? new AbortController() : null;
 }
 
 interface ScrimButtonProps {
@@ -195,10 +215,12 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const actionRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const fileRef = useRef<File | null>(null);
   const previewRef = useRef<string | null>(null);
   const uploadSeq = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
   const busyRef = useRef(false);
   const pendingFocus = useRef<FocusTarget>(null);
   const reportedBroken = useRef(false);
@@ -249,9 +271,13 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
         return;
       }
 
-      // A newer upload supersedes an older one: stale results are ignored below.
+      // A newer upload (or cancel) supersedes an older one: its request is aborted
+      // and whatever it still yields is ignored below.
       const seq = ++uploadSeq.current;
       const superseded = () => seq !== uploadSeq.current;
+      abortRef.current?.abort();
+      const controller = createAbortController();
+      abortRef.current = controller;
       const fail = (text: string, canRetry: boolean) => {
         setMessage(text);
         setRetryable(canRetry);
@@ -264,6 +290,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
       replacePreview(createPreviewUrl(file));
       setMessage('');
       setPhase('uploading');
+      pendingFocus.current = 'cancel';
       setBusy(true);
 
       const prepared = await downscaleImage(file);
@@ -281,8 +308,10 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
           method: 'POST',
           headers: { 'X-Requested-With': 'fetch' },
           body: formData,
+          signal: controller?.signal,
         });
       } catch {
+        // An aborted request lands here too, already superseded
         if (!superseded()) fail(NETWORK_UPLOAD_ERROR, true);
         return;
       }
@@ -313,6 +342,18 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
     [replacePreview, setBusy]
   );
 
+  const cancelUpload = useCallback(() => {
+    uploadSeq.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    fileRef.current = null;
+    pendingFocus.current = null;
+    replacePreview(null);
+    setMessage('');
+    setPhase('idle');
+    setBusy(false);
+  }, [replacePreview, setBusy]);
+
   const openPicker = useCallback(() => {
     if (latest.current.disabled) return;
     inputRef.current?.click();
@@ -329,12 +370,9 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
     if (fileRef.current) void startUpload(fileRef.current);
   };
 
-  // Leaves the FAILED state without a new file: back to the photo we had, or to rest.
-  const handleDismissFailure = () => {
-    fileRef.current = null;
-    replacePreview(null);
-    setMessage('');
-    setPhase('idle');
+  // Leaves UPLOADING or FAILED without a new file: back to the photo we had, or to rest.
+  const handleCancel = () => {
+    cancelUpload();
     pendingFocus.current = value ? 'action' : 'trigger';
   };
 
@@ -377,12 +415,13 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   useImperativeHandle(
     ref,
     () => ({
-      focus: () => (triggerRef.current ?? actionRef.current)?.focus(),
+      focus: () => (triggerRef.current ?? actionRef.current ?? cancelRef.current)?.focus(),
       scrollIntoView: (options) => rootRef.current?.scrollIntoView?.(options),
       openPicker,
       uploadFile: (file) => void startUpload(file),
+      cancel: cancelUpload,
     }),
-    [openPicker, startUpload]
+    [openPicker, startUpload, cancelUpload]
   );
 
   // Revoke the blob preview when the component goes away
@@ -404,8 +443,9 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   // steals it from another field the user moved to while the upload was running.
   useEffect(() => {
     const target = pendingFocus.current;
-    if (!target || view === 'uploading') return;
-    const element = target === 'trigger' ? triggerRef.current : actionRef.current;
+    if (!target) return;
+    const targets = { trigger: triggerRef, action: actionRef, cancel: cancelRef };
+    const element = targets[target].current;
     if (!element) return;
     pendingFocus.current = null;
     const active = document.activeElement;
@@ -465,6 +505,12 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   );
 
   if (inline) {
+    // One floating X for every state. Cancelling stays enabled while the form is
+    // disabled: it is the only way out of a stalled request.
+    let inlineCloseLabel = 'Remove photo';
+    if (view === 'uploading') inlineCloseLabel = 'Cancel upload';
+    else if (view === 'failed') inlineCloseLabel = 'Dismiss failed upload';
+
     return (
       <Box
         ref={rootRef}
@@ -516,48 +562,47 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                     </>
                   )}
                 </Box>
-                {view !== 'uploading' && (
-                  <IconButton
-                    type="button"
-                    aria-label={view === 'failed' ? 'Dismiss failed upload' : 'Remove photo'}
-                    onClick={view === 'failed' ? handleDismissFailure : handleRemove}
-                    disabled={disabled}
+                <IconButton
+                  ref={view === 'uploading' ? cancelRef : undefined}
+                  type="button"
+                  aria-label={inlineCloseLabel}
+                  onClick={view === 'uploading' || view === 'failed' ? handleCancel : handleRemove}
+                  disabled={disabled && view !== 'uploading'}
+                  sx={{
+                    // The 44/40px touch target stays INSIDE the thumbnail so it can
+                    // never cover a neighbour (the step textarea sits 4px above)
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    p: 0.5,
+                    alignItems: 'flex-start',
+                    justifyContent: 'flex-end',
+                    '&:hover': { bgcolor: 'transparent' },
+                    '&:hover > span, &:focus-visible > span': {
+                      bgcolor: 'error.main',
+                      borderColor: 'error.main',
+                      color: 'error.contrastText',
+                    },
+                  }}
+                >
+                  <Box
+                    component="span"
                     sx={{
-                      // The 44/40px touch target stays INSIDE the thumbnail so it can
-                      // never cover a neighbour (the step textarea sits 4px above)
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      p: 0.5,
-                      alignItems: 'flex-start',
-                      justifyContent: 'flex-end',
-                      '&:hover': { bgcolor: 'transparent' },
-                      '&:hover > span, &:focus-visible > span': {
-                        bgcolor: 'error.main',
-                        borderColor: 'error.main',
-                        color: 'error.contrastText',
-                      },
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      bgcolor: 'background.paper',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      color: 'text.secondary',
                     }}
                   >
-                    <Box
-                      component="span"
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
-                        bgcolor: 'background.paper',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        color: 'text.secondary',
-                      }}
-                    >
-                      <Close sx={{ fontSize: 14 }} />
-                    </Box>
-                  </IconButton>
-                )}
+                    <Close sx={{ fontSize: 14 }} />
+                  </Box>
+                </IconButton>
               </Box>
               {view === 'failed' && retryable && (
                 <Button
@@ -711,6 +756,8 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    flexDirection: 'column',
+                    gap: 0.5,
                     bgcolor: PHOTO_SCRIM_LIGHT,
                   }}
                 >
@@ -728,6 +775,10 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                   >
                     Uploading...
                   </Typography>
+                  {/* Never disabled: the way out of a stalled request */}
+                  <ScrimButton ref={cancelRef} label="Cancel upload" onClick={handleCancel}>
+                    Cancel
+                  </ScrimButton>
                 </Box>
                 {progressBar}
               </>
@@ -774,7 +825,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                       >
                         Choose another
                       </ScrimButton>
-                      <ScrimButton label="Cancel upload" onClick={handleDismissFailure}>
+                      <ScrimButton label="Cancel upload" onClick={handleCancel}>
                         Cancel
                       </ScrimButton>
                     </>
