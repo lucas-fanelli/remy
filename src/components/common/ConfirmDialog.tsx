@@ -6,8 +6,6 @@ import {
   DialogContentText,
   DialogActions,
   Button,
-  useTheme,
-  useMediaQuery,
 } from '@mui/material';
 
 interface ConfirmDialogProps {
@@ -20,6 +18,8 @@ interface ConfirmDialogProps {
   cancelText?: string;
   confirmColor?: 'inherit' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
   loading?: boolean;
+  /** Opt-in: a confirmation is a small dialog at every width unless the caller says otherwise */
+  fullScreen?: boolean;
 }
 
 export default function ConfirmDialog({
@@ -32,10 +32,8 @@ export default function ConfirmDialog({
   cancelText = 'Cancel',
   confirmColor = 'primary',
   loading = false,
+  fullScreen = false,
 }: ConfirmDialogProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   const handleConfirm = () => {
     onConfirm();
   };
@@ -46,10 +44,10 @@ export default function ConfirmDialog({
       onClose={loading ? undefined : onClose}
       maxWidth="xs"
       fullWidth
-      fullScreen={isMobile}
+      fullScreen={fullScreen}
       PaperProps={{
         sx: {
-          borderRadius: isMobile ? 0 : 2,
+          borderRadius: fullScreen ? 0 : 2,
         },
       }}
     >
