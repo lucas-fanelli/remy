@@ -335,7 +335,13 @@ function EditorSession({
     return true;
   };
 
+  // While a photo uploads, the recipe on screen is not the recipe the author means
+  const uploading = form.uploadsInFlight > 0;
+
   const handlePublish = async () => {
+    // Whoever calls - the button or the footer's [Try again]: a photo still on its way is
+    // never left behind, and one request is enough
+    if (isSubmitting || uploading) return;
     if (jumpToFirstIssue()) return;
     if (coverBroken) {
       selectTab('check', 'imageUrl');
@@ -460,7 +466,9 @@ function EditorSession({
         id={statusId}
         form={form}
         goTo={goTo}
-        submitError={submitError}
+        // The primary button is disabled while a photo uploads and the footer has to say
+        // why: the failure of an earlier attempt, and its [Try again], step aside until then
+        submitError={uploading ? null : submitError}
         onRetry={handlePublish}
         sessionExpired={!user}
         onLogin={handleLogin}
@@ -491,7 +499,7 @@ function EditorSession({
             key="publish"
             mode={mode}
             pending={isSubmitting}
-            disabled={form.uploadsInFlight > 0}
+            disabled={uploading}
             aria-describedby={statusId}
             onPublish={handlePublish}
             sx={primarySx}

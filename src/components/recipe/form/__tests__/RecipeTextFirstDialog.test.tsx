@@ -800,6 +800,56 @@ describe('RecipeTextFirstDialog - create', () => {
       expect(await screen.findByText('Waiting for 1 photo...')).toBeInTheDocument();
       expect(publishButton()).toBeDisabled();
     });
+
+    describe('Try again while a photo uploads', () => {
+      /** The recipe endpoint is offline; the upload answers when the test lets it */
+      const failPublishAndHoldUpload = () => {
+        let land: (value: unknown) => void = () => undefined;
+        const upload = new Promise((resolve) => (land = resolve));
+        mockFetch.mockImplementation((url: string) =>
+          url === '/api/upload' ? upload : Promise.reject(new TypeError('Failed to fetch'))
+        );
+        return { land: () => land(okResponse({ url: STEP_URL })) };
+      };
+
+      const failThenReplaceCover = async () => {
+        const upload = failPublishAndHoldUpload();
+        const view = openComplete();
+        await view.user.click(publishButton());
+        await screen.findByRole('button', { name: 'Try again' });
+        await view.user.click(within(coverGroup()).getByRole('button', { name: 'Replace photo' }));
+        selectFile(new File(['x'], 'pan.jpg', { type: 'image/jpeg' }));
+        await screen.findByText('Waiting for 1 photo...');
+        return { ...view, upload };
+      };
+
+      it('should put Try again aside and say what Publish is waiting for', async () => {
+        await failThenReplaceCover();
+
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
+        expect(publishButton()).toBeDisabled();
+        expect(recipeCalls()).toHaveLength(1);
+      });
+
+      it('should offer Try again once more when the photo has landed', async () => {
+        const { upload } = await failThenReplaceCover();
+
+        await act(async () => upload.land());
+
+        expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+        expect(publishButton()).toBeEnabled();
+      });
+
+      it('should send the new photo, not the old one, with the retry', async () => {
+        const { user, upload } = await failThenReplaceCover();
+        await act(async () => upload.land());
+
+        await user.click(await screen.findByRole('button', { name: 'Try again' }));
+
+        await waitFor(() => expect(recipeCalls()).toHaveLength(2));
+        expect(JSON.parse(recipeCalls()[1][1].body).imageUrl).toBe(STEP_URL);
+      });
+    });
   });
 
   describe('draft and close', () => {
