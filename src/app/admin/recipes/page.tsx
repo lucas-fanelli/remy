@@ -304,6 +304,8 @@ export default function AdminRecipesPage() {
           <DialogContent>
             <DialogContentText>
               {t.rich('recipes.deleteDialog.message', {
+                // `title` is a noun slot: either the recipe's own title or, when it has none,
+                // the translated stand-in for it. Each language decides where that noun sits.
                 title: selectedRecipe?.title || t('recipes.deleteDialog.fallbackTitle'),
                 name: (chunks) => <strong>{chunks}</strong>,
               })}

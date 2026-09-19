@@ -4,11 +4,11 @@
     "welcome": "Hola de nuevo, {username}. Este es el resumen de tu plataforma.",
     "statsError": "No pudimos cargar las estadísticas",
     "stats": {
-      "totalUsers": "Usuarios totales",
-      "totalAdmins": "Administradores totales",
-      "totalRecipes": "Recetas totales",
-      "totalComments": "Comentarios totales",
-      "totalLikes": "Me gusta totales",
+      "totalUsers": "Total de usuarios",
+      "totalAdmins": "Total de administradores",
+      "totalRecipes": "Total de recetas",
+      "totalComments": "Total de comentarios",
+      "totalLikes": "Total de me gusta",
       "newToday": "Nuevos hoy"
     },
     "management": {
@@ -47,7 +47,7 @@
       "role": "Rol",
       "recipes": "Recetas",
       "followers": "Seguidores",
-      "joined": "Se unió",
+      "joined": "Miembro desde",
       "actions": "Acciones"
     },
     "actions": {

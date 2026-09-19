@@ -64,7 +64,7 @@ describe('Admin dashboard in Spanish', () => {
     expect(
       screen.getByText('Hola de nuevo, lucas. Este es el resumen de tu plataforma.')
     ).toBeInTheDocument();
-    expect(screen.getByText('Usuarios totales')).toBeInTheDocument();
+    expect(screen.getByText('Total de usuarios')).toBeInTheDocument();
     expect(screen.getByText('Nuevos hoy')).toBeInTheDocument();
     expect(screen.getByText('Gestión')).toBeInTheDocument();
     expect(screen.getByText('Gestionar recetas')).toBeInTheDocument();
@@ -109,7 +109,7 @@ describe('Admin users page in Spanish', () => {
     expect(screen.getByText('Gestionar usuarios')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Buscar usuarios...')).toBeInTheDocument();
     expect(screen.getByText('Seguidores')).toBeInTheDocument();
-    expect(screen.getByText('Se unió')).toBeInTheDocument();
+    expect(screen.getByText('Miembro desde')).toBeInTheDocument();
     // The stored role stays 'ADMIN'; only its label follows the language
     expect(screen.getByText('Administrador')).toBeInTheDocument();
     expect(screen.getByText('15 ene 2024')).toBeInTheDocument();
