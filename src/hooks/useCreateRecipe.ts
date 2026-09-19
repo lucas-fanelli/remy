@@ -2,9 +2,9 @@ import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
 
 /**
- * Shared hook for creating recipes — used by both home page and navigation.
- * Returns a function that POSTs the recipe and calls onSuccess on completion.
- * Feed refresh is handled by the onSuccess callback (e.g., Navigation calls loadRecipes(true)).
+ * Shared hook for creating recipes — used by the one 'New recipe' editor
+ * (RecipeTextFirstDialog). Returns a function that POSTs the recipe and calls the optional
+ * onSuccess on completion; the editor itself navigates to the new recipe afterwards.
  *
  * Failures reject with a RecipeSubmitError: `message` is the server's text, `code` tells
  * the form which copy and recovery to show.
@@ -38,8 +38,8 @@ export function useCreateRecipe(onSuccess?: () => void) {
       throw await toRecipeSubmitError(response, 'Failed to create recipe');
     }
 
-    // Feed refresh is handled by the onSuccess callback — RecipeFeed uses
-    // direct fetch (not React Query), so no query invalidation is needed.
+    // No query invalidation: RecipeFeed uses direct fetch (not React Query), and the editor
+    // leaves for the new recipe's page, which loads fresh.
     onSuccess?.();
     return response.json();
   };
