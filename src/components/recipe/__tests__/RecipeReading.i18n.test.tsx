@@ -3,7 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import { Recipe } from '@/domain/types/recipe';
+import { RecipeFetchError } from '@/hooks/useRecipe';
 import { renderWithLocale } from '@/i18n/testing';
+import { text, useTextDescriptor } from '@/i18n/text';
 import CommentsSection from '../CommentsSection';
 import DifficultyChip from '../display/DifficultyChip';
 import IngredientLine from '../display/IngredientLine';
@@ -76,6 +78,33 @@ const spanishRecipe: Recipe = {
   createdAt: new Date(),
   updatedAt: new Date(),
 };
+
+/** Stands in for the recipe page, which is the only thing that renders these descriptors */
+function LoadFailure({ error }: { error: RecipeFetchError }) {
+  const renderText = useTextDescriptor();
+  return <p>{renderText(error.descriptor)}</p>;
+}
+
+describe("useRecipe's failures", () => {
+  it('should say in Spanish that the recipe is not there', () => {
+    const error = new RecipeFetchError(text('recipe.states.notFound'), 'Recipe not found');
+
+    renderInSpanish(<LoadFailure error={error} />);
+
+    expect(screen.getByText('No encontramos la receta')).toBeInTheDocument();
+    // The English sentence stays on the Error itself, for logs
+    expect(error.message).toBe('Recipe not found');
+  });
+
+  it('should say in Spanish that the recipe could not be loaded', () => {
+    const error = new RecipeFetchError(text('recipe.states.loadFailed'), 'Failed to load recipe');
+
+    renderInSpanish(<LoadFailure error={error} />);
+
+    expect(screen.getByText('No pudimos cargar la receta')).toBeInTheDocument();
+    expect(error.message).toBe('Failed to load recipe');
+  });
+});
 
 describe('RecipeCard in Spanish', () => {
   beforeEach(() => {
