@@ -1,1 +1,55 @@
-{}
+{
+  "title": "Mi despensa",
+  "guest": {
+    "title": "Iniciá sesión para ver tu despensa",
+    "description": "Anotá tus ingredientes y descubrí recetas que podés hacer con lo que ya tenés.",
+    "action": "Iniciá sesión para seguir"
+  },
+  "actions": {
+    "add": "Agregar ingrediente",
+    "addFirst": "Agregá tu primer ingrediente"
+  },
+  "filters": {
+    "search": "Buscá ingredientes...",
+    "category": "Filtrar por categoría",
+    "allCategories": "Todas las categorías",
+    "count": "{count, plural, one {# ingrediente} other {# ingredientes}}"
+  },
+  "empty": {
+    "title": "Tu despensa está vacía",
+    "description": "Empezá agregando los ingredientes que tenés en casa"
+  },
+  "categories": "{category, select, vegetable {Verdura} protein {Proteína} dairy {Lácteos} grain {Cereales} spice {Especias} fruit {Fruta} misc {Otros} other {{fallback}}}",
+  "dialog": {
+    "addTitle": "Agregar ingrediente",
+    "editTitle": "Editar ingrediente",
+    "name": "Nombre del ingrediente",
+    "quantity": "Cantidad (opcional)",
+    "quantityHelper": "Dejalo vacío para 'a gusto'",
+    "unit": "Unidad",
+    "category": "Categoría",
+    "categoryPlaceholder": "Elegí o escribí una categoría",
+    "categoryHelper": "Se va a guardar como: {category}",
+    "notes": "Notas (opcional)"
+  },
+  "delete": {
+    "title": "¿Eliminar el ingrediente?",
+    "message": "El ingrediente se va a borrar de tu cuenta y de todos los dispositivos sincronizados"
+  },
+  "duplicate": {
+    "title": "El ingrediente ya existe",
+    "message": "{name} ya está en tu despensa con {amount}.",
+    "question": "¿Querés modificar el que ya tenés?",
+    "action": "Modificar el existente"
+  },
+  "feedback": {
+    "added": "Agregamos el ingrediente",
+    "alreadyExists": "Ese ingrediente ya existe",
+    "deleteFailed": "No pudimos eliminar el ingrediente",
+    "deleted": "Eliminamos el ingrediente",
+    "loadFailed": "No pudimos cargar tu despensa",
+    "nameRequired": "Escribí el nombre del ingrediente",
+    "saveFailed": "No pudimos guardar el ingrediente",
+    "updated": "Actualizamos el ingrediente"
+  }
+}
