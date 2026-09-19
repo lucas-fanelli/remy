@@ -24,6 +24,7 @@ import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 import { INVALID_RESET_TOKEN_MESSAGE } from '@/domain/errors';
 import { useTextDescriptor } from '@/i18n/text';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { hardNavigate } from '@/lib/utils/navigation';
 import { PASSWORD_RULES, getPasswordIssues } from '@/lib/validation/passwordRules';
 
@@ -60,6 +61,9 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
   // The password rules are a plain list with no locale of its own: it hands back
   // descriptors and this is what turns them into text
   const renderText = useTextDescriptor();
+  // The server's machine `code` when it sent one this build knows, its own English
+  // sentence when it did not - the client half of the contract in docs/I18N.md
+  const apiErrorMessage = useApiErrorMessage();
   // Held in memory only: the address bar is cleaned below, so the prop may come
   // back empty on a later render and must not take the token with it
   const [token] = useState(tokenFromLink);
@@ -139,7 +143,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
       } else if (response.status === 400 && data?.error === INVALID_RESET_TOKEN_MESSAGE) {
         setIsLinkInvalid(true);
       } else if (response.status === 400) {
-        setErrors({ password: data?.error || t('resetPassword.chooseDifferent') });
+        setErrors({ password: apiErrorMessage(data, t('resetPassword.chooseDifferent')) });
       } else {
         setError(tCommon('states.errorRetry'));
       }

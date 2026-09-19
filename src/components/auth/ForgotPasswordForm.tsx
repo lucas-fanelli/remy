@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import React, { useEffect, useRef, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 
 // globals.css gives every link a 44px touch target; inline-flex centres the text inside it
 const linkSx = {
@@ -19,6 +20,9 @@ const linkSx = {
 export default function ForgotPasswordForm() {
   const t = useTranslations('auth');
   const tCommon = useTranslations('common');
+  // The server's machine `code` when it sent one this build knows, its own English
+  // sentence when it did not - the client half of the contract in docs/I18N.md
+  const apiErrorMessage = useApiErrorMessage();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [error, setError] = useState('');
@@ -58,7 +62,7 @@ export default function ForgotPasswordForm() {
         setError(t('errors.rateLimited'));
       } else if (response.status === 400) {
         const data = await response.json().catch(() => null);
-        setFieldError(data?.error || t('forgotPassword.identifierInvalid'));
+        setFieldError(apiErrorMessage(data, t('forgotPassword.identifierInvalid')));
       } else {
         setError(tCommon('states.errorRetry'));
       }
