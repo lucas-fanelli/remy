@@ -42,6 +42,45 @@ describe('getIngredientParts', () => {
 
     expect(parts).toEqual({ quantity: '', name: 'Water', toTaste: false });
   });
+
+  // Seeded recipes store `amount: 400`, and the repository only casts the Json column
+  describe('rows that are not three strings', () => {
+    it('should print a numeric amount', () => {
+      const parts = getIngredientParts({ name: 'spaghetti', amount: 400, unit: 'g' });
+
+      expect(parts).toEqual({ quantity: '400 g', name: 'spaghetti', toTaste: false });
+    });
+
+    it('should print a fractional numeric amount as it is stored', () => {
+      const parts = getIngredientParts({ name: 'butter', amount: 0.5, unit: 'cup' });
+
+      expect(parts.quantity).toBe('0.5 cup');
+    });
+
+    it('should print only the unit when the amount is null', () => {
+      const parts = getIngredientParts({ name: 'oil', amount: null, unit: 'splash' });
+
+      expect(parts).toEqual({ quantity: 'splash', name: 'oil', toTaste: false });
+    });
+
+    it('should print only the amount when the unit is null', () => {
+      const parts = getIngredientParts({ name: 'eggs', amount: 2, unit: null });
+
+      expect(parts).toEqual({ quantity: '2', name: 'eggs', toTaste: false });
+    });
+
+    it('should not throw when the amount and the unit are missing', () => {
+      const parts = getIngredientParts({ name: 'Water' });
+
+      expect(parts).toEqual({ quantity: '', name: 'Water', toTaste: false });
+    });
+
+    it('should return an empty name when the name is null', () => {
+      const parts = getIngredientParts({ name: null, amount: '1', unit: 'g' });
+
+      expect(parts.name).toBe('');
+    });
+  });
 });
 
 describe('formatServings', () => {

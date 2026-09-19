@@ -45,6 +45,7 @@ import { MotionBox, MotionCard } from '@/components/motion';
 import CommentsSection from '@/components/recipe/CommentsSection';
 import CaptionQuote from '@/components/recipe/display/CaptionQuote';
 import DifficultyChip from '@/components/recipe/display/DifficultyChip';
+import { StoredIngredient } from '@/components/recipe/display/displayFormat';
 import IngredientLine from '@/components/recipe/display/IngredientLine';
 import RecipeTimeStrip from '@/components/recipe/display/RecipeTimeStrip';
 import StepNumber from '@/components/recipe/display/StepNumber';
@@ -772,11 +773,10 @@ export default function RecipeDetailPage() {
                   Ingredients
                 </Typography>
                 <Box component="ul" sx={{ pl: 2 }}>
-                  {recipe.ingredients.map(
-                    (ingredient: { name: string; amount: string; unit: string }, index: number) => (
-                      <IngredientLine key={index} ingredient={ingredient} />
-                    )
-                  )}
+                  {/* Seeded and legacy rows store numeric amounts: IngredientLine coerces them */}
+                  {recipe.ingredients.map((ingredient: StoredIngredient, index: number) => (
+                    <IngredientLine key={index} ingredient={ingredient} />
+                  ))}
                 </Box>
               </CardContent>
             </MotionCard>

@@ -1,10 +1,10 @@
 'use client';
 import { Box } from '@mui/material';
-import { Ingredient } from '@/domain/types/recipe';
-import { getIngredientParts } from './displayFormat';
+import { StoredIngredient, getIngredientParts } from './displayFormat';
 
 export interface IngredientLineProps {
-  ingredient: Ingredient;
+  /** A domain `Ingredient`, or a stored row whose amount is a number / whose unit is null */
+  ingredient: StoredIngredient;
   /** Tighter line for the form's compact preview */
   dense?: boolean;
 }

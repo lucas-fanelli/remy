@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import React from 'react';
 import CaptionQuote from '../CaptionQuote';
 import DifficultyChip from '../DifficultyChip';
+import { StoredIngredient } from '../displayFormat';
 import IngredientLine from '../IngredientLine';
 import RecipeCoverBadges from '../RecipeCoverBadges';
 import RecipeTimeStrip from '../RecipeTimeStrip';
@@ -55,7 +56,7 @@ describe('StepNumber', () => {
 });
 
 describe('IngredientLine', () => {
-  const renderLine = (ingredient: { name: string; amount: string; unit: string }, dense = false) =>
+  const renderLine = (ingredient: StoredIngredient, dense = false) =>
     render(
       <ul>
         <IngredientLine ingredient={ingredient} dense={dense} />
@@ -81,6 +82,22 @@ describe('IngredientLine', () => {
 
     const line = screen.getByRole('listitem');
     expect(line).toHaveTextContent(/^Salt, to taste$/);
+    expect(line.querySelector('strong')).toBeNull();
+  });
+
+  it('should render a seeded row whose amount is a number', () => {
+    renderLine({ name: 'spaghetti', amount: 400, unit: 'g' });
+
+    const line = screen.getByRole('listitem');
+    expect(line).toHaveTextContent(/^400 g spaghetti$/);
+    expect(within(line).getByText('400 g').tagName).toBe('STRONG');
+  });
+
+  it('should render a legacy row whose amount and unit are null', () => {
+    renderLine({ name: 'water', amount: null, unit: null });
+
+    const line = screen.getByRole('listitem');
+    expect(line).toHaveTextContent(/^water$/);
     expect(line.querySelector('strong')).toBeNull();
   });
 
