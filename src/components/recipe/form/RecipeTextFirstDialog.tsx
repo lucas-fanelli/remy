@@ -113,9 +113,27 @@ const visuallyHiddenSx = {
   whiteSpace: 'nowrap',
 } as const;
 
-const tabSx = { minHeight: 48, textTransform: 'none', fontWeight: 600 } as const;
+const tabSx = {
+  minHeight: 48,
+  minWidth: 0,
+  px: { xs: 1, sm: 2 },
+  textTransform: 'none',
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+} as const;
 
-const statusTextSx = { typography: 'caption', color: 'text.secondary', ml: 0.5 } as const;
+// ' - 2 to check' next to the tab's name. A phone has no room for it: there the icon stands
+// alone and the words stay for assistive tech (CSS only, no width flag)
+const statusTextSx = {
+  typography: 'caption',
+  color: 'text.secondary',
+  ml: 0.5,
+  position: { xs: 'absolute', sm: 'static' },
+  width: { xs: '1px', sm: 'auto' },
+  height: { xs: '1px', sm: 'auto' },
+  overflow: { xs: 'hidden', sm: 'visible' },
+  clip: { xs: 'rect(0 0 0 0)', sm: 'auto' },
+} as const;
 
 type SessionProps = Omit<RecipeTextFirstDialogProps, 'resetKey'>;
 
@@ -140,6 +158,8 @@ function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }:
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [coverBroken, setCoverBroken] = useState(false);
+  // Once the author has moved between tabs the title no longer grabs the focus on mount
+  const [hasSwitchedTab, setSwitchedTab] = useState(false);
 
   const draft = useRecipeDraft({
     // Edit has no stored draft: without a user id the hook is inert
@@ -171,6 +191,7 @@ function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }:
       return;
     }
     pendingFocus.current = { path };
+    setSwitchedTab(true);
     setTab(next);
   };
 
@@ -522,6 +543,7 @@ function EditorSession({ mode, open, onClose, recipe, onSuccess, draftStorage }:
                   registerField={registerField}
                   disabled={isSubmitting}
                   headingRef={headingRef}
+                  autoFocusTitle={!hasSwitchedTab}
                   onCheckRow={(rowId) => selectTab('check', `ingredients.${rowId}.name`)}
                 />
               ) : (

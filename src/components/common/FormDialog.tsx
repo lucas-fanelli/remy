@@ -142,7 +142,11 @@ const FormDialog = forwardRef<HTMLDivElement, FormDialogProps>(function FormDial
         <Box sx={{ flexShrink: 0, px: { xs: 2, sm: 3 }, pb: 1 }}>{headerSlot}</Box>
       )}
 
-      <DialogContent ref={ref} sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+      {/* `relative`: the content's visually hidden nodes (live regions, hidden inputs) are
+          absolutely positioned. Without a positioned scroller their containing block is the
+          Paper, where they escape this overflow, make the PAPER scrollable by the height of
+          the content, and a scrollIntoView on a field then pushes the title row out of view */}
+      <DialogContent ref={ref} sx={{ position: 'relative', px: { xs: 2, sm: 3 }, py: 2 }}>
         {children}
       </DialogContent>
 

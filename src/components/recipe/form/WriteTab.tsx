@@ -43,6 +43,11 @@ export interface WriteTabProps {
   headingRef?: React.Ref<HTMLHeadingElement>;
   /** A row the parser was unsure about was activated in the readout */
   onCheckRow: (rowId: string) => void;
+  /**
+   * The editor just opened: the title may take the focus (fine pointers only). After a tab
+   * change the focus belongs to the heading, so the shell passes false. Default true
+   */
+  autoFocusTitle?: boolean;
 }
 
 /**
@@ -58,6 +63,7 @@ export default function WriteTab({
   disabled = false,
   headingRef,
   onCheckRow,
+  autoFocusTitle = true,
 }: WriteTabProps) {
   const ingredientsId = useId();
   const methodId = useId();
@@ -88,7 +94,12 @@ export default function WriteTab({
         Write
       </SectionHeading>
 
-      <TitleField form={form} registerField={registerField} disabled={disabled} />
+      <TitleField
+        form={form}
+        registerField={registerField}
+        autoFocus={autoFocusTitle}
+        disabled={disabled}
+      />
 
       <Box>
         <Typography
@@ -116,7 +127,8 @@ export default function WriteTab({
               : 'One per line'
           }
           disabled={disabled}
-          sx={{ '& textarea': { minHeight: { sm: SIX_LINES } } }}
+          // Not the hidden twin MUI measures with: a floor on it would inflate every row
+          sx={{ '& textarea:not([aria-hidden])': { minHeight: { sm: SIX_LINES } } }}
           slotProps={{ htmlInput: { autoCapitalize: 'none', spellCheck: false } }}
         />
         <Box sx={{ mt: formSpacing.label }}>

@@ -234,6 +234,38 @@ describe('RecipeTextFirstDialog - create', () => {
       expect(screen.getByRole('heading', { name: 'Write', level: 3 })).toHaveFocus();
     });
 
+    describe('with a mouse', () => {
+      const originalMatchMedia = window.matchMedia;
+      beforeEach(() => {
+        window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+          matches: query === '(pointer: fine)',
+          media: query,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+        }));
+      });
+      afterEach(() => {
+        window.matchMedia = originalMatchMedia;
+      });
+
+      it('should put the caret in the title when the editor opens', () => {
+        renderDialog();
+
+        expect(titleBox()).toHaveFocus();
+      });
+
+      it('should leave the focus on the heading when the author comes back to Write', async () => {
+        const { user } = renderDialog();
+        await user.click(checkTab());
+
+        await user.click(writeTab());
+
+        expect(screen.getByRole('heading', { name: 'Write', level: 3 })).toHaveFocus();
+      });
+    });
+
     it('should start every opening as a fresh session', async () => {
       const { user, rerender } = renderDialog({ draftStorage: null });
       await user.type(titleBox(), 'Pan');

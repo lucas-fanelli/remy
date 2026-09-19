@@ -77,6 +77,14 @@ describe('FormDialog', () => {
       expect(content).toHaveStyle({ flex: '1 1 auto', overflowY: 'auto' });
     });
 
+    it('should be the containing block of the hidden nodes its content positions absolutely', () => {
+      renderDialog();
+
+      // Otherwise they overflow the Paper instead and make the whole dialog scroll
+      const content = document.querySelector('.MuiDialogContent-root') as HTMLElement;
+      expect(content).toHaveStyle({ position: 'relative' });
+    });
+
     it('should make the scrolling content a direct child of the form', () => {
       renderDialog();
 
