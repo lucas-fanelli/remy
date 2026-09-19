@@ -27,9 +27,12 @@ import {
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDateFnsLocale } from '@/i18n/dates';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 
 interface Comment {
@@ -56,6 +59,10 @@ export default function CommentsSection({
   recipeAuthorId,
   onImageClick,
 }: CommentsSectionProps) {
+  const t = useTranslations('comments');
+  const tCommon = useTranslations('common');
+  const apiErrorMessage = useApiErrorMessage();
+  const dateLocale = useDateFnsLocale();
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -129,14 +136,14 @@ export default function CommentsSection({
           });
 
           if (!uploadResponse.ok) {
-            throw new Error('Failed to upload image');
+            throw new Error(t('errors.uploadFailed'));
           }
 
           const uploadData = await uploadResponse.json();
           imageUrl = uploadData.url;
         } catch (uploadError) {
           console.error('Error uploading image:', uploadError);
-          setError('Failed to upload image');
+          setError(t('errors.uploadFailed'));
           setUploadingImage(false);
           setSubmitting(false);
           return;
@@ -174,11 +181,11 @@ export default function CommentsSection({
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to post comment');
+        setError(apiErrorMessage(errorData, t('errors.postFailed')));
       }
     } catch (error) {
       console.error('Error submitting comment:', error);
-      setError('Failed to post comment');
+      setError(t('errors.postFailed'));
     } finally {
       setSubmitting(false);
       setUploadingImage(false);
@@ -193,13 +200,13 @@ export default function CommentsSection({
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      setError('Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.');
+      setError(t('errors.invalidType'));
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      setError('Image too large. Maximum size is 5MB.');
+      setError(t('errors.tooLarge'));
       return;
     }
 
@@ -220,9 +227,9 @@ export default function CommentsSection({
 
   const formatDate = (dateString: string) => {
     try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true, locale: dateLocale });
     } catch {
-      return 'recently';
+      return t('recently');
     }
   };
 
@@ -270,11 +277,11 @@ export default function CommentsSection({
         handleCancelEdit();
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to update comment');
+        setError(apiErrorMessage(errorData, t('errors.updateFailed')));
       }
     } catch (error) {
       console.error('Error updating comment:', error);
-      setError('Failed to update comment');
+      setError(t('errors.updateFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -307,11 +314,11 @@ export default function CommentsSection({
         setCommentToDelete(null);
       } else {
         const errorData = await response.json();
-        setError(errorData.error || 'Failed to delete comment');
+        setError(apiErrorMessage(errorData, t('errors.deleteFailed')));
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      setError('Failed to delete comment');
+      setError(t('errors.deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -329,7 +336,7 @@ export default function CommentsSection({
           fontSize: { xs: '1.25rem', sm: '1.5rem' },
         }}
       >
-        Comments ({comments.length})
+        {t('title', { count: comments.length })}
       </Typography>
 
       {/* Comment Input */}
@@ -360,7 +367,7 @@ export default function CommentsSection({
                   multiline
                   rows={isMobile ? 2 : 3}
                   size={isMobile ? 'small' : 'medium'}
-                  placeholder="Share your thoughts about this recipe..."
+                  placeholder={t('form.placeholder')}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   disabled={submitting}
@@ -372,7 +379,7 @@ export default function CommentsSection({
                     <Box
                       component="img"
                       src={imagePreview}
-                      alt="Preview"
+                      alt={t('form.previewAlt')}
                       sx={{
                         maxWidth: { xs: 100, md: 120 },
                         maxHeight: { xs: 80, md: 100 },
@@ -428,7 +435,7 @@ export default function CommentsSection({
                       color="text.secondary"
                       sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
                     >
-                      Rate this recipe:
+                      {t('form.rate')}
                     </Typography>
                     <Rating
                       value={rating}
@@ -461,7 +468,11 @@ export default function CommentsSection({
                       fullWidth={isMobile}
                       size={isMobile ? 'large' : 'medium'}
                     >
-                      {uploadingImage ? 'Uploading...' : submitting ? 'Posting...' : 'Post'}
+                      {uploadingImage
+                        ? tCommon('status.uploading')
+                        : submitting
+                          ? tCommon('status.posting')
+                          : t('form.submit')}
                     </Button>
                   </Box>
                 </Box>
@@ -482,7 +493,7 @@ export default function CommentsSection({
           severity="info"
           sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
         >
-          Please login to leave a comment
+          {t('loginPrompt')}
         </Alert>
       )}
 
@@ -495,14 +506,14 @@ export default function CommentsSection({
             gutterBottom
             sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
           >
-            No comments yet
+            {t('empty.title')}
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
           >
-            Be the first to share your thoughts!
+            {t('empty.body')}
           </Typography>
         </Box>
       ) : (
@@ -554,7 +565,7 @@ export default function CommentsSection({
                           </Typography>
                           {recipeAuthorId && comment.user.id === recipeAuthorId && (
                             <Chip
-                              label="Creator"
+                              label={t('creatorBadge')}
                               size="small"
                               color="primary"
                               icon={<Person sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }} />}
@@ -616,7 +627,7 @@ export default function CommentsSection({
                                 color="text.secondary"
                                 sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
                               >
-                                Rating:
+                                {t('edit.ratingLabel')}
                               </Typography>
                               <Rating
                                 value={editRating}
@@ -633,7 +644,7 @@ export default function CommentsSection({
                                 disabled={submitting}
                                 fullWidth={isMobile}
                               >
-                                Cancel
+                                {tCommon('actions.cancel')}
                               </Button>
                               <Button
                                 size="small"
@@ -643,7 +654,7 @@ export default function CommentsSection({
                                 disabled={!editText.trim() || submitting}
                                 fullWidth={isMobile}
                               >
-                                {submitting ? 'Saving...' : 'Save'}
+                                {submitting ? tCommon('status.saving') : tCommon('actions.save')}
                               </Button>
                             </Box>
                           </Box>
@@ -670,11 +681,11 @@ export default function CommentsSection({
                             <Box
                               component="img"
                               src={comment.imageUrl}
-                              alt={`Photo by ${comment.user.username}`}
+                              alt={t('photoAlt', { username: comment.user.username })}
                               onClick={() =>
                                 onImageClick?.(
                                   comment.imageUrl!,
-                                  `Photo by ${comment.user.username}`
+                                  t('photoAlt', { username: comment.user.username })
                                 )
                               }
                               sx={{
@@ -711,7 +722,7 @@ export default function CommentsSection({
                       <ListItemIcon>
                         <Edit fontSize="small" />
                       </ListItemIcon>
-                      <ListItemText>Edit</ListItemText>
+                      <ListItemText>{tCommon('actions.edit')}</ListItemText>
                     </MenuItem>
                     <MenuItem
                       onClick={() => handleDeleteClick(comment.id)}
@@ -720,7 +731,7 @@ export default function CommentsSection({
                       <ListItemIcon>
                         <Delete fontSize="small" color="error" />
                       </ListItemIcon>
-                      <ListItemText>Delete</ListItemText>
+                      <ListItemText>{tCommon('actions.delete')}</ListItemText>
                     </MenuItem>
                   </Menu>
                 </CardContent>
@@ -738,15 +749,15 @@ export default function CommentsSection({
         aria-labelledby="delete-comment-dialog-title"
         aria-describedby="delete-comment-dialog-description"
       >
-        <DialogTitle id="delete-comment-dialog-title">Delete selected comment?</DialogTitle>
+        <DialogTitle id="delete-comment-dialog-title">{t('deleteDialog.title')}</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-comment-dialog-description">
-            Comment will be permanently removed from your account and all synced devices
+            {t('deleteDialog.message')}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDeleteCancel} disabled={deleting}>
-            Cancel
+            {tCommon('actions.cancel')}
           </Button>
           <Button
             onClick={handleDeleteConfirm}
@@ -755,7 +766,7 @@ export default function CommentsSection({
             disabled={deleting}
             autoFocus
           >
-            {deleting ? 'Deleting...' : 'Delete'}
+            {deleting ? tCommon('status.deleting') : tCommon('actions.delete')}
           </Button>
         </DialogActions>
       </Dialog>

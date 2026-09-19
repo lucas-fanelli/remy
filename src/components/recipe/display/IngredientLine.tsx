@@ -1,5 +1,6 @@
 'use client';
 import { Box } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import { StoredIngredient, getIngredientParts } from './displayFormat';
 
 export interface IngredientLineProps {
@@ -20,6 +21,7 @@ export default function IngredientLine({
   dense = false,
   component = 'li',
 }: IngredientLineProps) {
+  const t = useTranslations('recipe');
   const { quantity, name, toTaste } = getIngredientParts(ingredient);
 
   return (
@@ -37,7 +39,7 @@ export default function IngredientLine({
         </>
       )}
       {name}
-      {toTaste && ', to taste'}
+      {toTaste && t('ingredients.toTaste')}
     </Box>
   );
 }

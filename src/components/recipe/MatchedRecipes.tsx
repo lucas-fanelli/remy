@@ -19,6 +19,7 @@ import {
   type Theme,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +38,10 @@ interface MatchedRecipe {
 }
 
 export default function MatchedRecipes() {
+  const t = useTranslations('feed');
+  // The difficulty label belongs to the recipe itself, so it lives in the recipe namespace
+  const tRecipe = useTranslations('recipe');
+  const tCommon = useTranslations('common');
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const theme = useTheme();
@@ -117,11 +122,11 @@ export default function MatchedRecipes() {
         sx={{ mb: { xs: 3, md: 4 } }}
         action={
           <Button color="inherit" size="small" onClick={loadMatchedRecipes}>
-            Retry
+            {tCommon('actions.retry')}
           </Button>
         }
       >
-        We couldn&apos;t load your recipe matches. Please try again.
+        {t('matches.loadFailed')}
       </Alert>
     );
   }
@@ -133,14 +138,14 @@ export default function MatchedRecipes() {
           sx={{ fontSize: { xs: 60, md: 80 }, color: 'text.secondary', mb: { xs: 1.5, md: 2 } }}
         />
         <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-          Your pantry is empty
+          {t('matches.emptyPantry.title')}
         </Typography>
         <Typography
           variant="body1"
           color="text.secondary"
           sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.875rem', md: '1rem' } }}
         >
-          Add ingredients to your pantry and we&apos;ll show you recipes you can make!
+          {t('matches.emptyPantry.body')}
         </Typography>
         <Button
           variant="contained"
@@ -148,7 +153,7 @@ export default function MatchedRecipes() {
           onClick={handleGoToPantry}
           fullWidth={isMobile}
         >
-          Go to My Pantry
+          {t('matches.emptyPantry.action')}
         </Button>
       </Card>
     );
@@ -167,18 +172,21 @@ export default function MatchedRecipes() {
             fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
           }}
         >
-          Recipes Based on Your Pantry
+          {t('matches.title')}
         </Typography>
         <Typography
           variant="body1"
           color="text.secondary"
           sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
         >
-          You have{' '}
-          <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
-            {pantryItemsCount} ingredients
-          </Typography>{' '}
-          in your pantry
+          {t.rich('matches.pantryCount', {
+            count: pantryItemsCount,
+            strong: (chunks) => (
+              <Typography component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                {chunks}
+              </Typography>
+            ),
+          })}
         </Typography>
       </Box>
 
@@ -192,7 +200,9 @@ export default function MatchedRecipes() {
         <Tab
           icon={!isMobile ? <CheckCircle /> : undefined}
           label={
-            isMobile ? `Ready (${readyToCook.length})` : `Ready to Cook (${readyToCook.length})`
+            isMobile
+              ? t('matches.tabs.readyShort', { count: readyToCook.length })
+              : t('matches.tabs.ready', { count: readyToCook.length })
           }
           iconPosition="start"
           sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
@@ -200,7 +210,9 @@ export default function MatchedRecipes() {
         <Tab
           icon={!isMobile ? <Circle /> : undefined}
           label={
-            isMobile ? `Almost (${almostThere.length})` : `Almost There (${almostThere.length})`
+            isMobile
+              ? t('matches.tabs.almostShort', { count: almostThere.length })
+              : t('matches.tabs.almost', { count: almostThere.length })
           }
           iconPosition="start"
           sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
@@ -215,8 +227,7 @@ export default function MatchedRecipes() {
               severity="info"
               sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
             >
-              No recipes match 100% with your pantry yet. Check the &ldquo;Almost There&rdquo; tab
-              for recipes you&apos;re close to making!
+              {t('matches.noReady')}
             </Alert>
           ) : (
             <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
@@ -247,7 +258,7 @@ export default function MatchedRecipes() {
                     <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
                       <Chip
                         icon={<CheckCircle sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
-                        label="100% Match"
+                        label={t('matches.match', { percent: 100 })}
                         color="success"
                         size="small"
                         sx={{
@@ -274,7 +285,7 @@ export default function MatchedRecipes() {
                       </Typography>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
                         <Chip
-                          label={recipe.difficulty}
+                          label={tRecipe('meta.difficulty', { level: recipe.difficulty })}
                           size="small"
                           color={getDifficultyColor(recipe.difficulty)}
                           sx={{
@@ -304,7 +315,7 @@ export default function MatchedRecipes() {
               severity="info"
               sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
             >
-              No recipes are close to matching. Add more ingredients to your pantry!
+              {t('matches.noAlmost')}
             </Alert>
           ) : (
             <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
@@ -344,7 +355,7 @@ export default function MatchedRecipes() {
                           }}
                         >
                           <Chip
-                            label={`${recipe.matchPercentage}% Match`}
+                            label={t('matches.match', { percent: recipe.matchPercentage })}
                             color={recipe.matchPercentage >= 80 ? 'warning' : 'default'}
                             size="small"
                             sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
@@ -354,7 +365,10 @@ export default function MatchedRecipes() {
                             color="text.secondary"
                             sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
                           >
-                            {recipe.matchedIngredients}/{recipe.totalIngredients} ingredients
+                            {t('matches.ingredientsRatio', {
+                              matched: recipe.matchedIngredients,
+                              total: recipe.totalIngredients,
+                            })}
                           </Typography>
                         </Box>
                         <LinearProgress
@@ -386,12 +400,14 @@ export default function MatchedRecipes() {
                           color="error"
                           sx={{ fontWeight: 600, fontSize: { xs: '0.7rem', md: '0.75rem' } }}
                         >
-                          Missing: {recipe.missingIngredients.join(', ')}
+                          {t('matches.missing', {
+                            names: recipe.missingIngredients.join(', '),
+                          })}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
                         <Chip
-                          label={recipe.difficulty}
+                          label={tRecipe('meta.difficulty', { level: recipe.difficulty })}
                           size="small"
                           color={getDifficultyColor(recipe.difficulty)}
                           sx={{

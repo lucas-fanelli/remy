@@ -9,7 +9,7 @@
     "hint": "Escribí para buscar recetas..."
   },
   "dropdown": {
-    "searchQuery": "Buscá \"{query}\"",
+    "searchQuery": "Buscar \"{query}\"",
     "viewAll": "Ver todos los resultados",
     "noResults": "No encontramos resultados para “{query}”"
   },

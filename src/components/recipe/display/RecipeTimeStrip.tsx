@@ -1,6 +1,7 @@
 'use client';
 import { Box, Typography } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
+import { useTranslations } from 'next-intl';
 
 export interface RecipeTimeStripProps {
   prepTime: number;
@@ -17,10 +18,14 @@ export default function RecipeTimeStrip({
   compact = false,
   sx,
 }: RecipeTimeStripProps) {
+  const t = useTranslations('recipe');
+  // 'min' is the same word in both languages, so the symbol lives in the shared catalogue
+  const tCommon = useTranslations('common');
+
   const cells = [
-    { label: 'PREP TIME', minutes: prepTime },
-    { label: 'COOK TIME', minutes: cookingTime },
-    { label: 'TOTAL TIME', minutes: prepTime + cookingTime },
+    { id: 'prep', label: t('times.prep'), minutes: prepTime },
+    { id: 'cook', label: t('times.cook'), minutes: cookingTime },
+    { id: 'total', label: t('times.total'), minutes: prepTime + cookingTime },
   ];
 
   return (
@@ -30,8 +35,8 @@ export default function RecipeTimeStrip({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      {cells.map(({ label, minutes }) => (
-        <Box key={label}>
+      {cells.map(({ id, label, minutes }) => (
+        <Box key={id}>
           <Typography variant="caption" color="text.secondary" display="block">
             {label}
           </Typography>
@@ -41,7 +46,7 @@ export default function RecipeTimeStrip({
             variant={compact ? 'subtitle1' : 'h6'}
             sx={{ fontWeight: 600, color: 'text.primary' }}
           >
-            {minutes} min
+            {tCommon('time.minutesShort', { count: minutes })}
           </Typography>
         </Box>
       ))}

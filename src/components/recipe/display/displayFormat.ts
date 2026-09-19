@@ -46,6 +46,14 @@ export function getIngredientParts(ingredient: StoredIngredient): IngredientPart
   };
 }
 
-/** '1 serving', '4 servings' */
+/**
+ * '1 serving', '4 servings'.
+ *
+ * @deprecated Still English, and the last string in this file that is. The recipe page and
+ * the feed card print `recipe.meta.servings`, an ICU plural, through `useTranslations`
+ * instead. Its one remaining caller is the form's RecipePreview, which belongs to the
+ * editor's owner: when that screen moves to `t('recipe.meta.servings', { count })` this
+ * function and its unit test go with it.
+ */
 export const formatServings = (servings: number): string =>
   `${servings} ${servings === 1 ? 'serving' : 'servings'}`;
