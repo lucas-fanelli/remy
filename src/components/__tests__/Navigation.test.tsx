@@ -2273,6 +2273,27 @@ describe('Navigation Component', () => {
         expect(mockPush).toHaveBeenCalledWith('/pantry');
       }
     });
+
+    it.each(['Open menu', 'Notifications', 'Profile'])(
+      'should give the icon-only "%s" button of the mobile bars an accessible name',
+      (name) => {
+        mockUseAuth.mockReturnValue({
+          user: { id: '1', username: 'testuser', email: 'test@test.com' },
+          token: null,
+          isLoading: false,
+          isAuthenticated: true,
+          isAdmin: false,
+          login: jest.fn(),
+          register: jest.fn(),
+          logout: jest.fn(),
+          updateProfile: jest.fn(),
+        });
+
+        renderWithProviders(<Navigation />);
+
+        expect(screen.getByRole('button', { name })).toBeInTheDocument();
+      }
+    );
   });
 
   // ==================== DRAWER YOUTUBE LINK (line 919) ====================

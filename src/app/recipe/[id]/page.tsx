@@ -36,6 +36,7 @@ import {
   useTheme,
   useMediaQuery,
   Rating,
+  Tooltip,
 } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -706,42 +707,50 @@ export default function RecipeDetailPage() {
                 </Button>
                 {isOwner && (
                   <>
-                    <IconButton
-                      onClick={handleEdit}
-                      color="primary"
-                      size={isMobile ? 'medium' : 'large'}
-                      sx={{
-                        border: 1,
-                        borderColor: 'primary.main',
-                        '&:hover': {
-                          backgroundColor: 'primary.main',
-                          color: 'white',
-                          '& .MuiSvgIcon-root': {
-                            color: 'white',
+                    {/* Icon-only: the name is the aria-label, the Tooltip shows it. The hover
+                        ink is the palette's contrast colour - dark on the dark theme's teal */}
+                    <Tooltip title="Edit recipe">
+                      <IconButton
+                        onClick={handleEdit}
+                        color="primary"
+                        aria-label="Edit recipe"
+                        size={isMobile ? 'medium' : 'large'}
+                        sx={{
+                          border: 1,
+                          borderColor: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'primary.main',
+                            color: 'primary.contrastText',
+                            '& .MuiSvgIcon-root': {
+                              color: 'primary.contrastText',
+                            },
                           },
-                        },
-                      }}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      onClick={handleDelete}
-                      color="error"
-                      size={isMobile ? 'medium' : 'large'}
-                      sx={{
-                        border: 1,
-                        borderColor: 'error.main',
-                        '&:hover': {
-                          backgroundColor: 'error.main',
-                          color: 'white',
-                          '& .MuiSvgIcon-root': {
-                            color: 'white',
+                        }}
+                      >
+                        <Edit />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete recipe">
+                      <IconButton
+                        onClick={handleDelete}
+                        color="error"
+                        aria-label="Delete recipe"
+                        size={isMobile ? 'medium' : 'large'}
+                        sx={{
+                          border: 1,
+                          borderColor: 'error.main',
+                          '&:hover': {
+                            backgroundColor: 'error.main',
+                            color: 'error.contrastText',
+                            '& .MuiSvgIcon-root': {
+                              color: 'error.contrastText',
+                            },
                           },
-                        },
-                      }}
-                    >
-                      <Delete />
-                    </IconButton>
+                        }}
+                      >
+                        <Delete />
+                      </IconButton>
+                    </Tooltip>
                   </>
                 )}
               </Box>
