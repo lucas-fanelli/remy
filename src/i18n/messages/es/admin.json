@@ -1,1 +1,135 @@
-{}
+{
+  "dashboard": {
+    "title": "Panel de administración",
+    "welcome": "Hola de nuevo, {username}. Este es el resumen de tu plataforma.",
+    "statsError": "No pudimos cargar las estadísticas",
+    "stats": {
+      "totalUsers": "Usuarios totales",
+      "totalAdmins": "Administradores totales",
+      "totalRecipes": "Recetas totales",
+      "totalComments": "Comentarios totales",
+      "totalLikes": "Me gusta totales",
+      "newToday": "Nuevos hoy"
+    },
+    "management": {
+      "title": "Gestión",
+      "users": {
+        "label": "Gestionar usuarios",
+        "description": "Ver, promover, bajar de rol o eliminar usuarios"
+      },
+      "recipes": { "label": "Gestionar recetas", "description": "Ver o eliminar recetas" },
+      "comments": { "label": "Gestionar comentarios", "description": "Ver o eliminar comentarios" }
+    }
+  },
+  "nav": { "back": "Volver" },
+  "pagination": {
+    "rowsPerPage": "Filas por página:",
+    "firstPage": "Ir a la primera página",
+    "lastPage": "Ir a la última página",
+    "nextPage": "Ir a la página siguiente",
+    "previousPage": "Ir a la página anterior"
+  },
+  "users": {
+    "title": "Gestionar usuarios",
+    "searchPlaceholder": "Buscar usuarios...",
+    "empty": "No encontramos usuarios",
+    "displayedRows": "{from, number}–{to, number} de {count, plural, one {# usuario} other {# usuarios}}",
+    "role": "{role, select, ADMIN {Administrador} USER {Usuario} other {Desconocido}}",
+    "roleFilter": {
+      "label": "Rol",
+      "all": "Todos",
+      "user": "Usuario",
+      "admin": "Administrador"
+    },
+    "columns": {
+      "user": "Usuario",
+      "email": "Correo",
+      "role": "Rol",
+      "recipes": "Recetas",
+      "followers": "Seguidores",
+      "joined": "Se unió",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "promote": "Promover a administrador",
+      "promoteAria": "Promover a administrador",
+      "demote": "Bajar a usuario",
+      "demoteAria": "Bajar a usuario",
+      "delete": "Eliminar usuario",
+      "deleteAria": "Eliminar usuario"
+    },
+    "deleteDialog": {
+      "title": "Eliminar usuario",
+      "message": "¿Seguro que querés eliminar a <name>{username}</name>? Se van a borrar para siempre su cuenta y todo su contenido (recetas, comentarios, etc.)."
+    },
+    "roleDialog": {
+      "promoteTitle": "Promover a administrador",
+      "promoteMessage": "¿Seguro que querés promover a <name>{username}</name> a administrador?",
+      "demoteTitle": "Bajar a usuario",
+      "demoteMessage": "¿Seguro que querés bajar a <name>{username}</name> a usuario?"
+    },
+    "errors": {
+      "load": "No pudimos cargar los usuarios.",
+      "delete": "No pudimos eliminar el usuario.",
+      "role": "No pudimos cambiar el rol. Probá de nuevo."
+    }
+  },
+  "recipes": {
+    "title": "Gestionar recetas",
+    "searchPlaceholder": "Buscar recetas...",
+    "empty": "No encontramos recetas",
+    "displayedRows": "{from, number}–{to, number} de {count, plural, one {# receta} other {# recetas}}",
+    "untitled": "Sin título",
+    "noDescription": "Sin descripción",
+    "columns": {
+      "recipe": "Receta",
+      "author": "Autor",
+      "likes": "Me gusta",
+      "comments": "Comentarios",
+      "created": "Creada",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "view": "Ver receta",
+      "viewAria": "Ver la receta",
+      "delete": "Eliminar receta",
+      "deleteAria": "Eliminar la receta"
+    },
+    "deleteDialog": {
+      "title": "Eliminar receta",
+      "fallbackTitle": "esta receta",
+      "message": "¿Seguro que querés eliminar <name>{title}</name>? Esta acción no se puede deshacer."
+    },
+    "errors": {
+      "load": "No pudimos cargar las recetas.",
+      "delete": "No pudimos eliminar la receta."
+    }
+  },
+  "comments": {
+    "title": "Gestionar comentarios",
+    "empty": "No encontramos comentarios",
+    "displayedRows": "{from, number}–{to, number} de {count, plural, one {# comentario} other {# comentarios}}",
+    "untitledRecipe": "Receta sin título",
+    "columns": {
+      "comment": "Comentario",
+      "author": "Autor",
+      "recipe": "Receta",
+      "date": "Fecha",
+      "actions": "Acciones"
+    },
+    "actions": {
+      "view": "Ver receta",
+      "viewAria": "Ver la receta",
+      "delete": "Eliminar comentario",
+      "deleteAria": "Eliminar el comentario"
+    },
+    "deleteDialog": {
+      "title": "Eliminar comentario",
+      "message": "¿Seguro que querés eliminar este comentario de <name>{username}</name>? Esta acción no se puede deshacer."
+    },
+    "errors": {
+      "load": "No pudimos cargar los comentarios.",
+      "delete": "No pudimos eliminar el comentario."
+    }
+  }
+}
