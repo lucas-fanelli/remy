@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
+import { User } from '@prisma/client';
 import { InvalidResetTokenError, ValidationError } from '@/domain/errors';
 import { IPasswordResetTokenRepository } from '@/domain/repositories/IPasswordResetTokenRepository';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
@@ -9,6 +10,7 @@ import { buildPasswordResetEmail } from './passwordResetEmail';
 
 export const RESET_TOKEN_TTL_MINUTES = 60;
 export const RESET_REQUEST_THROTTLE_MS = 2 * 60 * 1000; // one email per account every 2 minutes
+export const RESET_REQUEST_DAILY_LIMIT = 5; // and at most this many per account in 24 hours
 export const RESET_PATH = '/auth/reset-password';
 const RESET_TOKEN_BYTES = 32;
 
@@ -30,12 +32,7 @@ export class PasswordResetService implements IPasswordResetService {
   ) {}
 
   async requestReset(emailOrUsername: string): Promise<void> {
-    const identifier = emailOrUsername.trim();
-
-    // Same lookup rule as login
-    const user = identifier.includes('@')
-      ? await this.userRepository.findByEmail(identifier)
-      : await this.userRepository.findByUsername(identifier);
+    const user = await this.findAccount(emailOrUsername.trim());
 
     if (!user) {
       return;
@@ -49,22 +46,24 @@ export class PasswordResetService implements IPasswordResetService {
       return;
     }
 
-    // Per-account throttle: silently ignore requests that come too close together
+    // The limits (2 minute throttle, daily cap) and "only the newest link works"
+    // are enforced inside one per-account serialised transaction: checking here
+    // and inserting later would let a burst of parallel requests all pass.
     const now = new Date();
-    const latest = await this.tokenRepository.findLatestByUserId(user.id);
-    if (latest && now.getTime() - latest.createdAt.getTime() < RESET_REQUEST_THROTTLE_MS) {
-      return;
-    }
-
-    // Only the newest link may work
-    await this.tokenRepository.deleteUnusedByUserId(user.id);
-
     const rawToken = randomBytes(RESET_TOKEN_BYTES).toString('base64url');
-    await this.tokenRepository.create({
+    const issued = await this.tokenRepository.issue({
       userId: user.id,
       tokenHash: hashResetToken(rawToken),
       expiresAt: new Date(now.getTime() + RESET_TOKEN_TTL_MINUTES * 60 * 1000),
+      now,
+      throttleMs: RESET_REQUEST_THROTTLE_MS,
+      maxPerDay: RESET_REQUEST_DAILY_LIMIT,
     });
+
+    if (!issued) {
+      // Throttled, capped or a duplicate of a request still in flight: stay silent
+      return;
+    }
 
     // The raw token exists only inside this link
     const resetUrl = `${baseUrl}${RESET_PATH}?token=${rawToken}`;
@@ -79,7 +78,35 @@ export class PasswordResetService implements IPasswordResetService {
 
     if (!sent) {
       console.warn(`[PASSWORD_RESET] Reset email for user ${user.id} was not delivered`);
+      // Nobody holds this link: withdraw it so it does not throttle an immediate
+      // retry or use up one of the account's daily requests
+      await this.tokenRepository.deleteById(issued.id);
     }
+  }
+
+  /**
+   * Same lookup rule as login, but forgiving about letter case: phone keyboards
+   * capitalise "Lucas" at sign-up and the recovery form asks for it in lower
+   * case. The unique indexes are case-sensitive, so "A@x.com" and "a@x.com" can
+   * be two accounts: the exact match wins, and a case-insensitive match is only
+   * accepted when it is unambiguous. The email always goes to the address on
+   * file, never to what was typed.
+   */
+  private async findAccount(identifier: string): Promise<User | null> {
+    const isEmail = identifier.includes('@');
+
+    const exact = isEmail
+      ? await this.userRepository.findByEmail(identifier)
+      : await this.userRepository.findByUsername(identifier);
+    if (exact) {
+      return exact;
+    }
+
+    const candidates = isEmail
+      ? await this.userRepository.findAllByEmailIgnoringCase(identifier)
+      : await this.userRepository.findAllByUsernameIgnoringCase(identifier);
+
+    return candidates.length === 1 ? candidates[0] : null;
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

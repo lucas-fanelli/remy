@@ -5,12 +5,16 @@ import { createHash } from 'crypto';
 import { PasswordResetToken, User } from '@prisma/client';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { InvalidResetTokenError, ValidationError } from '@/domain/errors';
-import { IPasswordResetTokenRepository } from '@/domain/repositories/IPasswordResetTokenRepository';
+import {
+  IPasswordResetTokenRepository,
+  IssuePasswordResetTokenDTO,
+} from '@/domain/repositories/IPasswordResetTokenRepository';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { IEmailService } from '@/domain/services/IEmailService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
 import {
   PasswordResetService,
+  RESET_REQUEST_DAILY_LIMIT,
   RESET_REQUEST_THROTTLE_MS,
   hashResetToken,
 } from '../../PasswordResetService';
@@ -47,6 +51,58 @@ function tokenRecord(overrides: Partial<PasswordResetToken> = {}): PasswordReset
   };
 }
 
+/**
+ * In-memory stand-in that honours the repository contract the way the database
+ * does (one request per account at a time), with async gaps in the places where
+ * a check-then-act implementation would race.
+ */
+class InMemoryTokenRepository implements IPasswordResetTokenRepository {
+  rows: PasswordResetToken[] = [];
+  private readonly busy = new Set<string>();
+
+  async issue(data: IssuePasswordResetTokenDTO): Promise<PasswordResetToken | null> {
+    await Promise.resolve();
+    if (this.busy.has(data.userId)) return null;
+    this.busy.add(data.userId);
+    try {
+      await Promise.resolve();
+      const mine = this.rows.filter((row) => row.userId === data.userId);
+      const latest = Math.max(...mine.map((row) => row.createdAt.getTime()));
+      if (data.now.getTime() - latest < data.throttleMs) return null;
+      if (mine.length >= data.maxPerDay) return null;
+
+      await Promise.resolve();
+      mine.forEach((row) => (row.expiresAt = data.now));
+      const row = tokenRecord({
+        id: `token-${this.rows.length + 1}`,
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+        createdAt: data.now,
+      });
+      this.rows.push(row);
+      return row;
+    } finally {
+      this.busy.delete(data.userId);
+    }
+  }
+
+  liveTokens(at: Date): PasswordResetToken[] {
+    return this.rows.filter((row) => !row.usedAt && row.expiresAt.getTime() > at.getTime());
+  }
+
+  async findByTokenHash(): Promise<PasswordResetToken | null> {
+    return null;
+  }
+
+  async deleteById(id: string): Promise<void> {
+    this.rows = this.rows.filter((row) => row.id !== id);
+  }
+
+  async redeem(): Promise<boolean> {
+    return false;
+  }
+}
+
 describe('PasswordResetService - Unit Tests', () => {
   let users: MockProxy<IUserRepository>;
   let tokens: MockProxy<IPasswordResetTokenRepository>;
@@ -68,9 +124,10 @@ describe('PasswordResetService - Unit Tests', () => {
 
     users.findByEmail.mockResolvedValue(user);
     users.findByUsername.mockResolvedValue(user);
-    tokens.findLatestByUserId.mockResolvedValue(null);
-    tokens.deleteUnusedByUserId.mockResolvedValue(0);
-    tokens.create.mockResolvedValue(tokenRecord());
+    users.findAllByEmailIgnoringCase.mockResolvedValue([]);
+    users.findAllByUsernameIgnoringCase.mockResolvedValue([]);
+    tokens.issue.mockResolvedValue(tokenRecord());
+    tokens.deleteById.mockResolvedValue();
     email.send.mockResolvedValue(true);
 
     service = new PasswordResetService(users, tokens, passwords, email, getBaseUrl);
@@ -126,7 +183,57 @@ describe('PasswordResetService - Unit Tests', () => {
 
       // Assert
       expect(result).toBeUndefined();
-      expect(tokens.create).not.toHaveBeenCalled();
+      expect(tokens.issue).not.toHaveBeenCalled();
+      expect(email.send).not.toHaveBeenCalled();
+    });
+
+    it('should not fall back to a case-insensitive lookup when the exact match exists', async () => {
+      await service.requestReset('chef');
+
+      expect(users.findAllByUsernameIgnoringCase).not.toHaveBeenCalled();
+      expect(users.findAllByEmailIgnoringCase).not.toHaveBeenCalled();
+    });
+
+    it('should find an account whose username was registered with different casing', async () => {
+      // Arrange - registered as "Chef" on a phone keyboard, typed as "chef" here
+      users.findByUsername.mockResolvedValue(null);
+      users.findAllByUsernameIgnoringCase.mockResolvedValue([{ ...user, username: 'Chef' }]);
+
+      // Act
+      await service.requestReset('chef');
+
+      // Assert
+      expect(users.findAllByUsernameIgnoringCase).toHaveBeenCalledWith('chef');
+      expect(tokens.issue.mock.calls[0][0].userId).toBe('user-123');
+      expect(email.send).toHaveBeenCalledTimes(1);
+    });
+
+    it('should find an account whose email was registered with different casing', async () => {
+      // Arrange
+      users.findByEmail.mockResolvedValue(null);
+      users.findAllByEmailIgnoringCase.mockResolvedValue([{ ...user, email: 'Chef@Example.com' }]);
+
+      // Act
+      await service.requestReset('chef@example.com');
+
+      // Assert
+      expect(users.findAllByEmailIgnoringCase).toHaveBeenCalledWith('chef@example.com');
+      expect(email.send.mock.calls[0][0].to).toBe('Chef@Example.com');
+    });
+
+    it('should do nothing when ignoring case matches more than one account', async () => {
+      // Arrange - "Chef" and "CHEF" are two accounts: never guess between them
+      users.findByUsername.mockResolvedValue(null);
+      users.findAllByUsernameIgnoringCase.mockResolvedValue([
+        { ...user, id: 'user-1', username: 'Chef' },
+        { ...user, id: 'user-2', username: 'CHEF' },
+      ]);
+
+      // Act
+      await service.requestReset('chef');
+
+      // Assert
+      expect(tokens.issue).not.toHaveBeenCalled();
       expect(email.send).not.toHaveBeenCalled();
     });
 
@@ -149,7 +256,7 @@ describe('PasswordResetService - Unit Tests', () => {
     it('should store only the SHA-256 hash of the token', async () => {
       await service.requestReset('chef');
 
-      const stored = tokens.create.mock.calls[0][0];
+      const stored = tokens.issue.mock.calls[0][0];
       expect(stored.tokenHash).toBe(hashResetToken(sentToken()));
       expect(JSON.stringify(stored)).not.toContain(sentToken());
     });
@@ -157,15 +264,13 @@ describe('PasswordResetService - Unit Tests', () => {
     it('should make the token expire 60 minutes from now', async () => {
       await service.requestReset('chef');
 
-      expect(tokens.create.mock.calls[0][0].expiresAt).toEqual(
-        new Date('2026-01-01T13:00:00.000Z')
-      );
+      expect(tokens.issue.mock.calls[0][0].expiresAt).toEqual(new Date('2026-01-01T13:00:00.000Z'));
     });
 
     it('should attach the token to the matched user', async () => {
       await service.requestReset('chef');
 
-      expect(tokens.create.mock.calls[0][0].userId).toBe('user-123');
+      expect(tokens.issue.mock.calls[0][0].userId).toBe('user-123');
     });
 
     it('should generate a different token for every request', async () => {
@@ -178,44 +283,97 @@ describe('PasswordResetService - Unit Tests', () => {
       expect(sentToken()).not.toBe(first);
     });
 
-    it("should invalidate the user's previous unused tokens before creating the new one", async () => {
+    it('should leave the limits and the invalidation of earlier links to one atomic issue call', async () => {
       await service.requestReset('chef');
 
-      expect(tokens.deleteUnusedByUserId).toHaveBeenCalledWith('user-123');
-      expect(tokens.deleteUnusedByUserId.mock.invocationCallOrder[0]).toBeLessThan(
-        tokens.create.mock.invocationCallOrder[0]
+      expect(tokens.issue).toHaveBeenCalledTimes(1);
+      expect(tokens.issue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          now: NOW,
+          throttleMs: RESET_REQUEST_THROTTLE_MS,
+          maxPerDay: RESET_REQUEST_DAILY_LIMIT,
+        })
       );
+    });
+
+    it('should allow one request every 2 minutes and 5 per day', () => {
+      expect(RESET_REQUEST_THROTTLE_MS).toBe(2 * 60 * 1000);
+      expect(RESET_REQUEST_DAILY_LIMIT).toBe(5);
     });
   });
 
   describe('requestReset - throttle', () => {
-    it('should silently do nothing when a token was created less than 2 minutes ago', async () => {
+    it('should silently send nothing when the request was throttled, capped or a duplicate', async () => {
       // Arrange
-      tokens.findLatestByUserId.mockResolvedValue(
-        tokenRecord({ createdAt: new Date(NOW.getTime() - RESET_REQUEST_THROTTLE_MS + 1) })
-      );
+      tokens.issue.mockResolvedValue(null);
 
       // Act
-      await service.requestReset('chef');
+      const result = await service.requestReset('chef');
 
       // Assert
-      expect(tokens.deleteUnusedByUserId).not.toHaveBeenCalled();
-      expect(tokens.create).not.toHaveBeenCalled();
+      expect(result).toBeUndefined();
       expect(email.send).not.toHaveBeenCalled();
+      expect(tokens.deleteById).not.toHaveBeenCalled();
     });
 
-    it('should send a new link once the 2 minutes have passed', async () => {
-      // Arrange
-      tokens.findLatestByUserId.mockResolvedValue(
-        tokenRecord({ createdAt: new Date(NOW.getTime() - RESET_REQUEST_THROTTLE_MS) })
-      );
+    describe('against a repository with real async gaps', () => {
+      let memory: InMemoryTokenRepository;
 
-      // Act
-      await service.requestReset('chef');
+      beforeEach(() => {
+        memory = new InMemoryTokenRepository();
+        service = new PasswordResetService(users, memory, passwords, email, getBaseUrl);
+      });
 
-      // Assert
-      expect(tokens.create).toHaveBeenCalledTimes(1);
-      expect(email.send).toHaveBeenCalledTimes(1);
+      it('should send exactly one email when 10 requests for the same account arrive in parallel', async () => {
+        // Act - what a burst of POST /api/auth/forgot-password for one victim looks like
+        await Promise.all(Array.from({ length: 10 }, () => service.requestReset('chef')));
+
+        // Assert
+        expect(email.send).toHaveBeenCalledTimes(1);
+        expect(memory.liveTokens(NOW)).toHaveLength(1);
+      });
+
+      it('should ignore a second request made less than 2 minutes after the first', async () => {
+        await service.requestReset('chef');
+        jest.setSystemTime(NOW.getTime() + RESET_REQUEST_THROTTLE_MS - 1);
+
+        await service.requestReset('chef');
+
+        expect(email.send).toHaveBeenCalledTimes(1);
+      });
+
+      it('should send a new link once the 2 minutes have passed and leave only that one working', async () => {
+        await service.requestReset('chef');
+        const later = new Date(NOW.getTime() + RESET_REQUEST_THROTTLE_MS);
+        jest.setSystemTime(later);
+
+        await service.requestReset('chef');
+
+        expect(email.send).toHaveBeenCalledTimes(2);
+        expect(memory.liveTokens(later)).toHaveLength(1);
+      });
+
+      it('should stop sending after 5 requests in a day', async () => {
+        for (let i = 0; i < 7; i++) {
+          jest.setSystemTime(NOW.getTime() + i * RESET_REQUEST_THROTTLE_MS);
+          await service.requestReset('chef');
+        }
+
+        expect(email.send).toHaveBeenCalledTimes(RESET_REQUEST_DAILY_LIMIT);
+      });
+
+      it('should let an immediate retry through when the first email could not be delivered', async () => {
+        // Arrange - the provider is down for the first attempt only
+        email.send.mockResolvedValueOnce(false);
+
+        // Act
+        await service.requestReset('chef');
+        await service.requestReset('chef');
+
+        // Assert
+        expect(email.send).toHaveBeenCalledTimes(2);
+        expect(memory.liveTokens(NOW)).toHaveLength(1);
+      });
     });
   });
 
@@ -241,7 +399,7 @@ describe('PasswordResetService - Unit Tests', () => {
       await service.requestReset('chef');
 
       // Assert
-      expect(tokens.create).not.toHaveBeenCalled();
+      expect(tokens.issue).not.toHaveBeenCalled();
       expect(email.send).not.toHaveBeenCalled();
       expect(console.error).toHaveBeenCalledWith(expect.stringContaining('NEXT_PUBLIC_APP_URL'));
     });
@@ -252,6 +410,24 @@ describe('PasswordResetService - Unit Tests', () => {
 
       // Act + Assert
       await expect(service.requestReset('chef')).resolves.toBeUndefined();
+    });
+
+    it('should withdraw the token when the email could not be delivered', async () => {
+      // Arrange
+      email.send.mockResolvedValue(false);
+      tokens.issue.mockResolvedValue(tokenRecord({ id: 'token-undelivered' }));
+
+      // Act
+      await service.requestReset('chef');
+
+      // Assert
+      expect(tokens.deleteById).toHaveBeenCalledWith('token-undelivered');
+    });
+
+    it('should keep the token when the email was delivered', async () => {
+      await service.requestReset('chef');
+
+      expect(tokens.deleteById).not.toHaveBeenCalled();
     });
 
     it('should never log the raw token when delivery fails', async () => {

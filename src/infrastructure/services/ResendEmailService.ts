@@ -60,7 +60,9 @@ export class ResendEmailService implements IEmailService {
         `[EMAIL] RESEND_API_KEY is not set; email not sent. Development preview:\n` +
           `To: ${message.to}\nSubject: ${message.subject}\n\n${message.text}`
       );
-      return false;
+      // The console is the inbox here: report it as delivered, or the caller
+      // would withdraw the link that was just printed
+      return true;
     }
 
     // Never log the body outside development: it contains the reset link.

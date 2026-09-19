@@ -152,6 +152,13 @@ describe('ResendEmailService - Unit Tests', () => {
       await expect(service.send(message)).resolves.toBe(false);
     });
 
+    it('should resolve true in development, where the console preview is the delivery', async () => {
+      setNodeEnv('development');
+      const service = new ResendEmailService();
+
+      await expect(service.send(message)).resolves.toBe(true);
+    });
+
     it('should print the message with its link to the console in development', async () => {
       setNodeEnv('development');
       const service = new ResendEmailService();
