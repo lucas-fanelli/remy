@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import { UNIT_TO_TASTE } from '@/lib/constants';
 import IngredientListEditor, { IngredientListEditorProps } from '../IngredientListEditor';
 import { RecipeFormValuesInput } from '../types';
-import { renderEditor, renderWithTheme } from './editorHarness';
+import { renderEditor, renderWithTheme, settlePointer } from './editorHarness';
 import { makeRecipe, makeValues } from './fixtures';
 
 type EditorProps = Omit<IngredientListEditorProps, 'form' | 'registerField'>;
@@ -32,6 +32,11 @@ const name = (n: number) => screen.getByRole('textbox', { name: `Name of ingredi
 const row = (n: number) => screen.getByRole('group', { name: `Ingredient ${n}` });
 const addButton = () => screen.getByRole('button', { name: 'Add ingredient' });
 const outside = () => screen.getByRole('button', { name: 'Outside' });
+/** Clicks outside the list and lets the deferred row validation land */
+const leaveRow = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(outside());
+  await settlePointer();
+};
 
 describe('IngredientListEditor', () => {
   afterEach(() => {
@@ -286,7 +291,7 @@ describe('IngredientListEditor', () => {
       const { user } = renderList();
       await user.type(name(1), 'Salt');
 
-      await user.click(outside());
+      await leaveRow(user);
 
       const chip = within(row(1)).getByRole('button', {
         name: 'Salt is to taste - set an amount',
@@ -306,7 +311,7 @@ describe('IngredientListEditor', () => {
     it('should bring the inputs back and focus the amount when the chip is activated', async () => {
       const { user } = renderList();
       await user.type(name(1), 'Salt');
-      await user.click(outside());
+      await leaveRow(user);
 
       await user.click(screen.getByRole('button', { name: 'Salt is to taste - set an amount' }));
 
@@ -317,7 +322,7 @@ describe('IngredientListEditor', () => {
     it('should activate the chip with the keyboard', async () => {
       const { user } = renderList();
       await user.type(name(1), 'Salt');
-      await user.click(outside());
+      await leaveRow(user);
       screen.getByRole('button', { name: 'Salt is to taste - set an amount' }).focus();
 
       await user.keyboard('{Enter}');
@@ -328,7 +333,7 @@ describe('IngredientListEditor', () => {
     it('should keep the chip while focus only rests on it', async () => {
       const { user } = renderList();
       await user.type(name(1), 'Salt');
-      await user.click(outside());
+      await leaveRow(user);
 
       act(() => screen.getByRole('button', { name: 'Salt is to taste - set an amount' }).focus());
 
@@ -340,7 +345,7 @@ describe('IngredientListEditor', () => {
     it('should bring the inputs back when the name is edited again', async () => {
       const { user } = renderList();
       await user.type(name(1), 'Salt');
-      await user.click(outside());
+      await leaveRow(user);
 
       await user.click(name(1));
 
@@ -350,10 +355,10 @@ describe('IngredientListEditor', () => {
     it('should return to the chip when the author leaves without an amount', async () => {
       const { user } = renderList();
       await user.type(name(1), 'Salt');
-      await user.click(outside());
+      await leaveRow(user);
       await user.click(screen.getByRole('button', { name: 'Salt is to taste - set an amount' }));
 
-      await user.click(outside());
+      await leaveRow(user);
 
       expect(
         screen.getByRole('button', { name: 'Salt is to taste - set an amount' })
@@ -367,7 +372,7 @@ describe('IngredientListEditor', () => {
       await user.click(unit(1));
 
       await user.click(screen.getByRole('option', { name: 'to taste - no exact amount' }));
-      await user.click(outside());
+      await leaveRow(user);
 
       expect(
         screen.getByRole('button', { name: 'Salt is to taste - set an amount' })
@@ -394,7 +399,7 @@ describe('IngredientListEditor', () => {
       await user.type(amount(1), '2');
       await user.type(name(1), 'Eggs');
 
-      await user.click(outside());
+      await leaveRow(user);
 
       expect(unit(1)).toHaveValue('units');
     });
@@ -404,7 +409,7 @@ describe('IngredientListEditor', () => {
       await user.type(amount(1), '1,5');
       await user.type(name(1), 'Milk');
 
-      await user.click(outside());
+      await leaveRow(user);
 
       expect(amount(1)).toHaveValue('1.5');
     });
@@ -426,7 +431,7 @@ describe('IngredientListEditor', () => {
       await user.click(screen.getByRole('option', { name: 'g - grams' }));
       await user.type(name(1), 'Flour');
 
-      await user.click(outside());
+      await leaveRow(user);
 
       expect(amount(1)).toHaveAttribute('aria-invalid', 'true');
       expect(amount(1)).toHaveAccessibleDescription(
@@ -439,7 +444,7 @@ describe('IngredientListEditor', () => {
       await user.click(unit(1));
       await user.click(screen.getByRole('option', { name: 'g - grams' }));
       await user.type(name(1), 'Flour');
-      await user.click(outside());
+      await leaveRow(user);
 
       await user.type(amount(1), '200');
 
@@ -451,10 +456,45 @@ describe('IngredientListEditor', () => {
       const { user } = renderList();
       await user.type(amount(1), '2');
 
-      await user.click(outside());
+      await leaveRow(user);
 
       expect(name(1)).toHaveAttribute('aria-invalid', 'true');
       expect(name(1)).toHaveAccessibleDescription('Ingredient 1: add a name, or clear the row');
+    });
+
+    it('should validate at once when the row is left with the keyboard', async () => {
+      const { user } = renderList();
+      await user.type(amount(1), '2');
+
+      // unit -> name -> Remove -> the next row
+      await user.tab();
+      await user.tab();
+      await user.tab();
+      await user.tab();
+
+      expect(amount(2)).toHaveFocus();
+      expect(name(1)).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('should not grow the row under a pointer that is still pressed', async () => {
+      const { user } = renderList();
+      await user.type(amount(1), '2');
+
+      await user.pointer({ keys: '[MouseLeft>]', target: addButton() });
+
+      expect(addButton()).toHaveFocus();
+      expect(name(1)).toHaveAttribute('aria-invalid', 'false');
+    });
+
+    it('should validate the row once that press is released', async () => {
+      const { user } = renderList();
+      await user.type(amount(1), '2');
+      await user.pointer({ keys: '[MouseLeft>]', target: outside() });
+
+      await user.pointer({ keys: '[/MouseLeft]', target: outside() });
+      await settlePointer();
+
+      expect(name(1)).toHaveAttribute('aria-invalid', 'true');
     });
   });
 

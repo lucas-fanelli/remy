@@ -37,6 +37,12 @@ describe('StepRow', () => {
     expect(screen.getByRole('button', { name: 'Remove step 2' })).toBeEnabled();
   });
 
+  it('should carry its row id in the DOM for the focus hand-off', () => {
+    renderRow();
+
+    expect(screen.getByRole('group', { name: 'Step 2' })).toHaveAttribute('data-row-id', 's2');
+  });
+
   it('should report edits as patches addressed by row id', async () => {
     const { user, onChange } = renderRow({ row: { id: 's2', description: '', image: '' } });
 

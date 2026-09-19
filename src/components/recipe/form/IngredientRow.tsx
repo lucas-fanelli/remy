@@ -10,6 +10,7 @@ import { focusNextField, isBackspaceOnEmpty, isPlainEnter } from './keyboard';
 import { IngredientRowValue } from './types';
 import { RegisterField, useFieldRef } from './useFieldRegistry';
 import { IngredientPatch } from './useRecipeForm';
+import { useRowIdRef } from './useRowFocus';
 import type { FocusEvent, HTMLAttributes, Key, KeyboardEvent, SyntheticEvent } from 'react';
 
 export interface IngredientRowProps {
@@ -89,6 +90,7 @@ function IngredientRow({
   const position = index + 1;
   const path = `ingredients.${row.id}`;
   const helperId = useId();
+  const rowRef = useRowIdRef(row.id);
 
   // While focus is in the row the author edits plain inputs; at rest a named row without
   // amount and unit shows ONE 'to taste' chip in their place (Pantry's model)
@@ -192,7 +194,7 @@ function IngredientRow({
     <Box
       role="group"
       aria-label={`Ingredient ${position}`}
-      data-row-id={row.id}
+      ref={rowRef}
       onFocus={handleFocus}
       onBlur={handleBlur}
       sx={{

@@ -13,6 +13,7 @@ import IngredientRow from './IngredientRow';
 import { neighbourRowId } from './keyboard';
 import { IngredientRowValue } from './types';
 import { RegisterField } from './useFieldRegistry';
+import { usePointerSettled } from './usePointerSettled';
 import { IngredientPatch, RecipeFormApi } from './useRecipeForm';
 import { useRowFocus } from './useRowFocus';
 
@@ -57,11 +58,15 @@ export default function IngredientListEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const focusRow = useRowFocus(containerRef);
+  const whenPointerSettles = usePointerSettled();
   const { message, announce } = useAnnouncer();
   const errorId = useId();
 
-  // Allowed media-query flag (S14): it only matters after the author touches a unit input
-  const coarsePointer = useMediaQuery('(pointer: coarse)', { noSsr: true });
+  // Allowed media-query flag (S14): it only matters after the author touches a unit input.
+  // No `noSsr`: with it the first client render already says 'coarse', which is a hydration
+  // mismatch on the unit inputs wherever the form IS server-rendered (a route). Mounted on
+  // the client (a dialog) the first render reads matchMedia either way.
+  const coarsePointer = useMediaQuery('(pointer: coarse)');
 
   // Rows are memoised, so their callbacks keep one identity and read the latest props here
   const latest = useRef({ rows, ingredients, touch, onRowRemoved });
@@ -71,9 +76,11 @@ export default function IngredientListEditor({
     latest.current.ingredients.update(id, patch);
   }, []);
 
-  const handleRowBlur = useCallback((id: string) => {
-    latest.current.touch(`ingredients.${id}`);
-  }, []);
+  // Validating adds a helper line: never while the press that moved focus is still down
+  const handleRowBlur = useCallback(
+    (id: string) => whenPointerSettles(() => latest.current.touch(`ingredients.${id}`)),
+    [whenPointerSettles]
+  );
 
   const handleRemove = useCallback(
     (id: string) => {

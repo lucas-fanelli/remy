@@ -79,5 +79,15 @@ export function renderEditor(renderUi: RenderEditor, { initial, values }: Harnes
   };
 }
 
+/**
+ * Row validation waits for the pointer press that moved focus to be released (see
+ * usePointerSettled), so it lands one macrotask after `user.click`. Leaving a row with
+ * the keyboard (`user.tab()`) needs no settling.
+ */
+export const settlePointer = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
 export const renderWithTheme = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);

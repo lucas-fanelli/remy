@@ -74,6 +74,15 @@ describe('IngredientRow', () => {
     expect(screen.getByRole('textbox', { name: 'Name of ingredient 2' })).toHaveValue('Flour');
   });
 
+  it('should carry its row id in the DOM for the focus hand-off', () => {
+    renderRow();
+
+    expect(screen.getByRole('group', { name: 'Ingredient 2' })).toHaveAttribute(
+      'data-row-id',
+      'i1'
+    );
+  });
+
   it('should be removable by default', async () => {
     const { user, onRemove } = renderRow();
 

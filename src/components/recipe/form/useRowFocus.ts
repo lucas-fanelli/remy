@@ -29,6 +29,22 @@ const moveCaretToEnd = (element: Element | null) => {
   element.setSelectionRange(end, end);
 };
 
+/**
+ * Callback ref for a row container: stamps the `data-row-id` that `focusRowField` looks
+ * up. The id is written to the DOM here instead of being rendered as an attribute because
+ * row ids are random: on a server-rendered route the server's ids differ from the
+ * client's, React does not patch mismatched attributes during hydration, and the rows
+ * rendered first would then be unreachable for every focus hand-off.
+ */
+export function useRowIdRef(rowId: string): (element: HTMLElement | null) => void {
+  return useCallback(
+    (element: HTMLElement | null) => {
+      if (element) element.dataset.rowId = rowId;
+    },
+    [rowId]
+  );
+}
+
 export function useRowFocus(containerRef: RefObject<HTMLElement | null>) {
   const pending = useRef<RowFocusRequest | null>(null);
 

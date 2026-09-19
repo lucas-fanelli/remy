@@ -13,6 +13,7 @@ import StepNumberBadge from './StepNumberBadge';
 import StepRow from './StepRow';
 import { StepRowValue } from './types';
 import { RegisterField } from './useFieldRegistry';
+import { usePointerSettled } from './usePointerSettled';
 import { RecipeFormApi, StepPatch } from './useRecipeForm';
 import { useRowFocus } from './useRowFocus';
 
@@ -52,6 +53,7 @@ export default function StepListEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const focusRow = useRowFocus(containerRef);
+  const whenPointerSettles = usePointerSettled();
   const { message, announce } = useAnnouncer();
   const errorId = useId();
 
@@ -63,9 +65,11 @@ export default function StepListEditor({
     latest.current.steps.update(id, patch);
   }, []);
 
-  const handleRowBlur = useCallback((id: string) => {
-    latest.current.touch(`steps.${id}`);
-  }, []);
+  // Validating adds a helper line: never while the press that moved focus is still down
+  const handleRowBlur = useCallback(
+    (id: string) => whenPointerSettles(() => latest.current.touch(`steps.${id}`)),
+    [whenPointerSettles]
+  );
 
   const handleUploadingChange = useCallback((id: string, busy: boolean) => {
     latest.current.setUploading(`steps.${id}`, busy);

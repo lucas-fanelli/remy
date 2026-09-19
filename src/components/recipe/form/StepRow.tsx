@@ -11,6 +11,7 @@ import StepNumberBadge from './StepNumberBadge';
 import { StepRowValue } from './types';
 import { RegisterField, useFieldRef } from './useFieldRegistry';
 import { StepPatch } from './useRecipeForm';
+import { useRowIdRef } from './useRowFocus';
 import type { FocusEvent, KeyboardEvent } from 'react';
 
 export interface StepRowProps {
@@ -62,6 +63,7 @@ function StepRow({
 }: StepRowProps) {
   const position = index + 1;
   const path = `steps.${row.id}`;
+  const rowRef = useRowIdRef(row.id);
 
   const registerDescription = useFieldRef<HTMLTextAreaElement>(
     registerField,
@@ -85,7 +87,7 @@ function StepRow({
     <Box
       role="group"
       aria-label={`Step ${position}`}
-      data-row-id={row.id}
+      ref={rowRef}
       onBlur={handleBlur}
       sx={{
         display: 'flex',

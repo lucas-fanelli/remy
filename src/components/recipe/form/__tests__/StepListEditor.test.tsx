@@ -1,8 +1,9 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import StepListEditor, { StepListEditorProps } from '../StepListEditor';
 import { RecipeFormValuesInput } from '../types';
-import { renderEditor, renderWithTheme } from './editorHarness';
+import { renderEditor, renderWithTheme, settlePointer } from './editorHarness';
 import { makeValues, STEP_URL } from './fixtures';
 
 type EditorProps = Omit<StepListEditorProps, 'form' | 'registerField'>;
@@ -31,6 +32,11 @@ const step = (n: number) => screen.getByRole('textbox', { name: `Step ${n}` });
 const row = (n: number) => screen.getByRole('group', { name: `Step ${n}` });
 const addButton = () => screen.getByRole('button', { name: 'Add step' });
 const outside = () => screen.getByRole('button', { name: 'Outside' });
+/** Clicks outside the list and lets the deferred row validation land */
+const leaveRow = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(outside());
+  await settlePointer();
+};
 const stepTexts = () => screen.getAllByRole('textbox').map((box) => (box as any).value);
 
 /** A fetch response the test resolves when it wants the upload to finish */
@@ -395,7 +401,7 @@ describe('StepListEditor', () => {
       const { user } = renderList({}, emptyFirstStep());
       await user.click(step(1));
 
-      await user.click(outside());
+      await leaveRow(user);
 
       expect(step(1)).toHaveAttribute('aria-invalid', 'true');
       expect(step(1)).toHaveAccessibleDescription('Step 1 is empty - write it or remove it');
@@ -414,7 +420,7 @@ describe('StepListEditor', () => {
     it('should clear the error as soon as the step is written', async () => {
       const { user } = renderList({}, emptyFirstStep());
       await user.click(step(1));
-      await user.click(outside());
+      await leaveRow(user);
 
       await user.type(step(1), 'M');
 
