@@ -257,15 +257,22 @@ describe('ResetPasswordForm Component', () => {
       ['PASSWORD1', 'Password must contain at least one lowercase letter'],
       ['Passwordd', 'Password must contain at least one number'],
       [`Aa1${'x'.repeat(126)}`, 'Password must be at most 128 characters'],
-    ])('should reject "%s" under the password field without calling the API', async (pw, msg) => {
-      renderForm();
+    ])(
+      'should reject "%s" under the password field without calling the API',
+      async (pw, msg) => {
+        renderForm();
 
-      await fillAndSubmit(pw);
+        await fillAndSubmit(pw);
 
-      expect(screen.getByText(msg)).toBeInTheDocument();
-      expect(newPassword()).toHaveAttribute('aria-invalid', 'true');
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+        expect(screen.getByText(msg)).toBeInTheDocument();
+        expect(newPassword()).toHaveAttribute('aria-invalid', 'true');
+        expect(mockFetch).not.toHaveBeenCalled();
+      },
+      // The over-length case types 129 characters one keystroke at a time. Under `jest
+      // --coverage` that alone takes ~4.2s on an idle machine, so the 5s default left no
+      // room for the contention of a full parallel run.
+      20000
+    );
 
     it('should ask for a password when the field is empty', async () => {
       renderForm();

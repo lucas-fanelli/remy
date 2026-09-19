@@ -28,6 +28,13 @@ export const TEST_DEFAULT_LOCALE: Locale = 'en';
 
 let currentLocale: Locale = TEST_DEFAULT_LOCALE;
 
+/**
+ * What useNow() answers. It has to be STABLE across renders - that is what the real hook
+ * does when no update interval is configured - or a component with `[now]` in a dependency
+ * array would re-render forever. jest.setup.js takes a fresh one before each test.
+ */
+let currentNow = new Date();
+
 /** The locale every `useTranslations()` in the current test resolves against. */
 export function getTestLocale(): Locale {
   return currentLocale;
@@ -41,9 +48,10 @@ export function setTestLocale(locale: Locale): void {
   currentLocale = locale;
 }
 
-/** Back to English. jest.setup.js calls this itself, so tests rarely need to. */
+/** Back to English, with a fresh 'now'. jest.setup.js calls this before every test. */
 export function resetTestLocale(): void {
   currentLocale = TEST_DEFAULT_LOCALE;
+  currentNow = new Date();
 }
 
 /**
@@ -105,7 +113,7 @@ export function createNextIntlModuleMock() {
     useTranslations: (namespace?: string) => getTestTranslator(namespace),
     useLocale: () => currentLocale,
     useFormatter: () => getTestFormatter(),
-    useNow: () => new Date(),
+    useNow: () => currentNow,
     useTimeZone: () => TIME_ZONE,
     useMessages: () => getMessages(currentLocale),
     // The provider is a pass-through: the translator above is already bound to the locale,

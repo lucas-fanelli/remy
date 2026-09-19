@@ -12,11 +12,17 @@ import '@testing-library/jest-dom';
 //
 // next-intl and use-intl are ESM-only; `transpilePackages` in next.config.js is what makes
 // next/jest compile them instead of ignoring node_modules.
-jest.mock('next-intl', () => require('@/i18n/testing').createNextIntlModuleMock());
+// The factory runs the first time a test file reaches for next-intl, so the ~60 suites that
+// render nothing translated never pay for loading use-intl and every message file.
+let mockI18nHarness = null;
+jest.mock('next-intl', () => {
+  mockI18nHarness = require('@/i18n/testing');
+  return mockI18nHarness.createNextIntlModuleMock();
+});
 
 beforeEach(() => {
   // A test that switched to Spanish must not leak into the next one
-  require('@/i18n/testing').resetTestLocale();
+  if (mockI18nHarness) mockI18nHarness.resetTestLocale();
 });
 
 // Mock Next.js router
