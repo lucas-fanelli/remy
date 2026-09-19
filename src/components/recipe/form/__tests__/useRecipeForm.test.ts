@@ -683,6 +683,23 @@ describe('useRecipeForm', () => {
       );
     });
 
+    it('should hand the current steps to a replaceAll updater so a late photo survives', () => {
+      const { result } = renderCreate();
+      const [first] = result.current.values.steps;
+
+      act(() => {
+        // The photo arrives in the same batch, after the caller computed nothing yet
+        result.current.steps.update(first.id, { image: STEP_URL });
+        result.current.steps.replaceAll((current) =>
+          current.map((row) => ({ ...row, description: 'Mix' }))
+        );
+      });
+
+      expect(result.current.values.steps).toEqual([
+        { id: first.id, description: 'Mix', image: STEP_URL },
+      ]);
+    });
+
     it('should forget the touched state and errors of a removed row', () => {
       const { result } = renderCreate();
       act(() => {

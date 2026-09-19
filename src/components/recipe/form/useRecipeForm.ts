@@ -84,7 +84,12 @@ export interface StepListApi {
   update(id: string, patch: StepPatch): void;
   move(id: string, direction: -1 | 1): void;
   restore(row: StepRowValue, index: number): void;
-  replaceAll(rows: StepRowInput[]): void;
+  /**
+   * Pass a function to derive the new list from the CURRENT one inside the state update:
+   * a caller that carries ids and photos over (the text parser) then can not overwrite a
+   * photo that arrived between its render and the update.
+   */
+  replaceAll(rows: StepRowInput[] | ((current: StepRowValue[]) => StepRowInput[])): void;
 }
 
 export interface RecipeFormApi {
@@ -377,8 +382,13 @@ export function useRecipeForm({ initial, resetKey }: UseRecipeFormOptions): Reci
           return steps === prev.steps ? prev : { ...prev, steps };
         });
       },
-      replaceAll: (rows: StepRowInput[]) => {
-        applyValues((prev) => ({ ...prev, steps: rows.map((row) => createStepRow(row)) }));
+      replaceAll: (rows: StepRowInput[] | ((current: StepRowValue[]) => StepRowInput[])) => {
+        applyValues((prev) => ({
+          ...prev,
+          steps: (typeof rows === 'function' ? rows(prev.steps) : rows).map((row) =>
+            createStepRow(row)
+          ),
+        }));
       },
     }),
     [applyValues]

@@ -1,3 +1,4 @@
+import { Recipe } from '@/domain/types/recipe';
 import { RECIPE_LIMITS, UNIT_TO_TASTE } from '@/lib/constants';
 import {
   createEmptyValues,
@@ -270,6 +271,20 @@ describe('valuesFromRecipe', () => {
     const values = valuesFromRecipe(recipe);
 
     expect(values.ingredients[0].unit).toBe('pieces');
+  });
+
+  it('should read a stored ingredient whose amount is a number or whose fields are missing', () => {
+    const recipe = makeRecipe({
+      ingredients: [
+        { name: 'Spaghetti', amount: 400, unit: 'g' },
+        { name: 'Salt', amount: null, unit: undefined },
+      ] as unknown as Recipe['ingredients'],
+    });
+
+    const values = valuesFromRecipe(recipe);
+
+    expect(values.ingredients[0]).toMatchObject({ name: 'Spaghetti', amount: '400', unit: 'g' });
+    expect(values.ingredients[1]).toMatchObject({ name: 'Salt', amount: '', unit: '' });
   });
 
   it("should use '' for a missing caption and a missing step image", () => {

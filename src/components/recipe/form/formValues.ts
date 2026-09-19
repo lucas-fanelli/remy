@@ -116,6 +116,8 @@ export function hydrateValues(input: RecipeFormValuesInput): RecipeFormValues {
   };
 }
 
+const toText = (value: unknown): string => (value == null ? '' : String(value));
+
 /** Edit: a stored 'to taste' ingredient maps back to the named row without amount or unit */
 export function valuesFromRecipe(recipe: Recipe): RecipeFormValues {
   return hydrateValues({
@@ -127,11 +129,14 @@ export function valuesFromRecipe(recipe: Recipe): RecipeFormValues {
     cookingTime: recipe.cookingTime,
     servings: recipe.servings,
     difficulty: recipe.difficulty,
-    ingredients: recipe.ingredients.map(({ name, amount, unit }) => ({
-      name,
-      amount,
-      unit: unit === UNIT_TO_TASTE && amount.trim() === '' ? '' : unit,
-    })),
+    ingredients: recipe.ingredients.map((stored) => {
+      // The Json column also holds numeric amounts and missing fields (seeded and legacy
+      // recipes) and the repository only casts it: nothing here may assume three strings
+      const name = toText(stored.name);
+      const amount = toText(stored.amount);
+      const unit = toText(stored.unit);
+      return { name, amount, unit: unit === UNIT_TO_TASTE && amount.trim() === '' ? '' : unit };
+    }),
     steps: recipe.instructions.map(({ description, image }) => ({
       description,
       image: image ?? '',
