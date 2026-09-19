@@ -1,5 +1,6 @@
 import { defaultCache } from '@serwist/next/worker';
-import { Serwist } from 'serwist';
+import { NetworkOnly, Serwist } from 'serwist';
+import { isResetPasswordPath } from './lib/utils/resetLinkPrivacy';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 
 // Declare globals for Serwist
@@ -16,7 +17,15 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // The reset page's URL carries the token: defaultCache would store the
+    // document (and its RSC payloads) under that URL for a day. First match wins.
+    {
+      matcher: ({ url, sameOrigin }) => sameOrigin && isResetPasswordPath(url.pathname),
+      handler: new NetworkOnly(),
+    },
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {

@@ -16,7 +16,7 @@ export class UserService implements IUserService {
       return null;
     }
 
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, passwordChangedAt: _changedAt, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
@@ -26,7 +26,7 @@ export class UserService implements IUserService {
       return null;
     }
 
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, passwordChangedAt: _changedAt, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
@@ -53,7 +53,7 @@ export class UserService implements IUserService {
     }
 
     const user = await this.userRepository.update(userId, data);
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, passwordChangedAt: _changedAt, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
@@ -66,7 +66,7 @@ export class UserService implements IUserService {
     const users = await this.userRepository.findMany(skip, limit);
 
     return users.map((user) => {
-      const { password: _, ...userWithoutPassword } = user;
+      const { password: _, passwordChangedAt: _changedAt, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
   }
@@ -79,7 +79,7 @@ export class UserService implements IUserService {
     const users = await this.userRepository.search(query, limit, offset);
 
     return users.map((user) => {
-      const { password: _, ...userWithoutPassword } = user;
+      const { password: _, passwordChangedAt: _changedAt, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
   }

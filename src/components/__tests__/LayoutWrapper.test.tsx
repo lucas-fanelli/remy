@@ -71,6 +71,34 @@ describe('LayoutWrapper Component', () => {
     expect(screen.queryByTestId('navigation')).not.toBeInTheDocument();
   });
 
+  it.each(['/auth/forgot-password', '/auth/reset-password'])(
+    'should hide navigation on the %s page',
+    (pathname) => {
+      mockUsePathname.mockReturnValue(pathname);
+
+      render(
+        <LayoutWrapper>
+          <div>Content</div>
+        </LayoutWrapper>
+      );
+
+      expect(screen.queryByTestId('navigation')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('footer')).not.toBeInTheDocument();
+    }
+  );
+
+  it('should still show navigation on pages that merely start with /auth', () => {
+    mockUsePathname.mockReturnValue('/authors');
+
+    render(
+      <LayoutWrapper>
+        <div>Content</div>
+      </LayoutWrapper>
+    );
+
+    expect(screen.getByTestId('navigation')).toBeInTheDocument();
+  });
+
   it('should hide navigation on /login page', () => {
     mockUsePathname.mockReturnValue('/login');
 

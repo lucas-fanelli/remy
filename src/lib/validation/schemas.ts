@@ -1,6 +1,18 @@
 import { z } from 'zod';
+import { INVALID_RESET_TOKEN_MESSAGE } from '@/domain/errors';
+import { getPasswordErrors } from './passwordRules';
 
 // Authentication Schemas
+
+// Password rules shared by registration, change password and reset password.
+// The rules themselves live in passwordRules.ts so the client can show and check
+// the very same list without importing zod.
+export const passwordSchema = z.string().superRefine((password, ctx) => {
+  for (const message of getPasswordErrors(password)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  }
+});
+
 export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   username: z
@@ -8,12 +20,7 @@ export const registerSchema = z.object({
     .min(3, 'Username must be at least 3 characters')
     .max(30, 'Username must be at most 30 characters')
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number'),
+  password: passwordSchema,
   fullName: z.string().optional(),
 });
 
@@ -24,12 +31,28 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'Old password is required'),
-  newPassword: z
+  newPassword: passwordSchema,
+});
+
+export const forgotPasswordSchema = z.object({
+  emailOrUsername: z
     .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number'),
+    .trim()
+    .min(1, 'Email or username is required')
+    .max(254, 'Email or username is too long'),
+});
+
+export const resetPasswordSchema = z.object({
+  // A malformed token is just another invalid link: same generic message as an
+  // unknown, used or expired one, so the client shows its invalid-link state
+  token: z
+    .string({
+      required_error: INVALID_RESET_TOKEN_MESSAGE,
+      invalid_type_error: INVALID_RESET_TOKEN_MESSAGE,
+    })
+    .min(1, INVALID_RESET_TOKEN_MESSAGE)
+    .max(256, INVALID_RESET_TOKEN_MESSAGE),
+  password: passwordSchema,
 });
 
 // User Profile Schemas
@@ -80,6 +103,8 @@ export const searchSchema = z.object({
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
 export type SearchInput = z.infer<typeof searchSchema>;

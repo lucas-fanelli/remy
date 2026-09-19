@@ -3,6 +3,9 @@ import {
   registerSchema,
   loginSchema,
   changePasswordSchema,
+  forgotPasswordSchema,
+  passwordSchema,
+  resetPasswordSchema,
   updateProfileSchema,
   paginationSchema,
   searchSchema,
@@ -192,6 +195,137 @@ describe('Validation Schemas - Unit Tests', () => {
       };
 
       expect(() => changePasswordSchema.parse(invalidData)).toThrow();
+    });
+  });
+
+  describe('passwordSchema (shared by register, change password and reset password)', () => {
+    it('should accept a password that meets every rule', () => {
+      expect(passwordSchema.parse('Password1')).toBe('Password1');
+    });
+
+    it.each([
+      ['Ab1', 'Password must be at least 8 characters'],
+      [`Aa1${'x'.repeat(126)}`, 'Password must be at most 128 characters'],
+      ['password1', 'Password must contain at least one uppercase letter'],
+      ['PASSWORD1', 'Password must contain at least one lowercase letter'],
+      ['Passwordd', 'Password must contain at least one number'],
+    ])('should reject "%s"', (password, message) => {
+      const result = passwordSchema.safeParse(password);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.errors.map((e) => e.message)).toEqual([message]);
+    });
+
+    it('should accept a password of exactly 128 characters', () => {
+      expect(passwordSchema.safeParse(`Aa1${'x'.repeat(125)}`).success).toBe(true);
+    });
+
+    it('should report every broken rule, in rule order', () => {
+      const result = passwordSchema.safeParse('weak');
+
+      expect(result.error?.errors.map((e) => e.message)).toEqual([
+        'Password must be at least 8 characters',
+        'Password must contain at least one uppercase letter',
+        'Password must contain at least one number',
+      ]);
+    });
+
+    it('should reject values that are not strings', () => {
+      expect(passwordSchema.safeParse(12345678).success).toBe(false);
+    });
+
+    it.each(['Ab1', 'password1', 'PASSWORD1', 'Passwordd'])(
+      'should apply the same rules to registration, change password and reset for "%s"',
+      (password) => {
+        const register = registerSchema.safeParse({
+          email: 'a@example.com',
+          username: 'chef',
+          password,
+        });
+        const change = changePasswordSchema.safeParse({ oldPassword: 'x', newPassword: password });
+        const reset = resetPasswordSchema.safeParse({ token: 't', password });
+
+        const messages = (r: typeof register | typeof change | typeof reset) =>
+          r.success ? [] : r.error.errors.map((e) => e.message);
+        expect(messages(register)).toEqual(messages(reset));
+        expect(messages(change)).toEqual(messages(reset));
+        expect(messages(reset).length).toBeGreaterThan(0);
+      }
+    );
+  });
+
+  describe('forgotPasswordSchema', () => {
+    it('should accept an email or a username', () => {
+      expect(forgotPasswordSchema.parse({ emailOrUsername: 'chef@example.com' })).toEqual({
+        emailOrUsername: 'chef@example.com',
+      });
+      expect(forgotPasswordSchema.parse({ emailOrUsername: 'chef' })).toEqual({
+        emailOrUsername: 'chef',
+      });
+    });
+
+    it('should trim surrounding whitespace', () => {
+      expect(forgotPasswordSchema.parse({ emailOrUsername: '  chef  ' })).toEqual({
+        emailOrUsername: 'chef',
+      });
+    });
+
+    it('should reject a blank identifier', () => {
+      expect(() => forgotPasswordSchema.parse({ emailOrUsername: '   ' })).toThrow(ZodError);
+    });
+
+    it('should reject a missing identifier', () => {
+      expect(() => forgotPasswordSchema.parse({})).toThrow(ZodError);
+    });
+
+    it('should reject an identifier longer than 254 characters', () => {
+      expect(() => forgotPasswordSchema.parse({ emailOrUsername: 'a'.repeat(255) })).toThrow(
+        ZodError
+      );
+    });
+  });
+
+  describe('resetPasswordSchema', () => {
+    it('should accept a token and a valid password', () => {
+      const data = { token: 'raw-token', password: 'Password1' };
+
+      expect(resetPasswordSchema.parse(data)).toEqual(data);
+    });
+
+    it('should reject a missing token', () => {
+      expect(() => resetPasswordSchema.parse({ password: 'Password1' })).toThrow(ZodError);
+    });
+
+    it('should reject an empty token', () => {
+      expect(() => resetPasswordSchema.parse({ token: '', password: 'Password1' })).toThrow(
+        ZodError
+      );
+    });
+
+    it('should reject an absurdly long token', () => {
+      expect(() =>
+        resetPasswordSchema.parse({ token: 'a'.repeat(257), password: 'Password1' })
+      ).toThrow(ZodError);
+    });
+
+    it('should reject a weak password', () => {
+      expect(() => resetPasswordSchema.parse({ token: 'raw-token', password: 'weak' })).toThrow(
+        ZodError
+      );
+    });
+
+    it.each([
+      ['missing', undefined],
+      ['empty', ''],
+      ['too long', 'a'.repeat(257)],
+      ['not a string', 42],
+    ])('should use the generic invalid-link message for a %s token', (_case, token) => {
+      const result = resetPasswordSchema.safeParse({ token, password: 'Password1' });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.errors.map((e) => e.message)).toEqual([
+        'This reset link is invalid or has expired',
+      ]);
     });
   });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifySessionToken } from '@/lib/api/auth';
 import { uploadToCloudinary } from '@/lib/cloudinary';
-import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractAuthToken } from '@/lib/utils/auth';
 import { cleanupCloudinaryImage } from '@/lib/utils/cloudinary-cleanup';
@@ -19,8 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
+    const payload = await verifySessionToken(token);
 
     if (!payload) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
