@@ -2,7 +2,6 @@
   "title": "Comentarios ({count, number})",
   "form": {
     "placeholder": "Contá qué te pareció esta receta...",
-    "rate": "Puntuá esta receta:",
     "submit": "Publicar",
     "previewAlt": "Vista previa"
   },
@@ -14,9 +13,7 @@
   "creatorBadge": "Autor",
   "recently": "hace poco",
   "photoAlt": "Foto de {username}",
-  "edit": {
-    "ratingLabel": "Puntuación:"
-  },
+  "edit": {},
   "deleteDialog": {
     "title": "¿Eliminar el comentario seleccionado?",
     "message": "El comentario se va a borrar de tu cuenta y de todos los dispositivos sincronizados"

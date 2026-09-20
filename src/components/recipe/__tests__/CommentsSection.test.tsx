@@ -388,14 +388,11 @@ describe('CommentsSection Component', () => {
       expect(commentInput).toHaveValue('');
     });
 
-    it('should submit comment with rating', async () => {
+    it('should post a comment without sending any rating', async () => {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({ token: null, user: testUser });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [] }),
-      });
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [] }) });
 
       renderWithProviders(<CommentsSection recipeId="recipe1" />);
 
@@ -403,41 +400,36 @@ describe('CommentsSection Component', () => {
         expect(screen.getByText(/comments/i)).toBeInTheDocument();
       });
 
-      const commentInput = screen.getByPlaceholderText(/share your thoughts/i);
-      const postButton = screen.getByRole('button', { name: /post/i });
-
-      // Find and click 4-star rating
-      const ratingInputs = screen.getAllByRole('radio', { hidden: true });
-      const fourStarRating = ratingInputs.find((input) => input.getAttribute('value') === '4');
-      if (fourStarRating) {
-        fireEvent.click(fourStarRating);
-      }
+      // There are no stars in this form any more. Rating a recipe is its own control on
+      // the recipe page, so commenting cannot carry a score with it.
+      expect(screen.queryAllByRole('radio', { hidden: true })).toHaveLength(0);
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           comment: {
             id: 'new-comment-2',
-            text: 'Great recipe with rating!',
-            rating: 4,
+            text: 'Great recipe!',
             createdAt: new Date().toISOString(),
             user: testUser,
           },
         }),
       });
 
-      fireEvent.change(commentInput, { target: { value: 'Great recipe with rating!' } });
-      fireEvent.click(postButton);
+      fireEvent.change(screen.getByPlaceholderText(/share your thoughts/i), {
+        target: { value: 'Great recipe!' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /post/i }));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
           '/api/recipes/recipe1/comments',
-          expect.objectContaining({
-            method: 'POST',
-            body: expect.stringContaining('"rating":4'),
-          })
+          expect.objectContaining({ method: 'POST' })
         );
       });
+
+      const body = mockFetch.mock.calls.at(-1)?.[1]?.body ?? '';
+      expect(body).not.toContain('rating');
     });
 
     it('should handle comment submission error', async () => {
@@ -1427,68 +1419,6 @@ describe('CommentsSection Component', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle rating change in edit mode - line 434', async () => {
-      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({
-        token: null,
-        user: testUser,
-      });
-
-      const userComment = {
-        id: '6',
-        text: 'Comment with rating',
-        rating: 4,
-        createdAt: new Date().toISOString(),
-        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [userComment] }),
-      });
-
-      renderWithProviders(<CommentsSection recipeId="recipe1" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Comment with rating')).toBeInTheDocument();
-      });
-
-      // Open menu - find by MoreVertIcon
-      const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
-      });
-      expect(moreButton).toBeDefined();
-      if (moreButton) {
-        fireEvent.click(moreButton);
-      }
-
-      // Click edit option
-      await waitFor(() => {
-        const menuItems = screen.getAllByRole('menuitem');
-        if (menuItems.length > 0) {
-          fireEvent.click(menuItems[0]);
-        }
-      });
-
-      // Find and change rating
-      await waitFor(() => {
-        const ratingInputs = screen.getAllByRole('radio');
-        // Rating component renders 5 radio buttons (one for each star)
-        if (ratingInputs.length >= 5) {
-          // Click the 5th star to set rating to 5
-          fireEvent.click(ratingInputs[4]);
-        }
-      });
-
-      // Verify we're still in edit mode by checking for the edit textbox
-      await waitFor(() => {
-        const textInput = screen.getByDisplayValue('Comment with rating');
-        expect(textInput).toBeInTheDocument();
-      });
-    });
-
     it('should close menu when clicking a menu item - line 488', async () => {
       const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
       mockUseAuth.mockReturnValue({
@@ -2124,113 +2054,6 @@ describe('CommentsSection Component', () => {
         await waitFor(() => {
           expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
         });
-      }
-    });
-
-    it('should change edit rating when clicking rating stars - line 554', async () => {
-      const localTestUser = { id: 'user123', username: 'testuser', avatar: '/avatar.jpg' };
-      mockUseAuth.mockReturnValue({ token: null, user: localTestUser });
-
-      const existingComment = {
-        id: 'comment1',
-        text: 'Test comment for rating edit',
-        rating: 3,
-        createdAt: new Date().toISOString(),
-        user: { id: 'user123', username: 'testuser', avatar: '/avatar.jpg' },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [existingComment] }),
-      });
-
-      renderWithProviders(<CommentsSection recipeId="recipe1" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Test comment for rating edit')).toBeInTheDocument();
-      });
-
-      // Open menu
-      const moreButtons = screen
-        .getAllByRole('button')
-        .filter((btn) => btn.querySelector('[data-testid="MoreVertIcon"]'));
-      if (moreButtons.length > 0) {
-        fireEvent.click(moreButtons[0]);
-
-        await waitFor(() => {
-          expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
-        });
-
-        // Click Edit
-        const editMenuItem = screen.getByText('Edit');
-        fireEvent.click(editMenuItem);
-
-        // Wait for edit mode with rating
-        await waitFor(() => {
-          expect(screen.getByText('Rating:')).toBeInTheDocument();
-        });
-
-        // Find the rating component in edit mode and click a star
-        const ratingLabels = document.querySelectorAll('.MuiRating-label');
-        if (ratingLabels.length > 0) {
-          // Click on the 5th star to change rating from 3 to 5
-          const fifthStar = ratingLabels[4] as HTMLElement;
-          if (fifthStar) {
-            const input = fifthStar.querySelector('input');
-            if (input) {
-              fireEvent.click(input);
-            }
-          }
-        }
-      }
-    });
-
-    it('should trigger Rating onChange via value change - line 615', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [{ ...mockComment, rating: 3 }], total: 1 }),
-      });
-
-      mockUseAuth.mockReturnValue({
-        user: { id: 'user1', username: 'testuser' },
-        token: null,
-      });
-
-      renderWithProviders(<CommentsSection recipeId="1" />);
-
-      // Wait for comment to load
-      await waitFor(() => {
-        expect(screen.getByText('Great recipe!')).toBeInTheDocument();
-      });
-
-      // Open menu
-      const moreButtons = screen
-        .getAllByRole('button')
-        .filter((btn) => btn.querySelector('[data-testid="MoreVertIcon"]'));
-
-      if (moreButtons.length > 0) {
-        fireEvent.click(moreButtons[0]);
-
-        await waitFor(() => {
-          expect(screen.getAllByRole('menuitem').length).toBeGreaterThan(0);
-        });
-
-        // Click Edit
-        const editMenuItem = screen.getByText('Edit');
-        fireEvent.click(editMenuItem);
-
-        // Wait for edit mode and Rating component
-        await waitFor(() => {
-          expect(screen.getByText('Rating:')).toBeInTheDocument();
-        });
-
-        // Find the rating inputs and simulate onChange event directly
-        const ratingInputs = document.querySelectorAll('input[name="rating"]');
-        if (ratingInputs.length > 0) {
-          // Directly fire change event with new value to trigger line 615
-          const lastInput = ratingInputs[ratingInputs.length - 1] as HTMLInputElement;
-          fireEvent.change(lastInput, { target: { value: '5' } });
-        }
       }
     });
   });

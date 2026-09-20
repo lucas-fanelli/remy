@@ -44,7 +44,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       prisma.comment.count({ where: { postId: recipeId } }),
     ]);
 
-    // Get ratings for all users who commented
+    // Each commenter's score for this recipe, shown beside what they wrote. It is read
+    // from Rating, never stored on the comment — one person has one score per recipe
+    // however many times they comment.
     const ratings = await prisma.rating.findMany({
       where: {
         postId: recipeId,
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 400 }
       );
     }
-    const { text, rating, imageUrl } = body;
+    const { text, imageUrl } = body;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json(
@@ -114,14 +116,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (text.length > MAX_COMMENT_LENGTH) {
       return NextResponse.json(
         { error: 'Comment text must be 5000 characters or less', code: 'comment.textTooLong' },
-        { status: 400 }
-      );
-    }
-
-    // Validate rating if provided
-    if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
-      return NextResponse.json(
-        { error: 'Rating must be an integer between 1 and 5', code: 'comment.invalidRating' },
         { status: 400 }
       );
     }
@@ -141,9 +135,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         throw new Error('RECIPE_NOT_FOUND');
       }
 
-      // Lock the Post row to prevent concurrent rating aggregation races
-      await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${recipeId} FOR UPDATE`;
-
       const newComment = await tx.comment.create({
         data: {
           text: striptags(text.trim()),
@@ -162,43 +153,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       });
 
-      if (rating !== undefined) {
-        await tx.rating.upsert({
-          where: {
-            userId_postId: {
-              userId: user.id,
-              postId: recipeId,
-            },
-          },
-          create: {
-            userId: user.id,
-            postId: recipeId,
-            rating,
-          },
-          update: {
-            rating,
-          },
-        });
-
-        const ratingAggregation = await tx.rating.aggregate({
-          where: { postId: recipeId },
-          _avg: { rating: true },
-          _count: { rating: true },
-        });
-
-        await tx.post.update({
-          where: { id: recipeId },
-          data: {
-            // Use null when no ratings exist so unrated recipes are distinguishable from 0-rated
-            averageRating:
-              ratingAggregation._avg.rating != null
-                ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                : undefined,
-            reviewCount: ratingAggregation._count.rating ?? 0,
-          },
-        });
-      }
-
       return { comment: newComment, recipeAuthorId: recipe.userId };
     });
 
@@ -215,14 +169,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       logServerError('Failed to create comment notification:', notifError);
     }
 
-    // Add rating to comment object for response
-    const commentWithRating = {
-      ...comment,
-      rating: rating || null,
-    };
-
+    // No rating here: the score is its own thing now, at PUT /api/recipes/[id]/rating.
+    // A reader who has rated the recipe still has their score shown beside this comment
+    // when the list is fetched — it is read from their Rating, not carried by the comment.
     return NextResponse.json({
-      comment: commentWithRating,
+      comment,
       message: 'Comment added successfully',
     });
   } catch (error) {

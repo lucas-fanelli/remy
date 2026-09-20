@@ -5,10 +5,11 @@
   },
   "meta": {
     "difficulty": "{level, select, easy {easy} medium {medium} hard {hard} other {{level}}}",
+    "noRatings": "No ratings yet",
+    "ratingSummary": "{average} ({count, plural, one {# review} other {# reviews}})",
     "servings": "{count, plural, one {# serving} other {# servings}}",
     "totalTime": "{minutes, number} min total",
-    "noRatings": "No ratings yet",
-    "ratingSummary": "{average} ({count, plural, one {# review} other {# reviews}})"
+    "yourRating": "Your rating"
   },
   "times": {
     "prep": "PREP TIME",
@@ -24,6 +25,7 @@
     "stepAlt": "Step {number, number}"
   },
   "actions": {
+    "clearRating": "Clear",
     "cookAgain": "Cook again",
     "cookedOnce": "You cooked this once",
     "cookedTimes": "You cooked this {count} times",
@@ -53,6 +55,9 @@
     "loginToCook": "Please login to mark recipes as cooked",
     "loginToLike": "Please login to like recipes",
     "loginToSave": "Please login to save recipes",
+    "rated": "Rating saved",
+    "ratingCleared": "Rating removed",
+    "ratingFailed": "Could not save your rating",
     "saveFailed": "Failed to save recipe",
     "saved": "Recipe saved!",
     "undoFailed": "Could not undo that",
