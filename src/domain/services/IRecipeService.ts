@@ -16,6 +16,18 @@ export interface IRecipeService {
   getRecipeById(id: string): Promise<Recipe | null>;
 
   /**
+   * Get a recipe as a particular viewer sees it.
+   *
+   * Returns 'private' when the author keeps a private profile and the viewer is someone
+   * else — the same rule every list endpoint applies by filtering those recipes out.
+   * Pass null for a signed-out visitor.
+   */
+  getRecipeForViewer(
+    id: string,
+    viewerId: string | null
+  ): Promise<{ status: 'ok'; recipe: Recipe } | { status: 'notFound' } | { status: 'private' }>;
+
+  /**
    * Get recipes by user
    */
   getUserRecipes(userId: string, limit?: number, offset?: number): Promise<Recipe[]>;

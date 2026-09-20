@@ -29,13 +29,14 @@ jest.mock('@/lib/utils/auth', () => ({
 
 jest.mock('@/lib/api/auth', () => ({
   requireAuth: jest.fn(),
+  getCurrentUser: jest.fn(),
 }));
 
 jest.mock('@/lib/cloudinary', () => ({
   deleteFromCloudinary: jest.fn(),
 }));
 
-import { requireAuth } from '@/lib/api/auth';
+import { getCurrentUser, requireAuth } from '@/lib/api/auth';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractAuthToken } from '@/lib/utils/auth';
@@ -51,6 +52,7 @@ const mockTokenService = {
 const mockRecipeService = {
   createRecipe: jest.fn(),
   getRecipeById: jest.fn(),
+  getRecipeForViewer: jest.fn(),
   getUserRecipes: jest.fn(),
   searchRecipes: jest.fn(),
   updateRecipe: jest.fn(),
@@ -325,6 +327,96 @@ describe('POST /api/recipes', () => {
     // Assert
     expect(response.status).toBe(400);
     expect(body.error).toBe('Image must be uploaded through the app');
+  });
+});
+
+describe('GET /api/recipes/[id]', () => {
+  const recipe = { id: VALID_UUID, title: 'Chocotorta', averageRating: 4.5, totalRatings: 2 };
+  const params = Promise.resolve({ id: VALID_UUID });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (container.getRecipeService as jest.Mock).mockReturnValue(mockRecipeService);
+    (getCurrentUser as jest.Mock).mockResolvedValue(null);
+  });
+
+  it('should return the recipe when it is public', async () => {
+    // Arrange
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe });
+
+    // Act
+    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
+      params,
+    });
+    const body = await response.json();
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect(body.recipe.title).toBe('Chocotorta');
+  });
+
+  it('should pass the signed-in viewer so the author can read their own recipe', async () => {
+    // Arrange
+    (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'author-1' });
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe });
+
+    // Act
+    await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });
+
+    // Assert
+    expect(mockRecipeService.getRecipeForViewer).toHaveBeenCalledWith(VALID_UUID, 'author-1');
+  });
+
+  it('should pass null for a signed-out visitor', async () => {
+    // Arrange
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe });
+
+    // Act
+    await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });
+
+    // Assert
+    expect(mockRecipeService.getRecipeForViewer).toHaveBeenCalledWith(VALID_UUID, null);
+  });
+
+  // The direct link used to bypass the privacy rule every list endpoint applies
+  it('should refuse a recipe whose author keeps a private profile', async () => {
+    // Arrange
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'private' });
+
+    // Act
+    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
+      params,
+    });
+    const body = await response.json();
+
+    // Assert
+    expect(response.status).toBe(403);
+    expect(body.error).toBe('This profile is private');
+    expect(body.recipe).toBeUndefined();
+  });
+
+  it('should return 404 when the recipe does not exist', async () => {
+    // Arrange
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'notFound' });
+
+    // Act
+    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
+      params,
+    });
+
+    // Assert
+    expect(response.status).toBe(404);
+  });
+
+  it('should return 400 for a malformed id without asking the service', async () => {
+    // Act
+    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
+      params: Promise.resolve({ id: 'not-a-uuid' }),
+    });
+
+    // Assert
+    expect(response.status).toBe(400);
+    expect(mockRecipeService.getRecipeForViewer).not.toHaveBeenCalled();
   });
 });
 

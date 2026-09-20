@@ -1,6 +1,6 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, waitFor, act, configure } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, configure, within } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -343,8 +343,7 @@ describe('Navigation Component', () => {
     // Wait for the notifications fetch to complete
     await waitFor(() => {
       // The badge should be present (even if count is 0, Badge component is still there)
-      const heartIcons = screen.getAllByTestId('FavoriteBorderIcon');
-      expect(heartIcons.length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('button', { name: /notifications/i }).length).toBeGreaterThan(0);
     });
   });
 
@@ -547,8 +546,7 @@ describe('Navigation Component', () => {
       renderWithProviders(<Navigation />);
 
       await waitFor(() => {
-        const heartIcons = screen.getAllByTestId('FavoriteBorderIcon');
-        expect(heartIcons.length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('button', { name: /notifications/i }).length).toBeGreaterThan(0);
       });
     });
   });
@@ -760,9 +758,7 @@ describe('Navigation Component', () => {
 
       // Wait for the notifications fetch to complete
       await waitFor(() => {
-        // Should show notification heart icon
-        const heartIcons = screen.getAllByTestId('FavoriteBorderIcon');
-        expect(heartIcons.length).toBeGreaterThan(0);
+        expect(screen.getAllByRole('button', { name: /notifications/i }).length).toBeGreaterThan(0);
       });
     });
 
@@ -998,10 +994,7 @@ describe('Navigation Component', () => {
       });
 
       // Find and click the notifications button (heart icon)
-      const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="FavoriteBorderIcon"]')
-      );
+      const notificationButton = screen.getAllByRole('button', { name: /notifications/i })[0];
 
       expect(notificationButton).toBeInTheDocument();
       fireEvent.click(notificationButton!);
@@ -1035,19 +1028,16 @@ describe('Navigation Component', () => {
         expect(mockFetch).toHaveBeenCalled();
       });
 
-      const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="FavoriteBorderIcon"]')
-      );
+      const notificationButton = screen.getAllByRole('button', { name: /notifications/i })[0];
 
       fireEvent.click(notificationButton!);
 
       await waitFor(() => {
         // Check for PersonAdd icon (follow)
         expect(screen.getByTestId('PersonAddIcon')).toBeInTheDocument();
-        // Check for FavoriteBorder icon (like)
-        const favoriteIcons = screen.getAllByTestId('FavoriteBorderIcon');
-        expect(favoriteIcons.length).toBeGreaterThan(1);
+        // The like notification still uses a heart; the header button no longer does,
+        // so the list is the only source of them now
+        expect(screen.getAllByTestId('FavoriteBorderIcon').length).toBeGreaterThan(0);
         // Check for ChatBubbleOutline icon (comment)
         expect(screen.getByTestId('ChatBubbleOutlineIcon')).toBeInTheDocument();
         // Check for Star icon (rating)
@@ -1076,10 +1066,7 @@ describe('Navigation Component', () => {
         expect(mockFetch).toHaveBeenCalled();
       });
 
-      const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="FavoriteBorderIcon"]')
-      );
+      const notificationButton = screen.getAllByRole('button', { name: /notifications/i })[0];
 
       fireEvent.click(notificationButton!);
 
@@ -1120,10 +1107,7 @@ describe('Navigation Component', () => {
         expect(mockFetch).toHaveBeenCalled();
       });
 
-      const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="FavoriteBorderIcon"]')
-      );
+      const notificationButton = screen.getAllByRole('button', { name: /notifications/i })[0];
 
       fireEvent.click(notificationButton!);
 
@@ -1163,10 +1147,7 @@ describe('Navigation Component', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
       });
 
-      const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="FavoriteBorderIcon"]')
-      );
+      const notificationButton = screen.getAllByRole('button', { name: /notifications/i })[0];
 
       fireEvent.click(notificationButton!);
 
@@ -1208,10 +1189,7 @@ describe('Navigation Component', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
       });
 
-      const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="FavoriteBorderIcon"]')
-      );
+      const notificationButton = screen.getAllByRole('button', { name: /notifications/i })[0];
 
       fireEvent.click(notificationButton!);
 
@@ -1261,10 +1239,7 @@ describe('Navigation Component', () => {
         expect(mockFetch).toHaveBeenCalled();
       });
 
-      const buttons = screen.getAllByRole('button');
-      const notificationButton = buttons.find((btn) =>
-        btn.querySelector('[data-testid="FavoriteBorderIcon"]')
-      );
+      const notificationButton = screen.getAllByRole('button', { name: /notifications/i })[0];
 
       fireEvent.click(notificationButton!);
 
@@ -1461,17 +1436,41 @@ describe('Navigation Component', () => {
       expect(mockOpenCreate).toHaveBeenCalledTimes(1);
     });
 
-    it('should open the editor from the mobile drawer', async () => {
+    // The drawer used to repeat the bottom bar's four destinations, so 'New recipe' was
+    // reachable from both. It is an account menu now: the bottom bar owns the navigation.
+    it('should not repeat the bottom bar destinations in the mobile drawer', async () => {
       setViewport(true);
+      mockUseAuth.mockReturnValue(authenticated());
+      renderWithProviders(<Navigation />);
+      const menuButton = screen
+        .getAllByRole('button')
+        .find((button) => button.querySelector('[data-testid="MenuIcon"]'));
+
+      fireEvent.click(menuButton!);
+
+      // The drawer is the presentation element that holds the account header
+      const drawer = (await screen.findAllByRole('presentation')).find((el) =>
+        within(el).queryByText('Settings')
+      );
+      expect(drawer).toBeDefined();
+      for (const destination of ['New recipe', 'Home', 'Search', 'Pantry']) {
+        expect(within(drawer!).queryByText(destination)).not.toBeInTheDocument();
+      }
+    });
+
+    it('should open your profile from the drawer account header', async () => {
+      // The header looked tappable but only did anything for signed-OUT visitors
+      setViewport(true);
+      mockUseAuth.mockReturnValue(authenticated());
       renderWithProviders(<Navigation />);
       const menuButton = screen
         .getAllByRole('button')
         .find((button) => button.querySelector('[data-testid="MenuIcon"]'));
       fireEvent.click(menuButton!);
 
-      fireEvent.click(await screen.findByText('New recipe'));
+      fireEvent.click(await screen.findByText('View profile'));
 
-      expect(mockOpenCreate).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith('/profile/testuser');
     });
 
     it('should take the recipe draft of the user along on a deliberate logout', async () => {
@@ -1614,17 +1613,17 @@ describe('Navigation Component', () => {
         expect(listItems.length).toBeGreaterThan(0);
       });
 
-      // Find the Home nav item in the drawer
-      const allButtons = screen.getAllByRole('button');
-      // Home button should be one of them containing "Home" text
-      const homeButton = allButtons.find((btn) => btn.textContent?.includes('Home'));
-      expect(homeButton).toBeDefined();
+      // 'About' rather than 'Home': the drawer no longer repeats the bottom bar's
+      // destinations, so its navigation items are the account and app ones
+      const aboutButton = screen
+        .getAllByRole('button')
+        .find((btn) => btn.textContent?.includes('About'));
+      expect(aboutButton).toBeDefined();
 
-      // Click the Home navigation button which should trigger handleTabClick and setDrawerOpen(false)
-      fireEvent.click(homeButton!);
+      // Navigating from the drawer also closes it
+      fireEvent.click(aboutButton!);
 
-      // Verify navigation was called (may be called multiple times, check it was called)
-      expect(mockPush).toHaveBeenCalled();
+      expect(mockPush).toHaveBeenCalledWith('/about');
     });
 
     it('should navigate to settings and close drawer when Settings clicked - line 864-865', async () => {
@@ -2019,12 +2018,10 @@ describe('Navigation Component', () => {
         expect(screen.getByText('Guest')).toBeInTheDocument();
       });
 
-      // Click on the Guest list item (which should trigger navigation)
-      const guestItem = screen.getByText('Guest').closest('li');
-      if (guestItem) {
-        fireEvent.click(guestItem);
-        expect(mockPush).toHaveBeenCalledWith('/auth');
-      }
+      // The account header is a button now, so click the button rather than the <li>
+      fireEvent.click(screen.getByText('Guest').closest('[role="button"]')!);
+
+      expect(mockPush).toHaveBeenCalledWith('/auth');
     });
   });
 

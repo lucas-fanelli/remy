@@ -27,21 +27,18 @@ import React from 'react';
 import { BRANDING } from '@/config/branding';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 
-interface NavItem {
-  id: string;
-  icon: React.ElementType;
-  activeIcon: React.ElementType;
-  label: string;
-}
-
+/**
+ * The drawer is the ACCOUNT menu, not a second copy of the navigation. Home, Search,
+ * New recipe and Pantry live in the bottom bar, one thumb away; repeating them here was
+ * the duplication that made the menu feel redundant. What belongs here is everything the
+ * bottom bar has no room for: who you are, your own profile, and the app's settings.
+ */
 interface MobileDrawerProps {
   open: boolean;
   onClose: () => void;
   user: { username?: string; avatar?: string | null } | null;
   isAdmin: boolean;
   mode: 'light' | 'dark';
-  mobileNavItems: NavItem[];
-  onTabClick: (tabId: string) => void;
   onToggleTheme: () => void;
   onLogout: () => void;
   onNavigate: (path: string) => void;
@@ -53,8 +50,6 @@ export default function MobileDrawer({
   user,
   isAdmin,
   mode,
-  mobileNavItems,
-  onTabClick,
   onToggleTheme,
   onLogout,
   onNavigate,
@@ -83,52 +78,36 @@ export default function MobileDrawer({
       >
         {/* Main content */}
         <List>
-          <ListItem
-            sx={{ py: 2, cursor: !user ? 'pointer' : 'default' }}
-            onClick={
-              !user
-                ? () => {
-                    onNavigate('/auth');
-                    onClose();
-                  }
-                : undefined
-            }
-          >
-            <ListItemIcon>
-              <Avatar
-                src={user?.avatar || undefined}
-                sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }}
-              >
-                {user ? user.username?.charAt(0).toUpperCase() : '?'}
-              </Avatar>
-            </ListItemIcon>
-            <ListItemText
-              primary={user?.username || t('menu.guest')}
-              secondary={user ? `@${user.username}` : t('menu.tapToSignIn')}
-              primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-              secondaryTypographyProps={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
-            />
+          {/* Tapping your own name and avatar goes to your profile — the affordance was
+              wired for signed-OUT visitors only, so signed-in users had a header that
+              looked tappable and did nothing. No separate "Profile" row: the bottom bar
+              already has one, and repeating destinations here is what made this menu
+              feel redundant in the first place. */}
+          <ListItem disablePadding>
+            <ListItemButton
+              sx={{ py: 2 }}
+              onClick={() => {
+                onNavigate(user?.username ? `/profile/${user.username}` : '/auth');
+                onClose();
+              }}
+            >
+              <ListItemIcon>
+                <Avatar
+                  src={user?.avatar || undefined}
+                  sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }}
+                >
+                  {user ? user.username?.charAt(0).toUpperCase() : '?'}
+                </Avatar>
+              </ListItemIcon>
+              <ListItemText
+                primary={user?.username || t('menu.guest')}
+                secondary={user ? t('menu.viewProfile') : t('menu.tapToSignIn')}
+                primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
+                secondaryTypographyProps={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+              />
+            </ListItemButton>
           </ListItem>
           <Divider />
-          {mobileNavItems.map((item) => (
-            <ListItem key={item.id} disablePadding>
-              <ListItemButton
-                onClick={() => {
-                  onTabClick(item.id);
-                  onClose();
-                }}
-                sx={{ py: { xs: 1.5, sm: 2 } }}
-              >
-                <ListItemIcon>
-                  <item.icon sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
         </List>
 
         {/* Spacer to push bottom section down */}

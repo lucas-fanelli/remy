@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ForbiddenError, NotFoundError, ValidationError } from '@/domain/errors';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
-import { requireAuth } from '@/lib/api/auth';
+import { getCurrentUser, requireAuth } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import { cleanupCloudinaryImage } from '@/lib/utils/cloudinary-cleanup';
@@ -24,15 +24,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    const recipeService = container.getRecipeService();
-    const recipe = await recipeService.getRecipeById(id);
+    // Optional auth: anyone may read a public recipe, but a private author's recipe is
+    // only theirs to read. Every list endpoint filters those out; without this the direct
+    // link was a way around it.
+    const viewer = await getCurrentUser(request);
 
-    if (!recipe) {
+    const recipeService = container.getRecipeService();
+    const result = await recipeService.getRecipeForViewer(id, viewer?.id ?? null);
+
+    if (result.status === 'notFound') {
       return NextResponse.json(
         { error: 'Recipe not found', code: 'recipe.notFound' },
         { status: 404 }
       );
     }
+
+    if (result.status === 'private') {
+      return NextResponse.json(
+        { error: 'This profile is private', code: 'user.profilePrivate' },
+        { status: 403 }
+      );
+    }
+
+    const { recipe } = result;
 
     // Use cached rating values from the post record
     return NextResponse.json({
