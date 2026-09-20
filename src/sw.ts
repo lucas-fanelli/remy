@@ -24,6 +24,15 @@ const serwist = new Serwist({
       matcher: ({ url, sameOrigin }) => sameOrigin && isResetPasswordPath(url.pathname),
       handler: new NetworkOnly(),
     },
+    // API responses are per-user — the feed says which recipes YOU liked, /auth/me says who
+    // you are — but defaultCache's `apis` entry keys them by URL alone and keeps them for a
+    // day. On a shared device the next person to open the app was served the previous
+    // person's answers, hearts and all, from a cache that logging out never touched.
+    // Nothing here is cacheable across readers, so nothing here is cached.
+    {
+      matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/api/'),
+      handler: new NetworkOnly(),
+    },
     ...defaultCache,
   ],
   fallbacks: {

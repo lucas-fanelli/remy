@@ -262,6 +262,13 @@ export async function middleware(request: NextRequest) {
 
   // Apply rate limiting to API routes only
   if (request.nextUrl.pathname.startsWith('/api')) {
+    // Every API response is written for one reader: the feed says which recipes THEY liked,
+    // the profile says whether THEY follow you. None of it may be held by a shared cache —
+    // a proxy, a CDN, or the browser's own — and `Vary: Cookie` keeps anything that ignores
+    // the first header from serving one session's answer to another's request.
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+    response.headers.set('Vary', 'Cookie');
+
     // Skip rate limiting for health check routes
     if (request.nextUrl.pathname === '/api/health' || request.nextUrl.pathname === '/api/ready') {
       return response;

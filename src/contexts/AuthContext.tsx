@@ -203,6 +203,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // In tests without QueryClientProvider, getQueryClient() may throw.
     }
 
+    // Clearing the in-memory query cache is not enough: the service worker used to keep a
+    // disk cache named 'apis' that outlived the session entirely, so the next person to
+    // open the app on this device was served the previous one's feed, hearts included.
+    // New installs no longer write to it — this clears what old ones left behind, and is
+    // the reason a device that has already been logged into is safe without a reinstall.
+    void (async () => {
+      try {
+        if (typeof caches !== 'undefined') await caches.delete('apis');
+      } catch {
+        // Storage may be unavailable (private mode, blocked site data). The SW no longer
+        // writes this cache, so failing to delete it is not worth surfacing.
+      }
+    })();
+
     const sendLogoutRequest = async () => {
       const resp = await fetch('/api/auth/logout', {
         method: 'POST',
