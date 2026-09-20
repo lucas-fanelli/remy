@@ -1,5 +1,5 @@
 'use client';
-import { FavoriteBorder, Menu as MenuIcon } from '@mui/icons-material';
+import { NotificationsNone, Menu as MenuIcon } from '@mui/icons-material';
 import { AppBar, Toolbar, Box, IconButton, Avatar, Badge, Tooltip } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
@@ -97,7 +97,8 @@ export default function MobileBottomNav({
             aria-label={t('menu.notifications')}
           >
             <Badge badgeContent={unreadNotifications} color="error">
-              <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+              {/* A bell, not a heart — the heart means "like" everywhere else */}
+              <NotificationsNone sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
             </Badge>
           </IconButton>
         </Toolbar>

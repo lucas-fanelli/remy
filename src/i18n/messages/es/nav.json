@@ -19,7 +19,8 @@
     "settings": "Configuración",
     "signIn": "Iniciar sesión",
     "tapToSignIn": "Tocá para iniciar sesión",
-    "youtube": "YouTube"
+    "youtube": "YouTube",
+    "viewProfile": "Ver perfil"
   },
   "search": {
     "placeholder": "Buscá recetas, ingredientes...",

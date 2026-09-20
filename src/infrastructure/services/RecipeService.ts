@@ -55,6 +55,20 @@ export class RecipeService implements IRecipeService {
     return this.recipeRepository.findById(id);
   }
 
+  async getRecipeForViewer(
+    id: string,
+    viewerId: string | null
+  ): Promise<{ status: 'ok'; recipe: Recipe } | { status: 'notFound' } | { status: 'private' }> {
+    const found = await this.recipeRepository.findByIdWithAuthor(id);
+    if (!found) return { status: 'notFound' };
+
+    if (found.author.isPrivate && found.author.id !== viewerId) {
+      return { status: 'private' };
+    }
+
+    return { status: 'ok', recipe: found.recipe };
+  }
+
   async getUserRecipes(userId: string, limit?: number, offset?: number): Promise<Recipe[]> {
     return this.recipeRepository.findByUserId(userId, limit, offset);
   }

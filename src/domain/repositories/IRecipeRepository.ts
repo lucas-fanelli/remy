@@ -1,6 +1,15 @@
 import { Recipe, CreateRecipeDTO, UpdateRecipeDTO, RecipeSearchOptions } from '../types/recipe';
 
 /**
+ * Who wrote a recipe, for access decisions. Kept out of `Recipe.author`, which is what
+ * gets serialised to clients: a reader has no business knowing another user's id.
+ */
+export interface RecipeAuthor {
+  id: string;
+  isPrivate: boolean;
+}
+
+/**
  * Repository interface for Recipe operations
  * Follows Interface Segregation Principle and Dependency Inversion Principle
  */
@@ -14,6 +23,14 @@ export interface IRecipeRepository {
    * Find a recipe by ID
    */
   findById(id: string): Promise<Recipe | null>;
+
+  /**
+   * Find a recipe together with the visibility of its author, in one query.
+   *
+   * Every list endpoint hides the recipes of private users; the single-recipe endpoint
+   * has to make the same decision, and it cannot without knowing who the author is.
+   */
+  findByIdWithAuthor(id: string): Promise<{ recipe: Recipe; author: RecipeAuthor } | null>;
 
   /**
    * Find recipes by user ID

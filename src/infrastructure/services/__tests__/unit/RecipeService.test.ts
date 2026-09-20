@@ -310,6 +310,61 @@ describe('RecipeService - Unit Tests', () => {
     });
   });
 
+  // Every list endpoint hides a private user's recipes. Reading one by its id has to
+  // apply the same rule, or the direct link is a way around it.
+  describe('getRecipeForViewer', () => {
+    const publicAuthor = { id: 'author-1', isPrivate: false };
+    const privateAuthor = { id: 'author-1', isPrivate: true };
+
+    it('should return a public recipe to a signed-out visitor', async () => {
+      mockRecipeRepository.findByIdWithAuthor = jest
+        .fn()
+        .mockResolvedValue({ recipe: mockRecipe, author: publicAuthor });
+
+      const result = await recipeService.getRecipeForViewer('recipe-123', null);
+
+      expect(result).toEqual({ status: 'ok', recipe: mockRecipe });
+    });
+
+    it('should hide a private author’s recipe from a signed-out visitor', async () => {
+      mockRecipeRepository.findByIdWithAuthor = jest
+        .fn()
+        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor });
+
+      const result = await recipeService.getRecipeForViewer('recipe-123', null);
+
+      expect(result).toEqual({ status: 'private' });
+    });
+
+    it('should hide a private author’s recipe from a different signed-in user', async () => {
+      mockRecipeRepository.findByIdWithAuthor = jest
+        .fn()
+        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor });
+
+      const result = await recipeService.getRecipeForViewer('recipe-123', 'someone-else');
+
+      expect(result).toEqual({ status: 'private' });
+    });
+
+    it('should show a private author their own recipe', async () => {
+      mockRecipeRepository.findByIdWithAuthor = jest
+        .fn()
+        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor });
+
+      const result = await recipeService.getRecipeForViewer('recipe-123', 'author-1');
+
+      expect(result).toEqual({ status: 'ok', recipe: mockRecipe });
+    });
+
+    it('should report a missing recipe as not found rather than private', async () => {
+      mockRecipeRepository.findByIdWithAuthor = jest.fn().mockResolvedValue(null);
+
+      const result = await recipeService.getRecipeForViewer('non-existent', 'author-1');
+
+      expect(result).toEqual({ status: 'notFound' });
+    });
+  });
+
   describe('getUserRecipes', () => {
     it('should return user recipes with default pagination', async () => {
       const recipes = [mockRecipe];

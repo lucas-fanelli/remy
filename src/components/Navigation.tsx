@@ -3,7 +3,7 @@ import {
   Home,
   HomeOutlined,
   Search,
-  FavoriteBorder,
+  NotificationsNone,
   AddBox,
   Kitchen,
   KitchenOutlined,
@@ -300,9 +300,14 @@ export default function Navigation() {
               <IconButton
                 onClick={handleNotificationsOpen}
                 size={isSmallDesktop ? 'small' : 'medium'}
+                // The mobile bar already names this button; the desktop one had only a
+                // conditional tooltip, so a screen reader announced nothing at all
+                aria-label={t('menu.notifications')}
               >
                 <Badge badgeContent={unreadNotifications} color="error">
-                  <FavoriteBorder
+                  {/* A bell, not a heart: the outlined heart means "like" on every card,
+                      so the same glyph was carrying three meanings in one screen */}
+                  <NotificationsNone
                     sx={{
                       fontSize: { xs: '1.25rem', md: '1.5rem' },
                       opacity: isPollingPaused ? 0.5 : 1,
@@ -389,8 +394,6 @@ export default function Navigation() {
             user={user}
             isAdmin={isAdmin}
             mode={mode}
-            mobileNavItems={mobileNavItems}
-            onTabClick={handleTabClick}
             onToggleTheme={toggleTheme}
             onLogout={handleLogout}
             onNavigate={handleNavigate}

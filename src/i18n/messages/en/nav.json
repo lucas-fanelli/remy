@@ -19,7 +19,8 @@
     "settings": "Settings",
     "signIn": "Sign In",
     "tapToSignIn": "Tap to sign in",
-    "youtube": "YouTube"
+    "youtube": "YouTube",
+    "viewProfile": "View profile"
   },
   "search": {
     "placeholder": "Search recipes, ingredients...",

@@ -1,5 +1,5 @@
 import { Post, Prisma, PrismaClient } from '@prisma/client';
-import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
+import { IRecipeRepository, RecipeAuthor } from '@/domain/repositories/IRecipeRepository';
 import {
   Recipe,
   CreateRecipeDTO,
@@ -72,6 +72,32 @@ export class RecipeRepository implements IRecipeRepository {
     });
 
     return post ? this.mapToRecipe(post) : null;
+  }
+
+  async findByIdWithAuthor(id: string): Promise<{ recipe: Recipe; author: RecipeAuthor } | null> {
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            isPrivate: true,
+            username: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    if (!post) return null;
+
+    // mapToRecipe only reads username/fullName/avatar off `user`; id and isPrivate are
+    // handed back separately so they never reach the serialised recipe.
+    return {
+      recipe: this.mapToRecipe(post),
+      author: { id: post.user.id, isPrivate: post.user.isPrivate },
+    };
   }
 
   async findByUserId(userId: string, limit = 20, offset = 0): Promise<Recipe[]> {
