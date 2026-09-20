@@ -208,7 +208,7 @@ describe('recipe display blocks in Spanish', () => {
 
     expect(screen.getByText('PREPARACIÓN').parentElement).toHaveTextContent('15 min');
     expect(screen.getByText('COCCIÓN').parentElement).toHaveTextContent('30 min');
-    expect(screen.getByText('TIEMPO TOTAL').parentElement).toHaveTextContent('45 min');
+    expect(screen.getByText('TOTAL').parentElement).toHaveTextContent('45 min');
   });
 
   it('should print the Spanish label of a unit that stays stored in English', () => {
@@ -219,6 +219,16 @@ describe('recipe display blocks in Spanish', () => {
     );
 
     expect(screen.getByRole('listitem')).toHaveTextContent(/^2 tazas harina$/);
+  });
+
+  it('should print the plural for an amount of zero, not the singular', () => {
+    renderInSpanish(
+      <ul>
+        <IngredientLine ingredient={{ name: 'azúcar', amount: '0', unit: 'cups' }} />
+      </ul>
+    );
+
+    expect(screen.getByRole('listitem')).toHaveTextContent(/^0 tazas azúcar$/);
   });
 
   it('should keep a unit it does not know exactly as the row stores it', () => {
@@ -295,7 +305,7 @@ describe('MatchedRecipes in Spanish', () => {
 
     expect(await screen.findByRole('tab', { name: 'Listas para cocinar (1)' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Casi listas (0)' })).toBeInTheDocument();
-    expect(screen.getByText('100% coincide')).toBeInTheDocument();
+    expect(screen.getByText('100% de coincidencia')).toBeInTheDocument();
   });
 
   /** The Casi listas tab is the 1-to-3-missing bucket, so both plural cases are common */
@@ -338,6 +348,23 @@ describe('MatchedRecipes in Spanish', () => {
     fireEvent.click(await screen.findByRole('tab', { name: 'Casi listas (1)' }));
 
     expect(await screen.findByText('Te falta: cebolla')).toBeInTheDocument();
+  });
+
+  it('should invite the reader to fill the pantry when nothing is close, in Spanish', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ readyToCook: [], almostThere: [], pantryItemsCount: 3 }),
+    });
+
+    renderInSpanish(<MatchedRecipes />);
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Casi listas (0)' }));
+
+    expect(
+      await screen.findByText(
+        'Todavía no hay recetas que se acerquen a lo que tenés. Agregá más ingredientes a tu despensa.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('should keep the pantry count inside one Spanish sentence', async () => {

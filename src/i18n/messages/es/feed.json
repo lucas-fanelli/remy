@@ -62,10 +62,10 @@
       "almost": "Casi listas ({count, number})",
       "almostShort": "Casi ({count, number})"
     },
-    "match": "{percent, number}% coincide",
+    "match": "{percent, number}% de coincidencia",
     "ingredientsRatio": "{matched, number}/{total, number} ingredientes",
     "missing": "{count, plural, one {Te falta} other {Te faltan}}: {names}",
     "noReady": "Todavía no hay recetas que coincidan al 100% con tu despensa. Mirá la pestaña “Casi listas”, esas las tenés al alcance.",
-    "noAlmost": "No hay recetas cerca de coincidir. Agregá más ingredientes a tu despensa."
+    "noAlmost": "Todavía no hay recetas que se acerquen a lo que tenés. Agregá más ingredientes a tu despensa."
   }
 }

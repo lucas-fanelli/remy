@@ -51,9 +51,11 @@ export function getIngredientParts(
   const amount = toText(ingredient.amount);
   const unit = toText(ingredient.unit);
   const toTaste = unit.toLowerCase() === UNIT_TO_TASTE;
-  // A fraction ('1/2') or an empty amount is not a number: one is the plural rule to use
-  const printedUnit =
-    toTaste || unit === RECIPE_DEFAULT_UNIT ? '' : unitLabel(unit, Number(amount) || 1);
+  // A fraction ('1/2') or an empty amount is not a number: one is the plural rule to use for
+  // them. '0' is a number, and a falsy one, so it needs an explicit test rather than `|| 1`.
+  const parsed = Number(amount);
+  const count = amount !== '' && Number.isFinite(parsed) ? parsed : 1;
+  const printedUnit = toTaste || unit === RECIPE_DEFAULT_UNIT ? '' : unitLabel(unit, count);
 
   return {
     quantity: [amount, printedUnit].filter(Boolean).join(' '),

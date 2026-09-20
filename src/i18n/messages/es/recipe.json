@@ -13,7 +13,7 @@
   "times": {
     "prep": "PREPARACIÓN",
     "cook": "COCCIÓN",
-    "total": "TIEMPO TOTAL"
+    "total": "TOTAL"
   },
   "ingredients": {
     "title": "Ingredientes",
