@@ -61,12 +61,14 @@
     "updated": "Recipe updated successfully!"
   },
   "card": {
-    "like": "Like",
-    "unlike": "Unlike",
     "comments": "Comments",
-    "options": "recipe options",
+    "cookedOnce": "You cooked this once",
+    "cookedTimes": "You cooked this {count} times",
+    "delete": "Delete Recipe",
     "edit": "Edit Recipe",
-    "delete": "Delete Recipe"
+    "like": "Like",
+    "options": "recipe options",
+    "unlike": "Unlike"
   },
   "cookDialog": {
     "cancel": "Cancel",

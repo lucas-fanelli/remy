@@ -204,6 +204,26 @@ describe('RecipeCard Component', () => {
     expect(likeButton).toBeInTheDocument();
   });
 
+  it('should mark a recipe the reader has cooked', () => {
+    // The card could not say this before: the count was loaded for every card in every
+    // list and read by nothing.
+    renderWithTheme(
+      <RecipeCard
+        recipe={mockRecipe}
+        viewer={{ ...NOT_LIKED_BY_ME, timesCooked: 3 }}
+        showActions={true}
+      />
+    );
+
+    expect(screen.getByLabelText('You cooked this 3 times')).toBeInTheDocument();
+  });
+
+  it('should say nothing about cooking when the reader never has', () => {
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} showActions={true} />);
+
+    expect(screen.queryByLabelText(/You cooked this/)).not.toBeInTheDocument();
+  });
+
   it('should show outlined heart when not liked', () => {
     renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} showActions={true} />);
 
