@@ -1,5 +1,6 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { renderWithLocale, setTestLocale } from '@/i18n/testing';
 import { text } from '@/i18n/text';
@@ -119,6 +120,60 @@ describe('the Check tab in Spanish', () => {
     expect(
       screen.getByRole('button', { name: 'Eliminar el ingrediente 2: Harina' })
     ).toBeInTheDocument();
+  });
+
+  /** A row whose unit picker is on screen (a named row with an amount is never 'to taste') */
+  const unitRowInSpanish = (unit: string) => {
+    const user = userEvent.setup();
+    const onChange = jest.fn();
+    inSpanish(
+      <IngredientRow
+        row={{ id: 'i1', name: 'Harina', amount: '2', unit }}
+        index={0}
+        onChange={onChange}
+        onRowBlur={noop}
+        onRemove={noop}
+        onNameEnter={noop}
+        onEmptyBackspace={noop}
+      />
+    );
+    return { user, onChange, field: screen.getByLabelText('Unidad del ingrediente 1') };
+  };
+
+  it('should show the Spanish label of the stored unit in the field', () => {
+    const { field } = unitRowInSpanish('cups');
+
+    expect(field).toHaveValue('tazas');
+  });
+
+  it('should list every unit by its Spanish label, in the plural a list wants', async () => {
+    const { user, field } = unitRowInSpanish('');
+
+    await user.click(field);
+
+    expect(screen.getByRole('option', { name: 'cda - cucharadas' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'unidades - unidades enteras' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'tazas' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'pizcas' })).toBeInTheDocument();
+  });
+
+  it('should store the English unit the picked Spanish option stands for', async () => {
+    const { user, onChange, field } = unitRowInSpanish('');
+
+    await user.click(field);
+    await user.click(screen.getByRole('option', { name: 'tazas' }));
+
+    expect(onChange).toHaveBeenCalledWith('i1', { unit: 'cups' });
+  });
+
+  it('should find a unit by the Spanish abbreviation the list itself shows', async () => {
+    const { user, onChange, field } = unitRowInSpanish('');
+
+    await user.click(field);
+    await user.keyboard('cda');
+    await user.tab();
+
+    expect(onChange).toHaveBeenCalledWith('i1', { unit: 'tbsp' });
   });
 
   it('should translate the unit label of a to-taste row, never what is stored', () => {

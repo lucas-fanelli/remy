@@ -61,24 +61,28 @@ const PICKER_COUNT = 2;
  * Typing 'g' + Tab must pick grams, not the first unit that merely contains a 'g': exact
  * unit first, then units and expanded names that START with the text, then the rest.
  *
- * `nameOf` is what the author READS next to the symbol, so 'taza' finds cups for a Spanish
- * author while the stored value stays 'cups'. It defaults to the English names.
+ * The author never reads the stored value: `labelOf` is what the field and the head of
+ * each option show ('cda', 'tazas') and `nameOf` the long name next to it ('cucharadas'),
+ * so typing either finds the unit while the stored value stays 'tbsp' / 'cups'. Both
+ * default to English, where the label IS the stored value.
  */
 export function filterUnitOptions(
   options: string[],
   inputValue: string,
-  nameOf: (unit: string) => string = englishUnitName
+  nameOf: (unit: string) => string = englishUnitName,
+  labelOf: (unit: string) => string = (unit) => unit
 ): string[] {
   const query = inputValue.trim().toLowerCase();
   if (query === '') return options;
 
   const rank = (unit: string): number => {
     const short = unit.toLowerCase();
+    const label = labelOf(unit).toLowerCase();
     const long = nameOf(unit).toLowerCase();
-    if (short === query) return 0;
-    if (short.startsWith(query)) return 1;
+    if (short === query || label === query) return 0;
+    if (short.startsWith(query) || label.startsWith(query)) return 1;
     if (long.startsWith(query)) return 2;
-    return short.includes(query) || long.includes(query) ? 3 : -1;
+    return short.includes(query) || label.includes(query) || long.includes(query) ? 3 : -1;
   };
 
   return options
@@ -111,12 +115,20 @@ function IngredientRow({
   registerField,
 }: IngredientRowProps) {
   const t = useTranslations('recipeForm');
+  const tUnits = useTranslations('units');
   const showText = useOptionalText();
   const units = useUnitLabels();
-  // 'g - grams', but just 'cups' where the long name IS the symbol
+  /** What the field and the list show. The stored value ('cups') never reaches the author */
+  const unitLabel = (unit: string): string => units.label(unit, PICKER_COUNT);
+  /**
+   * 'g - grams', but just 'cups' where the long name adds nothing to the label.
+   * `units.option()` would name the unit in the singular ('unit - whole items'), so the
+   * shared message is formatted here with the plural label a list wants.
+   */
   const unitOptionText = (unit: string): string => {
+    const label = unitLabel(unit);
     const name = units.name(unit);
-    return name === units.label(unit, PICKER_COUNT) ? name : units.option(unit);
+    return name === label || name === units.label(unit) ? label : tUnits('option', { label, name });
   };
   const position = index + 1;
   const path = `ingredients.${row.id}`;
@@ -126,7 +138,7 @@ function IngredientRow({
   // While focus is in the row the author edits plain inputs; at rest a named row without
   // amount and unit shows ONE 'to taste' chip in their place (Pantry's model)
   const [editing, setEditing] = useState(false);
-  const [unitText, setUnitText] = useState(row.unit);
+  const [unitText, setUnitText] = useState(() => unitLabel(row.unit));
   const showToTasteChip = isToTasteRow(row) && !editing;
 
   const amountInput = useRef<HTMLInputElement | null>(null);
@@ -208,6 +220,8 @@ function IngredientRow({
   };
 
   const handleUnitChange = (event: SyntheticEvent, unit: string) => {
+    // The option IS the stored value - only its label was translated - so what the row
+    // reports, and what ends up in the database, stays English
     onChange(row.id, { unit });
     // Picked with Enter: keep going, like Tab does
     if ('key' in event && event.key === 'Enter') nameInput.current?.focus();
@@ -300,8 +314,9 @@ function IngredientRow({
             onInputChange={handleUnitInputChange}
             onKeyDown={handleUnitKeyDown}
             options={unitOptions}
+            getOptionLabel={unitLabel}
             filterOptions={(options, state) =>
-              filterUnitOptions(options, state.inputValue, units.name)
+              filterUnitOptions(options, state.inputValue, units.name, unitLabel)
             }
             renderOption={(props, option) => {
               const { key, ...optionProps } = props as HTMLAttributes<HTMLLIElement> & {

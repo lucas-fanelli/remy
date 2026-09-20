@@ -161,6 +161,14 @@ describe('IngredientRow', () => {
     expect(onNameEnter).not.toHaveBeenCalled();
   });
 
+  it('should name a unit in the plural in the list, next to its long name', async () => {
+    const { user } = renderRow({ row: { id: 'i1', name: 'Eggs', amount: '2', unit: '' } });
+
+    await user.click(screen.getByRole('combobox', { name: 'Unit for ingredient 2' }));
+
+    expect(screen.getByRole('option', { name: 'units - whole items' })).toBeInTheDocument();
+  });
+
   it('should leave other keys in the unit to the list', async () => {
     const { user } = renderRow();
     await user.click(screen.getByRole('combobox', { name: 'Unit for ingredient 2' }));
