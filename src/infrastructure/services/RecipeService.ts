@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 // is the primary XSS defense. If raw HTML rendering is ever added, migrate to DOMPurify.
 import striptags from 'striptags';
 import { ForbiddenError, NotFoundError, ValidationError } from '@/domain/errors';
-import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
+import { IRecipeRepository, RecipeCounts } from '@/domain/repositories/IRecipeRepository';
 import { IRecipeService } from '@/domain/services/IRecipeService';
 import {
   Recipe,
@@ -58,7 +58,11 @@ export class RecipeService implements IRecipeService {
   async getRecipeForViewer(
     id: string,
     viewerId: string | null
-  ): Promise<{ status: 'ok'; recipe: Recipe } | { status: 'notFound' } | { status: 'private' }> {
+  ): Promise<
+    | { status: 'ok'; recipe: Recipe; counts: RecipeCounts }
+    | { status: 'notFound' }
+    | { status: 'private' }
+  > {
     const found = await this.recipeRepository.findByIdWithAuthor(id);
     if (!found) return { status: 'notFound' };
 
@@ -66,7 +70,7 @@ export class RecipeService implements IRecipeService {
       return { status: 'private' };
     }
 
-    return { status: 'ok', recipe: found.recipe };
+    return { status: 'ok', recipe: found.recipe, counts: found.counts };
   }
 
   async getUserRecipes(userId: string, limit?: number, offset?: number): Promise<Recipe[]> {

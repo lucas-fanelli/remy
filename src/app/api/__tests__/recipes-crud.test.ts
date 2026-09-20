@@ -12,6 +12,11 @@ jest.mock('@/lib/database/prisma', () => ({
       findUnique: jest.fn(),
       count: jest.fn(),
     },
+    // The four tables that answer "what did THIS reader do to these recipes".
+    like: { findMany: jest.fn() },
+    savedRecipe: { findMany: jest.fn() },
+    cookedRecipe: { findMany: jest.fn() },
+    rating: { findMany: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
@@ -332,17 +337,65 @@ describe('POST /api/recipes', () => {
 
 describe('GET /api/recipes/[id]', () => {
   const recipe = { id: VALID_UUID, title: 'Chocotorta', averageRating: 4.5, totalRatings: 2 };
+  const counts = { likes: 7, comments: 4 };
   const params = Promise.resolve({ id: VALID_UUID });
 
   beforeEach(() => {
     jest.clearAllMocks();
     (container.getRecipeService as jest.Mock).mockReturnValue(mockRecipeService);
     (getCurrentUser as jest.Mock).mockResolvedValue(null);
+    (prisma.like.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.savedRecipe.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.cookedRecipe.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.rating.findMany as jest.Mock).mockResolvedValue([]);
+  });
+
+  it('should carry the engagement counts the page used to probe for', async () => {
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
+
+    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
+      params,
+    });
+    const body = await response.json();
+
+    expect(body.recipe.likeCount).toBe(7);
+    expect(body.recipe.commentCount).toBe(4);
+  });
+
+  it('should say viewer is null for a signed-out visitor, not that they liked nothing', async () => {
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
+
+    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
+      params,
+    });
+    const body = await response.json();
+
+    // `{ liked: false }` here would be a claim about somebody who does not exist.
+    expect(body.recipe.viewer).toBeNull();
+  });
+
+  it('should report what a signed-in reader did to this recipe', async () => {
+    (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'reader-1' });
+    (prisma.like.findMany as jest.Mock).mockResolvedValue([{ postId: VALID_UUID }]);
+    (prisma.rating.findMany as jest.Mock).mockResolvedValue([{ postId: VALID_UUID, rating: 5 }]);
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
+
+    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
+      params,
+    });
+    const body = await response.json();
+
+    expect(body.recipe.viewer).toEqual({
+      liked: true,
+      saved: false,
+      cooked: false,
+      myRating: 5,
+    });
   });
 
   it('should return the recipe when it is public', async () => {
     // Arrange
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe });
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
 
     // Act
     const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
@@ -358,7 +411,7 @@ describe('GET /api/recipes/[id]', () => {
   it('should pass the signed-in viewer so the author can read their own recipe', async () => {
     // Arrange
     (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'author-1' });
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe });
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
 
     // Act
     await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });
@@ -369,7 +422,7 @@ describe('GET /api/recipes/[id]', () => {
 
   it('should pass null for a signed-out visitor', async () => {
     // Arrange
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe });
+    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
 
     // Act
     await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });

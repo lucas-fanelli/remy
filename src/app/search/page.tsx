@@ -20,6 +20,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
+import type { ViewerState } from '@/domain/types/recipe';
 
 interface User {
   username: string;
@@ -36,10 +37,12 @@ interface Recipe {
   prepTime: number;
   cookingTime: number;
   servings: number;
+  userId: string;
   likeCount?: number;
   commentCount?: number;
   averageRating?: number;
   totalRatings?: number;
+  viewer: ViewerState | null;
   author: {
     username: string;
     avatar?: string;
@@ -169,13 +172,19 @@ function SearchPageContent() {
                             servings: recipe.servings || 4,
                             ingredients: [],
                             instructions: [],
-                            userId: recipe.author?.username || '',
+                            userId: recipe.userId,
                             author: recipe.author,
                             createdAt: new Date(),
                             updatedAt: new Date(),
                             averageRating: recipe.averageRating,
                             totalRatings: recipe.totalRatings,
                           }}
+                          viewer={recipe.viewer}
+                          likeCount={recipe.likeCount}
+                          commentCount={recipe.commentCount}
+                          // Search still hides the actions — turning them on belongs with
+                          // the card convergence, not here. The state is passed anyway so
+                          // that switch is a one-word change and not another data hunt.
                           showActions={false}
                           onClick={() => handleRecipeClick(recipe.id)}
                         />

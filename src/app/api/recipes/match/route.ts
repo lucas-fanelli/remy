@@ -2,10 +2,12 @@ import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import striptags from 'striptags';
 import { requireAuth } from '@/lib/api/auth';
+import { loadViewerState } from '@/lib/api/viewerState';
 import { MAX_ITEM_NAME_LENGTH, PG_ADVISORY_LOCK_MATCH } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
 import { ingredientMatches, normalizeIngredientName } from '@/lib/utils/ingredients';
 import { logServerError } from '@/lib/utils/logger';
+import type { ViewerState } from '@/domain/types/recipe';
 
 /** Escape special characters for SQL LIKE patterns */
 function escapeLike(s: string): string {
@@ -34,6 +36,7 @@ interface MatchedRecipeData {
   likesCount: number;
   commentsCount: number;
   user: { id: string; username: string; avatar: string | null } | null;
+  viewer: ViewerState | null;
 }
 
 // GET - Match recipes with user's pantry
@@ -263,6 +266,14 @@ export async function GET(request: NextRequest) {
       { timeout: 6000 }
     );
 
+    // This endpoint is always authenticated, so `viewer` is never null here — but it is
+    // built the same way as everywhere else rather than assumed, so the shape a matched
+    // card gets is the shape a feed card gets.
+    const viewerState = await loadViewerState(
+      user.id,
+      recipes.map((r) => r.id)
+    );
+
     // Build lookup from match results
     const matchLookup = new Map(cappedResults.map((m) => [m.id, m]));
 
@@ -291,6 +302,7 @@ export async function GET(request: NextRequest) {
         likesCount: recipe._count.likes,
         commentsCount: recipe._count.comments,
         user: recipe.user,
+        viewer: viewerState(recipe.id),
       };
 
       if (match.matchPercentage === 100) {

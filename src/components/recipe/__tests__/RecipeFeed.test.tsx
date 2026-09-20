@@ -47,12 +47,31 @@ jest.mock('@/contexts/AuthContext', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// Mock RecipeCard component
+// Mock RecipeCard component.
+//
+// It renders `viewer` and `likeCount` into the DOM on purpose. The mock used to destructure
+// only the callbacks and throw the rest away, which meant the feed could hand every card a
+// heart that said `false` — as it did — and every test here would still pass.
 jest.mock('../RecipeCard', () => {
-  return function MockRecipeCard({ recipe, onClick, onLike, onComment, onEdit, onDelete }: any) {
+  return function MockRecipeCard({
+    recipe,
+    viewer,
+    likeCount,
+    commentCount,
+    onClick,
+    onLike,
+    onComment,
+    onEdit,
+    onDelete,
+  }: any) {
     return (
       <div data-testid={`recipe-card-${recipe.id}`}>
         <div>{recipe.title}</div>
+        <div data-testid={`viewer-liked-${recipe.id}`}>
+          {viewer === null ? 'signed-out' : String(viewer?.liked)}
+        </div>
+        <div data-testid={`like-count-${recipe.id}`}>{String(likeCount)}</div>
+        <div data-testid={`comment-count-${recipe.id}`}>{String(commentCount)}</div>
         <button onClick={onClick}>View</button>
         <button onClick={onLike}>Like</button>
         <button onClick={onComment}>Comment</button>
@@ -149,11 +168,13 @@ describe('RecipeFeed Component', () => {
   });
 
   const setupSuccessfulFetch = (recipes = [mockRecipe]) => {
-    // Mock recipe fetch - engagement data is now included in the response
-    const recipesWithEngagement = recipes.map((r) => ({
-      ...r,
+    // Engagement data — including who the reader is and what they already did — comes with
+    // the recipe. Anything not given here stands in for what the API actually sends.
+    const recipesWithEngagement = recipes.map((r: any) => ({
       likeCount: 0,
       commentCount: 0,
+      viewer: null,
+      ...r,
     }));
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -725,22 +746,35 @@ describe('RecipeFeed Component', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should handle recipes with missing engagement data gracefully', async () => {
-    // Mock recipe fetch with recipes that have no likeCount/commentCount
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ recipes: [mockRecipe] }),
-    });
+  it('shows the reader their own hearts on the first render, with no extra request', async () => {
+    setupSuccessfulFetch([
+      {
+        ...mockRecipe,
+        likeCount: 3,
+        viewer: { liked: true, saved: false, cooked: false, myRating: null },
+      },
+    ]);
 
     renderWithProviders(<RecipeFeed />);
 
     await waitFor(() => {
-      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+      expect(screen.getByTestId('viewer-liked-1')).toHaveTextContent('true');
     });
+    expect(screen.getByTestId('like-count-1')).toHaveTextContent('3');
 
-    // Engagement data defaults to 0 when not present in the response
-    // Only 1 fetch call should be made (just the recipes endpoint)
+    // One request. The heart is right because the feed response said so, not because a
+    // follow-up probe corrected it a moment later.
     expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells a signed-out reader apart from one who simply has not liked anything', async () => {
+    setupSuccessfulFetch([{ ...mockRecipe, likeCount: 3, viewer: null }]);
+
+    renderWithProviders(<RecipeFeed />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('viewer-liked-1')).toHaveTextContent('signed-out');
+    });
   });
 
   it('should show snackbar with message', async () => {
@@ -1151,39 +1185,47 @@ describe('RecipeFeed Component', () => {
       });
     });
 
-    it('should use default like state when recipe not in recipeLikes - lines 287-289', async () => {
+    it('asks to unlike a recipe the reader already liked, not to like it again', async () => {
       mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
 
-      // Mock recipe fetch - engagement data comes from the recipes API response
-      // Recipe without likeCount/commentCount will default to 0
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ recipes: [mockRecipe] }),
-      });
+      // The whole point of the package: the API says this reader already liked it.
+      setupSuccessfulFetch([
+        {
+          ...mockRecipe,
+          likeCount: 1,
+          viewer: { liked: true, saved: false, cooked: false, myRating: null },
+        },
+      ]);
 
       renderWithProviders(<RecipeFeed />);
 
       await waitFor(() => {
-        expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+        expect(screen.getByTestId('viewer-liked-1')).toHaveTextContent('true');
       });
 
-      // Mock successful like API call
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ liked: true, likesCount: 1 }),
+        json: async () => ({ liked: false, likeCount: 0 }),
       });
 
-      const likeButton = screen.getByRole('button', { name: /like/i });
-      fireEvent.click(likeButton);
+      fireEvent.click(screen.getByRole('button', { name: /like/i }));
 
-      // Should use default state { liked: false, count: 0 } and optimistically update to liked: true, count: 1
+      // Before this, the feed believed nobody had liked anything, so this click sent
+      // `liked: true` — asking the server to like a recipe that was already liked, which
+      // the old toggle endpoint carried out by removing the like.
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
           '/api/recipes/1/like',
           expect.objectContaining({
             method: 'POST',
+            body: JSON.stringify({ liked: false }),
           })
         );
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('viewer-liked-1')).toHaveTextContent('false');
+        expect(screen.getByTestId('like-count-1')).toHaveTextContent('0');
       });
     });
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ForbiddenError, NotFoundError, ValidationError } from '@/domain/errors';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { getCurrentUser, requireAuth } from '@/lib/api/auth';
+import { loadViewerState } from '@/lib/api/viewerState';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import { cleanupCloudinaryImage } from '@/lib/utils/cloudinary-cleanup';
@@ -46,7 +47,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
 
-    const { recipe } = result;
+    const { recipe, counts } = result;
+
+    // The page used to learn all of this from two extra requests — /like and /save — which
+    // resolved after first paint, so the heart and the bookmark rendered empty and then
+    // flipped. It comes with the recipe now.
+    const viewerState = await loadViewerState(viewer?.id, [recipe.id]);
 
     // Use cached rating values from the post record
     return NextResponse.json({
@@ -54,6 +60,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ...recipe,
         averageRating: safeRating(recipe.averageRating),
         totalRatings: recipe.totalRatings ?? 0,
+        likeCount: counts.likes,
+        commentCount: counts.comments,
+        viewer: viewerState(recipe.id),
       },
     });
   } catch (error) {

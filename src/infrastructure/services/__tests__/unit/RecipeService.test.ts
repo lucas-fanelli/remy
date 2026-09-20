@@ -315,21 +315,24 @@ describe('RecipeService - Unit Tests', () => {
   describe('getRecipeForViewer', () => {
     const publicAuthor = { id: 'author-1', isPrivate: false };
     const privateAuthor = { id: 'author-1', isPrivate: true };
+    // The detail endpoint had no like or comment count of its own; it comes back with the
+    // recipe now, from the same query that reads the author's visibility.
+    const counts = { likes: 3, comments: 2 };
 
     it('should return a public recipe to a signed-out visitor', async () => {
       mockRecipeRepository.findByIdWithAuthor = jest
         .fn()
-        .mockResolvedValue({ recipe: mockRecipe, author: publicAuthor });
+        .mockResolvedValue({ recipe: mockRecipe, author: publicAuthor, counts });
 
       const result = await recipeService.getRecipeForViewer('recipe-123', null);
 
-      expect(result).toEqual({ status: 'ok', recipe: mockRecipe });
+      expect(result).toEqual({ status: 'ok', recipe: mockRecipe, counts });
     });
 
     it('should hide a private author’s recipe from a signed-out visitor', async () => {
       mockRecipeRepository.findByIdWithAuthor = jest
         .fn()
-        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor });
+        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor, counts });
 
       const result = await recipeService.getRecipeForViewer('recipe-123', null);
 
@@ -339,7 +342,7 @@ describe('RecipeService - Unit Tests', () => {
     it('should hide a private author’s recipe from a different signed-in user', async () => {
       mockRecipeRepository.findByIdWithAuthor = jest
         .fn()
-        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor });
+        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor, counts });
 
       const result = await recipeService.getRecipeForViewer('recipe-123', 'someone-else');
 
@@ -349,11 +352,11 @@ describe('RecipeService - Unit Tests', () => {
     it('should show a private author their own recipe', async () => {
       mockRecipeRepository.findByIdWithAuthor = jest
         .fn()
-        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor });
+        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor, counts });
 
       const result = await recipeService.getRecipeForViewer('recipe-123', 'author-1');
 
-      expect(result).toEqual({ status: 'ok', recipe: mockRecipe });
+      expect(result).toEqual({ status: 'ok', recipe: mockRecipe, counts });
     });
 
     it('should report a missing recipe as not found rather than private', async () => {

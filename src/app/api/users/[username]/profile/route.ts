@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/api/auth';
+import { loadViewerState } from '@/lib/api/viewerState';
 import { USERNAME_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
 import { extractAuthToken } from '@/lib/utils/auth';
@@ -227,6 +228,15 @@ export async function GET(
     if (isFollowingResult !== undefined) isFollowing = isFollowingResult;
     if (savedRecipesResult !== undefined) savedRecipes = savedRecipesResult;
 
+    // One batch for both lists: the recipes this profile published and, on your own
+    // profile, the ones you saved. A reader looking at someone else's profile has their own
+    // hearts on those cards, which is why this is keyed on the reader and not on the owner.
+    const savedList = (savedRecipes ?? []) as { id: string }[];
+    const viewerState = await loadViewerState(currentUserId, [
+      ...user.posts.map((p) => p.id),
+      ...savedList.map((r) => r.id),
+    ]);
+
     // Format recipes using cached rating values from post record
     const recipes = user.posts.map((recipe) => ({
       id: recipe.id,
@@ -242,6 +252,7 @@ export async function GET(
       createdAt: recipe.createdAt,
       averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount ?? 0,
+      viewer: viewerState(recipe.id),
     }));
 
     // Build response
@@ -270,7 +281,13 @@ export async function GET(
     }
 
     if (savedRecipes !== undefined) {
-      response.savedRecipes = savedRecipes;
+      // `viewer.saved` is true for every one of these by definition — this is the saved
+      // list. It is attached anyway so the card here takes the same props as the card
+      // anywhere else, instead of the tab's own membership standing in for the state.
+      response.savedRecipes = savedList.map((recipe) => ({
+        ...recipe,
+        viewer: viewerState(recipe.id),
+      }));
     }
 
     return NextResponse.json(response);

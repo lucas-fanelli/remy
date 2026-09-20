@@ -1,3 +1,4 @@
+import { RecipeCounts } from '../repositories/IRecipeRepository';
 import { Recipe, CreateRecipeDTO, UpdateRecipeDTO, RecipeSearchOptions } from '../types/recipe';
 
 /**
@@ -25,7 +26,11 @@ export interface IRecipeService {
   getRecipeForViewer(
     id: string,
     viewerId: string | null
-  ): Promise<{ status: 'ok'; recipe: Recipe } | { status: 'notFound' } | { status: 'private' }>;
+  ): Promise<
+    | { status: 'ok'; recipe: Recipe; counts: RecipeCounts }
+    | { status: 'notFound' }
+    | { status: 'private' }
+  >;
 
   /**
    * Get recipes by user

@@ -1,8 +1,8 @@
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { Recipe } from '@/domain/types/recipe';
+import { Recipe, ViewerState } from '@/domain/types/recipe';
 import RecipeCard from '../RecipeCard';
 
 // Mock framer-motion - properly filter out animation props
@@ -69,6 +69,17 @@ const renderWithTheme = (component: React.ReactElement) => {
   return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 };
 
+// `viewer` is required and has no default: a card cannot be rendered without saying
+// who is looking at it. `null` is the signed-out reader, which is what most of these
+// tests are — they care about the recipe, not about anyone's hearts.
+const LIKED_BY_ME: ViewerState = { liked: true, saved: false, cooked: false, myRating: null };
+const NOT_LIKED_BY_ME: ViewerState = {
+  liked: false,
+  saved: false,
+  cooked: false,
+  myRating: null,
+};
+
 const mockRecipe: Recipe = {
   id: 'recipe-1',
   userId: 'user-1',
@@ -102,7 +113,7 @@ const mockRecipeWithAuthor: Recipe = {
 
 describe('RecipeCard Component', () => {
   it('should render recipe card with basic information', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} />);
+    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} />);
 
     expect(screen.getByText('Test Recipe')).toBeInTheDocument();
     expect(screen.getByText('A delicious test recipe description')).toBeInTheDocument();
@@ -111,13 +122,17 @@ describe('RecipeCard Component', () => {
   });
 
   it('should display difficulty badge for non-owners', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} currentUserId="different-user" />);
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={mockRecipe} currentUserId="different-user" />
+    );
 
     expect(screen.getByText('easy')).toBeInTheDocument();
   });
 
   it('should display difficulty badge for all users including owners', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} currentUserId="user-1" showActions={false} />);
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={mockRecipe} currentUserId="user-1" showActions={false} />
+    );
 
     // Difficulty badge is now always shown
     expect(screen.getByText('easy')).toBeInTheDocument();
@@ -125,7 +140,7 @@ describe('RecipeCard Component', () => {
 
   it('should call onClick when card is clicked', () => {
     const handleClick = jest.fn();
-    renderWithTheme(<RecipeCard recipe={mockRecipe} onClick={handleClick} />);
+    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} onClick={handleClick} />);
 
     const title = screen.getByText('Test Recipe');
     fireEvent.click(title);
@@ -134,7 +149,7 @@ describe('RecipeCard Component', () => {
   });
 
   it('should navigate to recipe page when clicked without onClick prop - line 72', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} />);
+    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} />);
 
     const title = screen.getByText('Test Recipe');
     fireEvent.click(title);
@@ -144,7 +159,9 @@ describe('RecipeCard Component', () => {
 
   it('should call onLike when like button is clicked', () => {
     const handleLike = jest.fn();
-    renderWithTheme(<RecipeCard recipe={mockRecipe} onLike={handleLike} showActions={true} />);
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={mockRecipe} onLike={handleLike} showActions={true} />
+    );
 
     const likeButton = screen.getByRole('button', { name: /like/i });
     fireEvent.click(likeButton);
@@ -155,7 +172,7 @@ describe('RecipeCard Component', () => {
   it('should call onComment when comment button is clicked', () => {
     const handleComment = jest.fn();
     renderWithTheme(
-      <RecipeCard recipe={mockRecipe} onComment={handleComment} showActions={true} />
+      <RecipeCard viewer={null} recipe={mockRecipe} onComment={handleComment} showActions={true} />
     );
 
     const commentButton = screen.getByRole('button', { name: /comments/i });
@@ -165,26 +182,30 @@ describe('RecipeCard Component', () => {
   });
 
   it('should display like count', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} likeCount={42} showActions={true} />);
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={mockRecipe} likeCount={42} showActions={true} />
+    );
 
     expect(screen.getByText('42')).toBeInTheDocument();
   });
 
   it('should display comment count', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} commentCount={15} showActions={true} />);
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={mockRecipe} commentCount={15} showActions={true} />
+    );
 
     expect(screen.getByText('15')).toBeInTheDocument();
   });
 
   it('should show filled heart when liked', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} liked={true} showActions={true} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={LIKED_BY_ME} showActions={true} />);
 
     const likeButton = screen.getByRole('button', { name: /unlike/i });
     expect(likeButton).toBeInTheDocument();
   });
 
   it('should show outlined heart when not liked', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} liked={false} showActions={true} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} showActions={true} />);
 
     const likeButton = screen.getByRole('button', { name: /like/i });
     expect(likeButton).toBeInTheDocument();
@@ -192,7 +213,12 @@ describe('RecipeCard Component', () => {
 
   it('should show menu button for owner when showActions is true', () => {
     renderWithTheme(
-      <RecipeCard recipe={mockRecipeWithAuthor} currentUserId="user-1" showActions={true} />
+      <RecipeCard
+        viewer={null}
+        recipe={mockRecipeWithAuthor}
+        currentUserId="user-1"
+        showActions={true}
+      />
     );
 
     const menuButton = screen.getByRole('button', { name: /recipe options/i });
@@ -201,7 +227,12 @@ describe('RecipeCard Component', () => {
 
   it('should not show menu button for non-owner', () => {
     renderWithTheme(
-      <RecipeCard recipe={mockRecipeWithAuthor} currentUserId="different-user" showActions={true} />
+      <RecipeCard
+        viewer={null}
+        recipe={mockRecipeWithAuthor}
+        currentUserId="different-user"
+        showActions={true}
+      />
     );
 
     const menuButton = screen.queryByRole('button', { name: /recipe options/i });
@@ -210,7 +241,12 @@ describe('RecipeCard Component', () => {
 
   it('should open menu when menu button is clicked', () => {
     renderWithTheme(
-      <RecipeCard recipe={mockRecipeWithAuthor} currentUserId="user-1" showActions={true} />
+      <RecipeCard
+        viewer={null}
+        recipe={mockRecipeWithAuthor}
+        currentUserId="user-1"
+        showActions={true}
+      />
     );
 
     const menuButton = screen.getByRole('button', { name: /recipe options/i });
@@ -224,6 +260,7 @@ describe('RecipeCard Component', () => {
     const handleEdit = jest.fn();
     renderWithTheme(
       <RecipeCard
+        viewer={null}
         recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
         showActions={true}
@@ -244,6 +281,7 @@ describe('RecipeCard Component', () => {
     const handleDelete = jest.fn();
     renderWithTheme(
       <RecipeCard
+        viewer={null}
         recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
         showActions={true}
@@ -262,41 +300,45 @@ describe('RecipeCard Component', () => {
 
   it('should show medium difficulty with warning color', () => {
     const mediumRecipe = { ...mockRecipe, difficulty: 'medium' as const };
-    renderWithTheme(<RecipeCard recipe={mediumRecipe} currentUserId="different-user" />);
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={mediumRecipe} currentUserId="different-user" />
+    );
 
     expect(screen.getByText('medium')).toBeInTheDocument();
   });
 
   it('should show hard difficulty with error color', () => {
     const hardRecipe = { ...mockRecipe, difficulty: 'hard' as const };
-    renderWithTheme(<RecipeCard recipe={hardRecipe} currentUserId="different-user" />);
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={hardRecipe} currentUserId="different-user" />
+    );
 
     expect(screen.getByText('hard')).toBeInTheDocument();
   });
 
   it('should calculate total time correctly', () => {
     const recipe = { ...mockRecipe, prepTime: 20, cookingTime: 40 };
-    renderWithTheme(<RecipeCard recipe={recipe} />);
+    renderWithTheme(<RecipeCard viewer={null} recipe={recipe} />);
 
     expect(screen.getByText('60 min')).toBeInTheDocument();
   });
 
   describe('Author Display', () => {
     it('should display author information when author is provided', () => {
-      renderWithTheme(<RecipeCard recipe={mockRecipeWithAuthor} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipeWithAuthor} />);
 
       expect(screen.getByText('John Doe')).toBeInTheDocument();
       expect(screen.getByAltText('johndoe')).toBeInTheDocument();
     });
 
     it('should not display author section when author is not provided', () => {
-      renderWithTheme(<RecipeCard recipe={mockRecipe} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} />);
 
       expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
     });
 
     it('should navigate to author profile when clicking author name', () => {
-      renderWithTheme(<RecipeCard recipe={mockRecipeWithAuthor} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipeWithAuthor} />);
 
       const authorName = screen.getByText('John Doe');
       fireEvent.click(authorName);
@@ -306,7 +348,7 @@ describe('RecipeCard Component', () => {
 
     it('should navigate to author profile when clicking avatar (lines 194-195)', () => {
       mockPush.mockClear();
-      renderWithTheme(<RecipeCard recipe={mockRecipeWithAuthor} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipeWithAuthor} />);
 
       // Find the avatar and click it - it should stop propagation and navigate
       const avatar = screen.getByAltText('johndoe');
@@ -322,7 +364,7 @@ describe('RecipeCard Component', () => {
           username: 'johndoe',
         },
       };
-      renderWithTheme(<RecipeCard recipe={recipeWithUsernameOnly} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={recipeWithUsernameOnly} />);
 
       expect(screen.getByText('johndoe')).toBeInTheDocument();
     });
@@ -335,7 +377,7 @@ describe('RecipeCard Component', () => {
           fullName: 'John Doe',
         },
       };
-      renderWithTheme(<RecipeCard recipe={recipeWithoutAvatar} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={recipeWithoutAvatar} />);
 
       expect(screen.getByText('John Doe')).toBeInTheDocument();
       // Avatar should still exist (with first letter fallback)
@@ -344,7 +386,7 @@ describe('RecipeCard Component', () => {
     });
 
     it('should display author avatar when provided', () => {
-      renderWithTheme(<RecipeCard recipe={mockRecipeWithAuthor} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipeWithAuthor} />);
 
       const avatar = screen.getByAltText('johndoe');
       expect(avatar).toHaveAttribute('src', 'https://example.com/avatar.jpg');
@@ -355,7 +397,7 @@ describe('RecipeCard Component', () => {
         ...mockRecipe,
         difficulty: 'unknown' as any,
       };
-      renderWithTheme(<RecipeCard recipe={recipeWithUnknownDifficulty} />);
+      renderWithTheme(<RecipeCard viewer={null} recipe={recipeWithUnknownDifficulty} />);
 
       // Component should render without errors even with unknown difficulty
       expect(screen.getByText(mockRecipe.title)).toBeInTheDocument();
@@ -369,6 +411,7 @@ describe('RecipeCard Component', () => {
 
       renderWithTheme(
         <RecipeCard
+          viewer={null}
           recipe={mockRecipeWithAuthor}
           currentUserId="user-1"
           showActions={true}

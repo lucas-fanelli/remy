@@ -1,5 +1,9 @@
 import { Post, Prisma, PrismaClient } from '@prisma/client';
-import { IRecipeRepository, RecipeAuthor } from '@/domain/repositories/IRecipeRepository';
+import {
+  IRecipeRepository,
+  RecipeAuthor,
+  RecipeCounts,
+} from '@/domain/repositories/IRecipeRepository';
 import {
   Recipe,
   CreateRecipeDTO,
@@ -74,7 +78,9 @@ export class RecipeRepository implements IRecipeRepository {
     return post ? this.mapToRecipe(post) : null;
   }
 
-  async findByIdWithAuthor(id: string): Promise<{ recipe: Recipe; author: RecipeAuthor } | null> {
+  async findByIdWithAuthor(
+    id: string
+  ): Promise<{ recipe: Recipe; author: RecipeAuthor; counts: RecipeCounts } | null> {
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: {
@@ -87,6 +93,12 @@ export class RecipeRepository implements IRecipeRepository {
             avatar: true,
           },
         },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
       },
     });
 
@@ -97,6 +109,7 @@ export class RecipeRepository implements IRecipeRepository {
     return {
       recipe: this.mapToRecipe(post),
       author: { id: post.user.id, isPrivate: post.user.isPrivate },
+      counts: { likes: post._count.likes, comments: post._count.comments },
     };
   }
 

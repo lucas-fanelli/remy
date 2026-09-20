@@ -16,6 +16,22 @@ export interface Instruction {
 
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
+/**
+ * What the person reading the page did to this recipe. Lives here, next to Recipe, because
+ * it is part of the vocabulary — not in the Prisma layer — so client components can name it
+ * without dragging the database into their bundle.
+ *
+ * `null` is the signed-out reader: it does not mean "has not liked it", it means there is
+ * nobody to have liked it. Keep the two apart; conflating them is the original bug.
+ */
+export interface ViewerState {
+  liked: boolean;
+  saved: boolean;
+  cooked: boolean;
+  /** This reader's own rating, 1-5, or null if they have not rated it. */
+  myRating: number | null;
+}
+
 export interface Recipe {
   id: string;
   title: string;

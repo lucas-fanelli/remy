@@ -10,6 +10,17 @@ export interface RecipeAuthor {
 }
 
 /**
+ * How many people engaged with a recipe — as opposed to `ViewerState`, which is what the
+ * one person reading it did. Every list endpoint has carried these; the single-recipe
+ * endpoint did not, so the detail page showed a like count of zero until a separate probe
+ * came back with the real number.
+ */
+export interface RecipeCounts {
+  likes: number;
+  comments: number;
+}
+
+/**
  * Repository interface for Recipe operations
  * Follows Interface Segregation Principle and Dependency Inversion Principle
  */
@@ -25,12 +36,15 @@ export interface IRecipeRepository {
   findById(id: string): Promise<Recipe | null>;
 
   /**
-   * Find a recipe together with the visibility of its author, in one query.
+   * Find a recipe together with the visibility of its author and its engagement counts,
+   * in one query.
    *
    * Every list endpoint hides the recipes of private users; the single-recipe endpoint
    * has to make the same decision, and it cannot without knowing who the author is.
    */
-  findByIdWithAuthor(id: string): Promise<{ recipe: Recipe; author: RecipeAuthor } | null>;
+  findByIdWithAuthor(
+    id: string
+  ): Promise<{ recipe: Recipe; author: RecipeAuthor; counts: RecipeCounts } | null>;
 
   /**
    * Find recipes by user ID
