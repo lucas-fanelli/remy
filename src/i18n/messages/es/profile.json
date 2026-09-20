@@ -1,1 +1,76 @@
-{}
+{
+  "errors": {
+    "notFound": "No encontramos el perfil",
+    "loadFailed": "No pudimos cargar el perfil",
+    "userNotFound": "No encontramos a esta persona"
+  },
+  "goHome": "Volver al inicio",
+  "signIn": "Iniciar sesión",
+  "actions": {
+    "edit": "Editar perfil",
+    "follow": "Seguir",
+    "following": "Siguiendo"
+  },
+  "stats": {
+    "recipes": "{count, plural, one {<value>#</value> receta} other {<value>#</value> recetas}}",
+    "followers": "{count, plural, one {<value>#</value> seguidor} other {<value>#</value> seguidores}}",
+    "following": "<value>{count, number}</value> siguiendo"
+  },
+  "tabs": {
+    "recipes": "Recetas",
+    "saved": "Guardadas"
+  },
+  "difficulty": "{level, select, easy {fácil} medium {media} hard {difícil} other {{fallback}}}",
+  "empty": {
+    "recipes": "Todavía no hay recetas",
+    "recipesOwn": "¡Compartí tu primera receta y arrancá!",
+    "saved": "Todavía no guardaste recetas",
+    "savedDescription": "¡Guardá las recetas que quieras probar más adelante!"
+  },
+  "followers": {
+    "title": "Seguidores",
+    "empty": "Todavía no hay seguidores",
+    "signInPrompt": "Iniciá sesión para ver los seguidores",
+    "loadFailed": "No pudimos cargar los seguidores"
+  },
+  "followingList": {
+    "title": "Siguiendo",
+    "empty": "Todavía no hay nadie acá",
+    "signInPrompt": "Iniciá sesión para ver a quién sigue",
+    "loadFailed": "No pudimos cargar a quién sigue"
+  },
+  "followFailed": "{action, select, unfollow {No pudimos dejar de seguir a esta persona} other {No pudimos seguir a esta persona}}",
+  "edit": {
+    "title": "Editar perfil",
+    "changePhoto": "Cambiar foto",
+    "photoSelected": "Foto nueva elegida - la vamos a subir cuando guardes",
+    "photoHint": "Tocá para cambiar la foto de tu perfil",
+    "username": "Usuario",
+    "usernameHelper": "El usuario no se puede cambiar",
+    "email": "Tu email",
+    "emailHelper": "El email no se puede cambiar",
+    "fullName": "Nombre completo",
+    "fullNamePlaceholder": "Escribí tu nombre completo",
+    "bio": "Biografía",
+    "bioPlaceholder": "Contanos algo sobre vos...",
+    "bioCount": "{count, number}/{max, number} caracteres",
+    "website": "Sitio web",
+    "websitePlaceholder": "https://tusitio.com",
+    "private": "Cuenta privada",
+    "privateDescription": "Solo los seguidores que aceptes pueden ver tus recetas",
+    "success": "¡Actualizamos tu perfil!",
+    "errors": {
+      "fileTooSmall": "El archivo es demasiado chico para identificarlo",
+      "imageTooLarge": "La imagen tiene que pesar menos de {max, number} MB",
+      "invalidImageType": "Elegí una imagen válida (JPG, PNG, GIF o WebP)",
+      "notLoggedIn": "Tenés que iniciar sesión para actualizar tu perfil",
+      "readFailed": "No pudimos leer el archivo",
+      "unsupportedImage": "La imagen no es válida. Formatos aceptados: JPEG, PNG, GIF, WebP",
+      "updateFailed": "No pudimos actualizar tu perfil",
+      "uploadFailed": "No pudimos subir la foto",
+      "websiteCredentials": "La URL no puede tener credenciales",
+      "websiteInvalid": "Ingresá una URL válida",
+      "websiteProtocol": "El sitio web tiene que empezar con http:// o https://"
+    }
+  }
+}
