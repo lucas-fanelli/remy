@@ -1,1 +1,71 @@
-{}
+{
+  "states": {
+    "notFound": "No encontramos la receta",
+    "loadFailed": "No pudimos cargar la receta"
+  },
+  "meta": {
+    "difficulty": "{level, select, easy {fácil} medium {media} hard {difícil} other {{level}}}",
+    "servings": "{count, plural, one {# porción} other {# porciones}}",
+    "totalTime": "{minutes, number} min en total",
+    "noRatings": "Todavía no tiene puntuaciones",
+    "ratingSummary": "{average} ({count, plural, one {# reseña} other {# reseñas}})"
+  },
+  "times": {
+    "prep": "PREPARACIÓN",
+    "cook": "COCCIÓN",
+    "total": "TOTAL"
+  },
+  "ingredients": {
+    "title": "Ingredientes",
+    "toTaste": ", a gusto"
+  },
+  "instructions": {
+    "title": "Paso a paso",
+    "stepAlt": "Paso {number, number}"
+  },
+  "actions": {
+    "markAsCooked": "Marcar como cocinada",
+    "marking": "Marcando...",
+    "cookAnyway": "Cocinar igual",
+    "edit": "Editar receta",
+    "delete": "Eliminar receta"
+  },
+  "deleteDialog": {
+    "title": "¿Eliminar la receta?",
+    "message": "¿Seguro que querés eliminar “{title}”? No se puede deshacer."
+  },
+  "insufficientDialog": {
+    "title": "Ingredientes insuficientes",
+    "intro": "Te falta stock de estos ingredientes en la despensa:",
+    "row": "{name}: necesitás {required} {requiredUnit} y tenés {available} {availableUnit}",
+    "question": "¿Querés marcarla como cocinada igual?"
+  },
+  "toasts": {
+    "updated": "¡Receta actualizada!",
+    "deleted": "¡Receta eliminada!",
+    "deleteFailed": "No pudimos eliminar la receta",
+    "loginToLike": "Iniciá sesión para marcar me gusta",
+    "liked": "¡Te gusta esta receta!",
+    "unliked": "Sacaste tu me gusta",
+    "likeFailed": "No pudimos marcar me gusta",
+    "loginToSave": "Iniciá sesión para guardar recetas",
+    "saved": "¡Receta guardada!",
+    "unsaved": "Receta quitada de guardadas",
+    "saveFailed": "No pudimos guardar la receta",
+    "linkCopied": "¡Enlace copiado!",
+    "copyFailed": "No pudimos copiar el enlace",
+    "copyManually": "No podemos copiar el enlace — copiá la URL a mano",
+    "loginToCook": "Iniciá sesión para marcar recetas como cocinadas",
+    "cooked": "¡Receta marcada como cocinada!",
+    "cookedPartial": "¡Receta marcada como cocinada! Ojo: no te alcanza el stock de: {names}",
+    "cookFailed": "No pudimos marcarla como cocinada"
+  },
+  "card": {
+    "like": "Me gusta",
+    "unlike": "Ya no me gusta",
+    "comments": "Comentarios",
+    "options": "opciones de la receta",
+    "edit": "Editar receta",
+    "delete": "Eliminar receta"
+  }
+}

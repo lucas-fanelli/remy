@@ -1,5 +1,7 @@
 'use client';
 import { Box } from '@mui/material';
+import { useTranslations } from 'next-intl';
+import { useUnitLabels } from '@/i18n/units';
 import { StoredIngredient, getIngredientParts } from './displayFormat';
 
 export interface IngredientLineProps {
@@ -20,7 +22,10 @@ export default function IngredientLine({
   dense = false,
   component = 'li',
 }: IngredientLineProps) {
-  const { quantity, name, toTaste } = getIngredientParts(ingredient);
+  const t = useTranslations('recipe');
+  // The row keeps its stored 'cups'; the line prints 'tazas'
+  const units = useUnitLabels();
+  const { quantity, name, toTaste } = getIngredientParts(ingredient, units.label);
 
   return (
     <Box
@@ -37,7 +42,7 @@ export default function IngredientLine({
         </>
       )}
       {name}
-      {toTaste && ', to taste'}
+      {toTaste && t('ingredients.toTaste')}
     </Box>
   );
 }

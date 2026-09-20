@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { text, type TextDescriptor } from '@/i18n/text';
 
 // API Recipe type - matches what the API actually returns
 // This is more complete than the domain Recipe type
@@ -52,14 +53,32 @@ interface RecipeResponse {
   recipe: ApiRecipe;
 }
 
+/**
+ * What the recipe page prints when the fetch fails.
+ *
+ * The English `message` is kept - it is what a log, a Sentry breadcrumb or a caller holding
+ * a plain Error sees - and the descriptor is what the page renders, in the reader's
+ * language. This function has no locale and no hooks, so it cannot translate anything
+ * itself (see the descriptor pattern in docs/I18N.md).
+ */
+export class RecipeFetchError extends Error {
+  constructor(
+    readonly descriptor: TextDescriptor,
+    message: string
+  ) {
+    super(message);
+    this.name = 'RecipeFetchError';
+  }
+}
+
 async function fetchRecipe(id: string): Promise<RecipeResponse> {
   const response = await fetch(`/api/recipes/${id}`);
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error('Recipe not found');
+      throw new RecipeFetchError(text('recipe.states.notFound'), 'Recipe not found');
     }
-    throw new Error('Failed to load recipe');
+    throw new RecipeFetchError(text('recipe.states.loadFailed'), 'Failed to load recipe');
   }
 
   return response.json();

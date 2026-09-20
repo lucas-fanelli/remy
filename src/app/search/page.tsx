@@ -15,6 +15,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, Suspense } from 'react';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
@@ -56,6 +57,7 @@ function SearchPageFallback() {
 
 // Main search page content that uses useSearchParams
 function SearchPageContent() {
+  const t = useTranslations('search');
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -112,10 +114,10 @@ function SearchPageContent() {
       >
         <Box sx={{ mb: 3 }}>
           <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom color="text.primary">
-            Search Results
+            {t('page.title')}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Results for &ldquo;{query}&rdquo;
+            {t('page.resultsFor', { query })}
           </Typography>
         </Box>
 
@@ -124,8 +126,12 @@ function SearchPageContent() {
         >
           <AnimatedTabs
             tabs={[
-              { key: 0, label: `Recipes (${recipes.length})`, icon: <Restaurant /> },
-              { key: 1, label: `Users (${users.length})`, icon: <Person /> },
+              {
+                key: 0,
+                label: t('page.tabs.recipes', { count: recipes.length }),
+                icon: <Restaurant />,
+              },
+              { key: 1, label: t('page.tabs.users', { count: users.length }), icon: <Person /> },
             ]}
             activeKey={tabValue}
             onChange={(key) => setTabValue(key as number)}
@@ -141,10 +147,10 @@ function SearchPageContent() {
                   <Box sx={{ textAlign: 'center', py: 8 }}>
                     <Restaurant sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                     <Typography variant="h6" color="text.secondary">
-                      No recipes found
+                      {t('page.noRecipes')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Try searching with different keywords
+                      {t('page.tryDifferent')}
                     </Typography>
                   </Box>
                 ) : (
@@ -187,10 +193,10 @@ function SearchPageContent() {
                   <Box sx={{ textAlign: 'center', py: 8 }}>
                     <Person sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
                     <Typography variant="h6" color="text.secondary">
-                      No users found
+                      {t('page.noUsers')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Try searching with different keywords
+                      {t('page.tryDifferent')}
                     </Typography>
                   </Box>
                 ) : (

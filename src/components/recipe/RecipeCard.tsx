@@ -28,6 +28,7 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React, { useRef } from 'react';
 import { Recipe } from '@/domain/types/recipe';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
@@ -65,6 +66,9 @@ export default function RecipeCard({
   showActions = false,
   currentUserId,
 }: RecipeCardProps) {
+  const t = useTranslations('recipe');
+  const tCommon = useTranslations('common');
+  const format = useFormatter();
   const router = useRouter();
   const [imgFallbackUsed, setImgFallbackUsed] = React.useState(false);
   const [imgHidden, setImgHidden] = React.useState(false);
@@ -155,7 +159,7 @@ export default function RecipeCard({
           >
             <RestaurantIcon sx={{ fontSize: 48, color: 'grey.400' }} />
             <Typography variant="caption" sx={{ color: 'grey.500', mt: 0.5 }}>
-              Image unavailable
+              {tCommon('states.imageUnavailable')}
             </Typography>
           </Box>
         ) : (
@@ -190,7 +194,7 @@ export default function RecipeCard({
 
         {/* Difficulty Badge - Top Right */}
         <Chip
-          label={recipe.difficulty}
+          label={t('meta.difficulty', { level: recipe.difficulty })}
           size="small"
           color={getDifficultyColor(recipe.difficulty)}
           sx={{
@@ -210,7 +214,7 @@ export default function RecipeCard({
         {/* Time Badge - Bottom Left */}
         <Chip
           icon={<AccessTime sx={{ fontSize: 16, color: 'white !important' }} />}
-          label={`${totalTime} min`}
+          label={tCommon('time.minutesShort', { count: totalTime })}
           size="small"
           sx={{
             position: 'absolute',
@@ -273,7 +277,7 @@ export default function RecipeCard({
           <IconButton
             onClick={handleMenuOpen}
             size="small"
-            aria-label="recipe options"
+            aria-label={t('card.options')}
             sx={{ color: 'text.secondary' }}
           >
             <MoreVert fontSize="small" />
@@ -315,7 +319,7 @@ export default function RecipeCard({
                 sx={{ color: 'warning.main' }}
               />
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>
-                ({recipe.totalRatings})
+                ({format.number(recipe.totalRatings)})
               </Typography>
             </>
           ) : (
@@ -324,7 +328,7 @@ export default function RecipeCard({
               color="text.secondary"
               sx={{ fontSize: '0.8125rem', fontStyle: 'italic' }}
             >
-              No ratings yet
+              {t('meta.noRatings')}
             </Typography>
           )}
         </Box>
@@ -350,7 +354,7 @@ export default function RecipeCard({
         {/* Servings Chip */}
         <Chip
           icon={<Person sx={{ fontSize: 16 }} />}
-          label={`${recipe.servings} servings`}
+          label={t('meta.servings', { count: recipe.servings })}
           size="small"
           variant="outlined"
           sx={{
@@ -366,7 +370,7 @@ export default function RecipeCard({
       {showActions && (
         <CardActions sx={{ px: 2, pb: 2, pt: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Tooltip title={liked ? 'Unlike' : 'Like'}>
+            <Tooltip title={liked ? t('card.unlike') : t('card.like')}>
               <IconButton
                 onClick={(e) => {
                   e.stopPropagation();
@@ -389,7 +393,7 @@ export default function RecipeCard({
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 2 }}>
-            <Tooltip title="Comments">
+            <Tooltip title={t('card.comments')}>
               <IconButton
                 onClick={(e) => {
                   e.stopPropagation();
@@ -421,13 +425,13 @@ export default function RecipeCard({
           <ListItemIcon>
             <Edit fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Edit Recipe</ListItemText>
+          <ListItemText>{t('card.edit')}</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
           <ListItemIcon>
             <Delete fontSize="small" color="error" />
           </ListItemIcon>
-          <ListItemText>Delete Recipe</ListItemText>
+          <ListItemText>{t('card.delete')}</ListItemText>
         </MenuItem>
       </Menu>
     </MotionCard>

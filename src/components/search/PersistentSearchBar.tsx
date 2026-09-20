@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useMotionContext } from '@/contexts/MotionContext';
@@ -52,7 +53,7 @@ interface PersistentSearchBarProps {
   onResultClick?: () => void;
   /** Initial search value */
   initialValue?: string;
-  /** Placeholder text */
+  /** Placeholder text. Defaults to the bar's own translated one. */
   placeholder?: string;
   /** Enable suggestions dropdown */
   showSuggestions?: boolean;
@@ -69,12 +70,14 @@ export default function PersistentSearchBar({
   onQueryChange,
   onResultClick,
   initialValue = '',
-  placeholder = 'Search recipes, ingredients...',
+  placeholder,
   showSuggestions = true,
   recentSearches = [],
   results,
   loading = false,
 }: PersistentSearchBarProps) {
+  const t = useTranslations('search');
+  const tCommon = useTranslations('common');
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname(); // Used to force snap re-render on route change
@@ -329,7 +332,7 @@ export default function PersistentSearchBar({
                 }}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
-                placeholder={placeholder}
+                placeholder={placeholder ?? t('bar.placeholder')}
                 fullWidth
                 sx={{
                   fontSize: '0.95rem',
@@ -342,7 +345,7 @@ export default function PersistentSearchBar({
                   },
                 }}
                 inputProps={{
-                  'aria-label': 'Search recipes',
+                  'aria-label': t('bar.inputLabel'),
                 }}
               />
 
@@ -358,7 +361,7 @@ export default function PersistentSearchBar({
                       color: theme.palette.text.primary,
                     },
                   }}
-                  aria-label="Clear search"
+                  aria-label={t('bar.clear')}
                 >
                   <ClearIcon sx={{ fontSize: 18 }} />
                 </IconButton>
@@ -413,7 +416,7 @@ export default function PersistentSearchBar({
                           />
                         </ListItemIcon>
                         <ListItemText
-                          primary={`Search for "${query.trim()}"`}
+                          primary={t('bar.searchFor', { query: query.trim() })}
                           primaryTypographyProps={{
                             fontSize: '0.9rem',
                             fontWeight: 500,
@@ -429,7 +432,7 @@ export default function PersistentSearchBar({
                   <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <CircularProgress size={16} />
                     <Typography variant="caption" color="text.secondary">
-                      Searching...
+                      {tCommon('status.searching')}
                     </Typography>
                   </Box>
                 )}
@@ -539,7 +542,7 @@ export default function PersistentSearchBar({
                 {hasQuery && !effectiveLoading && !hasLiveResults && (
                   <Box sx={{ px: 2, py: 2, textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      No matching recipes found
+                      {t('bar.noResults')}
                     </Typography>
                   </Box>
                 )}
@@ -556,7 +559,7 @@ export default function PersistentSearchBar({
                             color="text.secondary"
                             sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}
                           >
-                            Recent Searches
+                            {t('bar.recent')}
                           </Typography>
                         </Box>
                         <List dense disablePadding>
@@ -599,7 +602,7 @@ export default function PersistentSearchBar({
                     {recentSearches.length === 0 && (
                       <Box sx={{ px: 2, py: 3, textAlign: 'center' }}>
                         <Typography variant="body2" color="text.secondary">
-                          Type to search recipes...
+                          {t('bar.hint')}
                         </Typography>
                       </Box>
                     )}

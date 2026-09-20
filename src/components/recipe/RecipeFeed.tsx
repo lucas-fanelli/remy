@@ -22,10 +22,12 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe } from '@/domain/types/recipe';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import EditRecipeModal from './EditRecipeModal';
 import RecipeCard from './RecipeCard';
 
@@ -42,6 +44,9 @@ interface RecipeFeedProps {
 }
 
 export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
+  const t = useTranslations('feed');
+  const tCommon = useTranslations('common');
+  const apiErrorMessage = useApiErrorMessage();
   const router = useRouter();
   const { user } = useAuth();
   const theme = useTheme();
@@ -253,7 +258,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to delete recipe');
+        throw new Error(apiErrorMessage(error, t('toasts.deleteFailed')));
       }
 
       // Remove recipe from list
@@ -265,14 +270,14 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
       setSnackbar({
         open: true,
-        message: 'Recipe deleted successfully',
+        message: t('toasts.deleted'),
         severity: 'success',
       });
     } catch (error) {
       console.error('Error deleting recipe:', error);
       setSnackbar({
         open: true,
-        message: error instanceof Error ? error.message : 'Failed to delete recipe',
+        message: error instanceof Error ? error.message : t('toasts.deleteFailed'),
         severity: 'error',
       });
     } finally {
@@ -298,7 +303,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
     setSnackbar({
       open: true,
-      message: 'Recipe updated successfully',
+      message: t('toasts.updated'),
       severity: 'success',
     });
   };
@@ -311,7 +316,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     if (!user) {
       setSnackbar({
         open: true,
-        message: 'Please log in to like recipes',
+        message: t('toasts.loginToLike'),
         severity: 'info',
       });
       return;
@@ -355,7 +360,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
         }));
         setSnackbar({
           open: true,
-          message: 'Failed to update like',
+          message: t('toasts.likeFailed'),
           severity: 'error',
         });
       }
@@ -368,7 +373,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
       }));
       setSnackbar({
         open: true,
-        message: 'Failed to update like',
+        message: t('toasts.likeFailed'),
         severity: 'error',
       });
     }
@@ -395,7 +400,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             fontSize: { xs: '1.25rem', sm: '1.5rem' },
           }}
         >
-          Discover Recipes
+          {t('title')}
         </Typography>
         {onCreateRecipe && (
           <Button
@@ -406,7 +411,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             size={isMobile ? 'large' : 'medium'}
             sx={{ borderRadius: 2 }}
           >
-            New recipe
+            {t('actions.create')}
           </Button>
         )}
       </Box>
@@ -439,11 +444,11 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
               fontSize: { xs: '0.9375rem', md: '1rem' },
             }}
           >
-            Filters
+            {t('filters.title')}
           </Typography>
           {hasActiveFilters && (
             <Chip
-              label="Clear"
+              label={tCommon('actions.clear')}
               size="small"
               onClick={clearFilters}
               onDelete={clearFilters}
@@ -458,45 +463,45 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
           alignItems={{ xs: 'stretch', sm: 'center' }}
         >
           <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
-            <InputLabel>Difficulty</InputLabel>
+            <InputLabel>{t('filters.difficulty.label')}</InputLabel>
             <Select
               value={difficultyFilter}
-              label="Difficulty"
+              label={t('filters.difficulty.label')}
               onChange={(e) => setDifficultyFilter(e.target.value)}
             >
-              <MenuItem value="all">All Levels</MenuItem>
-              <MenuItem value="easy">Easy</MenuItem>
-              <MenuItem value="medium">Medium</MenuItem>
-              <MenuItem value="hard">Hard</MenuItem>
+              <MenuItem value="all">{t('filters.difficulty.all')}</MenuItem>
+              <MenuItem value="easy">{t('filters.difficulty.easy')}</MenuItem>
+              <MenuItem value="medium">{t('filters.difficulty.medium')}</MenuItem>
+              <MenuItem value="hard">{t('filters.difficulty.hard')}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
-            <InputLabel>Duration</InputLabel>
+            <InputLabel>{t('filters.duration.label')}</InputLabel>
             <Select
               value={timeFilter}
-              label="Duration"
+              label={t('filters.duration.label')}
               onChange={(e) => setTimeFilter(e.target.value)}
             >
-              <MenuItem value="any">Any Duration</MenuItem>
-              <MenuItem value="under30">Under 30 min</MenuItem>
-              <MenuItem value="under60">Under 1 hour</MenuItem>
-              <MenuItem value="over60">Over 1 hour</MenuItem>
+              <MenuItem value="any">{t('filters.duration.any')}</MenuItem>
+              <MenuItem value="under30">{t('filters.duration.under30')}</MenuItem>
+              <MenuItem value="under60">{t('filters.duration.under60')}</MenuItem>
+              <MenuItem value="over60">{t('filters.duration.over60')}</MenuItem>
             </Select>
           </FormControl>
 
           {/* Sort By Dropdown */}
           <FormControl size="small" fullWidth={isMobile} sx={{ minWidth: { xs: 'auto', sm: 150 } }}>
-            <InputLabel>Sort By</InputLabel>
+            <InputLabel>{t('filters.sort.label')}</InputLabel>
             <Select
               value={sortOrder}
-              label="Sort By"
+              label={t('filters.sort.label')}
               onChange={(e) => setSortOrder(e.target.value)}
             >
-              <MenuItem value="newest">Newest</MenuItem>
-              <MenuItem value="rating_desc">Highest Rated</MenuItem>
-              <MenuItem value="rating_asc">Lowest Rated</MenuItem>
-              <MenuItem value="most_reviewed">Most Reviewed</MenuItem>
+              <MenuItem value="newest">{t('filters.sort.newest')}</MenuItem>
+              <MenuItem value="rating_desc">{t('filters.sort.ratingDesc')}</MenuItem>
+              <MenuItem value="rating_asc">{t('filters.sort.ratingAsc')}</MenuItem>
+              <MenuItem value="most_reviewed">{t('filters.sort.mostReviewed')}</MenuItem>
             </Select>
           </FormControl>
         </Stack>
@@ -538,14 +543,14 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
               gutterBottom
               sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
             >
-              No recipes found
+              {t('empty.title')}
             </Typography>
             <Typography
               variant="body2"
               color="text.secondary"
               sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.875rem', md: '1rem' } }}
             >
-              Try adjusting your filters or be the first to share a recipe!
+              {t('empty.body')}
             </Typography>
             {onCreateRecipe && (
               <Button
@@ -554,7 +559,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                 onClick={onCreateRecipe}
                 size={isMobile ? 'large' : 'medium'}
               >
-                Publish your first recipe
+                {t('actions.createFirst')}
               </Button>
             )}
           </Box>
@@ -576,8 +581,8 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
           >
             {pageRef.current >= MAX_PAGES
-              ? `Showing first ${MAX_PAGES * PAGE_SIZE} recipes. Use search or filters to find specific recipes.`
-              : "You've reached the end!"}
+              ? t('end.capped', { count: MAX_PAGES * PAGE_SIZE })
+              : t('end.reached')}
           </Typography>
         </Box>
       )}
@@ -590,15 +595,15 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="delete-dialog-title">Delete selected recipe?</DialogTitle>
+        <DialogTitle id="delete-dialog-title">{t('deleteDialog.title')}</DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Recipe will be permanently removed from your account and all synced devices.
+            {t('deleteDialog.message')}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDeleteCancel} disabled={deleting}>
-            Cancel
+            {tCommon('actions.cancel')}
           </Button>
           <Button
             onClick={handleDeleteConfirm}
@@ -607,7 +612,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             disabled={deleting}
             autoFocus
           >
-            {deleting ? 'Deleting...' : 'Delete'}
+            {deleting ? tCommon('status.deleting') : tCommon('actions.delete')}
           </Button>
         </DialogActions>
       </Dialog>
