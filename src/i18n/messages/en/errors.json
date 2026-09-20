@@ -108,13 +108,13 @@
     "updateFailed": "We could not update the ingredient."
   },
   "cooked": {
-    "alreadyCooked": "You already marked this recipe as cooked in the last 24 hours.",
     "dailyLimit": "You reached the daily limit of 20 cooked recipes. Try again tomorrow.",
     "fetchFailed": "We could not load your cooked recipes.",
     "insufficientIngredients": "Some ingredients are insufficient.",
     "invalidId": "That entry is not valid.",
     "markFailed": "We could not mark the recipe as cooked.",
     "notFound": "We could not find that entry.",
+    "planFailed": "We could not work out what cooking this would use from your pantry.",
     "removeFailed": "We could not remove that entry."
   },
   "notification": {

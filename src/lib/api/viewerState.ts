@@ -24,7 +24,8 @@ export type { ViewerState };
 const UNTOUCHED: ViewerState = Object.freeze({
   liked: false,
   saved: false,
-  cooked: false,
+  timesCooked: 0,
+  lastCookedAt: null,
   myRating: null,
 });
 
@@ -57,25 +58,33 @@ export async function loadViewerState(
   const [likes, saves, cooked, ratings] = await Promise.all([
     db.like.findMany({ where: scope, select: { postId: true } }),
     db.savedRecipe.findMany({ where: scope, select: { postId: true } }),
-    // A cooked entry is soft-deleted by `deletedAt`, and the same recipe can be cooked
-    // many times, so this is "at least one live entry" rather than a unique row.
-    db.cookedRecipe.findMany({
+    // Cooked entries are soft-deleted by `deletedAt`, and the same recipe can be cooked
+    // many times — so this counts the live ones and takes the most recent date, rather
+    // than collapsing them to a yes/no.
+    db.cookedRecipe.groupBy({
+      by: ['postId'],
       where: { ...scope, deletedAt: null },
-      select: { postId: true },
-      distinct: ['postId'],
+      _count: { _all: true },
+      _max: { cookedAt: true },
     }),
     db.rating.findMany({ where: scope, select: { postId: true, rating: true } }),
   ]);
 
   const likedIds = new Set(likes.map((row) => row.postId));
   const savedIds = new Set(saves.map((row) => row.postId));
-  const cookedIds = new Set(cooked.map((row) => row.postId));
+  const cookedByPost = new Map(
+    cooked.map((row) => [row.postId, { times: row._count._all, lastAt: row._max.cookedAt }])
+  );
   const ratingByPost = new Map(ratings.map((row) => [row.postId, row.rating]));
 
-  return (postId) => ({
-    liked: likedIds.has(postId),
-    saved: savedIds.has(postId),
-    cooked: cookedIds.has(postId),
-    myRating: ratingByPost.get(postId) ?? null,
-  });
+  return (postId) => {
+    const cooks = cookedByPost.get(postId);
+    return {
+      liked: likedIds.has(postId),
+      saved: savedIds.has(postId),
+      timesCooked: cooks?.times ?? 0,
+      lastCookedAt: cooks?.lastAt?.toISOString() ?? null,
+      myRating: ratingByPost.get(postId) ?? null,
+    };
+  };
 }
