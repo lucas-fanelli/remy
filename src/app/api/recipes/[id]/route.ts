@@ -18,14 +18,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
 
     if (!UUID_REGEX.test(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     const recipeService = container.getRecipeService();
     const recipe = await recipeService.getRecipeById(id);
 
     if (!recipe) {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Recipe not found', code: 'recipe.notFound' },
+        { status: 404 }
+      );
     }
 
     // Use cached rating values from the post record
@@ -38,7 +44,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     logServerError('Error fetching recipe:', error);
-    return NextResponse.json({ error: 'Failed to fetch recipe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch recipe', code: 'recipe.loadFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -53,14 +62,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
 
     if (!UUID_REGEX.test(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     let user;
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -68,7 +80,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
 
     if (body.imageUrl) {
@@ -88,18 +103,27 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     if (error instanceof ForbiddenError) {
       return NextResponse.json(
-        { error: 'You do not have permission to update this recipe' },
+        {
+          error: 'You do not have permission to update this recipe',
+          code: 'recipe.updateForbidden',
+        },
         { status: 403 }
       );
     }
+    // RecipeService raises this one with 'Recipe not found' and nothing else
     if (error instanceof NotFoundError) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+      return NextResponse.json({ error: error.message, code: 'recipe.notFound' }, { status: 404 });
     }
+    // No code: the message is the list of fields that failed, which 'invalidRequest' would
+    // throw away. It becomes translatable with the rest of the recipe validation messages.
     if (error instanceof ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Failed to update recipe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to update recipe', code: 'recipe.updateFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -114,14 +138,17 @@ export async function DELETE(
     const { id } = await params;
 
     if (!UUID_REGEX.test(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     let user;
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Atomic ownership check + delete — returns imageUrl for Cloudinary cleanup
@@ -143,14 +170,20 @@ export async function DELETE(
 
     if (error instanceof ForbiddenError) {
       return NextResponse.json(
-        { error: 'You do not have permission to delete this recipe' },
+        {
+          error: 'You do not have permission to delete this recipe',
+          code: 'recipe.deleteForbidden',
+        },
         { status: 403 }
       );
     }
     if (error instanceof NotFoundError) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+      return NextResponse.json({ error: error.message, code: 'recipe.notFound' }, { status: 404 });
     }
 
-    return NextResponse.json({ error: 'Failed to delete recipe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to delete recipe', code: 'recipe.deleteFailed' },
+      { status: 500 }
+    );
   }
 }

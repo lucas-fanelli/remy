@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Get query parameters
@@ -32,7 +32,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     logServerError('Error fetching notifications:', error);
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch notifications', code: 'notification.fetchFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -46,7 +49,7 @@ export async function POST(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Use service layer to mark notifications as read
@@ -56,6 +59,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     logServerError('Error marking notifications as read:', error);
-    return NextResponse.json({ error: 'Failed to mark notifications as read' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to mark notifications as read', code: 'notification.markAllReadFailed' },
+      { status: 500 }
+    );
   }
 }

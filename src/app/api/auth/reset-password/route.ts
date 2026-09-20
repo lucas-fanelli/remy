@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return ApiResponseHelper.badRequest('Invalid JSON body');
+      return ApiResponseHelper.badRequest('Invalid JSON body', 'invalidRequest');
     }
 
     const { token, password } = resetPasswordSchema.parse(body);
@@ -39,23 +39,27 @@ export async function POST(request: NextRequest) {
       // A token that fails validation gets the generic invalid-link answer on its
       // own, even when the password is wrong too: no password can fix that link
       if (error.errors.some((e) => e.path[0] === 'token')) {
-        return ApiResponseHelper.badRequest(INVALID_RESET_TOKEN_MESSAGE);
+        return ApiResponseHelper.badRequest(INVALID_RESET_TOKEN_MESSAGE, 'auth.invalidResetToken');
       }
 
+      // No code: the message lists the password rules that failed, which the generic
+      // 'invalidRequest' sentence would throw away
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
-    // One generic answer for unknown, used and expired tokens
+    // One generic answer - and ONE code - for unknown, used and expired tokens: a code per
+    // case would tell the caller whether the token exists, which is what this hides
     if (error instanceof InvalidResetTokenError) {
-      return ApiResponseHelper.badRequest(error.message);
+      return ApiResponseHelper.badRequest(error.message, 'auth.invalidResetToken');
     }
 
+    // Same as the zod branch above: the message is the password rule that failed
     if (error instanceof ValidationError) {
       return ApiResponseHelper.badRequest(error.message);
     }
 
     // Never log the request body here: it carries the token and the new password
     logServerError('Reset password error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }

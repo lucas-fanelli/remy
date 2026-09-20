@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Configurable candidate limit (default 200, range 50-200)
@@ -319,11 +319,17 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'MATCH_IN_PROGRESS') {
       return NextResponse.json(
-        { error: 'A match request is already in progress. Please wait and try again.' },
+        {
+          error: 'A match request is already in progress. Please wait and try again.',
+          code: 'recipe.matchInProgress',
+        },
         { status: 429 }
       );
     }
     logServerError('Error matching recipes:', error);
-    return NextResponse.json({ error: 'Failed to match recipes' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to match recipes', code: 'recipe.matchFailed' },
+      { status: 500 }
+    );
   }
 }

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Get or create user's pantry
@@ -47,7 +47,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logServerError('Error fetching pantry:', error);
-    return NextResponse.json({ error: 'Failed to fetch pantry' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch pantry', code: 'pantry.fetchFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -61,25 +64,34 @@ export async function POST(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     let body;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
     const { name, quantity, unit, category, expiresAt, notes } = body;
 
     // Validation
     if (!name || name.trim().length === 0) {
-      return NextResponse.json({ error: 'Item name is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Item name is required', code: 'pantry.nameRequired' },
+        { status: 400 }
+      );
     }
 
     if (name.length > MAX_ITEM_NAME_LENGTH) {
       return NextResponse.json(
-        { error: `Item name too long (max ${MAX_ITEM_NAME_LENGTH} characters)` },
+        {
+          error: `Item name too long (max ${MAX_ITEM_NAME_LENGTH} characters)`,
+          code: 'pantry.nameTooLong',
+        },
         { status: 400 }
       );
     }
@@ -88,28 +100,46 @@ export async function POST(request: NextRequest) {
     if (quantity !== undefined && quantity !== null) {
       const parsed = parseFloat(quantity);
       if (isNaN(parsed) || !isFinite(parsed)) {
-        return NextResponse.json({ error: 'Quantity must be a valid number' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Quantity must be a valid number', code: 'pantry.quantityInvalid' },
+          { status: 400 }
+        );
       }
       if (parsed < 0) {
-        return NextResponse.json({ error: 'Quantity cannot be negative' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Quantity cannot be negative', code: 'pantry.quantityNegative' },
+          { status: 400 }
+        );
       }
       if (parsed > MAX_QUANTITY) {
-        return NextResponse.json({ error: 'Quantity too large' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Quantity too large', code: 'pantry.quantityTooLarge' },
+          { status: 400 }
+        );
       }
     }
 
     if (!unit || unit.trim().length === 0) {
-      return NextResponse.json({ error: 'Unit is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Unit is required', code: 'pantry.unitRequired' },
+        { status: 400 }
+      );
     }
 
     if (unit.length > 50) {
-      return NextResponse.json({ error: 'Unit too long (max 50 characters)' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Unit too long (max 50 characters)', code: 'pantry.unitTooLong' },
+        { status: 400 }
+      );
     }
 
     if (expiresAt !== undefined && expiresAt !== null) {
       const parsedDate = new Date(expiresAt);
       if (isNaN(parsedDate.getTime())) {
-        return NextResponse.json({ error: 'Invalid expiry date' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid expiry date', code: 'pantry.invalidExpiryDate' },
+          { status: 400 }
+        );
       }
     }
 
@@ -117,14 +147,20 @@ export async function POST(request: NextRequest) {
     // The length limit is the only server-side constraint.
     if (category !== undefined && category !== null && category.length > MAX_ITEM_NAME_LENGTH) {
       return NextResponse.json(
-        { error: `Category too long (max ${MAX_ITEM_NAME_LENGTH} characters)` },
+        {
+          error: `Category too long (max ${MAX_ITEM_NAME_LENGTH} characters)`,
+          code: 'pantry.categoryTooLong',
+        },
         { status: 400 }
       );
     }
 
     if (notes !== undefined && notes !== null && notes.length > MAX_NOTES_LENGTH) {
       return NextResponse.json(
-        { error: `Notes too long (max ${MAX_NOTES_LENGTH} characters)` },
+        {
+          error: `Notes too long (max ${MAX_NOTES_LENGTH} characters)`,
+          code: 'pantry.notesTooLong',
+        },
         { status: 400 }
       );
     }
@@ -184,17 +220,23 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'PANTRY_LIMIT') {
       return NextResponse.json(
-        { error: `Pantry item limit reached (${MAX_PANTRY_ITEMS})` },
+        { error: `Pantry item limit reached (${MAX_PANTRY_ITEMS})`, code: 'pantry.limitReached' },
         { status: 400 }
       );
     }
     if (error instanceof Error && error.message === 'DUPLICATE_ITEM') {
       return NextResponse.json(
-        { error: 'An item with this name already exists in your pantry' },
+        {
+          error: 'An item with this name already exists in your pantry',
+          code: 'pantry.duplicateItem',
+        },
         { status: 409 }
       );
     }
     logServerError('Error adding pantry item:', error);
-    return NextResponse.json({ error: 'Failed to add item to pantry' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to add item to pantry', code: 'pantry.addFailed' },
+      { status: 500 }
+    );
   }
 }

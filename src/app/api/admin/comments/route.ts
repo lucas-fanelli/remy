@@ -19,10 +19,16 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId') || undefined;
 
     if (postId && !UUID_REGEX.test(postId)) {
-      return NextResponse.json({ error: 'Invalid postId format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid postId format', code: 'request.invalidPostId' },
+        { status: 400 }
+      );
     }
     if (userId && !UUID_REGEX.test(userId)) {
-      return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid userId format', code: 'request.invalidUserId' },
+        { status: 400 }
+      );
     }
 
     const adminService = container.getAdminService();
@@ -31,6 +37,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     logServerError('Error fetching comments:', error);
-    return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch comments', code: 'comment.fetchFailed' },
+      { status: 500 }
+    );
   }
 }

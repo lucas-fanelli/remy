@@ -26,7 +26,10 @@ export async function GET(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     // Pagination params for posts and saved recipes
@@ -113,7 +116,7 @@ export async function GET(
     });
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
     const isOwnProfile = currentUserId === user.id;
@@ -273,6 +276,9 @@ export async function GET(
     return NextResponse.json(response);
   } catch (error) {
     logServerError('Error fetching profile:', error);
-    return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch profile', code: 'user.profileFailed' },
+      { status: 500 }
+    );
   }
 }

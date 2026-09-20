@@ -38,12 +38,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     if (!UUID_REGEX.test(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     // Prevent admin from deleting themselves
     if (id === authResult.userId) {
-      return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot delete your own account', code: 'admin.cannotDeleteSelf' },
+        { status: 400 }
+      );
     }
 
     logAuditEvent('ADMIN_USER_DELETE', { admin: authResult.userId, target: id });
@@ -129,19 +135,28 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {
     if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
     if (error instanceof Error && error.message === 'LAST_ADMIN') {
-      return NextResponse.json({ error: 'Cannot delete the last admin' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot delete the last admin', code: 'admin.cannotDeleteLastAdmin' },
+        { status: 400 }
+      );
     }
     if (error instanceof Error && error.message === 'NOT_ADMIN') {
-      return NextResponse.json({ error: 'Admin privileges revoked' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Admin privileges revoked', code: 'admin.privilegesRevoked' },
+        { status: 403 }
+      );
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
     logServerError('Error deleting user:', error);
-    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to delete user', code: 'user.deleteFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -158,26 +173,35 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const { id } = await params;
     if (!UUID_REGEX.test(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
     let body;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
     const { action } = body;
 
     if (!action || !['promote', 'demote'].includes(action)) {
       return NextResponse.json(
-        { error: 'Invalid action. Must be "promote" or "demote"' },
+        { error: 'Invalid action. Must be "promote" or "demote"', code: 'admin.invalidRoleAction' },
         { status: 400 }
       );
     }
 
     // Prevent admin from demoting themselves
     if (action === 'demote' && id === authResult.userId) {
-      return NextResponse.json({ error: 'Cannot demote yourself' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot demote yourself', code: 'admin.cannotDemoteSelf' },
+        { status: 400 }
+      );
     }
 
     const adminService = container.getAdminService();
@@ -224,12 +248,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
   } catch (error) {
     if (error instanceof Error && error.message === 'LAST_ADMIN') {
-      return NextResponse.json({ error: 'Cannot demote the last admin' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot demote the last admin', code: 'admin.cannotDemoteLastAdmin' },
+        { status: 400 }
+      );
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
     logServerError('Error updating user role:', error);
-    return NextResponse.json({ error: 'Failed to update user role' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to update user role', code: 'admin.roleUpdateFailed' },
+      { status: 500 }
+    );
   }
 }

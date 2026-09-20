@@ -14,26 +14,35 @@ export function validateCloudinaryUrl(imageUrl: string): NextResponse | null {
     const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
     if (!cloudName) {
       console.error('CLOUDINARY_CLOUD_NAME is not configured');
-      return NextResponse.json({ error: 'Image upload is currently unavailable' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Image upload is currently unavailable', code: 'upload.unavailable' },
+        { status: 400 }
+      );
     }
     if (!['http:', 'https:'].includes(url.protocol) || url.hostname !== 'res.cloudinary.com') {
       return NextResponse.json(
-        { error: 'Image must be uploaded through the app' },
+        { error: 'Image must be uploaded through the app', code: 'upload.notFromApp' },
         { status: 400 }
       );
     }
     const decodedPath = decodeURIComponent(url.pathname);
     if (decodedPath.includes('..')) {
-      return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid image URL', code: 'upload.invalidUrl' },
+        { status: 400 }
+      );
     }
     if (!decodedPath.startsWith(`/${cloudName}/`)) {
       return NextResponse.json(
-        { error: 'Image must be uploaded through the app' },
+        { error: 'Image must be uploaded through the app', code: 'upload.notFromApp' },
         { status: 400 }
       );
     }
     return null; // Valid
   } catch {
-    return NextResponse.json({ error: 'Invalid image URL' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid image URL', code: 'upload.invalidUrl' },
+      { status: 400 }
+    );
   }
 }

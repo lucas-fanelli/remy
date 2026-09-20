@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return ApiResponseHelper.badRequest('Invalid JSON body');
+      return ApiResponseHelper.badRequest('Invalid JSON body', 'invalidRequest');
     }
 
     // Validate input
@@ -47,15 +47,17 @@ export async function PUT(request: NextRequest) {
     return ApiResponseHelper.success(updatedUser, 'Profile updated successfully');
   } catch (error) {
     if (error instanceof Error && error.message === 'Authentication required') {
-      return ApiResponseHelper.unauthorized();
+      return ApiResponseHelper.unauthorized(undefined, 'unauthorized');
     }
 
+    // No code: these are the per-field zod messages, and the generic 'invalidRequest'
+    // sentence would say less than the English it would replace
     if (error instanceof ZodError) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
     logServerError('Update profile error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }
 
@@ -78,10 +80,10 @@ export async function DELETE(request: NextRequest) {
     return response;
   } catch (error) {
     if (error instanceof Error && error.message === 'Authentication required') {
-      return ApiResponseHelper.unauthorized();
+      return ApiResponseHelper.unauthorized(undefined, 'unauthorized');
     }
 
     logServerError('Delete user error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }

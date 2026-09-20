@@ -10,7 +10,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export function requireJsonContentType(request: NextRequest): NextResponse | null {
   const ct = request.headers.get('content-type');
   if (!ct?.startsWith('application/json')) {
-    return NextResponse.json({ error: 'Content-Type must be application/json' }, { status: 415 });
+    return NextResponse.json(
+      { error: 'Content-Type must be application/json', code: 'request.contentTypeJson' },
+      { status: 415 }
+    );
   }
   return null;
 }

@@ -9,10 +9,10 @@ export async function GET(request: NextRequest) {
     return ApiResponseHelper.success(user);
   } catch (error) {
     if (error instanceof Error && error.message === 'Authentication required') {
-      return ApiResponseHelper.unauthorized();
+      return ApiResponseHelper.unauthorized(undefined, 'unauthorized');
     }
 
     logServerError('Get current user error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }

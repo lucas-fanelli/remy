@@ -16,30 +16,39 @@ export async function POST(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     const token = extractAuthToken(request);
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const payload = await verifySessionToken(token);
 
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid token', code: 'auth.invalidToken' },
+        { status: 401 }
+      );
     }
 
     const userService = container.getUserService();
     const userToFollow = await userService.getUserByUsername(username);
 
     if (!userToFollow) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
     // Can't follow yourself
     if (userToFollow.id === payload.userId) {
-      return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot follow yourself', code: 'user.cannotFollowSelf' },
+        { status: 400 }
+      );
     }
 
     // Atomic follow + count — rely on unique constraint for duplicate detection
@@ -72,6 +81,9 @@ export async function POST(
     }
   } catch (error) {
     logServerError('Error following user:', error);
-    return NextResponse.json({ error: 'Failed to follow user' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to follow user', code: 'user.followFailed' },
+      { status: 500 }
+    );
   }
 }

@@ -15,11 +15,17 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0);
 
     if (!query || query.trim().length === 0) {
-      return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Search query is required', code: 'search.queryRequired' },
+        { status: 400 }
+      );
     }
 
     if (query.length > MAX_SEARCH_QUERY_LENGTH) {
-      return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Search query too long', code: 'search.queryTooLong' },
+        { status: 400 }
+      );
     }
 
     const userService = container.get<IUserService>('IUserService');
@@ -89,6 +95,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logServerError('Search error:', error);
-    return NextResponse.json({ error: 'Failed to perform search' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to perform search', code: 'search.failed' },
+      { status: 500 }
+    );
   }
 }

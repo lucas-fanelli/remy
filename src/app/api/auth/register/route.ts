@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return ApiResponseHelper.badRequest('Invalid JSON body');
+      return ApiResponseHelper.badRequest('Invalid JSON body', 'invalidRequest');
     }
 
     const validatedData = registerSchema.parse(body);
@@ -32,15 +32,17 @@ export async function POST(request: NextRequest) {
     setAuthCookie(response, token);
     return response;
   } catch (error) {
+    // No code: these are the per-field zod messages, and the generic 'invalidRequest'
+    // sentence would say less than the English it would replace
     if (error instanceof ZodError) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
     if (error instanceof Error && error.message.includes('already exists')) {
-      return ApiResponseHelper.conflict(error.message);
+      return ApiResponseHelper.conflict(error.message, 'auth.userExists');
     }
 
     logServerError('Registration error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }
