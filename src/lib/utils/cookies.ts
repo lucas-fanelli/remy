@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
+import { getSessionLifetimeSeconds } from '@/lib/auth/session';
 
 const COOKIE_NAME = 'auth_token';
-const COOKIE_MAX_AGE = 24 * 60 * 60; // 24 hours in seconds
 
 /**
- * Set httpOnly auth cookie on a NextResponse
+ * Set httpOnly auth cookie on a NextResponse.
+ * The cookie lives exactly as long as the token inside it (see lib/auth/session).
  */
 export function setAuthCookie(response: NextResponse, token: string): NextResponse {
   response.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV !== 'development',
     sameSite: 'lax', // 'lax' sends cookie on top-level GET navigations (links from email/social) but blocks cross-site POST
-    maxAge: COOKIE_MAX_AGE,
+    maxAge: getSessionLifetimeSeconds(),
     path: '/',
   });
   return response;

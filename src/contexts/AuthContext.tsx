@@ -46,6 +46,17 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Only a 401 from /api/auth/me means "not logged in". A network error, a 5xx or a 429
+// from the rate limiter says nothing about the session, so the check is repeated after
+// these delays instead of dropping the user to the logged-out UI.
+const SESSION_RETRY_DELAYS_MS = [1000, 2000, 5000, 15000, 30000];
+// The first retries hold isLoading so a blip never flashes the logged-out UI; the rest
+// run in the background and bring the user back once the server answers.
+const BLOCKING_SESSION_RETRIES = 2;
+// A resumed PWA or a long-lived tab never remounts: ask again when it becomes visible
+// after this long, so the server's sliding session renewal reaches it too.
+const SESSION_RECHECK_AFTER_MS = 60 * 60 * 1000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const t = useTranslations('auth');
   // These throws are rendered straight into LoginForm / RegisterForm, so they are that
@@ -56,30 +67,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Ref mirrors user state so memoized callbacks can read latest value
   const userRef = React.useRef(user);
   userRef.current = user;
+  // `epoch` is bumped by login, register and logout: they know the session first-hand,
+  // so a check that started before them is stale and must not overwrite their result
+  const sessionCheckRef = React.useRef({
+    epoch: 0,
+    inProgress: false,
+    answeredAt: 0,
+    retryTimer: null as ReturnType<typeof setTimeout> | null,
+  });
 
   // Check auth status on mount via httpOnly cookie (sent automatically)
   useEffect(() => {
+    const check = sessionCheckRef.current;
+
+    const fetchCurrentUser = async (attempt = 0) => {
+      const epoch = check.epoch;
+      check.inProgress = true;
+
+      let session: User | null | undefined; // undefined: the server could not say
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'same-origin',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          session = data.data;
+        } else if (response.status === 401) {
+          session = null;
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user:', error);
+      }
+
+      if (epoch !== check.epoch) return;
+
+      if (session !== undefined) {
+        check.inProgress = false;
+        check.answeredAt = Date.now();
+        setUser(session);
+        setIsLoading(false);
+        return;
+      }
+
+      // No answer is not a logout: keep the current user and ask again later
+      if (attempt < SESSION_RETRY_DELAYS_MS.length) {
+        check.retryTimer = setTimeout(
+          () => fetchCurrentUser(attempt + 1),
+          SESSION_RETRY_DELAYS_MS[attempt]
+        );
+      } else {
+        check.inProgress = false;
+      }
+      if (attempt >= BLOCKING_SESSION_RETRIES) {
+        setIsLoading(false);
+      }
+    };
+
+    const recheckWhenVisible = () => {
+      const isDue = Date.now() - check.answeredAt >= SESSION_RECHECK_AFTER_MS;
+      if (document.visibilityState === 'visible' && !check.inProgress && isDue) {
+        fetchCurrentUser();
+      }
+    };
+
     fetchCurrentUser();
+    document.addEventListener('visibilitychange', recheckWhenVisible);
+
+    return () => {
+      document.removeEventListener('visibilitychange', recheckWhenVisible);
+      // Unmounted: a check still in flight or waiting to retry no longer counts
+      check.epoch++;
+      if (check.retryTimer) clearTimeout(check.retryTimer);
+    };
   }, []);
 
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'same-origin',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.data);
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Failed to fetch current user:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  /** login, register and logout settle the session themselves: drop any pending check */
+  const settleSession = useCallback((nextUser: User | null) => {
+    const check = sessionCheckRef.current;
+    check.epoch++;
+    check.inProgress = false;
+    check.answeredAt = Date.now();
+    if (check.retryTimer) clearTimeout(check.retryTimer);
+    setUser(nextUser);
+    setIsLoading(false);
+  }, []);
 
   const login = useCallback(
     async (emailOrUsername: string, password: string) => {
@@ -96,9 +168,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      setUser(data.data.user);
+      settleSession(data.data.user);
     },
-    [apiErrorMessage, t]
+    [apiErrorMessage, settleSession, t]
   );
 
   const register = useCallback(
@@ -116,14 +188,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      setUser(data.data.user);
+      settleSession(data.data.user);
     },
-    [apiErrorMessage, t]
+    [apiErrorMessage, settleSession, t]
   );
 
   // Optimistic logout: UI clears immediately, cookie may persist on network failure.
   const logout = useCallback(async () => {
-    setUser(null);
+    settleSession(null);
     try {
       getQueryClient()?.clear();
     } catch {
@@ -163,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       retryLogout();
     }
-  }, []);
+  }, [settleSession]);
 
   const updateProfile = useCallback(
     async (data: Partial<User>) => {

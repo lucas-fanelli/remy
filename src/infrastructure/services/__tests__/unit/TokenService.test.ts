@@ -249,6 +249,36 @@ describe('TokenService - Unit Tests', () => {
 
       expect(verified).toBeDefined();
       expect(verified?.userId).toBe('user-123');
+      expect((verified?.exp ?? 0) - (verified?.iat ?? 0)).toBe(24 * 60 * 60);
+
+      process.env.JWT_EXPIRES_IN = originalExpiresIn;
+    });
+
+    it.each([
+      ['missing', undefined],
+      ['invalid', 'a while'],
+    ])('should sign for 30 days when JWT_EXPIRES_IN is %s', (_label, value) => {
+      // Arrange
+      const originalExpiresIn = process.env.JWT_EXPIRES_IN;
+      if (value === undefined) {
+        delete process.env.JWT_EXPIRES_IN;
+      } else {
+        process.env.JWT_EXPIRES_IN = value;
+      }
+      const service = new TokenService('test-secret');
+
+      // Act
+      const verified = service.verify(
+        service.generate({
+          userId: 'user-123',
+          email: 'test@example.com',
+          username: 'testuser',
+          role: 'USER',
+        })
+      );
+
+      // Assert
+      expect((verified?.exp ?? 0) - (verified?.iat ?? 0)).toBe(30 * 24 * 60 * 60);
 
       process.env.JWT_EXPIRES_IN = originalExpiresIn;
     });

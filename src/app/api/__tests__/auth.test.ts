@@ -25,8 +25,8 @@ jest.mock('@/lib/api/auth', () => ({
   getCurrentUser: jest.fn(),
 }));
 
-import { requireAuth } from '@/lib/api/auth';
 import { container } from '@/lib/container/container';
+import { extractAuthToken } from '@/lib/utils/auth';
 import { setAuthCookie, clearAuthCookie } from '@/lib/utils/cookies';
 import { POST as loginPOST } from '../auth/login/route';
 import { POST as logoutPOST } from '../auth/logout/route';
@@ -259,19 +259,21 @@ describe('POST /api/auth/logout', () => {
 });
 
 describe('GET /api/auth/me', () => {
+  const mockUser = { id: 'user-1', email: 'test@example.com', username: 'testuser' };
+  const mockAuthService = { validateSession: jest.fn() };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (container.getAuthService as jest.Mock).mockReturnValue(mockAuthService);
+    (extractAuthToken as jest.Mock).mockReturnValue('valid-token');
   });
 
   it('should return current user when authenticated', async () => {
     // Arrange
-    const mockUser = { id: 'user-1', email: 'test@example.com', username: 'testuser' };
-    (requireAuth as jest.Mock).mockResolvedValue(mockUser);
-
-    const request = createGetRequest('http://localhost:3000/api/auth/me');
+    mockAuthService.validateSession.mockResolvedValue({ user: mockUser, renewedToken: null });
 
     // Act
-    const response = await meGET(request);
+    const response = await meGET(createGetRequest('http://localhost:3000/api/auth/me'));
     const body = await response.json();
 
     // Assert
@@ -280,19 +282,63 @@ describe('GET /api/auth/me', () => {
     expect(body.data).toEqual(mockUser);
   });
 
-  it('should return 401 when not authenticated', async () => {
-    // Arrange
-    (requireAuth as jest.Mock).mockRejectedValue(new Error('Authentication required'));
-
-    const request = createGetRequest('http://localhost:3000/api/auth/me');
+  it('should refresh the cookie when the session was renewed', async () => {
+    // Arrange — sliding renewal: an active user never reaches the expiry
+    mockAuthService.validateSession.mockResolvedValue({ user: mockUser, renewedToken: 'fresh' });
 
     // Act
-    const response = await meGET(request);
+    const response = await meGET(createGetRequest('http://localhost:3000/api/auth/me'));
+
+    // Assert
+    expect(response.status).toBe(200);
+    expect(setAuthCookie).toHaveBeenCalledWith(expect.anything(), 'fresh');
+  });
+
+  it('should not touch the cookie when the session was not renewed', async () => {
+    // Arrange
+    mockAuthService.validateSession.mockResolvedValue({ user: mockUser, renewedToken: null });
+
+    // Act
+    await meGET(createGetRequest('http://localhost:3000/api/auth/me'));
+
+    // Assert
+    expect(setAuthCookie).not.toHaveBeenCalled();
+  });
+
+  it('should return 401 when there is no session', async () => {
+    // Arrange
+    mockAuthService.validateSession.mockResolvedValue(null);
+
+    // Act
+    const response = await meGET(createGetRequest('http://localhost:3000/api/auth/me'));
     const body = await response.json();
 
     // Assert
     expect(response.status).toBe(401);
     expect(body.success).toBe(false);
     expect(body.error).toBe('Unauthorized');
+  });
+
+  it('should return 401 without asking the service when there is no cookie', async () => {
+    // Arrange
+    (extractAuthToken as jest.Mock).mockReturnValue(null);
+
+    // Act
+    const response = await meGET(createGetRequest('http://localhost:3000/api/auth/me'));
+
+    // Assert
+    expect(response.status).toBe(401);
+    expect(mockAuthService.validateSession).not.toHaveBeenCalled();
+  });
+
+  it('should answer 500, not 401, when the session cannot be checked', async () => {
+    // Arrange — a database outage must not look like a logout to the client
+    mockAuthService.validateSession.mockRejectedValue(new Error('database is down'));
+
+    // Act
+    const response = await meGET(createGetRequest('http://localhost:3000/api/auth/me'));
+
+    // Assert
+    expect(response.status).toBe(500);
   });
 });
