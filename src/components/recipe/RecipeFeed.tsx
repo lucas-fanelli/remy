@@ -406,7 +406,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             size={isMobile ? 'large' : 'medium'}
             sx={{ borderRadius: 2 }}
           >
-            Share Recipe
+            New recipe
           </Button>
         )}
       </Box>
@@ -554,7 +554,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                 onClick={onCreateRecipe}
                 size={isMobile ? 'large' : 'medium'}
               >
-                Share Your First Recipe
+                Publish your first recipe
               </Button>
             )}
           </Box>

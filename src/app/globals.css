@@ -137,10 +137,13 @@ a {
   background: #555;
 }
 
-/* Smooth transitions - only after initial load to prevent flash */
-:root:not(.initial-load) * {
-  transition: background-color 0.2s ease-in-out;
-}
+/*
+ * No global `transition` rule here on purpose. A selector such as
+ * `:root:not(.initial-load) *` has (0,2,0) specificity and silently replaces
+ * every class-declared MUI transition (Collapse, Fade, ripple, inputs...).
+ * The theme switch is eased by the MuiCssBaseline '*' override in
+ * src/contexts/ThemeContext.tsx, which sits below any component class.
+ */
 
 /* Touch-friendly tap targets */
 button,
@@ -177,26 +180,32 @@ a,
   body {
     overflow-x: hidden;
   }
+}
 
-  /* Reduce motion for users who prefer it */
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
+/* Reduce motion for users who prefer it - at every viewport width */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
-/* Dark mode scrollbar */
-html.dark-mode::-webkit-scrollbar-track {
+/*
+ * Dark mode scrollbar. The descendant form covers inner scrollers (dialog
+ * content, menus, chip rows); the compound form keeps the page scrollbar.
+ */
+html.dark-mode::-webkit-scrollbar-track,
+html.dark-mode ::-webkit-scrollbar-track {
   background: #1e1e1e;
 }
 
-html.dark-mode::-webkit-scrollbar-thumb {
+html.dark-mode::-webkit-scrollbar-thumb,
+html.dark-mode ::-webkit-scrollbar-thumb {
   background: #555;
 }
 
-html.dark-mode::-webkit-scrollbar-thumb:hover {
+html.dark-mode::-webkit-scrollbar-thumb:hover,
+html.dark-mode ::-webkit-scrollbar-thumb:hover {
   background: #666;
 }

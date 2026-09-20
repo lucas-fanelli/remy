@@ -1,6 +1,6 @@
 'use client';
 import { FavoriteBorder, Menu as MenuIcon } from '@mui/icons-material';
-import { AppBar, Toolbar, Box, IconButton, Avatar, Badge } from '@mui/material';
+import { AppBar, Toolbar, Box, IconButton, Avatar, Badge, Tooltip } from '@mui/material';
 import { motion } from 'framer-motion';
 import React from 'react';
 import { BRANDING } from '@/config/branding';
@@ -49,7 +49,7 @@ export default function MobileBottomNav({
         }}
       >
         <Toolbar sx={{ px: { xs: 1, sm: 2 }, minHeight: { xs: 56, sm: 64 } }}>
-          <IconButton edge="start" onClick={onDrawerOpen} size="small">
+          <IconButton edge="start" onClick={onDrawerOpen} size="small" aria-label="Open menu">
             <MenuIcon />
           </IconButton>
           <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
@@ -83,7 +83,7 @@ export default function MobileBottomNav({
               </Box>
             </Box>
           </Box>
-          <IconButton onClick={onNotificationsOpen} size="small">
+          <IconButton onClick={onNotificationsOpen} size="small" aria-label="Notifications">
             <Badge badgeContent={unreadNotifications} color="error">
               <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
             </Badge>
@@ -115,23 +115,31 @@ export default function MobileBottomNav({
             const Icon = activeTab === item.id ? item.activeIcon : item.icon;
             return (
               <motion.div key={item.id} whileTap={{ scale: 0.9 }}>
-                <IconButton
-                  onClick={() => onTabClick(item.id)}
-                  size="small"
-                  sx={{ p: { xs: 0.5, sm: 1 } }}
-                >
-                  <Icon
-                    sx={{
-                      color: activeTab === item.id ? 'text.primary' : 'text.secondary',
-                      fontSize: { xs: '1.25rem', sm: '1.5rem' },
-                    }}
-                  />
-                </IconButton>
+                <Tooltip title={item.label}>
+                  <IconButton
+                    onClick={() => onTabClick(item.id)}
+                    size="small"
+                    aria-label={item.label}
+                    sx={{ p: { xs: 0.5, sm: 1 } }}
+                  >
+                    <Icon
+                      sx={{
+                        color: activeTab === item.id ? 'text.primary' : 'text.secondary',
+                        fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                      }}
+                    />
+                  </IconButton>
+                </Tooltip>
               </motion.div>
             );
           })}
           <motion.div whileTap={{ scale: 0.9 }}>
-            <IconButton size="small" sx={{ p: { xs: 0.5, sm: 1 } }} onClick={onProfileClick}>
+            <IconButton
+              size="small"
+              aria-label="Profile"
+              sx={{ p: { xs: 0.5, sm: 1 } }}
+              onClick={onProfileClick}
+            >
               <Avatar
                 sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }}
                 src={user?.avatar || undefined}

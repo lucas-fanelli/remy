@@ -6,6 +6,7 @@ import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { BRANDING, THEME_COLORS } from '@/config/branding';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { CreateRecipeProvider } from '@/contexts/CreateRecipeContext';
 import { MotionProvider } from '@/contexts/MotionContext';
 import { PwaProvider } from '@/contexts/PwaContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -133,8 +134,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <AuthProvider>
                   <PwaProvider>
                     <MotionProvider>
-                      <LayoutWrapper>{children}</LayoutWrapper>
-                      <InstallPrompt />
+                      <CreateRecipeProvider>
+                        <LayoutWrapper>{children}</LayoutWrapper>
+                        <InstallPrompt />
+                      </CreateRecipeProvider>
                     </MotionProvider>
                   </PwaProvider>
                 </AuthProvider>
