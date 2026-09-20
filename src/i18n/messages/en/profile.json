@@ -17,6 +17,7 @@
     "following": "<value>{count, number}</value> following"
   },
   "tabs": {
+    "cooked": "Cooked",
     "recipes": "Recipes",
     "saved": "Saved"
   },
@@ -72,5 +73,12 @@
       "websiteInvalid": "Please enter a valid URL",
       "websiteProtocol": "Website must use http:// or https://"
     }
+  },
+  "cooked": {
+    "emptyBody": "Recipes you mark as cooked show up here, newest first.",
+    "emptyTitle": "Nothing cooked yet",
+    "loadFailed": "Could not load your cooking log",
+    "loadMore": "Show more",
+    "recipeGone": "This recipe is gone"
   }
 }

@@ -17,6 +17,7 @@
     "following": "<value>{count, number}</value> siguiendo"
   },
   "tabs": {
+    "cooked": "Cocinadas",
     "recipes": "Recetas",
     "saved": "Guardadas"
   },
@@ -72,5 +73,12 @@
       "websiteInvalid": "Ingresá una URL válida",
       "websiteProtocol": "El sitio web tiene que empezar con http:// o https://"
     }
+  },
+  "cooked": {
+    "emptyBody": "Las recetas que marques como cocinadas aparecen acá, de la más nueva a la más vieja.",
+    "emptyTitle": "Todavía no cocinaste nada",
+    "loadFailed": "No pudimos cargar tu historial",
+    "loadMore": "Ver más",
+    "recipeGone": "Esta receta ya no está"
   }
 }
