@@ -1,1 +1,50 @@
-{}
+{
+  "title": "Settings",
+  "subtitle": "Manage your account preferences and settings",
+  "appearance": {
+    "title": "Appearance",
+    "darkMode": "Dark Mode",
+    "darkModeDescription": "Use dark theme across the app",
+    "themeChanged": "{mode, select, dark {Switched to dark mode} other {Switched to light mode}}"
+  },
+  "security": {
+    "title": "Privacy & Security",
+    "changePassword": "Change Password",
+    "changePasswordDescription": "Update your password to keep your account secure"
+  },
+  "install": {
+    "title": "Install App",
+    "running": "Running Native App",
+    "installedIntro": "{name} is installed. Tap below to open the app.",
+    "installIntro": "Install {name} on your home screen for a faster, native-like experience.",
+    "fallbackIntro": "If {name} is installed, tap below to open it.",
+    "installApp": "Install App",
+    "openApp": "Open App",
+    "iosInstructions": "Tap the <b>Share</b> button in Safari, then select <b>\"Add to Home Screen\"</b>.",
+    "chromeInstructions": "Click the <b>install icon</b> in your browser's address bar to install."
+  },
+  "notice": "These are basic settings for V1. More options will be added in future updates!",
+  "changePassword": {
+    "title": "Change Password",
+    "requirements": "Your password must be at least 8 characters and include uppercase, lowercase, and numbers.",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "submit": "Change Password",
+    "submitting": "Changing...",
+    "success": "Password changed successfully!",
+    "failed": "Failed to change password",
+    "notLoggedIn": "You must be logged in to change your password",
+    "errors": {
+      "confirmRequired": "Please confirm your new password",
+      "currentRequired": "Current password is required",
+      "lowercase": "Password must contain at least one lowercase letter",
+      "mismatch": "Passwords do not match",
+      "newRequired": "New password is required",
+      "number": "Password must contain at least one number",
+      "sameAsCurrent": "New password must be different from current password",
+      "tooShort": "Password must be at least 8 characters",
+      "uppercase": "Password must contain at least one uppercase letter"
+    }
+  }
+}

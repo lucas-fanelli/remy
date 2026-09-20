@@ -3,6 +3,7 @@
 // This is the browser default for same-origin requests, but we include it for clarity
 // since auth depends on httpOnly cookies being sent. Other fetch calls in the app
 // (RecipeFeed, notifications, etc.) rely on the browser default and do not need it.
+import { useTranslations } from 'next-intl';
 import React, {
   createContext,
   useContext,
@@ -12,6 +13,7 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { getQueryClient } from '@/providers/QueryProvider';
 
 export type User = {
@@ -45,6 +47,10 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const t = useTranslations('auth');
+  // These throws are rendered straight into LoginForm / RegisterForm, so they are that
+  // screen's text: the server's own sentence when it sent one, ours when it did not.
+  const apiErrorMessage = useApiErrorMessage();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   // Ref mirrors user state so memoized callbacks can read latest value
@@ -75,22 +81,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = useCallback(async (emailOrUsername: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ emailOrUsername, password }),
-    });
+  const login = useCallback(
+    async (emailOrUsername: string, password: string) => {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ emailOrUsername, password }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Login failed');
-    }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(apiErrorMessage(error, t('errors.loginFailed')));
+      }
 
-    const data = await response.json();
-    setUser(data.data.user);
-  }, []);
+      const data = await response.json();
+      setUser(data.data.user);
+    },
+    [apiErrorMessage, t]
+  );
 
   const register = useCallback(
     async (email: string, username: string, password: string, fullName?: string) => {
@@ -103,13 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Registration failed');
+        throw new Error(apiErrorMessage(error, t('errors.registrationFailed')));
       }
 
       const data = await response.json();
       setUser(data.data.user);
     },
-    []
+    [apiErrorMessage, t]
   );
 
   // Optimistic logout: UI clears immediately, cookie may persist on network failure.
@@ -156,26 +165,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const updateProfile = useCallback(async (data: Partial<User>) => {
-    if (!userRef.current) {
-      throw new Error('Not authenticated');
-    }
+  const updateProfile = useCallback(
+    async (data: Partial<User>) => {
+      if (!userRef.current) {
+        throw new Error(t('errors.notAuthenticated'));
+      }
 
-    const response = await fetch('/api/users/profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-      credentials: 'same-origin',
-      body: JSON.stringify(data),
-    });
+      const response = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin',
+        body: JSON.stringify(data),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Update failed');
-    }
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(apiErrorMessage(error, t('errors.updateFailed')));
+      }
 
-    const result = await response.json();
-    setUser(result.data);
-  }, []);
+      const result = await response.json();
+      setUser(result.data);
+    },
+    [apiErrorMessage, t]
+  );
 
   const value = useMemo<AuthContextType>(
     () => ({
