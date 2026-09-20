@@ -90,7 +90,9 @@ describe('Pantry in Spanish', () => {
     renderInSpanish();
 
     expect(await screen.findByText('Iniciá sesión para ver tu despensa')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Iniciá sesión para seguir' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Iniciá sesión para continuar' })
+    ).toBeInTheDocument();
   });
 
   it('should render the add dialog in Spanish', async () => {
@@ -104,7 +106,7 @@ describe('Pantry in Spanish', () => {
     expect(within(dialog).getByLabelText(/Cantidad \(opcional\)/)).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/Notas \(opcional\)/)).toBeInTheDocument();
     expect(within(dialog).getByText("Dejalo vacío para 'a gusto'")).toBeInTheDocument();
-    expect(within(dialog).getByText('Se va a guardar como: Otros')).toBeInTheDocument();
+    expect(within(dialog).getByText('Categoría: Otros')).toBeInTheDocument();
   });
 
   it('should keep saving the English category a Spanish label was chosen from', async () => {

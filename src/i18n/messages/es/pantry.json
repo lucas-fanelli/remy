@@ -3,7 +3,7 @@
   "guest": {
     "title": "Iniciá sesión para ver tu despensa",
     "description": "Anotá tus ingredientes y descubrí recetas que podés hacer con lo que ya tenés.",
-    "action": "Iniciá sesión para seguir"
+    "action": "Iniciá sesión para continuar"
   },
   "actions": {
     "add": "Agregar ingrediente",
@@ -29,7 +29,7 @@
     "unit": "Unidad",
     "category": "Categoría",
     "categoryPlaceholder": "Elegí o escribí una categoría",
-    "categoryHelper": "Se va a guardar como: {category}",
+    "categoryHelper": "Categoría: {category}",
     "notes": "Notas (opcional)"
   },
   "delete": {

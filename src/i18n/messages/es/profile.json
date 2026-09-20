@@ -29,13 +29,13 @@
   },
   "followers": {
     "title": "Seguidores",
-    "empty": "Todavía no tiene seguidores",
+    "empty": "Todavía no hay seguidores",
     "signInPrompt": "Iniciá sesión para ver los seguidores",
     "loadFailed": "No pudimos cargar los seguidores"
   },
   "followingList": {
     "title": "Siguiendo",
-    "empty": "Todavía no sigue a nadie",
+    "empty": "Todavía no hay nadie acá",
     "signInPrompt": "Iniciá sesión para ver a quién sigue",
     "loadFailed": "No pudimos cargar a quién sigue"
   },

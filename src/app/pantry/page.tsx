@@ -593,6 +593,10 @@ export default function PantryPage() {
                       label={t('dialog.category')}
                       placeholder={t('dialog.categoryPlaceholder')}
                       fullWidth
+                      // What the free text resolves to, as a LABEL - so English keeps its old
+                      // "Will be saved as: Vegetable" (the stored value capitalised, which is
+                      // what it always said) and Spanish only names the category, because
+                      // 'vegetable' is what actually travels to the API.
                       helperText={
                         formData.category
                           ? t('dialog.categoryHelper', {
