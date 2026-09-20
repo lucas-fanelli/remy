@@ -1,7 +1,7 @@
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
-import { Analytics } from '@vercel/analytics/next';
 import { Nunito } from 'next/font/google';
 import { headers } from 'next/headers';
+import AppAnalytics from '@/components/analytics/AppAnalytics';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { BRANDING, THEME_COLORS } from '@/config/branding';
@@ -145,7 +145,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </ThemeProvider>
           </QueryProvider>
         </AppRouterCacheProvider>
-        <Analytics />
+        <AppAnalytics />
       </body>
     </html>
   );

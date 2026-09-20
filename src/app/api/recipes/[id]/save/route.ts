@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api/auth';
+import { requireAuth, verifySessionToken } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
-import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
 import { extractAuthToken } from '@/lib/utils/auth';
 import { logServerError } from '@/lib/utils/logger';
@@ -20,8 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ saved: false });
     }
 
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
+    const payload = await verifySessionToken(token);
 
     if (!payload) {
       return NextResponse.json({ saved: false });

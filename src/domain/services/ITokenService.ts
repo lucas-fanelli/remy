@@ -3,6 +3,10 @@ export interface TokenPayload {
   email: string;
   username: string;
   role: string;
+  // Standard JWT claims, in SECONDS since the epoch. Set by the token service
+  // when signing; present on every verified payload.
+  iat?: number;
+  exp?: number;
 }
 
 // Interface Segregation Principle: Separate interface for token operations

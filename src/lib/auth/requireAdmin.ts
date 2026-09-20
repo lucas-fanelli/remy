@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/lib/container/container';
-import prisma from '@/lib/database/prisma';
 import { extractAuthToken } from '@/lib/utils/auth';
 
 export interface AdminAuthResult {
@@ -23,28 +22,25 @@ export async function requireAdmin(request: NextRequest): Promise<AdminAuthResul
   }
 
   try {
-    const tokenService = container.getTokenService();
-    const payload = tokenService.verify(token);
+    // validateToken checks the signature, loads the user from the DB and rejects
+    // sessions issued before the last password change, so a stolen admin session
+    // dies with a password reset.
+    const user = await container.getAuthService().validateToken(token);
 
-    if (!payload || !payload.userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // Verify current role from DB (JWT role could be stale after demotion)
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: { role: true },
-    });
-
-    if (!user || user.role !== 'ADMIN') {
+    // Current role from the DB row (the JWT role claim could be stale after demotion)
+    if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     return {
-      userId: payload.userId,
-      email: payload.email || '',
-      username: payload.username || '',
-      role: payload.role,
+      userId: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
       isAdmin: true,
     };
   } catch {

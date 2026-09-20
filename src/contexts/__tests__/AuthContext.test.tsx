@@ -68,9 +68,12 @@ describe('AuthContext', () => {
     });
   }
 
-  /** Sets up the mount fetch to return unauthenticated. */
+  /**
+   * Sets up the mount fetch to return unauthenticated. Only a 401 means "no session":
+   * any other failure is transient and must not log the user out.
+   */
   function mockUnauthenticatedMount() {
-    mockFetch.mockResolvedValueOnce({ ok: false });
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
   }
 
   /** Waits for the initial auth check to complete and user to be authenticated. */
@@ -141,7 +144,7 @@ describe('AuthContext', () => {
       expect(mockFetch).toHaveBeenCalledWith('/api/auth/me', { credentials: 'same-origin' });
     });
 
-    it('should clear user when cookie auth returns not ok', async () => {
+    it('should clear user when cookie auth returns 401', async () => {
       mockUnauthenticatedMount();
 
       render(
@@ -152,6 +155,65 @@ describe('AuthContext', () => {
 
       await waitForUnauthenticated();
       expect(screen.getByTestId('token-data')).toHaveTextContent('No Token');
+    });
+
+    // The session check failing is not a logout: the server did not say "no session",
+    // it said nothing. Dropping the user here is what made the app feel like it logged
+    // people out at random. The first retry waits a second, hence the fake timers.
+    describe('when the session check fails', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(() => {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+      });
+
+      /** Lets the pending fetch settle and the retry timer fire. */
+      async function flushRetry() {
+        await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+        await React.act(async () => {
+          jest.advanceTimersByTime(1000);
+        });
+      }
+
+      it.each([
+        ['a network error', () => mockFetch.mockRejectedValueOnce(new Error('offline'))],
+        ['a 500', () => mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })],
+        [
+          'a 429 from the rate limiter',
+          () => mockFetch.mockResolvedValueOnce({ ok: false, status: 429 }),
+        ],
+      ])('should keep the session and retry after %s', async (_case, mockFailure) => {
+        mockFailure();
+        mockAuthenticatedMount(); // the retry succeeds
+
+        render(
+          <AuthProvider>
+            <AuthStatus />
+          </AuthProvider>
+        );
+        await flushRetry();
+
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(screen.getByTestId('auth-status')).toHaveTextContent(/^Authenticated$/);
+        expect(screen.getByTestId('user-data')).toHaveTextContent('testuser');
+      });
+
+      it('should never show the logged-out UI while the check keeps failing', async () => {
+        mockFetch.mockRejectedValue(new Error('offline'));
+
+        render(
+          <AuthProvider>
+            <AuthStatus />
+          </AuthProvider>
+        );
+        await flushRetry();
+
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(screen.queryByTestId('auth-status')).not.toBeInTheDocument(); // still loading
+      });
     });
   });
 

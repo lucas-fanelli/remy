@@ -5,6 +5,15 @@ import {
   UpdateUserDTO,
 } from '@/domain/repositories/IUserRepository';
 
+const IGNORING_CASE_LOOKUP_LIMIT = 10;
+
+// Prisma implements the insensitive `equals` with ILIKE, where "_" and "%" in the
+// value act as wildcards ("probe_user" would also match "probeXuser"), so the
+// rows that come back are compared again here.
+function equalsIgnoringCase(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
 // Concrete implementation of IUserRepository
 // Single Responsibility Principle: Only handles user data access
 export class UserRepository implements IUserRepository {
@@ -40,6 +49,22 @@ export class UserRepository implements IUserRepository {
     });
   }
 
+  async findAllByEmailIgnoringCase(email: string): Promise<User[]> {
+    const users = await this.prisma.user.findMany({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      take: IGNORING_CASE_LOOKUP_LIMIT,
+    });
+    return users.filter((user) => equalsIgnoringCase(user.email, email));
+  }
+
+  async findAllByUsernameIgnoringCase(username: string): Promise<User[]> {
+    const users = await this.prisma.user.findMany({
+      where: { username: { equals: username, mode: 'insensitive' } },
+      take: IGNORING_CASE_LOOKUP_LIMIT,
+    });
+    return users.filter((user) => equalsIgnoringCase(user.username, username));
+  }
+
   async findMany(skip: number = 0, take: number = 10): Promise<User[]> {
     return this.prisma.user.findMany({
       skip,
@@ -58,11 +83,20 @@ export class UserRepository implements IUserRepository {
   }
 
   async updatePassword(id: string, hashedPassword: string): Promise<User> {
-    return this.prisma.user.update({
-      where: { id },
-      data: {
-        password: hashedPassword,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id },
+        data: {
+          password: hashedPassword,
+          // JWTs issued before this moment are rejected by AuthService.validateToken
+          passwordChangedAt: new Date(),
+        },
+      });
+
+      // A reset link requested under the old password must not outlive it
+      await tx.passwordResetToken.deleteMany({ where: { userId: id } });
+
+      return user;
     });
   }
 

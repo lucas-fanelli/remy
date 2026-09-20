@@ -1,22 +1,24 @@
 import jwt from 'jsonwebtoken';
 import { ITokenService, TokenPayload } from '@/domain/services/ITokenService';
+import { getSessionLifetimeSeconds } from '@/lib/auth/session';
 
 // Single Responsibility Principle: Only handles JWT token operations
 export class TokenService implements ITokenService {
   private readonly secret: string;
-  private readonly expiresIn: string;
+  private readonly expiresIn?: string;
 
   constructor(secret?: string, expiresIn?: string) {
     this.secret = secret || process.env.JWT_SECRET || '';
     if (!this.secret) {
       throw new Error('JWT_SECRET environment variable must be configured');
     }
-    this.expiresIn = expiresIn || process.env.JWT_EXPIRES_IN || '7d';
+    this.expiresIn = expiresIn;
   }
 
   generate(payload: TokenPayload): string {
     return jwt.sign(payload as string | object | Buffer, this.secret, {
-      expiresIn: this.expiresIn,
+      // The session lifetime is also the auth cookie's maxAge, so both expire together
+      expiresIn: this.expiresIn || getSessionLifetimeSeconds(),
     } as jwt.SignOptions);
   }
 

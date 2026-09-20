@@ -1,8 +1,16 @@
 import { User, Role } from '@prisma/client';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
-import { IAuthService, RegisterDTO, LoginDTO, AuthResponse } from '@/domain/services/IAuthService';
+import {
+  IAuthService,
+  RegisterDTO,
+  LoginDTO,
+  AuthResponse,
+  SessionUser,
+  ValidatedSession,
+} from '@/domain/services/IAuthService';
 import { IPasswordService } from '@/domain/services/IPasswordService';
-import { ITokenService } from '@/domain/services/ITokenService';
+import { ITokenService, TokenPayload } from '@/domain/services/ITokenService';
+import { getSessionRenewAfterSeconds } from '@/lib/auth/session';
 
 // Single Responsibility Principle: Only handles authentication logic
 // Dependency Inversion Principle: Depends on abstractions (interfaces)
@@ -12,6 +20,12 @@ export class AuthService implements IAuthService {
     private readonly passwordService: IPasswordService,
     private readonly tokenService: ITokenService
   ) {}
+
+  /** Strip what must never leave the auth layer: the hash and the security metadata */
+  private toSessionUser(user: User): SessionUser {
+    const { password: _, passwordChangedAt: _changedAt, ...sessionUser } = user;
+    return sessionUser;
+  }
 
   /**
    * Check if email should be auto-promoted to admin based on ADMIN_EMAILS env var
@@ -74,10 +88,8 @@ export class AuthService implements IAuthService {
     });
 
     // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-
     return {
-      user: userWithoutPassword,
+      user: this.toSessionUser(user),
       token,
     };
   }
@@ -118,15 +130,43 @@ export class AuthService implements IAuthService {
     });
 
     // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-
     return {
-      user: userWithoutPassword,
+      user: this.toSessionUser(user),
       token,
     };
   }
 
-  async validateToken(token: string): Promise<Omit<User, 'password'> | null> {
+  async validateToken(token: string): Promise<SessionUser | null> {
+    const session = await this.resolveSession(token);
+    return session ? this.toSessionUser(session.user) : null;
+  }
+
+  async validateSession(token: string): Promise<ValidatedSession | null> {
+    const session = await this.resolveSession(token);
+    if (!session) {
+      return null;
+    }
+
+    const { user, payload } = session;
+
+    // Sliding renewal: claims come from the database row, never from the old token,
+    // so a role change reaches the JWT at the next renewal
+    const renewedToken = this.isDueForRenewal(payload)
+      ? this.tokenService.generate({
+          userId: user.id,
+          email: user.email,
+          username: user.username,
+          role: user.role,
+        })
+      : null;
+
+    return { user: this.toSessionUser(user), renewedToken };
+  }
+
+  /** Every check a token must pass to stand for a user; shared by validateToken and validateSession */
+  private async resolveSession(
+    token: string
+  ): Promise<{ user: User; payload: TokenPayload } | null> {
     const payload = this.tokenService.verify(token);
     if (!payload) {
       return null;
@@ -137,11 +177,43 @@ export class AuthService implements IAuthService {
       return null;
     }
 
-    const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    // Session invalidation: a password change or reset kills every older token
+    if (this.isIssuedBeforePasswordChange(payload, user.passwordChangedAt)) {
+      return null;
+    }
+
+    return { user, payload };
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  /** Renewing on every request would re-set the cookie each time; once per threshold is enough */
+  private isDueForRenewal(payload: TokenPayload): boolean {
+    // A token without iat is renewed so that it has one from then on
+    const issuedAt = typeof payload.iat === 'number' ? payload.iat : 0;
+    return Math.floor(Date.now() / 1000) - issuedAt >= getSessionRenewAfterSeconds();
+  }
+
+  /**
+   * jwt `iat` is in SECONDS while passwordChangedAt has millisecond precision, so
+   * the comparison is made in whole seconds: a token issued in the same second
+   * as the change (the re-issued session, or a login right after a reset) stays valid.
+   */
+  private isIssuedBeforePasswordChange(
+    payload: TokenPayload,
+    passwordChangedAt: Date | null
+  ): boolean {
+    if (!passwordChangedAt) {
+      return false;
+    }
+
+    // A token without iat cannot prove it is newer than the change
+    if (typeof payload.iat !== 'number') {
+      return true;
+    }
+
+    return payload.iat < Math.floor(passwordChangedAt.getTime() / 1000);
+  }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<string> {
     // Validate new password
     if (!this.passwordService.validate(newPassword)) {
       throw new Error(
@@ -165,7 +237,15 @@ export class AuthService implements IAuthService {
     // Hash new password
     const hashedPassword = await this.passwordService.hash(newPassword);
 
-    // Update password
-    await this.userRepository.updatePassword(userId, hashedPassword);
+    // Update password (also stamps passwordChangedAt, which invalidates every existing session)
+    const updatedUser = await this.userRepository.updatePassword(userId, hashedPassword);
+
+    // Fresh token for the session that made the change, issued after passwordChangedAt
+    return this.tokenService.generate({
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      username: updatedUser.username,
+      role: updatedUser.role,
+    });
   }
 }

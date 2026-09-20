@@ -254,13 +254,18 @@ export async function middleware(request: NextRequest) {
 
     const isAuthEndpoint =
       request.nextUrl.pathname === '/api/auth/login' ||
-      request.nextUrl.pathname === '/api/auth/register';
+      request.nextUrl.pathname === '/api/auth/register' ||
+      request.nextUrl.pathname === '/api/auth/forgot-password' ||
+      request.nextUrl.pathname === '/api/auth/reset-password';
     const isUploadEndpoint = request.nextUrl.pathname.startsWith('/api/upload');
     const isMatchEndpoint = request.nextUrl.pathname === '/api/recipes/match';
     const isNotificationGet =
       request.nextUrl.pathname === '/api/notifications' && request.method === 'GET';
     const isNotificationPost =
       request.nextUrl.pathname === '/api/notifications' && request.method === 'POST';
+    // The session check gets a bucket of its own (default limit): in the shared one, a
+    // busy page or a shared IP exhausts it and the app can no longer tell who is logged in
+    const isSessionCheck = request.nextUrl.pathname === '/api/auth/me' && request.method === 'GET';
     const rateLimitSuffix = isAuthEndpoint
       ? ':auth'
       : isUploadEndpoint
@@ -269,7 +274,9 @@ export async function middleware(request: NextRequest) {
           ? ':match'
           : isNotificationPost
             ? ':notif-write'
-            : '';
+            : isSessionCheck
+              ? ':session'
+              : '';
     const rateLimitKey = getRateLimitKey(request) + rateLimitSuffix;
     // Use higher limit for notification polling, stricter for expensive endpoints
     const maxRequests = isAuthEndpoint
