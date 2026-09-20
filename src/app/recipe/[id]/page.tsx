@@ -1020,7 +1020,9 @@ export default function RecipeDetailPage() {
                 backgroundColor: 'transparent',
                 boxShadow: 'none',
                 margin: 0,
-                maxWidth: '100vw',
+                // 100% of the Dialog's fixed container, so the viewer never exceeds the
+                // usable width; 100vw includes the scrollbar and overflowed by 8px
+                maxWidth: '100%',
                 maxHeight: '100vh',
                 height: '100vh',
                 pointerEvents: 'none',

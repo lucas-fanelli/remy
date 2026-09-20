@@ -102,8 +102,11 @@ export default function NotificationDropdown({
           sx: {
             mt: 1.5,
             maxHeight: { xs: '70vh', sm: 500, md: 400 },
-            width: { xs: 'calc(100vw - 32px)', sm: 400, md: 360 },
-            maxWidth: { xs: 'calc(100vw - 32px)', sm: 400 },
+            // 100% of the Popover's fixed root, i.e. the viewport WITHOUT the scrollbar.
+            // 100vw includes it, so this used to be 8px too wide and was only ever hidden
+            // by the global overflow clip that caused the layout shift.
+            width: { xs: 'calc(100% - 32px)', sm: 400, md: 360 },
+            maxWidth: { xs: 'calc(100% - 32px)', sm: 400 },
             overflow: 'auto',
           },
         },

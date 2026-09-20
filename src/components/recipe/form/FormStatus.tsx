@@ -395,7 +395,11 @@ export default function FormStatus({
               anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
               transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
               MenuListProps={{ 'aria-labelledby': buttonId }}
-              slotProps={{ paper: { sx: { maxWidth: 'calc(100vw - 32px)' } } }}
+              slotProps={{
+                // 100% of the Popover's fixed root: the viewport without the scrollbar,
+                // which 100vw would have included
+                paper: { sx: { maxWidth: 'calc(100% - 32px)' } },
+              }}
             >
               {issues.map((issue) => (
                 <MenuItem
