@@ -9,6 +9,7 @@ import {
 import { Box, Button, Tab, Tabs, useTheme } from '@mui/material';
 import { AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import FormDialog from '@/components/common/FormDialog';
@@ -57,8 +58,6 @@ const FIRST_PATH: Record<RecipeFormSection, RecipeFieldPath> = {
   steps: 'steps',
   presentation: 'imageUrl',
 };
-
-export const DRAFT_SAVED_TOAST = 'Draft saved - open New recipe to continue';
 
 export interface RecipeTextFirstDialogProps {
   mode: RecipeFormMode;
@@ -151,6 +150,8 @@ function EditorSession({
   draftStorage,
   ownerId,
 }: SessionProps) {
+  const t = useTranslations('recipeForm');
+  const tCommon = useTranslations('common');
   const theme = useTheme();
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -308,7 +309,7 @@ function EditorSession({
     onClose();
     // A toast inside the editor would cover the pinned button: it waits for the dialog to leave
     toastTimer.current = setTimeout(
-      () => showInfo(DRAFT_SAVED_TOAST),
+      () => showInfo(t('draft.savedToast')),
       theme.transitions.duration.leavingScreen
     );
   };
@@ -391,7 +392,7 @@ function EditorSession({
         const result = await createRecipe(toPayload(form.values, 'create'));
         draft.clearDraft();
         onClose();
-        showSuccess('Recipe published');
+        showSuccess(t('submit.publishedToast'));
         const id: unknown = result?.recipe?.id;
         router.push(typeof id === 'string' ? `/recipe/${id}` : '/');
       }
@@ -417,32 +418,31 @@ function EditorSession({
   // Status adornments are an icon plus words, never a colour alone
   const writeLabel = (
     <Box component="span">
-      Write
+      {t('tabs.write')}
       {writeFailed > 0 && (
         <Box component="span" sx={statusTextSx}>
-          - {writeFailed} to fix
+          {t('tabs.toFix', { count: writeFailed })}
         </Box>
       )}
       {writeFailed === 0 && writeComplete && (
         <Box component="span" sx={visuallyHiddenSx}>
           {' '}
-          - complete
+          {t('tabs.complete')}
         </Box>
       )}
     </Box>
   );
-  const checkName = mode === 'edit' ? 'Check & save' : 'Check & publish';
   const checkLabel = (
     <Box component="span">
-      {checkName}
+      {t('tabs.check', { mode })}
       {checkFailed > 0 && (
         <Box component="span" sx={statusTextSx}>
-          - {checkFailed} to fix
+          {t('tabs.toFix', { count: checkFailed })}
         </Box>
       )}
       {checkFailed === 0 && capture.checkCount > 0 && (
         <Box component="span" sx={statusTextSx}>
-          - {capture.checkCount} to check
+          {t('tabs.toCheck', { count: capture.checkCount })}
         </Box>
       )}
     </Box>
@@ -455,7 +455,7 @@ function EditorSession({
       value={tab}
       onChange={(_event, next: RecipeEditorTab) => selectTab(next)}
       variant="fullWidth"
-      aria-label="Recipe editor"
+      aria-label={t('tabs.ariaLabel')}
       sx={{ borderBottom: 1, borderColor: 'divider' }}
     >
       <Tab
@@ -509,7 +509,7 @@ function EditorSession({
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
         {tab === 'check' && (
           <Button type="button" onClick={() => selectTab('write')} disabled={isSubmitting}>
-            Back
+            {tCommon('actions.back')}
           </Button>
         )}
         {mode === 'create' && tab === 'write' ? (
@@ -522,7 +522,7 @@ function EditorSession({
             onClick={() => selectTab('check')}
             sx={primarySx}
           >
-            Next: Check &amp; publish
+            {t('dialog.next')}
           </Button>
         ) : (
           // Its own keyed node: it never inherits the DOM position of 'Next'. Edit has it on
@@ -548,7 +548,7 @@ function EditorSession({
       <FormDialog
         ref={scrollRef}
         open={open}
-        title={mode === 'edit' ? 'Edit recipe' : 'New recipe'}
+        title={mode === 'edit' ? t('dialog.titleEdit') : t('dialog.titleCreate')}
         onClose={handleClose}
         dirty={form.isDirty}
         busy={isSubmitting}
@@ -559,14 +559,14 @@ function EditorSession({
             ref={previewButtonRef}
             type="button"
             size="small"
-            aria-label="Preview"
+            aria-label={t('dialog.preview')}
             startIcon={<Visibility />}
             onClick={() => setPreviewOpen(true)}
             // One control at every width: the word is dropped on phones, by CSS
             sx={{ minWidth: 44, '& .MuiButton-startIcon': { mr: { xs: 0, sm: 1 }, ml: 0 } }}
           >
             <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-              Preview
+              {t('dialog.preview')}
             </Box>
           </Button>
         }
@@ -641,14 +641,10 @@ function EditorSession({
         open={open && confirmDiscard !== null}
         onClose={() => setConfirmDiscard(null)}
         onConfirm={handleDiscard}
-        title="Discard your changes?"
-        message={
-          mode === 'edit'
-            ? 'The changes you made to this recipe will be lost.'
-            : 'This device could not save a draft, so closing now loses what you wrote.'
-        }
-        confirmText="Discard"
-        cancelText="Keep editing"
+        title={t('discard.title')}
+        message={mode === 'edit' ? t('discard.messageEdit') : t('discard.messageCreate')}
+        confirmText={tCommon('actions.discard')}
+        cancelText={t('discard.keepEditing')}
         confirmColor="error"
       />
     </>

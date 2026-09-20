@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { text } from '@/i18n/text';
 import StepRow, { StepRowProps } from '../StepRow';
 import { renderWithTheme } from './editorHarness';
 
@@ -87,7 +88,7 @@ describe('StepRow', () => {
   });
 
   it('should show its error under the text', () => {
-    renderRow({ descriptionError: 'Step 2 is empty - write it or remove it' });
+    renderRow({ descriptionError: text('recipeForm.issues.stepEmpty', { position: 2 }) });
 
     expect(screen.getByRole('textbox', { name: 'Step 2' })).toHaveAccessibleDescription(
       'Step 2 is empty - write it or remove it'

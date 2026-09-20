@@ -1,11 +1,12 @@
+import { text } from '@/i18n/text';
 import {
   ACCEPT_ATTRIBUTE,
   DOWNSCALE_MAX_EDGE,
   DOWNSCALE_MIN_BYTES,
   downscaleImage,
   firstFileFrom,
-  formatMegabytes,
   isAcceptedImage,
+  megabytes,
   readJsonSafely,
   tooLargeMessage,
   uploadErrorMessage,
@@ -35,20 +36,21 @@ describe('imageUploadUtils', () => {
     });
   });
 
-  describe('formatMegabytes', () => {
+  describe('megabytes', () => {
     it('should keep one decimal', () => {
-      expect(formatMegabytes(8.2 * 1024 * 1024)).toBe('8.2 MB');
+      expect(megabytes(8.2 * 1024 * 1024)).toBe(8.2);
     });
 
     it('should drop a zero decimal', () => {
-      expect(formatMegabytes(5 * 1024 * 1024)).toBe('5 MB');
+      expect(megabytes(5 * 1024 * 1024)).toBe(5);
     });
   });
 
+  // The copy is a descriptor: the module has no locale, ImageUpload renders it
   describe('tooLargeMessage', () => {
     it('should name the size and the limit', () => {
-      expect(tooLargeMessage(8.2 * 1024 * 1024)).toBe(
-        'This photo is 8.2 MB and could not be reduced below 5 MB - choose another one'
+      expect(tooLargeMessage(8.2 * 1024 * 1024)).toEqual(
+        text('recipeForm.photo.tooLarge', { size: 8.2, max: 5 })
       );
     });
   });
@@ -129,29 +131,33 @@ describe('imageUploadUtils', () => {
 
   describe('uploadErrorMessage', () => {
     it('should explain an expired session on 401', () => {
-      expect(uploadErrorMessage(401, { error: 'Unauthorized' })).toBe(
-        'Your session expired - your draft is saved'
+      expect(uploadErrorMessage(401, { error: 'Unauthorized' })).toEqual(
+        text('recipeForm.photo.sessionExpired')
       );
     });
 
     it('should turn the retryAfter seconds of a 429 body into minutes', () => {
-      expect(uploadErrorMessage(429, { retryAfter: 125 })).toBe(
-        'Too many uploads - try again in 3 min'
+      expect(uploadErrorMessage(429, { retryAfter: 125 })).toEqual(
+        text('recipeForm.photo.tooManyUploads', { minutes: 3 })
       );
     });
 
     it('should fall back to the Retry-After header on 429', () => {
-      expect(uploadErrorMessage(429, null, '60')).toBe('Too many uploads - try again in 1 min');
+      expect(uploadErrorMessage(429, null, '60')).toEqual(
+        text('recipeForm.photo.tooManyUploads', { minutes: 1 })
+      );
     });
 
     it('should say 1 min when a 429 carries no usable delay', () => {
-      expect(uploadErrorMessage(429, { retryAfter: 0 }, 'soon')).toBe(
-        'Too many uploads - try again in 1 min'
+      expect(uploadErrorMessage(429, { retryAfter: 0 }, 'soon')).toEqual(
+        text('recipeForm.photo.tooManyUploads', { minutes: 1 })
       );
     });
 
     it('should say 1 min when a 429 has neither a body delay nor a header', () => {
-      expect(uploadErrorMessage(429, {})).toBe('Too many uploads - try again in 1 min');
+      expect(uploadErrorMessage(429, {})).toEqual(
+        text('recipeForm.photo.tooManyUploads', { minutes: 1 })
+      );
     });
 
     it('should keep the server text for other statuses', () => {
@@ -161,16 +167,18 @@ describe('imageUploadUtils', () => {
     });
 
     it('should use a generic message when the server sends no text', () => {
-      expect(uploadErrorMessage(500, {})).toBe('Upload failed');
+      expect(uploadErrorMessage(500, {})).toEqual(text('recipeForm.photo.genericError'));
     });
 
     it('should use a generic message when the body is not an object', () => {
-      expect(uploadErrorMessage(502, null)).toBe('Upload failed');
+      expect(uploadErrorMessage(502, null)).toEqual(text('recipeForm.photo.genericError'));
     });
 
     it('should ignore a non-string or blank error field', () => {
-      expect(uploadErrorMessage(500, { error: 42 })).toBe('Upload failed');
-      expect(uploadErrorMessage(500, { error: '   ' })).toBe('Upload failed');
+      expect(uploadErrorMessage(500, { error: 42 })).toEqual(text('recipeForm.photo.genericError'));
+      expect(uploadErrorMessage(500, { error: '   ' })).toEqual(
+        text('recipeForm.photo.genericError')
+      );
     });
   });
 

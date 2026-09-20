@@ -8,6 +8,10 @@ import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSu
  *
  * Failures reject with a RecipeSubmitError: `message` is the server's text, `code` tells
  * the form which copy and recovery to show.
+ *
+ * The English fallback below is never read to the author: it is what `message` says for the
+ * log when the API sent no sentence of its own, and RecipeSubmitError marks it `fromServer:
+ * false` so the form prints its own translated copy instead (docs/I18N.md, API errors).
  */
 export function useCreateRecipe(onSuccess?: () => void) {
   const createRecipe = async (data: CreateRecipeDTO) => {

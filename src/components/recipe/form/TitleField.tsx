@@ -1,8 +1,9 @@
 'use client';
 import { TextField } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
 import { RECIPE_LIMITS } from '@/lib/constants';
-import { fieldHelper } from './fieldHelper';
+import { fieldHelper, useOptionalText } from './fieldHelper';
 import { getFieldCounter } from './formTokens';
 import { focusNextField } from './keyboard';
 import { RegisterField } from './useFieldRegistry';
@@ -25,6 +26,8 @@ export default function TitleField({
   autoFocus = true,
   disabled = false,
 }: TitleFieldProps) {
+  const t = useTranslations('recipeForm');
+  const showText = useOptionalText();
   const { values, errors, setField, touch } = form;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const autoFocusOnMount = useRef(autoFocus);
@@ -47,7 +50,7 @@ export default function TitleField({
 
   return (
     <TextField
-      label="Title"
+      label={t('title.label')}
       required
       fullWidth
       value={values.title}
@@ -66,10 +69,10 @@ export default function TitleField({
       onKeyDown={focusNextField}
       error={Boolean(errors.title)}
       helperText={fieldHelper(
-        errors.title,
+        showText(errors.title),
         getFieldCounter(values.title.length, RECIPE_LIMITS.title)
       )}
-      placeholder="e.g. Empanadas de carne"
+      placeholder={t('title.placeholder')}
       disabled={disabled}
       inputRef={setInput}
       slotProps={{

@@ -9,12 +9,15 @@ import {
 import { Box, Button, ButtonBase, Menu, MenuItem, Typography } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
 import NextLink from 'next/link';
+import { useTranslations } from 'next-intl';
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { text, useTextDescriptor } from '@/i18n/text';
 import { MAX_DAILY_RECIPES } from '@/lib/constants';
 import { RecipeSubmitError, RecipeSubmitErrorCode } from '@/lib/errors/RecipeSubmitError';
 import { attentionColor } from './formTokens';
 import { RecipeFieldPath, RecipeFormMode, RecipeFormSection, RecipeIssue } from './types';
 import type { RecipeFormApi } from './useRecipeForm';
+import type { TextDescriptor } from '@/i18n/text';
 
 /** 'Draft saved' stays in text.secondary for this long, then fades to text.disabled */
 export const DRAFT_SAVED_FADE_MS = 2000;
@@ -76,18 +79,10 @@ const visuallyHidden = {
 
 const lineSx = { display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 } as const;
 
-const plural = (count: number, one: string, many: string) => (count === 1 ? one : many);
-
-const thingsToFix = (count: number) => `${count} ${plural(count, 'thing', 'things')} to fix`;
-
-const missingLabel = (issues: RecipeIssue[]): string => {
-  if (issues.length > NAMED_ISSUES_MAX) return `Missing ${issues.length} things`;
-  const labels = Array.from(new Set(issues.map((issue) => issue.label)));
-  return `Missing: ${labels.join(', ')}`;
-};
-
 interface SubmitErrorView {
-  message: string;
+  message: TextDescriptor;
+  /** The API's own sentence, shown instead of `message` when it sent one */
+  serverMessage?: string;
   action?: 'login' | 'retry';
 }
 
@@ -104,15 +99,19 @@ interface SubmitErrorContext {
 
 // [Log in again] leaves the editor. Only a stored draft survives that: Edit has none, and
 // neither has Create on a device that could not write one - the copy never says otherwise
-const sessionExpiredMessage = ({ mode, isDirty, draftFailed }: SubmitErrorContext): string => {
+const sessionExpiredMessage = ({
+  mode,
+  isDirty,
+  draftFailed,
+}: SubmitErrorContext): TextDescriptor => {
   if (mode === 'edit') {
     return isDirty
-      ? 'Your session expired. Your changes are not saved - copy what you need before you log in again.'
-      : 'Your session expired. Log in again to edit this recipe.';
+      ? text('recipeForm.submit.sessionExpiredEditDirty')
+      : text('recipeForm.submit.sessionExpiredEdit');
   }
   return draftFailed
-    ? 'Your session expired and this device could not save a draft - copy what you wrote before you log in again.'
-    : 'Your session expired. Your recipe is saved as a draft on this device.';
+    ? text('recipeForm.submit.sessionExpiredDraftFailed')
+    : text('recipeForm.submit.sessionExpired');
 };
 
 // Anything that is not a typed error (a thrown TypeError...) reads as 'could not reach'
@@ -129,31 +128,34 @@ const toSubmitErrorView = (
       return { message: sessionExpiredMessage(context), action: 'login' };
     case 'daily_limit':
       return {
-        message: `You have published ${MAX_DAILY_RECIPES} recipes in the last 24 hours. ${
-          context.draftFailed
-            ? 'This device could not save a draft - copy what you wrote and publish it tomorrow.'
-            : 'This one is saved as a draft - publish it tomorrow.'
-        }`,
+        message: context.draftFailed
+          ? text('recipeForm.submit.dailyLimitDraftFailed', { max: MAX_DAILY_RECIPES })
+          : text('recipeForm.submit.dailyLimit', { max: MAX_DAILY_RECIPES }),
       };
     case 'rate_limited': {
       const seconds = error instanceof RecipeSubmitError ? error.retryAfter : undefined;
-      const wait = seconds ? `${Math.ceil(seconds / 60)} min` : 'a minute';
-      return { message: `Too many requests - try again in ${wait}` };
-    }
-    case 'validation':
-      // The shell re-ran validate(): the fields say what is wrong. The server's own text is
-      // only the fallback for a rule the client does not know
-      if (context.hasIssues) return null;
       return {
-        message:
-          (error instanceof Error && error.message) || 'The recipe was rejected - check the fields',
+        message: seconds
+          ? text('recipeForm.submit.rateLimitedMinutes', { minutes: Math.ceil(seconds / 60) })
+          : text('recipeForm.submit.rateLimited'),
       };
+    }
+    case 'validation': {
+      // The shell re-ran validate(): the fields say what is wrong. The SERVER's own sentence
+      // is the only fallback for a rule the client does not know - and the only text here
+      // this module does not write itself, so it is the only one it does not translate
+      if (context.hasIssues) return null;
+      const sent =
+        error instanceof RecipeSubmitError && error.fromServer ? error.message : undefined;
+      return { message: text('recipeForm.submit.rejected'), serverMessage: sent };
+    }
     default:
-      return { message: 'Could not reach Remy. Nothing was lost.', action: 'retry' };
+      return { message: text('recipeForm.submit.unreachable'), action: 'retry' };
   }
 };
 
 function DraftSavedNote({ savedAt }: { savedAt: number }) {
+  const t = useTranslations('recipeForm');
   const [fresh, setFresh] = useState(true);
 
   useEffect(() => {
@@ -172,7 +174,7 @@ function DraftSavedNote({ savedAt }: { savedAt: number }) {
         transition: (theme: Theme) => theme.transitions.create('color'),
       }}
     >
-      Draft saved
+      {t('status.draftSaved')}
     </Typography>
   );
 }
@@ -198,6 +200,9 @@ export default function FormStatus({
   id,
   sx,
 }: FormStatusProps) {
+  const t = useTranslations('recipeForm');
+  const tCommon = useTranslations('common');
+  const renderText = useTextDescriptor();
   const { mode, issues, publishAttempted, uploadsInFlight, isDirty } = form;
   const buttonId = useId();
   const menuId = useId();
@@ -265,13 +270,22 @@ export default function FormStatus({
     setAnchor(null);
   };
 
+  const thingsToFix = (count: number) => t('status.thingsToFix', { count });
+
+  /** 'Missing: cover photo, cook time' - a list of nouns, never a glued-together sentence */
+  const missingLabel = (): string => {
+    if (issues.length > NAMED_ISSUES_MAX) return t('status.missingCount', { count: issues.length });
+    const labels = Array.from(new Set(issues.map((issue) => renderText(issue.label))));
+    return t('status.missingNamed', { count: labels.length, labels: labels.join(', ') });
+  };
+
   const renderLine = (): React.ReactNode => {
     if (waiting) {
       return (
         <Box sx={lineSx}>
           <CloudUpload fontSize="small" sx={{ color: 'text.secondary' }} />
           <Typography variant="body2" color="text.secondary">
-            Waiting for {uploadsInFlight} {plural(uploadsInFlight, 'photo', 'photos')}...
+            {t('status.waitingPhotos', { count: uploadsInFlight })}
           </Typography>
         </Box>
       );
@@ -279,14 +293,14 @@ export default function FormStatus({
     if (resting) {
       return (
         <Typography variant="body2" color="text.secondary">
-          Start with a title
+          {t('status.startWithTitle')}
         </Typography>
       );
     }
     if (issueCount === 0 && mode === 'edit' && !isDirty) {
       return (
         <Typography variant="body2" color="text.secondary">
-          No changes yet
+          {t('status.noChanges')}
         </Typography>
       );
     }
@@ -295,7 +309,7 @@ export default function FormStatus({
       <Box sx={lineSx}>
         <CheckCircle fontSize="small" sx={{ color: 'success.main' }} />
         <Typography variant="body2" color="text.primary">
-          {mode === 'create' ? 'Ready to publish' : 'Ready to save'}
+          {t('status.ready', { mode })}
         </Typography>
       </Box>
     );
@@ -314,16 +328,16 @@ export default function FormStatus({
           <Box key={errorKey.current} role="alert" sx={{ ...lineSx, flexWrap: 'wrap' }}>
             <ErrorOutline fontSize="small" sx={{ color: 'error.main' }} />
             <Typography variant="body2" color="text.primary" sx={{ flex: '1 1 200px' }}>
-              {errorView.message}
+              {errorView.serverMessage ?? renderText(errorView.message)}
             </Typography>
             {errorView.action === 'login' && (
               <Button component={NextLink} href={loginHref(mode)} size="small" onClick={onLogin}>
-                Log in again
+                {t('status.logInAgain')}
               </Button>
             )}
             {errorView.action === 'retry' && onRetry && (
               <Button type="button" size="small" onClick={onRetry}>
-                Try again
+                {tCommon('actions.tryAgain')}
               </Button>
             )}
           </Box>
@@ -369,7 +383,7 @@ export default function FormStatus({
                 noWrap
                 sx={{ flex: '1 1 auto', minWidth: 0 }}
               >
-                {publishAttempted ? thingsToFix(issueCount) : missingLabel(issues)}
+                {publishAttempted ? thingsToFix(issueCount) : missingLabel()}
               </Typography>
               <KeyboardArrowUp fontSize="small" sx={{ color: 'text.secondary' }} />
             </ButtonBase>
@@ -385,11 +399,11 @@ export default function FormStatus({
             >
               {issues.map((issue) => (
                 <MenuItem
-                  key={`${issue.path}:${issue.message}`}
+                  key={`${issue.path}:${issue.message.key}`}
                   onClick={() => handleChoose(issue)}
                   sx={{ whiteSpace: 'normal' }}
                 >
-                  {issue.message}
+                  {renderText(issue.message)}
                 </MenuItem>
               ))}
             </Menu>

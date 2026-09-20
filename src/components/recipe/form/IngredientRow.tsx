@@ -1,9 +1,17 @@
 'use client';
 import { Close, WarningAmber } from '@mui/icons-material';
 import { Autocomplete, Box, Chip, FormHelperText, IconButton, TextField } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { RECIPE_LIMITS, RECIPE_UNITS, RECIPE_UNIT_LABELS, RecipeUnit } from '@/lib/constants';
-import { fieldHelper } from './fieldHelper';
+import { useUnitLabels } from '@/i18n/units';
+import {
+  RECIPE_LIMITS,
+  RECIPE_UNITS,
+  RECIPE_UNIT_LABELS,
+  RecipeUnit,
+  UNIT_TO_TASTE,
+} from '@/lib/constants';
+import { fieldHelper, useOptionalText } from './fieldHelper';
 import { attentionColor, getFieldCounter } from './formTokens';
 import { isBlankIngredientRow, isToTasteRow } from './formValues';
 import { focusNextField, isBackspaceOnEmpty, isPlainEnter } from './keyboard';
@@ -11,6 +19,7 @@ import { IngredientRowValue } from './types';
 import { RegisterField, useFieldRef } from './useFieldRegistry';
 import { IngredientPatch } from './useRecipeForm';
 import { useRowIdRef } from './useRowFocus';
+import type { TextDescriptor } from '@/i18n/text';
 import type { FocusEvent, HTMLAttributes, Key, KeyboardEvent, SyntheticEvent } from 'react';
 
 export interface IngredientRowProps {
@@ -18,14 +27,14 @@ export interface IngredientRowProps {
   /** Zero-based position in the list: names the controls ('Amount for ingredient 2') */
   index: number;
   /** Visible errors of this row: `errors['ingredients.<id>.amount']` and so on */
-  amountError?: string;
-  unitError?: string;
-  nameError?: string;
+  amountError?: TextDescriptor;
+  unitError?: TextDescriptor;
+  nameError?: TextDescriptor;
   /**
    * A non-blocking 'look here' line (attention bar + icon + text) shown while the row has no
    * error: what a text parser was unsure about. Never an error, never colour alone.
    */
-  note?: string;
+  note?: TextDescriptor;
   /** The engine's trailing blank row has nothing to remove, so it gets no Remove button */
   removable?: boolean;
   /** Coarse pointer: the unit input opens its list without raising the virtual keyboard */
@@ -42,26 +51,38 @@ export interface IngredientRowProps {
   registerField?: RegisterField;
 }
 
-const unitOptionText = (unit: string): string => {
-  const label = RECIPE_UNIT_LABELS[unit as RecipeUnit];
-  return label && label !== unit ? `${unit} - ${label}` : unit;
-};
+/** The stored value never changes language; only its long name does */
+const englishUnitName = (unit: string): string => RECIPE_UNIT_LABELS[unit as RecipeUnit] ?? '';
+
+/** The picker names a unit in the plural ('cups', not 'cup'): it is a list, not an amount */
+const PICKER_COUNT = 2;
 
 /**
  * Typing 'g' + Tab must pick grams, not the first unit that merely contains a 'g': exact
  * unit first, then units and expanded names that START with the text, then the rest.
+ *
+ * The author never reads the stored value: `labelOf` is what the field and the head of
+ * each option show ('cda', 'tazas') and `nameOf` the long name next to it ('cucharadas'),
+ * so typing either finds the unit while the stored value stays 'tbsp' / 'cups'. Both
+ * default to English, where the label IS the stored value.
  */
-export function filterUnitOptions(options: string[], inputValue: string): string[] {
+export function filterUnitOptions(
+  options: string[],
+  inputValue: string,
+  nameOf: (unit: string) => string = englishUnitName,
+  labelOf: (unit: string) => string = (unit) => unit
+): string[] {
   const query = inputValue.trim().toLowerCase();
   if (query === '') return options;
 
   const rank = (unit: string): number => {
     const short = unit.toLowerCase();
-    const long = (RECIPE_UNIT_LABELS[unit as RecipeUnit] ?? '').toLowerCase();
-    if (short === query) return 0;
-    if (short.startsWith(query)) return 1;
+    const label = labelOf(unit).toLowerCase();
+    const long = nameOf(unit).toLowerCase();
+    if (short === query || label === query) return 0;
+    if (short.startsWith(query) || label.startsWith(query)) return 1;
     if (long.startsWith(query)) return 2;
-    return short.includes(query) || long.includes(query) ? 3 : -1;
+    return short.includes(query) || label.includes(query) || long.includes(query) ? 3 : -1;
   };
 
   return options
@@ -93,6 +114,22 @@ function IngredientRow({
   onEmptyBackspace,
   registerField,
 }: IngredientRowProps) {
+  const t = useTranslations('recipeForm');
+  const tUnits = useTranslations('units');
+  const showText = useOptionalText();
+  const units = useUnitLabels();
+  /** What the field and the list show. The stored value ('cups') never reaches the author */
+  const unitLabel = (unit: string): string => units.label(unit, PICKER_COUNT);
+  /**
+   * 'g - grams', but just 'cups' where the long name adds nothing to the label.
+   * `units.option()` would name the unit in the singular ('unit - whole items'), so the
+   * shared message is formatted here with the plural label a list wants.
+   */
+  const unitOptionText = (unit: string): string => {
+    const label = unitLabel(unit);
+    const name = units.name(unit);
+    return name === label || name === units.label(unit) ? label : tUnits('option', { label, name });
+  };
   const position = index + 1;
   const path = `ingredients.${row.id}`;
   const helperId = useId();
@@ -101,7 +138,7 @@ function IngredientRow({
   // While focus is in the row the author edits plain inputs; at rest a named row without
   // amount and unit shows ONE 'to taste' chip in their place (Pantry's model)
   const [editing, setEditing] = useState(false);
-  const [unitText, setUnitText] = useState(row.unit);
+  const [unitText, setUnitText] = useState(() => unitLabel(row.unit));
   const showToTasteChip = isToTasteRow(row) && !editing;
 
   const amountInput = useRef<HTMLInputElement | null>(null);
@@ -142,9 +179,12 @@ function IngredientRow({
 
   const name = row.name.trim();
   const rowError = amountError || unitError || nameError;
-  const helper = fieldHelper(rowError, getFieldCounter(row.name.length, RECIPE_LIMITS.name));
+  const helper = fieldHelper(
+    showText(rowError),
+    getFieldCounter(row.name.length, RECIPE_LIMITS.name)
+  );
   // An error outranks the note: one helper line, one bar
-  const attention = rowError ? undefined : note;
+  const attention = rowError ? undefined : showText(note);
   const describedBy = helper || attention ? helperId : undefined;
 
   const handleFocus = (event: FocusEvent<HTMLElement>) => {
@@ -180,6 +220,8 @@ function IngredientRow({
   };
 
   const handleUnitChange = (event: SyntheticEvent, unit: string) => {
+    // The option IS the stored value - only its label was translated - so what the row
+    // reports, and what ends up in the database, stays English
     onChange(row.id, { unit });
     // Picked with Enter: keep going, like Tab does
     if ('key' in event && event.key === 'Enter') nameInput.current?.focus();
@@ -201,7 +243,7 @@ function IngredientRow({
   return (
     <Box
       role="group"
-      aria-label={`Ingredient ${position}`}
+      aria-label={t('ingredients.rowLabel', { position })}
       ref={rowRef}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -227,8 +269,8 @@ function IngredientRow({
       {showToTasteChip ? (
         <Chip
           variant="outlined"
-          label="to taste"
-          aria-label={`${name} is to taste - set an amount`}
+          label={units.label(UNIT_TO_TASTE)}
+          aria-label={t('ingredients.toTasteChip', { name })}
           data-field="amount"
           disabled={disabled}
           onClick={() => {
@@ -248,12 +290,12 @@ function IngredientRow({
             onKeyDown={handleAmountKeyDown}
             error={Boolean(amountError)}
             disabled={disabled}
-            placeholder="e.g. 2, 1/2, 1.5"
+            placeholder={t('ingredients.amountPlaceholder')}
             inputRef={setAmountInput}
             sx={{ gridArea: 'amount' }}
             slotProps={{
               htmlInput: {
-                'aria-label': `Amount for ingredient ${position}`,
+                'aria-label': t('ingredients.amountLabel', { position }),
                 'aria-describedby': describedBy,
                 'data-field': 'amount',
                 inputMode: 'decimal',
@@ -272,7 +314,10 @@ function IngredientRow({
             onInputChange={handleUnitInputChange}
             onKeyDown={handleUnitKeyDown}
             options={unitOptions}
-            filterOptions={(options, state) => filterUnitOptions(options, state.inputValue)}
+            getOptionLabel={unitLabel}
+            filterOptions={(options, state) =>
+              filterUnitOptions(options, state.inputValue, units.name, unitLabel)
+            }
             renderOption={(props, option) => {
               const { key, ...optionProps } = props as HTMLAttributes<HTMLLIElement> & {
                 key: Key;
@@ -298,13 +343,13 @@ function IngredientRow({
                 {...params}
                 hiddenLabel
                 error={Boolean(unitError)}
-                placeholder="unit"
+                placeholder={t('ingredients.unitPlaceholder')}
                 inputRef={registerUnit}
                 slotProps={{
                   input: params.InputProps,
                   htmlInput: {
                     ...params.inputProps,
-                    'aria-label': `Unit for ingredient ${position}`,
+                    'aria-label': t('ingredients.unitLabel', { position }),
                     'aria-describedby': describedBy,
                     'data-field': 'unit',
                     inputMode: coarsePointer ? 'none' : undefined,
@@ -327,12 +372,12 @@ function IngredientRow({
         onKeyDown={handleNameKeyDown}
         error={Boolean(nameError)}
         disabled={disabled}
-        placeholder="e.g. flour"
+        placeholder={t('ingredients.namePlaceholder')}
         inputRef={setNameInput}
         sx={{ gridArea: 'name' }}
         slotProps={{
           htmlInput: {
-            'aria-label': `Name of ingredient ${position}`,
+            'aria-label': t('ingredients.nameLabel', { position }),
             'aria-describedby': describedBy,
             'data-field': 'name',
             maxLength: RECIPE_LIMITS.name,
@@ -346,9 +391,11 @@ function IngredientRow({
       {removable && (
         <IconButton
           type="button"
-          aria-label={
-            name ? `Remove ingredient ${position}: ${name}` : `Remove ingredient ${position}`
-          }
+          aria-label={t('ingredients.remove', {
+            named: name ? 'yes' : 'no',
+            position,
+            name,
+          })}
           data-field="remove"
           disabled={disabled}
           onClick={() => onRemove(row.id)}

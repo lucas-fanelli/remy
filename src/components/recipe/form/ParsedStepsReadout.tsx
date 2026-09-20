@@ -1,35 +1,35 @@
 'use client';
 import { Box, Typography } from '@mui/material';
 import StepNumber from '@/components/recipe/display/StepNumber';
+import { text, useTextDescriptor } from '@/i18n/text';
 import ParsedReadout from './ParsedReadout';
 import { StepRowValue } from './types';
+import type { TextDescriptor } from '@/i18n/text';
 
 export interface ParsedStepsReadoutProps {
   /** `form.values.steps` */
   rows: StepRowValue[];
 }
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-
 /**
  * '6 steps', plus the photos whose paragraph was deleted: they are kept (a photo is never
  * dropped) and the author should hear about them before Publish names them.
  */
-export function stepsSummary(rows: StepRowValue[]): string {
-  const written = rows.filter((row) => row.description.trim() !== '').length;
+export function stepsSummary(rows: StepRowValue[]): TextDescriptor {
+  const count = rows.filter((row) => row.description.trim() !== '').length;
   const orphans = rows.filter((row) => row.description.trim() === '' && row.image !== '').length;
-  const summary = plural(written, 'step', 'steps');
   return orphans > 0
-    ? `${summary} - ${plural(orphans, 'photo', 'photos')} without a step`
-    : summary;
+    ? text('recipeParser.readout.stepsWithOrphans', { count, orphans })
+    : text('recipeParser.readout.steps', { count });
 }
 
 /** What Remy understood from the Method box: the numbered first line of every step */
 export default function ParsedStepsReadout({ rows }: ParsedStepsReadoutProps) {
+  const renderText = useTextDescriptor();
   if (rows.every((row) => row.description.trim() === '' && row.image === '')) return null;
 
   return (
-    <ParsedReadout summary={stepsSummary(rows)}>
+    <ParsedReadout summary={renderText(stepsSummary(rows))}>
       {rows.map((row, index) =>
         row.description.trim() === '' ? null : (
           <Box

@@ -1,7 +1,6 @@
+import { text } from '@/i18n/text';
 import { RECIPE_LIMITS, RECIPE_UNITS } from '@/lib/constants';
 import {
-  INGREDIENTS_CAPPED_MESSAGE,
-  STEPS_CAPPED_MESSAGE,
   UNIT_ALIASES,
   normaliseLine,
   parseIngredientLines,
@@ -10,6 +9,7 @@ import {
   serialiseIngredients,
   serialiseSteps,
 } from '../recipeText';
+import type { TextDescriptor } from '@/i18n/text';
 
 /** [line as typed, amount, unit, name] - lines the parser is sure about */
 const CONFIDENT_LINES: [string, string, string, string][] = [
@@ -58,36 +58,61 @@ const CONFIDENT_LINES: [string, string, string, string][] = [
   ['1 cucharada de café molido', '1', 'tbsp', 'café molido'],
 ];
 
-/** [line as typed, amount, unit, name, what the reason must mention] */
-const DOUBTFUL_LINES: [string, string, string, string, RegExp][] = [
-  ['1 lata de tomate', '1', 'units', 'lata de tomate', /is "lata" part of the name/],
-  ['3 dientes de ajo', '3', 'units', 'dientes de ajo', /is "dientes" part of the name/],
-  ['1 can of tomatoes', '1', 'units', 'can of tomatoes', /is "can" part of the name/],
-  ['harina 1 puñado', '', '', 'harina 1 puñado', /could not read it as an amount/],
-  ['2 cdas de aceite, a gusto', '2', 'tbsp', 'aceite, a gusto', /keep one/],
-  ['2 limones a gusto', '2', 'units', 'limones a gusto', /keep one/],
-  ['500 g', '500', 'g', '', /No ingredient name/],
-  ['250', '250', 'units', '', /No ingredient name/],
+/**
+ * [line as typed, amount, unit, name, the reason it carries]
+ *
+ * A reason is a DESCRIPTOR (docs/I18N.md): the parser has no locale, so it names the message
+ * and the readout renders it. Asserting the descriptor asserts the intent, not the wording.
+ */
+const R = {
+  container: (word: string) => text('recipeParser.reasons.unknownContainer', { word }),
+  unreadable: text('recipeParser.reasons.unreadableAmount'),
+  bothAmountAndToTaste: text('recipeParser.reasons.amountAndToTaste'),
+  noName: text('recipeParser.reasons.noName'),
+  numberInName: text('recipeParser.reasons.numberInName'),
+  unitInName: (word: string) => text('recipeParser.reasons.unitInName', { word }),
+  goesOn: text('recipeParser.reasons.amountContinues'),
+  qualifier: (word: string) => text('recipeParser.reasons.qualifierInName', { word }),
+  unitNoAmount: (word: string) => text('recipeParser.reasons.unitWithoutAmount', { word }),
+};
+
+const DOUBTFUL_LINES: [string, string, string, string, TextDescriptor][] = [
+  ['1 lata de tomate', '1', 'units', 'lata de tomate', R.container('lata')],
+  ['3 dientes de ajo', '3', 'units', 'dientes de ajo', R.container('dientes')],
+  ['1 can of tomatoes', '1', 'units', 'can of tomatoes', R.container('can')],
+  ['harina 1 puñado', '', '', 'harina 1 puñado', R.unreadable],
+  ['2 cdas de aceite, a gusto', '2', 'tbsp', 'aceite, a gusto', R.bothAmountAndToTaste],
+  ['2 limones a gusto', '2', 'units', 'limones a gusto', R.bothAmountAndToTaste],
+  ['500 g', '500', 'g', '', R.noName],
+  ['250', '250', 'units', '', R.noName],
   // Split, but what is left in the name says the split may be wrong: never silently
-  ['1 taza (250 ml) de leche', '1', 'cups', '(250 ml) de leche', /still holds a number/],
-  ['100 g de azúcar + 50 g extra', '100', 'g', 'azúcar + 50 g extra', /still holds a number/],
-  ['leche 1 taza (250 ml)', '250', 'mL', 'leche 1 taza', /still holds a number/],
-  ['2 paquetes 7 g levadura', '2', 'units', 'paquetes 7 g levadura', /still holds a number/],
-  ['500 g harina o media taza', '500', 'g', 'harina o media taza', /"taza" looks like a unit/],
-  ['1 taza y media de harina', '1', 'cups', 'y media de harina', /seems to go on in the name/],
-  ['2 cdas + un chorrito de aceite', '2', 'tbsp', '+ un chorrito de aceite', /seems to go on/],
-  ['1 cucharada sopera de aceite', '1', 'tbsp', 'sopera de aceite', /"sopera" was kept/],
-  ['2 tbsp heaped cocoa', '2', 'tbsp', 'heaped cocoa', /"heaped" was kept/],
-  ['1 cucharada de postre de azúcar', '1', 'tbsp', 'postre de azúcar', /"postre" was kept/],
-  ['una taza de harina', '', '', 'una taza de harina', /"taza" looks like a unit but no amount/],
-  ['media cucharadita de sal a gusto', '', '', 'media cucharadita de sal', /no amount was read/],
+  ['1 taza (250 ml) de leche', '1', 'cups', '(250 ml) de leche', R.numberInName],
+  ['100 g de azúcar + 50 g extra', '100', 'g', 'azúcar + 50 g extra', R.numberInName],
+  ['leche 1 taza (250 ml)', '250', 'mL', 'leche 1 taza', R.numberInName],
+  ['2 paquetes 7 g levadura', '2', 'units', 'paquetes 7 g levadura', R.numberInName],
+  ['500 g harina o media taza', '500', 'g', 'harina o media taza', R.unitInName('taza')],
+  ['1 taza y media de harina', '1', 'cups', 'y media de harina', R.goesOn],
+  ['2 cdas + un chorrito de aceite', '2', 'tbsp', '+ un chorrito de aceite', R.goesOn],
+  ['1 cucharada sopera de aceite', '1', 'tbsp', 'sopera de aceite', R.qualifier('sopera')],
+  ['2 tbsp heaped cocoa', '2', 'tbsp', 'heaped cocoa', R.qualifier('heaped')],
+  ['1 cucharada de postre de azúcar', '1', 'tbsp', 'postre de azúcar', R.qualifier('postre')],
+  ['una taza de harina', '', '', 'una taza de harina', R.unitNoAmount('taza')],
+  [
+    'media cucharadita de sal a gusto',
+    '',
+    '',
+    'media cucharadita de sal',
+    R.unitNoAmount('cucharadita'),
+  ],
 ];
 
 describe('parseIngredientLines', () => {
   it.each(CONFIDENT_LINES)('should read "%s"', (line, amount, unit, name) => {
     const { rows } = parseIngredientLines(line);
 
-    expect(rows).toEqual([{ amount, unit, name, confidence: 'ok', reason: '', sourceText: line }]);
+    expect(rows).toEqual([
+      { amount, unit, name, confidence: 'ok', reason: null, sourceText: line },
+    ]);
   });
 
   it.each(DOUBTFUL_LINES)(
@@ -96,7 +121,7 @@ describe('parseIngredientLines', () => {
       const [row] = parseIngredientLines(line).rows;
 
       expect(row).toMatchObject({ amount, unit, name, confidence: 'check' });
-      expect(row.reason).toMatch(reason);
+      expect(row.reason).toEqual(reason);
     }
   );
 
@@ -166,7 +191,9 @@ describe('parseIngredientLines', () => {
 
     expect(row.name).toBe(name);
     expect(row).toMatchObject({ confidence: 'check' });
-    expect(row.reason).toMatch(/shorten the name/);
+    expect(row.reason).toEqual(
+      text('recipeParser.reasons.nameTooLong', { max: RECIPE_LIMITS.name })
+    );
   });
 
   it('should say only that the name is too long when the amount comes after it', () => {
@@ -175,14 +202,16 @@ describe('parseIngredientLines', () => {
     const [row] = parseIngredientLines(`${name} 500 g`).rows;
 
     expect(row).toMatchObject({ amount: '500', unit: 'g', name, confidence: 'check' });
-    expect(row.reason).toMatch(/shorten the name/);
+    expect(row.reason).toEqual(
+      text('recipeParser.reasons.nameTooLong', { max: RECIPE_LIMITS.name })
+    );
   });
 
   it('should ask for a name when the line only says to taste', () => {
     const [row] = parseIngredientLines('a gusto').rows;
 
     expect(row).toMatchObject({ amount: '', unit: '', name: '', confidence: 'check' });
-    expect(row.reason).toMatch(/No ingredient name/);
+    expect(row.reason).toEqual(text('recipeParser.reasons.noName'));
   });
 
   it('should keep a very long line whole without scanning it for a trailing amount', () => {
@@ -201,7 +230,6 @@ describe('parseIngredientLines', () => {
 
     expect(rows).toHaveLength(RECIPE_LIMITS.ingredients);
     expect(capped).toBe(true);
-    expect(INGREDIENTS_CAPPED_MESSAGE).toBe('Only the first 100 ingredients were read');
   });
 
   it('should return no rows for an empty text', () => {
@@ -309,7 +337,6 @@ describe('parseMethod', () => {
 
     expect(steps).toHaveLength(RECIPE_LIMITS.steps);
     expect(capped).toBe(true);
-    expect(STEPS_CAPPED_MESSAGE).toBe('Only the first 50 steps were read');
   });
 
   it('should not cut a step that is longer than the limit', () => {

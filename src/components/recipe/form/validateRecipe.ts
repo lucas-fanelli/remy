@@ -1,3 +1,4 @@
+import { text } from '@/i18n/text';
 import { RECIPE_LIMITS, UNIT_TO_TASTE } from '@/lib/constants';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import {
@@ -14,12 +15,16 @@ import {
   RecipeFormValuesInput,
   RecipeIssue,
 } from './types';
+import type { TextDescriptor } from '@/i18n/text';
 
 /**
  * ONE rule set for Create and Edit. It mirrors the server (the zod schemas in
  * src/app/api/recipes/route.ts and RecipeService.validateRecipeData) and agrees with
  * toPayload about what is ignored: blank ingredient rows and TRAILING blank steps carry
  * nothing the author typed, everything else either is sent or is a named error here.
+ *
+ * It has no locale, so it names messages instead of writing them: every issue carries the
+ * descriptors of src/i18n/text.ts and the component renders them (docs/I18N.md).
  */
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
@@ -51,44 +56,64 @@ const isWholeNumberBetween = (value: NumericFieldValue, min: number, max: number
 
 export function validateRecipe(values: RecipeFormValuesInput): RecipeIssue[] {
   const issues: RecipeIssue[] = [];
-  const add = (path: RecipeFieldPath, label: string, message: string) =>
+  const add = (path: RecipeFieldPath, label: TextDescriptor, message: TextDescriptor) =>
     issues.push({ path, section: sectionOfPath(path), label, message });
 
   // Basics: title + at a glance
   if (values.title.trim() === '') {
-    add('title', 'title', 'Add a title');
+    add('title', text('recipeForm.fields.title'), text('recipeForm.issues.titleRequired'));
   } else if (values.title.trim().length > RECIPE_LIMITS.title) {
-    add('title', 'title', `Title: ${RECIPE_LIMITS.title} characters at most`);
+    add(
+      'title',
+      text('recipeForm.fields.title'),
+      text('recipeForm.issues.titleTooLong', { max: RECIPE_LIMITS.title })
+    );
   }
 
   const { prep, cook, servings } = RECIPE_LIMITS;
   if (!isWholeNumberBetween(values.prepTime, prep.min, prep.max)) {
-    add('prepTime', 'prep time', `Prep time: whole minutes between ${prep.min} and ${prep.max}`);
+    add(
+      'prepTime',
+      text('recipeForm.fields.prepTime'),
+      text('recipeForm.issues.prepTimeRange', { min: prep.min, max: prep.max })
+    );
   }
   if (!isWholeNumberBetween(values.cookingTime, cook.min, cook.max)) {
-    add('cookingTime', 'cook time', `Cook time: whole minutes between ${cook.min} and ${cook.max}`);
+    add(
+      'cookingTime',
+      text('recipeForm.fields.cookTime'),
+      text('recipeForm.issues.cookTimeRange', { min: cook.min, max: cook.max })
+    );
   }
   if (!isWholeNumberBetween(values.servings, servings.min, servings.max)) {
     add(
       'servings',
-      'servings',
-      `Servings: a whole number between ${servings.min} and ${servings.max}`
+      text('recipeForm.fields.servings'),
+      text('recipeForm.issues.servingsRange', { min: servings.min, max: servings.max })
     );
   }
   if (!DIFFICULTIES.includes(values.difficulty)) {
-    add('difficulty', 'difficulty', 'Difficulty: choose Easy, Medium or Hard');
+    add(
+      'difficulty',
+      text('recipeForm.fields.difficulty'),
+      text('recipeForm.issues.difficultyRequired')
+    );
   }
 
   // Ingredients: blank rows are ignored wherever they are
   const filledIngredients = values.ingredients.filter((row) => !isBlankIngredientRow(row));
   if (filledIngredients.length === 0) {
-    add('ingredients', 'ingredients', 'Add at least one ingredient');
+    add(
+      'ingredients',
+      text('recipeForm.fields.ingredients'),
+      text('recipeForm.issues.ingredientsRequired')
+    );
   } else if (filledIngredients.length > RECIPE_LIMITS.ingredients) {
     const extra = filledIngredients.length - RECIPE_LIMITS.ingredients;
     add(
       'ingredients',
-      'ingredients',
-      `A recipe can have ${RECIPE_LIMITS.ingredients} ingredients at most - remove ${extra}`
+      text('recipeForm.fields.ingredients'),
+      text('recipeForm.issues.ingredientsTooMany', { max: RECIPE_LIMITS.ingredients, extra })
     );
   }
   values.ingredients.forEach((rawRow, index) => {
@@ -96,35 +121,39 @@ export function validateRecipe(values: RecipeFormValuesInput): RecipeIssue[] {
     // Validate what toPayload will send (amount normalised, 'units' filled in)
     const row = normaliseIngredientRow(rawRow);
     const path = `ingredients.${row.id ?? index}`;
-    const position = `Ingredient ${index + 1}`;
-    const label = `ingredient ${index + 1}`;
+    const position = index + 1;
+    const label = text('recipeForm.fields.ingredientAt', { position });
     const name = row.name.trim();
-    // Messages name the ingredient when it has a name: 'Flour: add an amount...'
-    const subject = name || position;
+    // Messages name the ingredient when it has a name ('Flour: add an amount...') and fall
+    // back to its position; the message picks the half with an ICU select
+    const subject = { named: name === '' ? 'no' : 'yes', name, position };
 
     if (name === '') {
-      add(`${path}.name`, label, `${position}: add a name, or clear the row`);
+      add(`${path}.name`, label, text('recipeForm.issues.ingredientNameRequired', { position }));
     } else if (name.length > RECIPE_LIMITS.name) {
       add(
         `${path}.name`,
         label,
-        `${position}: the name is ${RECIPE_LIMITS.name} characters at most`
+        text('recipeForm.issues.ingredientNameTooLong', { position, max: RECIPE_LIMITS.name })
       );
     }
     if (row.amount === '' && row.unit !== '' && row.unit !== UNIT_TO_TASTE) {
-      add(`${path}.amount`, label, `${subject}: add an amount, or clear the unit for to taste`);
+      add(`${path}.amount`, label, text('recipeForm.issues.ingredientAmountRequired', subject));
     } else if (row.amount.length > RECIPE_LIMITS.amount) {
       add(
         `${path}.amount`,
         label,
-        `${subject}: the amount is ${RECIPE_LIMITS.amount} characters at most`
+        text('recipeForm.issues.ingredientAmountTooLong', {
+          ...subject,
+          max: RECIPE_LIMITS.amount,
+        })
       );
     }
     if (row.unit.length > RECIPE_LIMITS.unit) {
       add(
         `${path}.unit`,
         label,
-        `${subject}: the unit is ${RECIPE_LIMITS.unit} characters at most`
+        text('recipeForm.issues.ingredientUnitTooLong', { ...subject, max: RECIPE_LIMITS.unit })
       );
     }
   });
@@ -132,57 +161,65 @@ export function validateRecipe(values: RecipeFormValuesInput): RecipeIssue[] {
   // Steps: only TRAILING blank rows are ignored, the numbering of the rest matters
   const steps = trimTrailingBlankRows(values.steps, isBlankStepRow);
   if (steps.length === 0) {
-    add('steps', 'steps', 'Add at least one step');
+    add('steps', text('recipeForm.fields.steps'), text('recipeForm.issues.stepsRequired'));
   } else if (steps.length > RECIPE_LIMITS.steps) {
     const extra = steps.length - RECIPE_LIMITS.steps;
     add(
       'steps',
-      'steps',
-      `A recipe can have ${RECIPE_LIMITS.steps} steps at most - remove ${extra}`
+      text('recipeForm.fields.steps'),
+      text('recipeForm.issues.stepsTooMany', { max: RECIPE_LIMITS.steps, extra })
     );
   }
   steps.forEach((row, index) => {
     const path = `steps.${row.id ?? index}`;
-    const position = `Step ${index + 1}`;
-    const label = `step ${index + 1}`;
+    const position = index + 1;
+    const label = text('recipeForm.fields.stepAt', { position });
 
     if (row.description.trim() === '') {
       add(
         `${path}.description`,
         label,
         row.image === ''
-          ? `${position} is empty - write it or remove it`
-          : `${position} has a photo but no text - describe it or remove the step`
+          ? text('recipeForm.issues.stepEmpty', { position })
+          : text('recipeForm.issues.stepPhotoWithoutText', { position })
       );
     } else if (row.description.trim().length > RECIPE_LIMITS.stepText) {
       add(
         `${path}.description`,
         label,
-        `${position}: ${RECIPE_LIMITS.stepText} characters at most`
+        text('recipeForm.issues.stepTooLong', { position, max: RECIPE_LIMITS.stepText })
       );
     }
     if (row.image !== '' && !isCloudinaryUrl(row.image)) {
-      add(`${path}.image`, label, `${position}: upload the photo again`);
+      add(`${path}.image`, label, text('recipeForm.issues.stepImageInvalid', { position }));
     }
   });
 
   // Presentation: cover + description + closing note
   if (values.imageUrl.trim() === '') {
-    add('imageUrl', 'cover photo', 'Add a cover photo (JPG, PNG, WebP or GIF)');
+    add('imageUrl', text('recipeForm.fields.coverPhoto'), text('recipeForm.issues.coverRequired'));
   } else if (!isCloudinaryUrl(values.imageUrl)) {
-    add('imageUrl', 'cover photo', 'Cover photo: upload it again (JPG, PNG, WebP or GIF)');
+    add('imageUrl', text('recipeForm.fields.coverPhoto'), text('recipeForm.issues.coverInvalid'));
   }
   if (values.description.trim() === '') {
-    add('description', 'description', 'Add a short description');
+    add(
+      'description',
+      text('recipeForm.fields.description'),
+      text('recipeForm.issues.descriptionRequired')
+    );
   } else if (values.description.trim().length > RECIPE_LIMITS.description) {
     add(
       'description',
-      'description',
-      `Description: ${RECIPE_LIMITS.description} characters at most`
+      text('recipeForm.fields.description'),
+      text('recipeForm.issues.descriptionTooLong', { max: RECIPE_LIMITS.description })
     );
   }
   if (values.caption.trim().length > RECIPE_LIMITS.caption) {
-    add('caption', 'closing note', `Closing note: ${RECIPE_LIMITS.caption} characters at most`);
+    add(
+      'caption',
+      text('recipeForm.fields.closingNote'),
+      text('recipeForm.issues.captionTooLong', { max: RECIPE_LIMITS.caption })
+    );
   }
 
   return issues;

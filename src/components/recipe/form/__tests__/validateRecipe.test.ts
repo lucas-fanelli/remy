@@ -1,10 +1,15 @@
 import fs from 'fs';
 import path from 'path';
+import { text } from '@/i18n/text';
 import { RECIPE_LIMITS, RECIPE_UNITS, UNIT_TO_TASTE } from '@/lib/constants';
 import { RecipeFormValues, RecipeIssue } from '../types';
 import { isPathWithin, sectionOfPath, validateRecipe } from '../validateRecipe';
 import { COVER_URL, makeValues, STEP_URL } from './fixtures';
 
+/**
+ * validateRecipe names messages instead of writing them (docs/I18N.md), so the tests assert
+ * on the descriptor - which is the intent, and does not move when the copy is reworded.
+ */
 const messagesOf = (values: RecipeFormValues) => validateRecipe(values).map((i) => i.message);
 const issueAt = (values: RecipeFormValues, issuePath: string): RecipeIssue | undefined =>
   validateRecipe(values).find((issue) => issue.path === issuePath);
@@ -19,16 +24,16 @@ describe('validateRecipe', () => {
       expect(issueAt(makeValues({ title: '   ' }), 'title')).toEqual({
         path: 'title',
         section: 'basics',
-        label: 'title',
-        message: 'Add a title',
+        label: text('recipeForm.fields.title'),
+        message: text('recipeForm.issues.titleRequired'),
       });
     });
 
     it('should reject a title over the limit', () => {
       const title = 'a'.repeat(RECIPE_LIMITS.title + 1);
 
-      expect(issueAt(makeValues({ title }), 'title')?.message).toBe(
-        'Title: 100 characters at most'
+      expect(issueAt(makeValues({ title }), 'title')?.message).toEqual(
+        text('recipeForm.issues.titleTooLong', { max: 100 })
       );
     });
 
@@ -39,8 +44,8 @@ describe('validateRecipe', () => {
     });
 
     it('should name the field and the fix when the cook time is missing', () => {
-      expect(issueAt(makeValues({ cookingTime: '' }), 'cookingTime')?.message).toBe(
-        'Cook time: whole minutes between 1 and 720'
+      expect(issueAt(makeValues({ cookingTime: '' }), 'cookingTime')?.message).toEqual(
+        text('recipeForm.issues.cookTimeRange', { min: 1, max: 720 })
       );
     });
 
@@ -57,14 +62,14 @@ describe('validateRecipe', () => {
     });
 
     it.each(['' as const, -1, 481, 2.5])('should reject a prep time of %p', (prepTime) => {
-      expect(issueAt(makeValues({ prepTime }), 'prepTime')?.message).toBe(
-        'Prep time: whole minutes between 0 and 480'
+      expect(issueAt(makeValues({ prepTime }), 'prepTime')?.message).toEqual(
+        text('recipeForm.issues.prepTimeRange', { min: 0, max: 480 })
       );
     });
 
     it.each(['' as const, 0, 101, 2.5])('should reject servings of %p', (servings) => {
-      expect(issueAt(makeValues({ servings }), 'servings')?.message).toBe(
-        'Servings: a whole number between 1 and 100'
+      expect(issueAt(makeValues({ servings }), 'servings')?.message).toEqual(
+        text('recipeForm.issues.servingsRange', { min: 1, max: 100 })
       );
     });
 
@@ -79,7 +84,9 @@ describe('validateRecipe', () => {
     it('should ask for an ingredient when every row is blank', () => {
       const values = makeValues({ ingredients: [{ id: 'i1', name: '', amount: '', unit: '' }] });
 
-      expect(issueAt(values, 'ingredients')?.message).toBe('Add at least one ingredient');
+      expect(issueAt(values, 'ingredients')?.message).toEqual(
+        text('recipeForm.issues.ingredientsRequired')
+      );
     });
 
     it('should ignore blank rows wherever they are', () => {
@@ -105,8 +112,8 @@ describe('validateRecipe', () => {
       expect(issueAt(values, 'ingredients.i2.name')).toEqual({
         path: 'ingredients.i2.name',
         section: 'ingredients',
-        label: 'ingredient 2',
-        message: 'Ingredient 2: add a name, or clear the row',
+        label: text('recipeForm.fields.ingredientAt', { position: 2 }),
+        message: text('recipeForm.issues.ingredientNameRequired', { position: 2 }),
       });
     });
 
@@ -115,8 +122,12 @@ describe('validateRecipe', () => {
         ingredients: [{ id: 'i1', name: 'Flour', amount: '', unit: 'g' }],
       });
 
-      expect(issueAt(values, 'ingredients.i1.amount')?.message).toBe(
-        'Flour: add an amount, or clear the unit for to taste'
+      expect(issueAt(values, 'ingredients.i1.amount')?.message).toEqual(
+        text('recipeForm.issues.ingredientAmountRequired', {
+          named: 'yes',
+          name: 'Flour',
+          position: 1,
+        })
       );
     });
 
@@ -156,8 +167,8 @@ describe('validateRecipe', () => {
       const name = 'a'.repeat(RECIPE_LIMITS.name + 1);
       const values = makeValues({ ingredients: [{ id: 'i1', name, amount: '1', unit: 'g' }] });
 
-      expect(issueAt(values, 'ingredients.i1.name')?.message).toBe(
-        'Ingredient 1: the name is 200 characters at most'
+      expect(issueAt(values, 'ingredients.i1.name')?.message).toEqual(
+        text('recipeForm.issues.ingredientNameTooLong', { position: 1, max: 200 })
       );
     });
 
@@ -167,8 +178,13 @@ describe('validateRecipe', () => {
         ingredients: [{ id: 'i1', name: 'Flour', amount, unit: 'g' }],
       });
 
-      expect(issueAt(values, 'ingredients.i1.amount')?.message).toBe(
-        'Flour: the amount is 50 characters at most'
+      expect(issueAt(values, 'ingredients.i1.amount')?.message).toEqual(
+        text('recipeForm.issues.ingredientAmountTooLong', {
+          named: 'yes',
+          name: 'Flour',
+          position: 1,
+          max: 50,
+        })
       );
     });
 
@@ -178,16 +194,25 @@ describe('validateRecipe', () => {
         ingredients: [{ id: 'i1', name: 'Flour', amount: '1', unit }],
       });
 
-      expect(issueAt(values, 'ingredients.i1.unit')?.message).toBe(
-        'Flour: the unit is 50 characters at most'
+      expect(issueAt(values, 'ingredients.i1.unit')?.message).toEqual(
+        text('recipeForm.issues.ingredientUnitTooLong', {
+          named: 'yes',
+          name: 'Flour',
+          position: 1,
+          max: 50,
+        })
       );
     });
 
     it('should fall back to the position in messages when the row has no name', () => {
       const values = makeValues({ ingredients: [{ id: 'i1', name: '', amount: '', unit: 'g' }] });
 
-      expect(issueAt(values, 'ingredients.i1.amount')?.message).toBe(
-        'Ingredient 1: add an amount, or clear the unit for to taste'
+      expect(issueAt(values, 'ingredients.i1.amount')?.message).toEqual(
+        text('recipeForm.issues.ingredientAmountRequired', {
+          named: 'no',
+          name: '',
+          position: 1,
+        })
       );
     });
 
@@ -199,8 +224,8 @@ describe('validateRecipe', () => {
         unit: 'g',
       }));
 
-      expect(issueAt(makeValues({ ingredients }), 'ingredients')?.message).toBe(
-        'A recipe can have 100 ingredients at most - remove 2'
+      expect(issueAt(makeValues({ ingredients }), 'ingredients')?.message).toEqual(
+        text('recipeForm.issues.ingredientsTooMany', { max: 100, extra: 2 })
       );
     });
 
@@ -218,7 +243,7 @@ describe('validateRecipe', () => {
     it('should ask for a step when every row is blank', () => {
       const values = makeValues({ steps: [{ id: 's1', description: '', image: '' }] });
 
-      expect(issueAt(values, 'steps')?.message).toBe('Add at least one step');
+      expect(issueAt(values, 'steps')?.message).toEqual(text('recipeForm.issues.stepsRequired'));
     });
 
     it('should ignore trailing blank steps', () => {
@@ -245,8 +270,8 @@ describe('validateRecipe', () => {
       expect(issueAt(values, 'steps.s2.description')).toEqual({
         path: 'steps.s2.description',
         section: 'steps',
-        label: 'step 2',
-        message: 'Step 2 is empty - write it or remove it',
+        label: text('recipeForm.fields.stepAt', { position: 2 }),
+        message: text('recipeForm.issues.stepEmpty', { position: 2 }),
       });
     });
 
@@ -258,8 +283,8 @@ describe('validateRecipe', () => {
         ],
       });
 
-      expect(issueAt(values, 'steps.s2.description')?.message).toBe(
-        'Step 2 has a photo but no text - describe it or remove the step'
+      expect(issueAt(values, 'steps.s2.description')?.message).toEqual(
+        text('recipeForm.issues.stepPhotoWithoutText', { position: 2 })
       );
     });
 
@@ -267,8 +292,8 @@ describe('validateRecipe', () => {
       const description = 'a'.repeat(RECIPE_LIMITS.stepText + 1);
       const values = makeValues({ steps: [{ id: 's1', description, image: '' }] });
 
-      expect(issueAt(values, 'steps.s1.description')?.message).toBe(
-        'Step 1: 5000 characters at most'
+      expect(issueAt(values, 'steps.s1.description')?.message).toEqual(
+        text('recipeForm.issues.stepTooLong', { position: 1, max: 5000 })
       );
     });
 
@@ -277,7 +302,9 @@ describe('validateRecipe', () => {
         steps: [{ id: 's1', description: 'Mix', image: 'blob:http://localhost/1' }],
       });
 
-      expect(issueAt(values, 'steps.s1.image')?.message).toBe('Step 1: upload the photo again');
+      expect(issueAt(values, 'steps.s1.image')?.message).toEqual(
+        text('recipeForm.issues.stepImageInvalid', { position: 1 })
+      );
     });
 
     it('should say how many steps to remove when there are too many', () => {
@@ -287,8 +314,8 @@ describe('validateRecipe', () => {
         image: '',
       }));
 
-      expect(issueAt(makeValues({ steps }), 'steps')?.message).toBe(
-        'A recipe can have 50 steps at most - remove 1'
+      expect(issueAt(makeValues({ steps }), 'steps')?.message).toEqual(
+        text('recipeForm.issues.stepsTooMany', { max: 50, extra: 1 })
       );
     });
 
@@ -310,30 +337,28 @@ describe('validateRecipe', () => {
       expect(issueAt(makeValues({ imageUrl: '' }), 'imageUrl')).toEqual({
         path: 'imageUrl',
         section: 'presentation',
-        label: 'cover photo',
-        message: 'Add a cover photo (JPG, PNG, WebP or GIF)',
+        label: text('recipeForm.fields.coverPhoto'),
+        message: text('recipeForm.issues.coverRequired'),
       });
     });
 
     it('should reject a cover that is not a finished upload', () => {
       const values = makeValues({ imageUrl: 'blob:http://localhost/1' });
 
-      expect(issueAt(values, 'imageUrl')?.message).toBe(
-        'Cover photo: upload it again (JPG, PNG, WebP or GIF)'
-      );
+      expect(issueAt(values, 'imageUrl')?.message).toEqual(text('recipeForm.issues.coverInvalid'));
     });
 
     it('should ask for a description when it is blank', () => {
-      expect(issueAt(makeValues({ description: ' ' }), 'description')?.message).toBe(
-        'Add a short description'
+      expect(issueAt(makeValues({ description: ' ' }), 'description')?.message).toEqual(
+        text('recipeForm.issues.descriptionRequired')
       );
     });
 
     it('should reject a description over the limit', () => {
       const description = 'a'.repeat(RECIPE_LIMITS.description + 1);
 
-      expect(issueAt(makeValues({ description }), 'description')?.message).toBe(
-        'Description: 500 characters at most'
+      expect(issueAt(makeValues({ description }), 'description')?.message).toEqual(
+        text('recipeForm.issues.descriptionTooLong', { max: 500 })
       );
     });
 
@@ -344,8 +369,8 @@ describe('validateRecipe', () => {
     it('should reject a closing note over the limit', () => {
       const caption = 'a'.repeat(RECIPE_LIMITS.caption + 1);
 
-      expect(issueAt(makeValues({ caption }), 'caption')?.message).toBe(
-        'Closing note: 500 characters at most'
+      expect(issueAt(makeValues({ caption }), 'caption')?.message).toEqual(
+        text('recipeForm.issues.captionTooLong', { max: 500 })
       );
     });
   });
@@ -378,13 +403,13 @@ describe('validateRecipe', () => {
     });
 
     expect(messagesOf(values)).toEqual([
-      'Add a title',
-      'Prep time: whole minutes between 0 and 480',
-      'Cook time: whole minutes between 1 and 720',
-      'Add at least one ingredient',
-      'Add at least one step',
-      'Add a cover photo (JPG, PNG, WebP or GIF)',
-      'Add a short description',
+      text('recipeForm.issues.titleRequired'),
+      text('recipeForm.issues.prepTimeRange', { min: 0, max: 480 }),
+      text('recipeForm.issues.cookTimeRange', { min: 1, max: 720 }),
+      text('recipeForm.issues.ingredientsRequired'),
+      text('recipeForm.issues.stepsRequired'),
+      text('recipeForm.issues.coverRequired'),
+      text('recipeForm.issues.descriptionRequired'),
     ]);
   });
 });

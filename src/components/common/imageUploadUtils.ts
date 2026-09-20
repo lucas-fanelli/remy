@@ -3,8 +3,14 @@
  * and the mapping from an /api/upload failure to the copy shown to the user.
  * Everything here feature-detects browser APIs - jsdom has neither
  * createImageBitmap nor a canvas backend, and old browsers may lack them too.
+ *
+ * Nothing here has a locale, so the copy is a DESCRIPTOR (src/i18n/text.ts) that
+ * ImageUpload renders. The one exception is the sentence the SERVER sent: it is
+ * handed back as a plain string, in the server's own words.
  */
+import { text } from '@/i18n/text';
 import { MAX_UPLOAD_SIZE } from '@/lib/constants';
+import type { TextDescriptor } from '@/i18n/text';
 
 export const ACCEPTED_IMAGE_TYPES = [
   'image/jpeg',
@@ -23,24 +29,27 @@ export const DOWNSCALE_MIN_BYTES = 1.5 * 1024 * 1024;
 export const DOWNSCALE_MAX_EDGE = 2000;
 const DOWNSCALE_QUALITY = 0.85;
 
-export const INVALID_TYPE_MESSAGE = 'Choose a JPG, PNG, WebP or GIF image';
-export const GENERIC_UPLOAD_ERROR = 'Upload failed';
-export const NETWORK_UPLOAD_ERROR = 'No connection - Retry';
+export const INVALID_TYPE_MESSAGE = text('recipeForm.photo.invalidType');
+export const GENERIC_UPLOAD_ERROR = text('recipeForm.photo.genericError');
+export const NETWORK_UPLOAD_ERROR = text('recipeForm.photo.networkError');
+
+/** Our own copy, or the sentence the server sent (already written, in its own words). */
+export type UploadMessage = TextDescriptor | string;
 
 export function isAcceptedImage(file: File): boolean {
   return ACCEPTED_IMAGE_TYPES.includes(file.type);
 }
 
-/** '8.2 MB', '5 MB' - one decimal, dropped when it is zero. */
-export function formatMegabytes(bytes: number): string {
-  const rounded = Math.round((bytes / (1024 * 1024)) * 10) / 10;
-  return `${rounded} MB`;
+/** 8.2, 5 - one decimal, so the message can format it in the reader's language. */
+export function megabytes(bytes: number): number {
+  return Math.round((bytes / (1024 * 1024)) * 10) / 10;
 }
 
-export function tooLargeMessage(bytes: number): string {
-  return `This photo is ${formatMegabytes(bytes)} and could not be reduced below ${formatMegabytes(
-    MAX_UPLOAD_SIZE
-  )} - choose another one`;
+export function tooLargeMessage(bytes: number): TextDescriptor {
+  return text('recipeForm.photo.tooLarge', {
+    size: megabytes(bytes),
+    max: megabytes(MAX_UPLOAD_SIZE),
+  });
 }
 
 /**
@@ -135,10 +144,12 @@ export function uploadErrorMessage(
   status: number,
   body: unknown,
   retryAfterHeader?: string | null
-): string {
-  if (status === 401) return 'Your session expired - your draft is saved';
+): UploadMessage {
+  if (status === 401) return text('recipeForm.photo.sessionExpired');
   if (status === 429) {
-    return `Too many uploads - try again in ${retryAfterMinutes(body, retryAfterHeader)} min`;
+    return text('recipeForm.photo.tooManyUploads', {
+      minutes: retryAfterMinutes(body, retryAfterHeader),
+    });
   }
   const serverText =
     body && typeof body === 'object' ? (body as { error?: unknown }).error : undefined;

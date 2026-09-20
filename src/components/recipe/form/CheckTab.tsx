@@ -1,5 +1,6 @@
 'use client';
 import { Box } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { useId, useMemo } from 'react';
 import AtAGlance from './AtAGlance';
 import { formSpacing } from './formTokens';
@@ -42,6 +43,7 @@ export default function CheckTab({
   coverHandleRef,
   onCoverBrokenChange,
 }: CheckTabProps) {
+  const t = useTranslations('recipeForm');
   const ingredientsId = useId();
   const stepsId = useId();
   const { ingredients } = form;
@@ -63,7 +65,7 @@ export default function CheckTab({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: formSpacing.group }}>
       <Box component="section" sx={sectionSx}>
         <SectionHeading ref={headingRef} id={ingredientsId} component="h3">
-          Ingredients
+          {t('check.ingredients')}
         </SectionHeading>
         <IngredientListEditor
           form={{
@@ -81,7 +83,7 @@ export default function CheckTab({
 
       <Box component="section" sx={sectionSx}>
         <SectionHeading id={stepsId} component="h3">
-          Steps
+          {t('check.steps')}
         </SectionHeading>
         <StepListEditor
           form={form}
@@ -92,12 +94,12 @@ export default function CheckTab({
       </Box>
 
       <Box component="section" sx={sectionSx}>
-        <SectionHeading component="h3">At a glance</SectionHeading>
+        <SectionHeading component="h3">{t('check.atAGlance')}</SectionHeading>
         <AtAGlance form={form} registerField={registerField} disabled={disabled} />
       </Box>
 
       <Box component="section" sx={sectionSx}>
-        <SectionHeading component="h3">Photo &amp; description</SectionHeading>
+        <SectionHeading component="h3">{t('check.presentation')}</SectionHeading>
         <PresentationFields
           form={form}
           registerField={registerField}

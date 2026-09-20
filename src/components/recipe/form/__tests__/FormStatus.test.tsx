@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { text } from '@/i18n/text';
 import { RecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
 import FormStatus, { DRAFT_SAVED_FADE_MS, FormStatusForm, FormStatusProps } from '../FormStatus';
 import { RecipeIssue } from '../types';
@@ -8,20 +9,20 @@ import { RecipeIssue } from '../types';
 const COVER: RecipeIssue = {
   path: 'imageUrl',
   section: 'presentation',
-  label: 'cover photo',
-  message: 'Add a cover photo (JPG, PNG, WebP or GIF)',
+  label: text('recipeForm.fields.coverPhoto'),
+  message: text('recipeForm.issues.coverRequired'),
 };
 const COOK: RecipeIssue = {
   path: 'cookingTime',
   section: 'basics',
-  label: 'cook time',
-  message: 'Cook time: whole minutes between 1 and 720',
+  label: text('recipeForm.fields.cookTime'),
+  message: text('recipeForm.issues.cookTimeRange', { min: 1, max: 720 }),
 };
 const STEP: RecipeIssue = {
   path: 'steps.s2.description',
   section: 'steps',
-  label: 'step 2',
-  message: 'Step 2 is empty - write it or remove it',
+  label: text('recipeForm.fields.stepAt', { position: 2 }),
+  message: text('recipeForm.issues.stepEmpty', { position: 2 }),
 };
 
 const makeForm = (overrides: Partial<FormStatusForm> = {}): FormStatusForm => ({
@@ -117,9 +118,9 @@ describe('FormStatus', () => {
 
       const items = within(screen.getByRole('menu')).getAllByRole('menuitem');
       expect(items.map((item) => item.textContent)).toEqual([
-        COVER.message,
-        COOK.message,
-        STEP.message,
+        'Add a cover photo (JPG, PNG, WebP or GIF)',
+        'Cook time: whole minutes between 1 and 720',
+        'Step 2 is empty - write it or remove it',
       ]);
     });
 
@@ -137,7 +138,9 @@ describe('FormStatus', () => {
       const { goTo, user } = renderStatus({ issues: [COVER, COOK] });
       await user.click(screen.getByRole('button', { name: /^Missing/ }));
 
-      await user.click(screen.getByRole('menuitem', { name: COOK.message }));
+      await user.click(
+        screen.getByRole('menuitem', { name: 'Cook time: whole minutes between 1 and 720' })
+      );
 
       expect(goTo).toHaveBeenCalledTimes(1);
       expect(goTo).toHaveBeenCalledWith('basics', 'cookingTime');
@@ -168,7 +171,9 @@ describe('FormStatus', () => {
       );
       await user.click(screen.getByRole('button', { name: 'Missing: cook time' }));
 
-      await user.click(screen.getByRole('menuitem', { name: COOK.message }));
+      await user.click(
+        screen.getByRole('menuitem', { name: 'Cook time: whole minutes between 1 and 720' })
+      );
 
       await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
       expect(screen.getByLabelText('Cook time')).toHaveFocus();
@@ -388,7 +393,11 @@ describe('FormStatus', () => {
     });
 
     it("should fall back to the server's text for a rule the client does not know", () => {
-      renderStatus({}, { submitError: new RecipeSubmitError('Invalid url', 400, 'validation') });
+      // fromServer: only the API's own sentence is shown as it came
+      renderStatus(
+        {},
+        { submitError: new RecipeSubmitError('Invalid url', 400, 'validation', undefined, true) }
+      );
 
       expect(screen.getByRole('alert')).toHaveTextContent('Invalid url');
     });

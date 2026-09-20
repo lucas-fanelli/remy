@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { Recipe } from '@/domain/types/recipe';
+import { text } from '@/i18n/text';
 import { RECIPE_LIMITS, UNIT_TO_TASTE } from '@/lib/constants';
 import { isBlankIngredientRow } from '../formValues';
 import { useRecipeForm } from '../useRecipeForm';
@@ -572,7 +573,7 @@ describe('useRecipeForm', () => {
 
       act(() => result.current.touch('title'));
 
-      expect(result.current.errors).toEqual({ title: 'Add a title' });
+      expect(result.current.errors).toEqual({ title: text('recipeForm.issues.titleRequired') });
       expect(result.current.touched).toEqual({ title: true });
     });
 
@@ -611,7 +612,7 @@ describe('useRecipeForm', () => {
 
       act(() => result.current.touch('title'));
 
-      expect(result.current.errors.title).toBe('Add a title');
+      expect(result.current.errors.title).toEqual(text('recipeForm.issues.titleRequired'));
     });
 
     it('should validate an ingredient row when focus leaves the row', () => {
@@ -622,7 +623,11 @@ describe('useRecipeForm', () => {
       act(() => result.current.touch(`ingredients.${id}`));
 
       expect(result.current.errors).toEqual({
-        [`ingredients.${id}.amount`]: 'Flour: add an amount, or clear the unit for to taste',
+        [`ingredients.${id}.amount`]: text('recipeForm.issues.ingredientAmountRequired', {
+          named: 'yes',
+          name: 'Flour',
+          position: 1,
+        }),
       });
     });
 
@@ -678,8 +683,8 @@ describe('useRecipeForm', () => {
 
       act(() => result.current.steps.remove(first.id));
 
-      expect(result.current.errors[`steps.${third.id}.description`]).toBe(
-        'Step 2 has a photo but no text - describe it or remove the step'
+      expect(result.current.errors[`steps.${third.id}.description`]).toEqual(
+        text('recipeForm.issues.stepPhotoWithoutText', { position: 2 })
       );
     });
 

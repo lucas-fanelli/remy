@@ -37,6 +37,10 @@ const toUpdateBody = (data: UpdateRecipeDTO): UpdateRecipeDTO => {
  * Shared hook for updating a recipe. Returns a function that PUTs the changes, calls
  * onSuccess with the updated recipe and resolves with the API's `{ recipe, message }`.
  * Failures reject with a RecipeSubmitError, mapped exactly as in useCreateRecipe.
+ *
+ * The English fallback below is never read to the author: it is what `message` says for the
+ * log when the API sent no sentence of its own, and RecipeSubmitError marks it `fromServer:
+ * false` so the form prints its own translated copy instead (docs/I18N.md, API errors).
  */
 export function useUpdateRecipe(onSuccess?: (recipe: Recipe) => void) {
   const updateRecipe = async (

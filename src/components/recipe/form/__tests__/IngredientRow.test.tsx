@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { text } from '@/i18n/text';
 import { RECIPE_UNITS } from '@/lib/constants';
 import IngredientRow, { filterUnitOptions, IngredientRowProps } from '../IngredientRow';
 import { renderWithTheme } from './editorHarness';
@@ -112,7 +113,14 @@ describe('IngredientRow', () => {
   });
 
   it('should mark each failing field and describe all three with the first message', () => {
-    renderRow({ unitError: 'Flour: the unit is 50 characters at most' });
+    renderRow({
+      unitError: text('recipeForm.issues.ingredientUnitTooLong', {
+        named: 'yes',
+        name: 'Flour',
+        position: 2,
+        max: 50,
+      }),
+    });
 
     const unit = screen.getByRole('combobox', { name: 'Unit for ingredient 2' });
     expect(unit).toHaveAttribute('aria-invalid', 'true');
@@ -124,7 +132,7 @@ describe('IngredientRow', () => {
   });
 
   it('should describe the fields with a note and mark it with an icon', () => {
-    renderRow({ note: 'No unit recognised - is "lata" part of the name?' });
+    renderRow({ note: text('recipeParser.reasons.unknownContainer', { word: 'lata' }) });
 
     const name = screen.getByRole('textbox', { name: 'Name of ingredient 2' });
     expect(name).toHaveAccessibleDescription('No unit recognised - is "lata" part of the name?');
@@ -133,9 +141,14 @@ describe('IngredientRow', () => {
   });
 
   it('should show the error instead of the note while the row is failing', () => {
-    renderRow({ note: 'Check this line', nameError: 'Ingredient 2: add a name, or clear the row' });
+    renderRow({
+      note: text('recipeParser.reasons.numberInName'),
+      nameError: text('recipeForm.issues.ingredientNameRequired', { position: 2 }),
+    });
 
-    expect(screen.queryByText('Check this line')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('The name still holds a number - is the amount right?')
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Ingredient 2: add a name, or clear the row')).toBeInTheDocument();
   });
 
@@ -146,6 +159,14 @@ describe('IngredientRow', () => {
     await user.keyboard('{Shift>}{Enter}{/Shift}');
 
     expect(onNameEnter).not.toHaveBeenCalled();
+  });
+
+  it('should name a unit in the plural in the list, next to its long name', async () => {
+    const { user } = renderRow({ row: { id: 'i1', name: 'Eggs', amount: '2', unit: '' } });
+
+    await user.click(screen.getByRole('combobox', { name: 'Unit for ingredient 2' }));
+
+    expect(screen.getByRole('option', { name: 'units - whole items' })).toBeInTheDocument();
   });
 
   it('should leave other keys in the unit to the list', async () => {
