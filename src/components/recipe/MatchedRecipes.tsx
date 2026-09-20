@@ -100,15 +100,19 @@ export default function MatchedRecipes() {
     return (
       <Box sx={{ mb: 4 }}>
         <Skeleton variant="text" width={200} height={32} />
-        <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+        {/* A grid, not a fixed-width row: three 280px boxes side by side were 872px wide
+            and overflowed every phone. It went unnoticed because globals.css clipped the
+            page horizontally — the same clip that made every overlay shift the layout. */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 2,
+            mt: 2,
+          }}
+        >
           {[1, 2, 3].map((i) => (
-            <Skeleton
-              key={i}
-              variant="rectangular"
-              width={280}
-              height={200}
-              sx={{ borderRadius: 2 }}
-            />
+            <Skeleton key={i} variant="rectangular" height={200} sx={{ borderRadius: 2 }} />
           ))}
         </Box>
       </Box>

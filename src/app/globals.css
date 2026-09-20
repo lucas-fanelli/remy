@@ -5,10 +5,22 @@
   margin: 0;
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+/*
+ * The vertical scrollbar is always present, so the page never changes width.
+ *
+ * This is load-bearing, not cosmetic. MUI locks the scroll whenever a Dialog, Menu,
+ * Select or Drawer opens and compensates for the scrollbar it expects to disappear. With
+ * `overflow-x: hidden` here, <body> became the scroll container, the lock did not take,
+ * the scrollbar stayed, and MUI's compensation was pure loss: every overlay squeezed the
+ * page by 8px and released it on close. That was the "everything teleports" shift.
+ *
+ * Deliberately NOT `scrollbar-gutter: stable`: it keeps the gutter reserved even while
+ * the scrollbar is hidden, so MUI's compensation becomes a net +8px — the same bug with
+ * the opposite sign. `max-width: 100vw` was also dropped: 100vw includes the scrollbar,
+ * so it never bound anything.
+ */
+html {
+  overflow-y: scroll;
 }
 
 /* Prevent white flash in dark mode */
@@ -176,10 +188,9 @@ a,
     height: auto;
   }
 
-  /* Prevent horizontal scrolling */
-  body {
-    overflow-x: hidden;
-  }
+  /* No `overflow-x: hidden` here either: it made <body> a scroll container and broke the
+     scroll lock on phones too. Anything that overflows sideways is fixed where it
+     overflows, not clipped globally — clipping only hid the bug. */
 }
 
 /* Reduce motion for users who prefer it - at every viewport width */
