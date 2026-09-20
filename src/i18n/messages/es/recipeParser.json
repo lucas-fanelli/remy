@@ -11,10 +11,6 @@
     "unknownContainer": "No reconocimos la unidad - ¿\"{word}\" es parte del nombre?",
     "unreadableAmount": "Encontramos un número pero no pudimos leerlo como cantidad"
   },
-  "capped": {
-    "ingredients": "Solo leímos los primeros {max} ingredientes",
-    "steps": "Solo leímos los primeros {max} pasos"
-  },
   "readout": {
     "ingredients": "{count, plural, one {# ingrediente} other {# ingredientes}}",
     "ingredientsWithChecks": "{count, plural, one {# ingrediente} other {# ingredientes}} - {checks} para revisar",

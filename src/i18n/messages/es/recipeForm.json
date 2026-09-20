@@ -176,7 +176,7 @@
     "dropToUpload": "Soltá para subir",
     "hint": "Soltá, pegá o hacé clic - JPG, PNG, WebP o GIF",
     "coverLabel": "Foto de portada",
-    "previewAlt": "Vista previa de {label}",
+    "previewAlt": "{label} - vista previa",
     "uploading": "Subiendo...",
     "uploadingPhoto": "Subiendo la foto",
     "uploadFailed": "No se pudo subir",

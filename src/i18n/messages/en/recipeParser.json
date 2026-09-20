@@ -11,10 +11,6 @@
     "unknownContainer": "No unit recognised - is \"{word}\" part of the name?",
     "unreadableAmount": "Found a number but could not read it as an amount"
   },
-  "capped": {
-    "ingredients": "Only the first {max} ingredients were read",
-    "steps": "Only the first {max} steps were read"
-  },
   "readout": {
     "ingredients": "{count, plural, one {# ingredient} other {# ingredients}}",
     "ingredientsWithChecks": "{count, plural, one {# ingredient} other {# ingredients}} - {checks} to check",
