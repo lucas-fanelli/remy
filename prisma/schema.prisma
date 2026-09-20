@@ -192,8 +192,9 @@ model CookedRecipe {
   userId    String
   postId    String
   cookedAt  DateTime @default(now())
-  rating    Int?     // Optional: user can rate their cooking experience (1-5)
-  notes     String?  // Optional: notes about how it turned out
+  // No rating or notes here. A score lives in Rating, one per (user, post), which is what
+  // the app reads and what the average is built from; these two were a second, per-cook
+  // copy that nothing ever wrote or read.
   deductedIngredients Json?  // Stores pantry deductions for reversal on delete
   restoredAt          DateTime? // Set when pantry items are restored on soft-delete; prevents double-restoration
   deletedAt           DateTime? // Soft-delete timestamp; records with deletedAt set are excluded from queries

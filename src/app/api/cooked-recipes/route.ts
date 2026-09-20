@@ -134,8 +134,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Strip HTML from notes to prevent XSS
-
     // All checks and mutations inside a single transaction for atomicity
     const { cookedRecipe, shortfall, deductedIngredients, deductionSkipped, timesCooked } =
       await prisma.$transaction(async (tx) => {
