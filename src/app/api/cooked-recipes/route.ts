@@ -355,15 +355,23 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const cookedRecipeId = searchParams.get('id');
+    // `?postId=` undoes the most recent cook of that recipe. The page offering "undo last
+    // cook" knows which recipe it is showing, not which of the reader's cook entries is
+    // the newest — asking it to find out first would be a round trip to learn an id it
+    // only wants to hand straight back.
+    const postIdToUndo = searchParams.get('postId');
 
-    if (!cookedRecipeId || !UUID_REGEX.test(cookedRecipeId)) {
+    const byEntryId = cookedRecipeId !== null;
+    const target = byEntryId ? cookedRecipeId : postIdToUndo;
+
+    if (!target || !UUID_REGEX.test(target)) {
       return NextResponse.json(
         { error: 'Valid cooked recipe ID is required', code: 'cooked.invalidId' },
         { status: 400 }
       );
     }
 
-    logAuditEvent('COOKED_RECIPE_DELETE', { userId: user.id, cookedRecipeId });
+    logAuditEvent('COOKED_RECIPE_DELETE', { userId: user.id, cookedRecipeId: target });
 
     // Delete cooked recipe, its rating, and recalculate post averages in a transaction.
     // Uses exactly-once delete semantics: delete() throws P2025 if the record is already
@@ -375,7 +383,10 @@ export async function DELETE(request: NextRequest) {
 
       // 2. Find the cooked recipe (verify ownership and get postId + deducted ingredients)
       const cookedRecipe = await tx.cookedRecipe.findFirst({
-        where: { id: cookedRecipeId, userId: user.id, deletedAt: null },
+        where: byEntryId
+          ? { id: target, userId: user.id, deletedAt: null }
+          : { postId: target, userId: user.id, deletedAt: null },
+        orderBy: { cookedAt: 'desc' },
         select: {
           id: true,
           postId: true,
@@ -415,7 +426,7 @@ export async function DELETE(request: NextRequest) {
         const parsed = deductedArraySchema.safeParse(cookedRecipe.deductedIngredients);
         if (!parsed.success) {
           console.warn(
-            `[COOKED-RECIPES] Skipping pantry restoration for ${cookedRecipeId}: invalid deductedIngredients shape`
+            `[COOKED-RECIPES] Skipping pantry restoration for ${cookedRecipe.id}: invalid deductedIngredients shape`
           );
         }
         const validDeducted = parsed.success ? parsed.data : [];
@@ -465,7 +476,7 @@ export async function DELETE(request: NextRequest) {
       // preventing double-restoration. deletedAt marks the record as deleted for query filtering.
       const now = new Date();
       await tx.cookedRecipe.update({
-        where: { id: cookedRecipeId },
+        where: { id: cookedRecipe.id },
         data: {
           deletedAt: now,
           ...(canRestore ? { restoredAt: now } : {}),
@@ -518,10 +529,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const message = deleted.restorationSkipped
-      ? 'Cooked recipe removed. Pantry restoration skipped (restoration window expired or already restored).'
-      : 'Cooked recipe removed';
-    return NextResponse.json({ message });
+    // A flag rather than an English sentence: the page says this in the reader's language,
+    // and the two outcomes are genuinely different — one put the pantry back, one did not.
+    return NextResponse.json({ restorationSkipped: deleted.restorationSkipped });
   } catch (error) {
     logServerError('Error removing cooked recipe:', error);
     return NextResponse.json(

@@ -7,13 +7,14 @@ import { Recipe } from '@/domain/types/recipe';
 import { RecipeFetchError } from '@/hooks/useRecipe';
 import { renderWithLocale } from '@/i18n/testing';
 import { text, useTextDescriptor } from '@/i18n/text';
-import { useUnitLabels } from '@/i18n/units';
 import CommentsSection from '../CommentsSection';
+import CookConfirmDialog from '../CookConfirmDialog';
 import DifficultyChip from '../display/DifficultyChip';
 import IngredientLine from '../display/IngredientLine';
 import RecipeTimeStrip from '../display/RecipeTimeStrip';
 import MatchedRecipes from '../MatchedRecipes';
 import RecipeCard from '../RecipeCard';
+import type { IngredientPlan } from '@/lib/cooking/pantryPlan';
 
 /**
  * The Spanish half of the recipe-reading area.
@@ -87,37 +88,6 @@ function LoadFailure({ error }: { error: RecipeFetchError }) {
   return <p>{renderText(error.descriptor)}</p>;
 }
 
-interface InsufficientItem {
-  name: string;
-  required: number;
-  available: number;
-  unit: string;
-}
-
-/**
- * One row of the force-cook dialog, rendered exactly as `src/app/recipe/[id]/page.tsx`
- * renders it. The page has no test file of its own, and the row is the one message in the
- * area that labels the same unit twice: each half is pluralised by its own amount, because
- * the list only exists when the two amounts differ.
- */
-function InsufficientRow({ item }: { item: InsufficientItem }) {
-  const t = useTranslations('recipe');
-  const format = useFormatter();
-  const units = useUnitLabels();
-
-  return (
-    <p>
-      {t('insufficientDialog.row', {
-        name: item.name,
-        required: format.number(item.required),
-        available: format.number(item.available),
-        requiredUnit: units.label(item.unit, item.required),
-        availableUnit: units.label(item.unit, item.available),
-      })}
-    </p>
-  );
-}
-
 describe("useRecipe's failures", () => {
   it('should say in Spanish that the recipe is not there', () => {
     const error = new RecipeFetchError(text('recipe.states.notFound'), 'Recipe not found');
@@ -139,27 +109,87 @@ describe("useRecipe's failures", () => {
   });
 });
 
-describe("the recipe page's insufficient-ingredients row", () => {
-  const flour: InsufficientItem = { name: 'harina', required: 2, available: 1, unit: 'cups' };
-
-  it('should label each amount with its own plural, in Spanish', () => {
-    renderInSpanish(<InsufficientRow item={flour} />);
-
-    expect(screen.getByText('harina: necesitás 2 tazas y tenés 1 taza')).toBeInTheDocument();
+describe('the cook confirmation dialog in Spanish', () => {
+  const line = (over: Partial<IngredientPlan> = {}): IngredientPlan => ({
+    name: 'harina',
+    unit: 'cups',
+    required: 2,
+    available: 1,
+    status: 'short',
+    pantryItemId: 'p1',
+    pantryUnit: 'cups',
+    pantryQuantity: 1,
+    deduct: 1,
+    emptiesPantryItem: true,
+    ...over,
   });
 
-  it('should label each amount with its own plural in English as well', () => {
-    render(<InsufficientRow item={{ ...flour, name: 'flour' }} />);
+  const show = (ingredients: IngredientPlan[]) =>
+    renderInSpanish(
+      <CookConfirmDialog
+        open
+        plan={{ ingredients, canCookNow: false }}
+        busy={false}
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+      />
+    );
 
-    expect(screen.getByText('flour: need 2 cups, have 1 cup')).toBeInTheDocument();
+  it('should label each amount with its own plural', () => {
+    show([line()]);
+
+    expect(screen.getByText('necesita 2 tazas, tenés 1 taza')).toBeInTheDocument();
   });
 
   it('should keep the plural for an empty pantry shelf', () => {
-    renderInSpanish(
-      <InsufficientRow item={{ name: 'huevos', required: 1, available: 0, unit: 'units' }} />
-    );
+    show([line({ name: 'huevos', unit: 'units', required: 1, available: 0, pantryQuantity: 0 })]);
 
-    expect(screen.getByText('huevos: necesitás 1 unidad y tenés 0 unidades')).toBeInTheDocument();
+    expect(screen.getByText('necesita 1 unidad, tenés 0 unidades')).toBeInTheDocument();
+  });
+
+  it('should name an ingredient the pantry does not have at all', () => {
+    // The dialog this replaces could not mention these: an ingredient with no pantry row
+    // was skipped without a word, and the recipe was marked cooked anyway.
+    show([
+      line({
+        name: 'tomate',
+        unit: 'pieces',
+        required: 4,
+        available: 0,
+        status: 'missing',
+        pantryItemId: null,
+        pantryUnit: null,
+        pantryQuantity: null,
+        deduct: 0,
+        emptiesPantryItem: false,
+      }),
+    ]);
+
+    expect(screen.getByText('Esto no lo tenés:')).toBeInTheDocument();
+    // 'pieces' is not one of the app's units (that list uses 'units'), so it prints as the
+    // recipe stored it rather than as a missing-key path — the same fallback the unit
+    // labels use everywhere else.
+    expect(screen.getByText('necesita 4 pieces')).toBeInTheDocument();
+  });
+
+  it('should explain a unit it cannot measure against, naming what you do have', () => {
+    show([
+      line({
+        name: 'pimienta',
+        unit: 'tsp',
+        required: 0.5,
+        available: null,
+        status: 'missing',
+        pantryUnit: 'g',
+        pantryQuantity: 50,
+        deduct: 0,
+        emptiesPantryItem: false,
+      }),
+    ]);
+
+    expect(
+      screen.getByText('necesita 0.5 cdta, y tus 50 g no se pueden comparar con eso')
+    ).toBeInTheDocument();
   });
 });
 

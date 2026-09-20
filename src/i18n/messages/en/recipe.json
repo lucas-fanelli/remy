@@ -24,41 +24,41 @@
     "stepAlt": "Step {number, number}"
   },
   "actions": {
+    "cookAgain": "Cook again",
+    "cookedOnce": "You cooked this once",
+    "cookedTimes": "You cooked this {count} times",
+    "delete": "Delete recipe",
+    "edit": "Edit recipe",
     "markAsCooked": "Mark as Cooked",
     "marking": "Marking...",
-    "cookAnyway": "Cook Anyway",
-    "edit": "Edit recipe",
-    "delete": "Delete recipe"
+    "undoCook": "Undo last cook"
   },
   "deleteDialog": {
     "title": "Delete Recipe?",
     "message": "Are you sure you want to delete “{title}”? This action cannot be undone."
   },
-  "insufficientDialog": {
-    "title": "Insufficient Ingredients",
-    "intro": "The following ingredients are insufficient in your pantry:",
-    "row": "{name}: need {required} {requiredUnit}, have {available} {availableUnit}",
-    "question": "Do you want to mark this recipe as cooked anyway?"
-  },
   "toasts": {
-    "updated": "Recipe updated successfully!",
-    "deleted": "Recipe deleted successfully!",
-    "deleteFailed": "Failed to delete recipe",
-    "loginToLike": "Please login to like recipes",
-    "liked": "Recipe liked!",
-    "unliked": "Recipe unliked",
-    "likeFailed": "Failed to like recipe",
-    "loginToSave": "Please login to save recipes",
-    "saved": "Recipe saved!",
-    "unsaved": "Recipe removed from saved",
-    "saveFailed": "Failed to save recipe",
-    "linkCopied": "Link copied to clipboard!",
+    "cookFailed": "Failed to mark recipe as cooked",
+    "cookUndone": "Undone. Your pantry was put back.",
+    "cookUndoneNoRestore": "Undone, but your pantry was not put back — too much time had passed.",
+    "cooked": "Recipe marked as cooked!",
+    "cookedShort": "Marked as cooked. Missing from your pantry: {names}",
     "copyFailed": "Failed to copy link",
     "copyManually": "Cannot copy link — please copy the URL manually",
+    "deleteFailed": "Failed to delete recipe",
+    "deleted": "Recipe deleted successfully!",
+    "likeFailed": "Failed to like recipe",
+    "liked": "Recipe liked!",
+    "linkCopied": "Link copied to clipboard!",
     "loginToCook": "Please login to mark recipes as cooked",
-    "cooked": "Recipe marked as cooked!",
-    "cookedPartial": "Recipe marked as cooked! Note: insufficient pantry stock for: {names}",
-    "cookFailed": "Failed to mark recipe as cooked"
+    "loginToLike": "Please login to like recipes",
+    "loginToSave": "Please login to save recipes",
+    "saveFailed": "Failed to save recipe",
+    "saved": "Recipe saved!",
+    "undoFailed": "Could not undo that",
+    "unliked": "Recipe unliked",
+    "unsaved": "Recipe removed from saved",
+    "updated": "Recipe updated successfully!"
   },
   "card": {
     "like": "Like",
@@ -67,5 +67,17 @@
     "options": "recipe options",
     "edit": "Edit Recipe",
     "delete": "Delete Recipe"
+  },
+  "cookDialog": {
+    "cancel": "Cancel",
+    "confirm": "Cook it",
+    "missing": "You don't have these:",
+    "missingRow": "needs {needed}",
+    "missingUnitRow": "needs {needed}, and your {have} cannot be measured against that",
+    "nothingToDeduct": "Nothing in this recipe matches your pantry, so nothing will be taken out.",
+    "short": "Not enough of these — all you have will be used:",
+    "shortRow": "needs {needed}, you have {have}",
+    "taking": "This will come out of your pantry:",
+    "title": "Cook this recipe?"
   }
 }

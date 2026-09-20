@@ -45,6 +45,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useCallback } from 'react';
 import { MotionBox, MotionCard } from '@/components/motion';
 import CommentsSection from '@/components/recipe/CommentsSection';
+import CookConfirmDialog from '@/components/recipe/CookConfirmDialog';
 import CaptionQuote from '@/components/recipe/display/CaptionQuote';
 import DifficultyChip from '@/components/recipe/display/DifficultyChip';
 import { StoredIngredient } from '@/components/recipe/display/displayFormat';
@@ -56,9 +57,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
 import { useTextDescriptor } from '@/i18n/text';
-import { useUnitLabels } from '@/i18n/units';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import type { PantryPlan } from '@/lib/cooking/pantryPlan';
 
 /** Adapt the API recipe shape to the DomainRecipe type expected by EditRecipeModal. */
 function toEditableRecipe(apiRecipe: ApiRecipe): DomainRecipe {
@@ -102,7 +103,6 @@ export default function RecipeDetailPage() {
   const tCommon = useTranslations('common');
   const format = useFormatter();
   const renderText = useTextDescriptor();
-  const units = useUnitLabels();
   const apiErrorMessage = useApiErrorMessage();
   const router = useRouter();
   const params = useParams();
@@ -131,6 +131,7 @@ export default function RecipeDetailPage() {
   const liked = recipe?.viewer?.liked ?? false;
   const likeCount = recipe?.likeCount ?? 0;
   const saved = recipe?.viewer?.saved ?? false;
+  const timesCooked = recipe?.viewer?.timesCooked ?? 0;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -142,10 +143,8 @@ export default function RecipeDetailPage() {
   const [likeLoading, setLikeLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [cookedLoading, setCookedLoading] = useState(false);
-  const [forceDialogOpen, setForceDialogOpen] = useState(false);
-  const [insufficientList, setInsufficientList] = useState<
-    Array<{ name: string; required: number; available: number; unit: string }>
-  >([]);
+  const [cookDialogOpen, setCookDialogOpen] = useState(false);
+  const [cookPlan, setCookPlan] = useState<PantryPlan | null>(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
@@ -351,64 +350,79 @@ export default function RecipeDetailPage() {
   // in their pantry, they are shown a confirmation dialog and can explicitly confirm
   // they want to mark the recipe as cooked anyway. This is a deliberate design choice,
   // not a security bypass. Rate limiting is handled by the middleware.
-  const sendCookRequest = async (force = false) => {
-    const response = await fetch('/api/cooked-recipes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-      body: JSON.stringify({ postId: recipeId, ...(force && { force: true }) }),
-    });
-
-    return { response, data: await response.json() };
-  };
-
-  const handleMarkAsCooked = async () => {
+  /** Ask what cooking this would take out of the pantry, and show it before doing it. */
+  const openCookDialog = async () => {
     if (!user) {
-      setSnackbar({
-        open: true,
-        message: t('toasts.loginToCook'),
-        severity: 'error',
-      });
+      setSnackbar({ open: true, message: t('toasts.loginToCook'), severity: 'error' });
       return;
     }
 
     try {
       setCookedLoading(true);
-      const { response, data } = await sendCookRequest();
+      const response = await fetch(`/api/recipes/${recipeId}/cook-plan`, {
+        headers: { 'X-Requested-With': 'fetch' },
+      });
+      const data = await response.json();
 
-      if (response.ok) {
-        // Invalidate the recipe cache so rating updates from cooking are reflected
-        try {
-          queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
-        } catch {
-          /* best-effort */
-        }
-
-        if (data.insufficientIngredients && data.insufficientIngredients.length > 0) {
-          const names = data.insufficientIngredients
-            .map((i: { name: string }) => i.name)
-            .join(', ');
-          setSnackbar({
-            open: true,
-            message: t('toasts.cookedPartial', { names }),
-            severity: 'success',
-          });
-        } else {
-          setSnackbar({
-            open: true,
-            message: t('toasts.cooked'),
-            severity: 'success',
-          });
-        }
-      } else if (response.status === 409 && data.insufficientIngredients) {
-        setInsufficientList(data.insufficientIngredients);
-        setForceDialogOpen(true);
-      } else {
+      if (!response.ok) {
         setSnackbar({
           open: true,
           message: apiErrorMessage(data, t('toasts.cookFailed')),
           severity: 'error',
         });
+        return;
       }
+
+      setCookPlan(data.plan);
+      setCookDialogOpen(true);
+    } catch (error) {
+      console.error('Error planning the cook:', error);
+      setSnackbar({ open: true, message: t('toasts.cookFailed'), severity: 'error' });
+    } finally {
+      setCookedLoading(false);
+    }
+  };
+
+  const confirmCook = async () => {
+    try {
+      setCookedLoading(true);
+      const response = await fetch('/api/cooked-recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        // `force` is honest here: the shortfall was on screen and the reader said yes.
+        body: JSON.stringify({ postId: recipeId, force: true }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSnackbar({
+          open: true,
+          message: apiErrorMessage(data, t('toasts.cookFailed')),
+          severity: 'error',
+        });
+        return;
+      }
+
+      setCookDialogOpen(false);
+      patchCachedRecipe((cached) => ({
+        ...cached,
+        viewer: cached.viewer
+          ? {
+              ...cached.viewer,
+              timesCooked: data.timesCooked ?? cached.viewer.timesCooked + 1,
+              lastCookedAt: new Date().toISOString(),
+            }
+          : cached.viewer,
+      }));
+
+      const missing = (data.shortfall ?? []).map((i: { name: string }) => i.name);
+      setSnackbar({
+        open: true,
+        message: missing.length
+          ? t('toasts.cookedShort', { names: missing.join(', ') })
+          : t('toasts.cooked'),
+        severity: 'success',
+      });
     } catch (error) {
       console.error('Error marking recipe as cooked:', error);
       setSnackbar({ open: true, message: t('toasts.cookFailed'), severity: 'error' });
@@ -417,31 +431,44 @@ export default function RecipeDetailPage() {
     }
   };
 
-  const handleForceConfirm = async () => {
-    setForceDialogOpen(false);
+  /** Undo the most recent cook, putting the pantry back when it is still possible. */
+  const undoCook = async () => {
     try {
       setCookedLoading(true);
-      const { response, data } = await sendCookRequest(true);
-      if (response.ok) {
-        try {
-          queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
-        } catch {
-          /* best-effort */
-        }
-        setSnackbar({ open: true, message: t('toasts.cooked'), severity: 'success' });
-      } else {
+      const response = await fetch(`/api/cooked-recipes?postId=${recipeId}`, {
+        method: 'DELETE',
+        headers: { 'X-Requested-With': 'fetch' },
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
         setSnackbar({
           open: true,
-          message: apiErrorMessage(data, t('toasts.cookFailed')),
+          message: apiErrorMessage(data, t('toasts.undoFailed')),
           severity: 'error',
         });
+        return;
       }
+
+      patchCachedRecipe((cached) => ({
+        ...cached,
+        viewer: cached.viewer
+          ? { ...cached.viewer, timesCooked: Math.max(0, cached.viewer.timesCooked - 1) }
+          : cached.viewer,
+      }));
+
+      setSnackbar({
+        open: true,
+        // Putting the pantry back is only possible for an hour, and saying so is the
+        // difference between a clean undo and one that quietly left the pantry short.
+        message: data.restorationSkipped ? t('toasts.cookUndoneNoRestore') : t('toasts.cookUndone'),
+        severity: data.restorationSkipped ? 'warning' : 'success',
+      });
     } catch (error) {
-      console.error('Error marking recipe as cooked:', error);
-      setSnackbar({ open: true, message: t('toasts.cookFailed'), severity: 'error' });
+      console.error('Error undoing the cook:', error);
+      setSnackbar({ open: true, message: t('toasts.undoFailed'), severity: 'error' });
     } finally {
       setCookedLoading(false);
-      setInsufficientList([]);
     }
   };
 
@@ -727,15 +754,22 @@ export default function RecipeDetailPage() {
                     <Share />
                   </IconButton>
                 )}
+                {/* The button used to read "Mark as Cooked" whether you had cooked this
+                    nought times or ten — the count was queried on every request and
+                    rendered nowhere. It says which now, and offers the other move. */}
                 <Button
-                  variant="outlined"
+                  variant={timesCooked > 0 ? 'contained' : 'outlined'}
                   startIcon={<Restaurant />}
-                  onClick={handleMarkAsCooked}
+                  onClick={openCookDialog}
                   disabled={cookedLoading}
                   size={isMobile ? 'medium' : 'large'}
                   fullWidth={isMobile}
                 >
-                  {cookedLoading ? t('actions.marking') : t('actions.markAsCooked')}
+                  {cookedLoading
+                    ? t('actions.marking')
+                    : timesCooked > 0
+                      ? t('actions.cookAgain')
+                      : t('actions.markAsCooked')}
                 </Button>
                 {isOwner && (
                   <>
@@ -786,6 +820,29 @@ export default function RecipeDetailPage() {
                   </>
                 )}
               </Box>
+
+              {/* Your own cooking history with this recipe. It was recorded from the start
+                  — soft-deletable, with a pantry restore window — and never shown. */}
+              {timesCooked > 0 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    mt: 1.5,
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    {timesCooked === 1
+                      ? t('actions.cookedOnce')
+                      : t('actions.cookedTimes', { count: timesCooked })}
+                  </Typography>
+                  <Button size="small" onClick={undoCook} disabled={cookedLoading}>
+                    {t('actions.undoCook')}
+                  </Button>
+                </Box>
+              )}
 
               <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
@@ -960,37 +1017,13 @@ export default function RecipeDetailPage() {
           </DialogActions>
         </Dialog>
 
-        {/* Insufficient Ingredients Confirmation Dialog */}
-        <Dialog open={forceDialogOpen} onClose={() => setForceDialogOpen(false)}>
-          <DialogTitle>{t('insufficientDialog.title')}</DialogTitle>
-          <DialogContent>
-            <DialogContentText>{t('insufficientDialog.intro')}</DialogContentText>
-            <Box component="ul" sx={{ mt: 1, pl: 2 }}>
-              {insufficientList.map((item, idx) => (
-                <li key={idx}>
-                  <Typography variant="body2">
-                    {t('insufficientDialog.row', {
-                      name: item.name,
-                      required: format.number(item.required),
-                      available: format.number(item.available),
-                      // The unit stays stored in English; only its label is translated, and
-                      // each half of the sentence is pluralised by its own amount
-                      requiredUnit: units.label(item.unit, item.required),
-                      availableUnit: units.label(item.unit, item.available),
-                    })}
-                  </Typography>
-                </li>
-              ))}
-            </Box>
-            <DialogContentText sx={{ mt: 1 }}>{t('insufficientDialog.question')}</DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setForceDialogOpen(false)}>{tCommon('actions.cancel')}</Button>
-            <Button onClick={handleForceConfirm} variant="contained" disabled={cookedLoading}>
-              {cookedLoading ? t('actions.marking') : t('actions.cookAnyway')}
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <CookConfirmDialog
+          open={cookDialogOpen}
+          plan={cookPlan}
+          busy={cookedLoading}
+          onCancel={() => setCookDialogOpen(false)}
+          onConfirm={confirmCook}
+        />
 
         {/* Snackbar for notifications */}
         <Snackbar
