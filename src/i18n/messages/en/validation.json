@@ -1,0 +1,32 @@
+{
+  "bio": {
+    "tooLong": "Bio must be at most 300 characters"
+  },
+  "email": {
+    "invalid": "Invalid email address"
+  },
+  "emailOrUsername": {
+    "required": "Email or username is required",
+    "tooLong": "Email or username is too long"
+  },
+  "fullName": {
+    "tooLong": "Full name must be at most 50 characters"
+  },
+  "password": {
+    "oldRequired": "Old password is required",
+    "required": "Password is required"
+  },
+  "search": {
+    "queryRequired": "Search query is required"
+  },
+  "username": {
+    "charset": "Username can only contain letters, numbers, and underscores",
+    "tooLong": "Username must be at most 30 characters",
+    "tooShort": "Username must be at least 3 characters"
+  },
+  "website": {
+    "credentials": "URL must not contain credentials",
+    "invalid": "Invalid website URL",
+    "protocol": "Website must use http:// or https://"
+  }
+}

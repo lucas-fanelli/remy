@@ -29,15 +29,19 @@ import {
   IconButton,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect } from 'react';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import { MotionPaper } from '@/components/motion';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
+import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePwa } from '@/contexts/PwaContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
 
 export default function SettingsPage() {
+  const t = useTranslations('settings');
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
@@ -65,7 +69,7 @@ export default function SettingsPage() {
 
   const handleThemeToggle = () => {
     toggleTheme();
-    showSuccess(`Switched to ${mode === 'dark' ? 'light' : 'dark'} mode`);
+    showSuccess(t('appearance.themeChanged', { mode: mode === 'dark' ? 'light' : 'dark' }));
   };
 
   if (isLoading) {
@@ -95,7 +99,7 @@ export default function SettingsPage() {
                 fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' },
               }}
             >
-              Settings
+              {t('title')}
             </Typography>
           </Box>
           <Typography
@@ -103,7 +107,7 @@ export default function SettingsPage() {
             color="text.secondary"
             sx={{ fontSize: { xs: '0.875rem', md: '1rem' }, ml: 7 }}
           >
-            Manage your account preferences and settings
+            {t('subtitle')}
           </Typography>
         </Box>
 
@@ -124,7 +128,7 @@ export default function SettingsPage() {
               }}
             />
             <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-              Appearance
+              {t('appearance.title')}
             </Typography>
           </Box>
           <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
@@ -136,18 +140,24 @@ export default function SettingsPage() {
             label={
               <Box>
                 <Typography variant="body1" sx={{ fontSize: { xs: '0.9375rem', md: '1rem' } }}>
-                  Dark Mode
+                  {t('appearance.darkMode')}
                 </Typography>
                 <Typography
                   variant="caption"
                   color="text.secondary"
                   sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
                 >
-                  Use dark theme across the app
+                  {t('appearance.darkModeDescription')}
                 </Typography>
               </Box>
             }
           />
+
+          {/* Language sits with the other presentation choices, and is stored the same way:
+              a cookie, so it survives logging out and back in */}
+          <Box sx={{ mt: { xs: 2, md: 3 } }}>
+            <LanguageSwitcher showLabel showDescription />
+          </Box>
         </MotionPaper>
 
         {/* Privacy & Security */}
@@ -167,7 +177,7 @@ export default function SettingsPage() {
               }}
             />
             <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-              Privacy & Security
+              {t('security.title')}
             </Typography>
           </Box>
           <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
@@ -198,7 +208,7 @@ export default function SettingsPage() {
                   <Typography
                     sx={{ fontSize: { xs: '0.9375rem', md: '1rem' }, color: 'text.primary' }}
                   >
-                    Change Password
+                    {t('security.changePassword')}
                   </Typography>
                 }
                 secondary={
@@ -207,7 +217,7 @@ export default function SettingsPage() {
                     color="text.secondary"
                     sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
                   >
-                    Update your password to keep your account secure
+                    {t('security.changePasswordDescription')}
                   </Typography>
                 }
               />
@@ -232,7 +242,7 @@ export default function SettingsPage() {
               }}
             />
             <Typography variant="h6" sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}>
-              Install App
+              {t('install.title')}
             </Typography>
           </Box>
           <Divider sx={{ mb: { xs: 1.5, md: 2 } }} />
@@ -242,7 +252,7 @@ export default function SettingsPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <CheckCircle sx={{ color: 'success.main', fontSize: '1.5rem' }} />
               <Typography variant="body1" sx={{ color: 'success.main', fontWeight: 500 }}>
-                Running Native App
+                {t('install.running')}
               </Typography>
             </Box>
           ) : isInstalled ? (
@@ -253,7 +263,7 @@ export default function SettingsPage() {
                 color="text.secondary"
                 sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
               >
-                Remy&apos;s is installed. Tap below to open the app.
+                {t('install.installedIntro', { name: BRANDING.name })}
               </Typography>
               <Button
                 variant="contained"
@@ -262,7 +272,7 @@ export default function SettingsPage() {
                 fullWidth={isMobile}
                 sx={{ textTransform: 'none' }}
               >
-                Open App
+                {t('install.openApp')}
               </Button>
             </>
           ) : promptAvailable ? (
@@ -273,7 +283,7 @@ export default function SettingsPage() {
                 color="text.secondary"
                 sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
               >
-                Install Remy&apos;s on your home screen for a faster, native-like experience.
+                {t('install.installIntro', { name: BRANDING.name })}
               </Typography>
               <Button
                 variant="contained"
@@ -282,7 +292,7 @@ export default function SettingsPage() {
                 fullWidth={isMobile}
                 sx={{ textTransform: 'none' }}
               >
-                Install App
+                {t('install.installApp')}
               </Button>
             </>
           ) : isIOSSafari ? (
@@ -293,11 +303,12 @@ export default function SettingsPage() {
                 color="text.secondary"
                 sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
               >
-                Install Remy&apos;s on your home screen for a faster, native-like experience.
+                {t('install.installIntro', { name: BRANDING.name })}
               </Typography>
               <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                Tap the <strong>Share</strong> button in Safari, then select{' '}
-                <strong>&quot;Add to Home Screen&quot;</strong>.
+                {t.rich('install.iosInstructions', {
+                  b: (chunks) => <strong>{chunks}</strong>,
+                })}
               </Alert>
             </>
           ) : isDesktopChrome ? (
@@ -308,11 +319,12 @@ export default function SettingsPage() {
                 color="text.secondary"
                 sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
               >
-                Install Remy&apos;s on your home screen for a faster, native-like experience.
+                {t('install.installIntro', { name: BRANDING.name })}
               </Typography>
               <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-                Click the <strong>install icon</strong> in your browser&apos;s address bar to
-                install.
+                {t.rich('install.chromeInstructions', {
+                  b: (chunks) => <strong>{chunks}</strong>,
+                })}
               </Alert>
             </>
           ) : (
@@ -323,7 +335,7 @@ export default function SettingsPage() {
                 color="text.secondary"
                 sx={{ mb: 2, fontSize: { xs: '0.875rem', md: '1rem' } }}
               >
-                If Remy&apos;s is installed, tap below to open it.
+                {t('install.fallbackIntro', { name: BRANDING.name })}
               </Typography>
               <Button
                 variant="outlined"
@@ -332,7 +344,7 @@ export default function SettingsPage() {
                 fullWidth={isMobile}
                 sx={{ textTransform: 'none' }}
               >
-                Open App
+                {t('install.openApp')}
               </Button>
             </>
           )}
@@ -343,7 +355,7 @@ export default function SettingsPage() {
           severity="info"
           sx={{ mb: { xs: 2, md: 3 }, fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
         >
-          These are basic settings for V1. More options will be added in future updates!
+          {t('notice')}
         </Alert>
       </Container>
 

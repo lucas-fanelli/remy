@@ -1,0 +1,76 @@
+{
+  "errors": {
+    "notFound": "Profile not found",
+    "loadFailed": "Failed to load profile",
+    "userNotFound": "User not found"
+  },
+  "goHome": "Go Back Home",
+  "signIn": "Sign In",
+  "actions": {
+    "edit": "Edit Profile",
+    "follow": "Follow",
+    "following": "Following"
+  },
+  "stats": {
+    "recipes": "{count, plural, one {<value>#</value> recipe} other {<value>#</value> recipes}}",
+    "followers": "{count, plural, one {<value>#</value> follower} other {<value>#</value> followers}}",
+    "following": "<value>{count, number}</value> following"
+  },
+  "tabs": {
+    "recipes": "Recipes",
+    "saved": "Saved"
+  },
+  "difficulty": "{level, select, easy {easy} medium {medium} hard {hard} other {{fallback}}}",
+  "empty": {
+    "recipes": "No recipes yet",
+    "recipesOwn": "Share your first recipe to get started!",
+    "saved": "No saved recipes yet",
+    "savedDescription": "Bookmark recipes you'd like to try later!"
+  },
+  "followers": {
+    "title": "Followers",
+    "empty": "No followers yet",
+    "signInPrompt": "Sign in to view followers",
+    "loadFailed": "Failed to load followers"
+  },
+  "followingList": {
+    "title": "Following",
+    "empty": "Not following anyone yet",
+    "signInPrompt": "Sign in to view following",
+    "loadFailed": "Failed to load following"
+  },
+  "followFailed": "{action, select, unfollow {Failed to unfollow user} other {Failed to follow user}}",
+  "edit": {
+    "title": "Edit Profile",
+    "changePhoto": "Change Photo",
+    "photoSelected": "New photo selected - will be uploaded when you save",
+    "photoHint": "Click to change your profile photo",
+    "username": "Username",
+    "usernameHelper": "Username cannot be changed",
+    "email": "Email",
+    "emailHelper": "Email cannot be changed",
+    "fullName": "Full Name",
+    "fullNamePlaceholder": "Enter your full name",
+    "bio": "Bio",
+    "bioPlaceholder": "Tell us about yourself...",
+    "bioCount": "{count, number}/{max, number} characters",
+    "website": "Website",
+    "websitePlaceholder": "https://yourwebsite.com",
+    "private": "Private Account",
+    "privateDescription": "Only approved followers can see your recipes",
+    "success": "Profile updated successfully!",
+    "errors": {
+      "fileTooSmall": "File is too small to identify",
+      "imageTooLarge": "Image must be under {max, number}MB",
+      "invalidImageType": "Please select a valid image file (JPG, PNG, GIF, or WebP)",
+      "notLoggedIn": "You must be logged in to update your profile",
+      "readFailed": "Failed to read file",
+      "unsupportedImage": "Invalid image file. Supported formats: JPEG, PNG, GIF, WebP",
+      "updateFailed": "Failed to update profile",
+      "uploadFailed": "Failed to upload avatar",
+      "websiteCredentials": "URL must not contain credentials",
+      "websiteInvalid": "Please enter a valid URL",
+      "websiteProtocol": "Website must use http:// or https://"
+    }
+  }
+}

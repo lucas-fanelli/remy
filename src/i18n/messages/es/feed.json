@@ -1,0 +1,71 @@
+{
+  "title": "Descubrí recetas",
+  "actions": {
+    "create": "Nueva receta",
+    "createFirst": "Publicá tu primera receta"
+  },
+  "filters": {
+    "title": "Filtros",
+    "difficulty": {
+      "label": "Dificultad",
+      "all": "Todos los niveles",
+      "easy": "Fácil",
+      "medium": "Media",
+      "hard": "Difícil"
+    },
+    "duration": {
+      "label": "Duración",
+      "any": "Cualquier duración",
+      "under30": "Menos de 30 min",
+      "under60": "Menos de 1 hora",
+      "over60": "Más de 1 hora"
+    },
+    "sort": {
+      "label": "Ordenar por",
+      "newest": "Más nuevas",
+      "ratingDesc": "Mejor puntuadas",
+      "ratingAsc": "Peor puntuadas",
+      "mostReviewed": "Más reseñadas"
+    }
+  },
+  "empty": {
+    "title": "No encontramos recetas",
+    "body": "Probá con otros filtros o compartí vos la primera receta."
+  },
+  "end": {
+    "reached": "¡Llegaste al final!",
+    "capped": "Mostramos las primeras {count, number} recetas. Usá la búsqueda o los filtros para encontrar otras."
+  },
+  "deleteDialog": {
+    "title": "¿Eliminar la receta seleccionada?",
+    "message": "La receta se va a borrar de tu cuenta y de todos los dispositivos sincronizados."
+  },
+  "toasts": {
+    "deleted": "Receta eliminada",
+    "deleteFailed": "No pudimos eliminar la receta",
+    "updated": "Receta actualizada",
+    "loginToLike": "Iniciá sesión para marcar me gusta",
+    "likeFailed": "No pudimos actualizar tu me gusta"
+  },
+  "matches": {
+    "title": "Recetas con lo que tenés en la despensa",
+    "pantryCount": "Tenés <strong>{count, plural, one {# ingrediente} other {# ingredientes}}</strong> en la despensa",
+    "loadFailed": "No pudimos cargar tus coincidencias. Probá de nuevo.",
+    "emptyPantry": {
+      "title": "Tu despensa está vacía",
+      "body": "Agregá ingredientes a tu despensa y te mostramos qué podés cocinar.",
+      "action": "Ir a mi despensa"
+    },
+    "tabs": {
+      "ready": "Listas para cocinar ({count, number})",
+      "readyShort": "Listas ({count, number})",
+      "almost": "Casi listas ({count, number})",
+      "almostShort": "Casi ({count, number})"
+    },
+    "match": "{percent, number}% de coincidencia",
+    "ingredientsRatio": "{matched, number}/{total, number} ingredientes",
+    "missing": "{count, plural, one {Te falta} other {Te faltan}}: {names}",
+    "noReady": "Todavía no hay recetas que coincidan al 100% con tu despensa. Mirá la pestaña “Casi listas”, esas las tenés al alcance.",
+    "noAlmost": "Todavía no hay recetas que se acerquen a lo que tenés. Agregá más ingredientes a tu despensa."
+  }
+}

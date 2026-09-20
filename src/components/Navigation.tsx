@@ -26,7 +26,8 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
@@ -55,20 +56,24 @@ interface Notification {
   commentId?: string | null;
 }
 
-const desktopNavItems = [
-  { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
-  { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen, label: 'Pantry' },
-  { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'New recipe' },
-];
+// The labels are not here any more: each item's `id` IS its key under nav.items, and the
+// ids are a closed union, which is the one case where a key may be built from a variable.
+const DESKTOP_NAV_ITEMS = [
+  { id: 'home', icon: HomeOutlined, activeIcon: Home },
+  { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen },
+  { id: 'add', icon: AddBox, activeIcon: AddBox },
+] as const;
 
-const mobileNavItems = [
-  { id: 'home', icon: HomeOutlined, activeIcon: Home, label: 'Home' },
-  { id: 'search', icon: Search, activeIcon: Search, label: 'Search' },
-  { id: 'add', icon: AddBox, activeIcon: AddBox, label: 'New recipe' },
-  { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen, label: 'Pantry' },
-];
+const MOBILE_NAV_ITEMS = [
+  { id: 'home', icon: HomeOutlined, activeIcon: Home },
+  { id: 'search', icon: Search, activeIcon: Search },
+  { id: 'add', icon: AddBox, activeIcon: AddBox },
+  { id: 'pantry', icon: KitchenOutlined, activeIcon: Kitchen },
+] as const;
 
 export default function Navigation() {
+  const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallDesktop = useMediaQuery(theme.breakpoints.down('lg'));
@@ -97,6 +102,15 @@ export default function Navigation() {
 
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [logoutWarning, setLogoutWarning] = useState(false);
+
+  const desktopNavItems = useMemo(
+    () => DESKTOP_NAV_ITEMS.map((item) => ({ ...item, label: t(`items.${item.id}`) })),
+    [t]
+  );
+  const mobileNavItems = useMemo(
+    () => MOBILE_NAV_ITEMS.map((item) => ({ ...item, label: t(`items.${item.id}`) })),
+    [t]
+  );
 
   // Listen for failed logout cookie clear to show a user-facing warning
   useEffect(() => {
@@ -253,7 +267,7 @@ export default function Navigation() {
           }}
         >
           <PersistentSearchBar
-            placeholder={isSmallDesktop ? 'Search...' : 'Search recipes, ingredients...'}
+            placeholder={isSmallDesktop ? t('search.placeholderShort') : t('search.placeholder')}
             showSuggestions={true}
           />
         </Box>
@@ -282,7 +296,7 @@ export default function Navigation() {
             );
           })}
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-            <Tooltip title={isPollingPaused ? 'Notifications temporarily paused' : ''}>
+            <Tooltip title={isPollingPaused ? t('notificationsPaused') : ''}>
               <IconButton
                 onClick={handleNotificationsOpen}
                 size={isSmallDesktop ? 'small' : 'medium'}
@@ -309,7 +323,7 @@ export default function Navigation() {
               }}
               onClick={retryNow}
             >
-              Retry
+              {tCommon('actions.retry')}
             </Typography>
           )}
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
@@ -418,12 +432,12 @@ export default function Navigation() {
               edge="start"
               color="inherit"
               onClick={() => setMobileSearchOpen(false)}
-              aria-label="close"
+              aria-label={tCommon('actions.close')}
             >
               <Close />
             </IconButton>
             <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
-              Search
+              {t('search.title')}
             </Typography>
           </Toolbar>
         </AppBar>
@@ -440,7 +454,7 @@ export default function Navigation() {
             }}
           >
             <PersistentSearchBar
-              placeholder="Search recipes, ingredients..."
+              placeholder={t('search.placeholder')}
               showSuggestions={true}
               onResultClick={() => setMobileSearchOpen(false)}
             />
@@ -455,7 +469,7 @@ export default function Navigation() {
         onClose={() => setLogoutWarning(false)}
       >
         <Alert severity="warning" onClose={() => setLogoutWarning(false)}>
-          Could not fully sign out. Your session may persist until the cookie expires.
+          {t('logoutWarning')}
         </Alert>
       </Snackbar>
     </>

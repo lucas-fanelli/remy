@@ -16,20 +16,26 @@ export async function POST(request: NextRequest) {
   try {
     const token = extractAuthToken(request);
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const payload = await verifySessionToken(token);
 
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid token', code: 'auth.invalidToken' },
+        { status: 401 }
+      );
     }
 
     // Check Content-Type header
     const contentType = request.headers.get('content-type');
     if (!contentType || !contentType.includes('multipart/form-data')) {
       return NextResponse.json(
-        { error: `Invalid Content-Type. Expected multipart/form-data, got: ${contentType}` },
+        {
+          error: `Invalid Content-Type. Expected multipart/form-data, got: ${contentType}`,
+          code: 'upload.invalidContentType',
+        },
         { status: 400 }
       );
     }
@@ -38,14 +44,20 @@ export async function POST(request: NextRequest) {
     const file = formData.get('avatar') as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No file provided', code: 'upload.noFile' },
+        { status: 400 }
+      );
     }
 
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' },
+        {
+          error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.',
+          code: 'upload.invalidFileType',
+        },
         { status: 400 }
       );
     }
@@ -54,7 +66,7 @@ export async function POST(request: NextRequest) {
     const maxSize = 5 * 1024 * 1024; // 5MB in bytes
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File size too large. Maximum size is 5MB.' },
+        { error: 'File size too large. Maximum size is 5MB.', code: 'upload.tooLarge' },
         { status: 400 }
       );
     }
@@ -64,7 +76,10 @@ export async function POST(request: NextRequest) {
 
     if (!validateImageMagicBytes(buffer)) {
       return NextResponse.json(
-        { error: 'Invalid file content. File does not match any allowed image format.' },
+        {
+          error: 'Invalid file content. File does not match any allowed image format.',
+          code: 'upload.invalidFileContent',
+        },
         { status: 400 }
       );
     }
@@ -99,6 +114,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logServerError('Error uploading avatar:', error);
-    return NextResponse.json({ error: 'Failed to upload avatar' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to upload avatar', code: 'upload.avatarFailed' },
+      { status: 500 }
+    );
   }
 }

@@ -15,6 +15,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React from 'react';
 
 interface User {
@@ -52,6 +53,7 @@ export default function SearchResults({
   loading,
   onClose,
 }: SearchResultsProps) {
+  const t = useTranslations('search');
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -102,7 +104,7 @@ export default function SearchResults({
             color="text.secondary"
             sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
           >
-            No results found for &ldquo;{query}&rdquo;
+            {t('dropdown.noResults', { query })}
           </Typography>
         </Box>
       ) : (
@@ -129,8 +131,8 @@ export default function SearchResults({
                 </Avatar>
               </ListItemAvatar>
               <ListItemText
-                primary={`Search "${query}"`}
-                secondary="View all results"
+                primary={t('dropdown.searchQuery', { query })}
+                secondary={t('dropdown.viewAll')}
                 primaryTypographyProps={{
                   fontWeight: 600,
                   fontSize: { xs: '0.875rem', md: '1rem' },

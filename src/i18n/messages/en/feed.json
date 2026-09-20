@@ -1,0 +1,71 @@
+{
+  "title": "Discover Recipes",
+  "actions": {
+    "create": "New recipe",
+    "createFirst": "Publish your first recipe"
+  },
+  "filters": {
+    "title": "Filters",
+    "difficulty": {
+      "label": "Difficulty",
+      "all": "All Levels",
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "duration": {
+      "label": "Duration",
+      "any": "Any Duration",
+      "under30": "Under 30 min",
+      "under60": "Under 1 hour",
+      "over60": "Over 1 hour"
+    },
+    "sort": {
+      "label": "Sort By",
+      "newest": "Newest",
+      "ratingDesc": "Highest Rated",
+      "ratingAsc": "Lowest Rated",
+      "mostReviewed": "Most Reviewed"
+    }
+  },
+  "empty": {
+    "title": "No recipes found",
+    "body": "Try adjusting your filters or be the first to share a recipe!"
+  },
+  "end": {
+    "reached": "You've reached the end!",
+    "capped": "Showing first {count, number} recipes. Use search or filters to find specific recipes."
+  },
+  "deleteDialog": {
+    "title": "Delete selected recipe?",
+    "message": "Recipe will be permanently removed from your account and all synced devices."
+  },
+  "toasts": {
+    "deleted": "Recipe deleted successfully",
+    "deleteFailed": "Failed to delete recipe",
+    "updated": "Recipe updated successfully",
+    "loginToLike": "Please log in to like recipes",
+    "likeFailed": "Failed to update like"
+  },
+  "matches": {
+    "title": "Recipes Based on Your Pantry",
+    "pantryCount": "You have <strong>{count, plural, one {# ingredient} other {# ingredients}}</strong> in your pantry",
+    "loadFailed": "We couldn't load your recipe matches. Please try again.",
+    "emptyPantry": {
+      "title": "Your pantry is empty",
+      "body": "Add ingredients to your pantry and we'll show you recipes you can make!",
+      "action": "Go to My Pantry"
+    },
+    "tabs": {
+      "ready": "Ready to Cook ({count, number})",
+      "readyShort": "Ready ({count, number})",
+      "almost": "Almost There ({count, number})",
+      "almostShort": "Almost ({count, number})"
+    },
+    "match": "{percent, number}% Match",
+    "ingredientsRatio": "{matched, number}/{total, number} ingredients",
+    "missing": "{count, plural, one {Missing} other {Missing}}: {names}",
+    "noReady": "No recipes match 100% with your pantry yet. Check the “Almost There” tab for recipes you're close to making!",
+    "noAlmost": "No recipes are close to matching. Add more ingredients to your pantry!"
+  }
+}

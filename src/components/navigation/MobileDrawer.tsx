@@ -22,8 +22,10 @@ import {
   Avatar,
   Typography,
 } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React from 'react';
 import { BRANDING } from '@/config/branding';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 
 interface NavItem {
   id: string;
@@ -57,6 +59,8 @@ export default function MobileDrawer({
   onLogout,
   onNavigate,
 }: MobileDrawerProps) {
+  const t = useTranslations('nav');
+
   return (
     <Drawer
       anchor="left"
@@ -99,8 +103,8 @@ export default function MobileDrawer({
               </Avatar>
             </ListItemIcon>
             <ListItemText
-              primary={user?.username || 'Guest'}
-              secondary={user ? `@${user.username}` : 'Tap to sign in'}
+              primary={user?.username || t('menu.guest')}
+              secondary={user ? `@${user.username}` : t('menu.tapToSignIn')}
               primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
               secondaryTypographyProps={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
             />
@@ -146,7 +150,7 @@ export default function MobileDrawer({
                 <Email sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
               </ListItemIcon>
               <ListItemText
-                primary="Contact"
+                primary={t('menu.contact')}
                 primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
               />
             </ListItemButton>
@@ -164,7 +168,7 @@ export default function MobileDrawer({
                 <Info sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
               </ListItemIcon>
               <ListItemText
-                primary="About Us"
+                primary={t('menu.about')}
                 primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
               />
             </ListItemButton>
@@ -183,7 +187,7 @@ export default function MobileDrawer({
                 <YouTube sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, color: '#FF0000' }} />
               </ListItemIcon>
               <ListItemText
-                primary="YouTube"
+                primary={t('menu.youtube')}
                 primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
               />
             </ListItemButton>
@@ -205,10 +209,15 @@ export default function MobileDrawer({
                 )}
               </ListItemIcon>
               <ListItemText
-                primary={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                primary={mode === 'dark' ? t('menu.lightMode') : t('menu.darkMode')}
                 primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
               />
             </ListItemButton>
+          </ListItem>
+          {/* Language - next to the theme toggle, because it is the same kind of choice.
+              It sits above the auth block so a logged-out visitor can reach it too. */}
+          <ListItem sx={{ py: { xs: 1.5, sm: 2 }, display: 'block' }}>
+            <LanguageSwitcher showLabel onChanged={onClose} />
           </ListItem>
           <Divider />
           {user ? (
@@ -227,7 +236,7 @@ export default function MobileDrawer({
                     <Settings sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
                   </ListItemIcon>
                   <ListItemText
-                    primary="Settings"
+                    primary={t('menu.settings')}
                     primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                   />
                 </ListItemButton>
@@ -248,7 +257,7 @@ export default function MobileDrawer({
                       />
                     </ListItemIcon>
                     <ListItemText
-                      primary="Admin"
+                      primary={t('menu.admin')}
                       primaryTypographyProps={{
                         fontSize: { xs: '1rem', sm: '1.125rem' },
                         color: 'warning.main',
@@ -270,7 +279,7 @@ export default function MobileDrawer({
                     <Logout sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
                   </ListItemIcon>
                   <ListItemText
-                    primary="Logout"
+                    primary={t('menu.logout')}
                     primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                   />
                 </ListItemButton>
@@ -290,7 +299,7 @@ export default function MobileDrawer({
                   <Login sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
                 </ListItemIcon>
                 <ListItemText
-                  primary="Sign In"
+                  primary={t('menu.signIn')}
                   primaryTypographyProps={{ fontSize: { xs: '1rem', sm: '1.125rem' } }}
                 />
               </ListItemButton>

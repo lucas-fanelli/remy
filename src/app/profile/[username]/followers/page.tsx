@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import NextLink from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
 import { MotionPaper } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +33,8 @@ interface UserListItem {
 }
 
 export default function FollowersPage() {
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
@@ -39,7 +42,7 @@ export default function FollowersPage() {
 
   const [followers, setFollowers] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(false);
   const [followError, setFollowError] = useState('');
   const [followingState, setFollowingState] = useState<Record<string, boolean>>({});
 
@@ -65,7 +68,7 @@ export default function FollowersPage() {
         setFollowingState(initialState);
       } catch (err) {
         console.error('Error fetching followers:', err);
-        setError('Failed to load followers');
+        setError(true);
       } finally {
         setLoading(false);
       }
@@ -91,11 +94,11 @@ export default function FollowersPage() {
       if (!response.ok) {
         console.error('Follow toggle failed with status:', response.status);
         setFollowingState((prev) => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
-        setFollowError(`Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} user`);
+        setFollowError(t('followFailed', { action: endpoint }));
       }
     } catch (error) {
       setFollowingState((prev) => ({ ...prev, [targetUsername]: isCurrentlyFollowing }));
-      setFollowError(`Failed to ${isCurrentlyFollowing ? 'unfollow' : 'follow'} user`);
+      setFollowError(t('followFailed', { action: isCurrentlyFollowing ? 'unfollow' : 'follow' }));
       console.error('Error toggling follow:', error);
     }
   };
@@ -110,10 +113,10 @@ export default function FollowersPage() {
         <Toolbar />
         <Container maxWidth="md" sx={{ pt: 4, textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-            Sign in to view followers
+            {t('followers.signInPrompt')}
           </Typography>
           <Button component={NextLink} href="/auth" variant="contained">
-            Sign In
+            {t('signIn')}
           </Button>
         </Container>
       </Box>
@@ -126,9 +129,9 @@ export default function FollowersPage() {
         <Toolbar />
         <Container maxWidth="md" sx={{ pt: 4 }}>
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {t('followers.loadFailed')}
           </Alert>
-          <Button onClick={() => router.back()}>Go Back</Button>
+          <Button onClick={() => router.back()}>{tCommon('actions.goBack')}</Button>
         </Container>
       </Box>
     );
@@ -143,14 +146,14 @@ export default function FollowersPage() {
             <ArrowBack />
           </IconButton>
           <Typography variant="h5" component="h1" sx={{ fontWeight: 600 }}>
-            Followers
+            {t('followers.title')}
           </Typography>
         </Box>
 
         {followers.length === 0 ? (
           <Paper sx={{ p: 4, textAlign: 'center' }}>
             <Typography variant="body1" color="text.secondary">
-              No followers yet
+              {t('followers.empty')}
             </Typography>
           </Paper>
         ) : (
@@ -222,7 +225,9 @@ export default function FollowersPage() {
                       onClick={() => handleFollow(follower.username)}
                       sx={{ minWidth: 100 }}
                     >
-                      {followingState[follower.username] ? 'Following' : 'Follow'}
+                      {followingState[follower.username]
+                        ? t('actions.following')
+                        : t('actions.follow')}
                     </Button>
                   )}
                 </ListItem>

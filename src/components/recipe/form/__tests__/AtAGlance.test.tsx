@@ -1,5 +1,6 @@
 import { act, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { text } from '@/i18n/text';
 import AtAGlance, { AtAGlanceProps } from '../AtAGlance';
 import { renderEditor, renderWithTheme, settlePointer } from './editorHarness';
 import { makeValues } from './fixtures';
@@ -421,7 +422,7 @@ describe('AtAGlance', () => {
     it('should show a difficulty error under the toggle', () => {
       const form: AtAGlanceProps['form'] = {
         values: makeValues(),
-        errors: { difficulty: 'Difficulty: choose Easy, Medium or Hard' },
+        errors: { difficulty: text('recipeForm.issues.difficultyRequired') },
         setField: jest.fn(),
         touch: jest.fn(),
       };

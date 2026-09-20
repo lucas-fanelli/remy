@@ -2,11 +2,13 @@
 import { Add, InfoOutlined } from '@mui/icons-material';
 import { Box, Button, FormHelperText, Paper, Typography } from '@mui/material';
 import { AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useId, useRef } from 'react';
 import { MotionBox } from '@/components/motion';
 import StepNumber from '@/components/recipe/display/StepNumber';
 import { RECIPE_LIMITS } from '@/lib/constants';
 import EditorLiveRegion, { useAnnouncer } from './EditorLiveRegion';
+import { useOptionalText } from './fieldHelper';
 import { rowMotion } from './formMotion';
 import { attentionColor } from './formTokens';
 import { neighbourRowId } from './keyboard';
@@ -40,6 +42,8 @@ export default function StepListEditor({
   disabled = false,
   labelledBy,
 }: StepListEditorProps) {
+  const t = useTranslations('recipeForm');
+  const showText = useOptionalText();
   const { values, errors, steps, touch, setUploading } = form;
   const rows = values.steps;
 
@@ -78,9 +82,9 @@ export default function StepListEditor({
       current.steps.remove(id);
       if (neighbour) focusRow(neighbour, 'remove');
       else addButtonRef.current?.focus();
-      announce(`Step ${index + 1} removed`);
+      announce(t('steps.removed', { position: index + 1 }));
     },
-    [announce, focusRow]
+    [announce, focusRow, t]
   );
 
   const handleMove = useCallback(
@@ -97,9 +101,15 @@ export default function StepListEditor({
       const pressed = direction === -1 ? 'move-up' : 'move-down';
       const opposite = direction === -1 ? 'move-down' : 'move-up';
       focusRow(id, reachedEnd ? opposite : pressed, { afterCommit: true });
-      announce(`Step ${from + 1} moved ${direction === -1 ? 'up' : 'down'}, now step ${to + 1}`);
+      announce(
+        t('steps.moved', {
+          direction: direction === -1 ? 'up' : 'down',
+          from: from + 1,
+          to: to + 1,
+        })
+      );
     },
-    [announce, focusRow]
+    [announce, focusRow, t]
   );
 
   const addStep = useCallback(
@@ -109,9 +119,11 @@ export default function StepListEditor({
       if (!id) return;
       focusRow(id, 'description');
       const after = current.rows.findIndex((row) => row.id === afterId);
-      announce(`Step ${(after === -1 ? current.rows.length : after + 1) + 1} added`);
+      announce(
+        t('steps.added', { position: (after === -1 ? current.rows.length : after + 1) + 1 })
+      );
     },
-    [announce, focusRow]
+    [announce, focusRow, t]
   );
 
   // 'Add at least one step' has no control of its own
@@ -164,7 +176,7 @@ export default function StepListEditor({
           onClick={() => addStep()}
           sx={{ justifyContent: 'flex-start', height: 48 }}
         >
-          Add step
+          {t('steps.add')}
         </Button>
       </Box>
     </>
@@ -174,7 +186,7 @@ export default function StepListEditor({
     <Box
       role="group"
       aria-labelledby={labelledBy}
-      aria-label={labelledBy ? undefined : 'Steps'}
+      aria-label={labelledBy ? undefined : t('steps.groupLabel')}
       aria-describedby={errors.steps ? errorId : undefined}
     >
       <Paper ref={containerRef} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
@@ -183,7 +195,7 @@ export default function StepListEditor({
 
       {errors.steps && (
         <FormHelperText id={errorId} error>
-          {errors.steps}
+          {showText(errors.steps)}
         </FormHelperText>
       )}
 
@@ -191,7 +203,7 @@ export default function StepListEditor({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1, px: 2 }}>
           <InfoOutlined fontSize="small" sx={{ color: attentionColor }} />
           <Typography variant="caption" color="text.secondary">
-            {RECIPE_LIMITS.steps} steps is the most a recipe can have
+            {t('steps.limitReached', { max: RECIPE_LIMITS.steps })}
           </Typography>
         </Box>
       )}
@@ -202,7 +214,7 @@ export default function StepListEditor({
         color="text.secondary"
         sx={{ display: 'block', mt: 1, px: 2, '@media (pointer: coarse)': { display: 'none' } }}
       >
-        Ctrl+Enter (Cmd+Enter on a Mac) adds the next step.
+        {t('steps.keyboardHint')}
       </Typography>
 
       <EditorLiveRegion message={message} />

@@ -1,0 +1,50 @@
+{
+  "title": "Configuración",
+  "subtitle": "Administrá las preferencias y la configuración de tu cuenta",
+  "appearance": {
+    "title": "Apariencia",
+    "darkMode": "Modo oscuro",
+    "darkModeDescription": "Usá el tema oscuro en toda la app",
+    "themeChanged": "{mode, select, dark {Cambiaste al modo oscuro} other {Cambiaste al modo claro}}"
+  },
+  "security": {
+    "title": "Privacidad y seguridad",
+    "changePassword": "Cambiar contraseña",
+    "changePasswordDescription": "Actualizá tu contraseña para mantener segura tu cuenta"
+  },
+  "install": {
+    "title": "Instalar la app",
+    "running": "Estás usando la app nativa",
+    "installedIntro": "{name} ya está instalada. Tocá abajo para abrirla.",
+    "installIntro": "Instalá {name} en tu pantalla de inicio para una experiencia más rápida, como una app nativa.",
+    "fallbackIntro": "Si {name} está instalada, tocá abajo para abrirla.",
+    "installApp": "Instalar la app",
+    "openApp": "Abrir la app",
+    "iosInstructions": "Tocá el botón <b>Compartir</b> en Safari y elegí <b>\"Agregar a pantalla de inicio\"</b>.",
+    "chromeInstructions": "Hacé clic en el <b>ícono de instalación</b> de la barra de direcciones del navegador."
+  },
+  "notice": "Esta es la configuración básica para la V1. ¡Pronto vamos a sumar más opciones!",
+  "changePassword": {
+    "title": "Cambiar contraseña",
+    "requirements": "Tu contraseña tiene que tener al menos 8 caracteres e incluir mayúsculas, minúsculas y números.",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Contraseña nueva",
+    "confirmPassword": "Confirmá la contraseña nueva",
+    "submit": "Cambiar contraseña",
+    "submitting": "Cambiando...",
+    "success": "¡Listo, cambiamos tu contraseña!",
+    "failed": "No pudimos cambiar la contraseña",
+    "notLoggedIn": "Tenés que iniciar sesión para cambiar la contraseña",
+    "errors": {
+      "confirmRequired": "Confirmá tu contraseña nueva",
+      "currentRequired": "Ingresá tu contraseña actual",
+      "lowercase": "La contraseña tiene que tener al menos una minúscula",
+      "mismatch": "Las contraseñas no coinciden",
+      "newRequired": "Ingresá una contraseña nueva",
+      "number": "La contraseña tiene que tener al menos un número",
+      "sameAsCurrent": "La contraseña nueva tiene que ser distinta de la actual",
+      "tooShort": "La contraseña tiene que tener al menos 8 caracteres",
+      "uppercase": "La contraseña tiene que tener al menos una mayúscula"
+    }
+  }
+}

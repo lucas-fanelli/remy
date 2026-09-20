@@ -1,0 +1,32 @@
+{
+  "title": "Comentarios ({count, number})",
+  "form": {
+    "placeholder": "Contá qué te pareció esta receta...",
+    "rate": "Puntuá esta receta:",
+    "submit": "Publicar",
+    "previewAlt": "Vista previa"
+  },
+  "loginPrompt": "Iniciá sesión para dejar un comentario",
+  "empty": {
+    "title": "Todavía no hay comentarios",
+    "body": "Dejá el primero."
+  },
+  "creatorBadge": "Autor",
+  "recently": "hace poco",
+  "photoAlt": "Foto de {username}",
+  "edit": {
+    "ratingLabel": "Puntuación:"
+  },
+  "deleteDialog": {
+    "title": "¿Eliminar el comentario seleccionado?",
+    "message": "El comentario se va a borrar de tu cuenta y de todos los dispositivos sincronizados"
+  },
+  "errors": {
+    "uploadFailed": "No pudimos subir la imagen",
+    "postFailed": "No pudimos publicar el comentario",
+    "updateFailed": "No pudimos actualizar el comentario",
+    "deleteFailed": "No pudimos eliminar el comentario",
+    "invalidType": "Tipo de archivo inválido. Solo se permiten JPEG, PNG, WebP y GIF.",
+    "tooLarge": "La imagen es muy grande. El máximo es 5 MB."
+  }
+}

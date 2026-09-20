@@ -1,6 +1,7 @@
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { text } from '@/i18n/text';
 import { UNIT_TO_TASTE } from '@/lib/constants';
 import IngredientListEditor, { IngredientListEditorProps } from '../IngredientListEditor';
 import { RecipeFormValuesInput } from '../types';
@@ -506,7 +507,9 @@ describe('IngredientListEditor', () => {
     });
 
     it('should show a row note on the row it belongs to', () => {
-      renderFilled({ rowNotes: { i2: 'No unit recognised - is "dulce" part of the name?' } });
+      renderFilled({
+        rowNotes: { i2: text('recipeParser.reasons.unknownContainer', { word: 'dulce' }) },
+      });
 
       expect(within(row(2)).getByText(/is "dulce" part of the name/)).toBeInTheDocument();
       expect(within(row(1)).queryByText(/part of the name/)).not.toBeInTheDocument();

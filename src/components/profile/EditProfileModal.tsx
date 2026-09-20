@@ -17,9 +17,11 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { MAX_UPLOAD_SIZE } from '@/lib/constants';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -37,11 +39,19 @@ interface ProfileForm {
   isPrivate: boolean;
 }
 
+/** Which website message the field shows - the form owns the whole closed set. */
+type WebsiteError = 'websiteProtocol' | 'websiteCredentials' | 'websiteInvalid';
+
 interface FormErrors {
-  website?: string;
+  website?: WebsiteError;
 }
 
+const BIO_LIMIT = 300;
+
 export default function EditProfileModal({ open, onClose, onSuccess }: EditProfileModalProps) {
+  const t = useTranslations('profile');
+  const tCommon = useTranslations('common');
+  const apiErrorMessage = useApiErrorMessage();
   const { user, isAuthenticated, updateProfile } = useAuth();
   const { showSuccess, showError } = useToast();
   const theme = useTheme();
@@ -99,12 +109,12 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
     const file = e.target.files?.[0];
     if (file) {
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        showError('Please select a valid image file (JPG, PNG, GIF, or WebP)');
+        showError(t('edit.errors.invalidImageType'));
         e.target.value = '';
         return;
       }
       if (file.size > MAX_UPLOAD_SIZE) {
-        showError(`Image must be under ${MAX_UPLOAD_SIZE / (1024 * 1024)}MB`);
+        showError(t('edit.errors.imageTooLarge', { max: MAX_UPLOAD_SIZE / (1024 * 1024) }));
         e.target.value = '';
         return;
       }
@@ -121,7 +131,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         });
         const bytes = new Uint8Array(headerBuffer);
         if (bytes.length < 12) {
-          showError('File is too small to identify');
+          showError(t('edit.errors.fileTooSmall'));
           e.target.value = '';
           return;
         }
@@ -142,7 +152,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
           bytes[10] === 0x42 &&
           bytes[11] === 0x50;
         if (!isJpeg && !isPng && !isGif && !isWebp) {
-          showError('Invalid image file. Supported formats: JPEG, PNG, GIF, WebP');
+          showError(t('edit.errors.unsupportedImage'));
           e.target.value = '';
           return;
         }
@@ -156,7 +166,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         if (!objectUrl.startsWith('blob:')) return;
         setAvatarPreview(objectUrl);
       } catch {
-        showError('Failed to read file');
+        showError(t('edit.errors.readFailed'));
         e.target.value = '';
         return;
       }
@@ -169,7 +179,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
     e.preventDefault();
 
     if (!isAuthenticated) {
-      showError('You must be logged in to update your profile');
+      showError(t('edit.errors.notLoggedIn'));
       return;
     }
 
@@ -179,15 +189,15 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
       try {
         const parsed = new URL(websiteValue);
         if (!['http:', 'https:'].includes(parsed.protocol)) {
-          setFormErrors({ website: 'Website must use http:// or https://' });
+          setFormErrors({ website: 'websiteProtocol' });
           return;
         }
         if (parsed.username || parsed.password) {
-          setFormErrors({ website: 'URL must not contain credentials' });
+          setFormErrors({ website: 'websiteCredentials' });
           return;
         }
       } catch {
-        setFormErrors({ website: 'Please enter a valid URL' });
+        setFormErrors({ website: 'websiteInvalid' });
         return;
       }
     }
@@ -211,7 +221,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
 
         if (!uploadResponse.ok) {
           const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || 'Failed to upload avatar');
+          throw new Error(apiErrorMessage(errorData, t('edit.errors.uploadFailed')));
         }
 
         const uploadData = await uploadResponse.json();
@@ -227,12 +237,12 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         isPrivate: formData.isPrivate,
       });
 
-      showSuccess('Profile updated successfully!');
+      showSuccess(t('edit.success'));
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error updating profile:', error);
-      showError(error instanceof Error ? error.message : 'Failed to update profile');
+      showError(error instanceof Error ? error.message : t('edit.errors.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -266,7 +276,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
           variant="h6"
           sx={{ fontSize: { xs: '1.125rem', md: '1.25rem' } }}
         >
-          Edit Profile
+          {t('edit.title')}
         </Typography>
         <IconButton onClick={onClose} size={isMobile ? 'small' : 'medium'}>
           <CloseIcon />
@@ -311,7 +321,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
                 size={isMobile ? 'small' : 'medium'}
                 fullWidth={isMobile}
               >
-                Change Photo
+                {t('edit.changePhoto')}
               </Button>
             </label>
             <Typography
@@ -324,47 +334,45 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
                 px: { xs: 2, md: 0 },
               }}
             >
-              {avatarFile
-                ? 'New photo selected - will be uploaded when you save'
-                : 'Click to change your profile photo'}
+              {avatarFile ? t('edit.photoSelected') : t('edit.photoHint')}
             </Typography>
           </Box>
 
           {/* Form Fields */}
           <TextField
             fullWidth
-            label="Username"
+            label={t('edit.username')}
             value={user.username}
             disabled
             size={isMobile ? 'small' : 'medium'}
             sx={{ mb: { xs: 1.5, md: 2 } }}
-            helperText="Username cannot be changed"
+            helperText={t('edit.usernameHelper')}
           />
 
           <TextField
             fullWidth
-            label="Email"
+            label={t('edit.email')}
             value={user.email}
             disabled
             size={isMobile ? 'small' : 'medium'}
             sx={{ mb: { xs: 1.5, md: 2 } }}
-            helperText="Email cannot be changed"
+            helperText={t('edit.emailHelper')}
           />
 
           <TextField
             fullWidth
-            label="Full Name"
+            label={t('edit.fullName')}
             name="fullName"
             value={formData.fullName}
             onChange={handleInputChange}
             size={isMobile ? 'small' : 'medium'}
             sx={{ mb: { xs: 1.5, md: 2 } }}
-            placeholder="Enter your full name"
+            placeholder={t('edit.fullNamePlaceholder')}
           />
 
           <TextField
             fullWidth
-            label="Bio"
+            label={t('edit.bio')}
             name="bio"
             value={formData.bio}
             onChange={handleInputChange}
@@ -372,14 +380,14 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             rows={isMobile ? 3 : 4}
             size={isMobile ? 'small' : 'medium'}
             sx={{ mb: { xs: 1.5, md: 2 } }}
-            placeholder="Tell us about yourself..."
-            helperText={`${formData.bio.length}/300 characters`}
-            inputProps={{ maxLength: 300 }}
+            placeholder={t('edit.bioPlaceholder')}
+            helperText={t('edit.bioCount', { count: formData.bio.length, max: BIO_LIMIT })}
+            inputProps={{ maxLength: BIO_LIMIT }}
           />
 
           <TextField
             fullWidth
-            label="Website"
+            label={t('edit.website')}
             name="website"
             value={formData.website}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -388,10 +396,10 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             }}
             size={isMobile ? 'small' : 'medium'}
             sx={{ mb: { xs: 1.5, md: 2 } }}
-            placeholder="https://yourwebsite.com"
+            placeholder={t('edit.websitePlaceholder')}
             type="url"
             error={!!formErrors.website}
-            helperText={formErrors.website}
+            helperText={formErrors.website ? t(`edit.errors.${formErrors.website}`) : undefined}
           />
 
           <FormControlLabel
@@ -400,9 +408,9 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             }
             label={
               <Box>
-                <Typography variant="body2">Private Account</Typography>
+                <Typography variant="body2">{t('edit.private')}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Only approved followers can see your recipes
+                  {t('edit.privateDescription')}
                 </Typography>
               </Box>
             }
@@ -423,7 +431,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             fullWidth={isMobile}
             size={isMobile ? 'large' : 'medium'}
           >
-            Cancel
+            {tCommon('actions.cancel')}
           </Button>
           <Button
             type="submit"
@@ -433,7 +441,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
             fullWidth={isMobile}
             size={isMobile ? 'large' : 'medium'}
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? tCommon('status.saving') : tCommon('actions.saveChanges')}
           </Button>
         </DialogActions>
       </form>

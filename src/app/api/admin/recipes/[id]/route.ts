@@ -20,7 +20,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     if (!UUID_REGEX.test(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     logAuditEvent('ADMIN_RECIPE_DELETE', { admin: authResult.userId, target: id });
@@ -41,9 +44,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: 'Recipe deleted successfully' });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Recipe not found', code: 'recipe.notFound' },
+        { status: 404 }
+      );
     }
     logServerError('Error deleting recipe:', error);
-    return NextResponse.json({ error: 'Failed to delete recipe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to delete recipe', code: 'recipe.deleteFailed' },
+      { status: 500 }
+    );
   }
 }

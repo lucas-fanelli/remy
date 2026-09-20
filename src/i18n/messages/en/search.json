@@ -1,0 +1,27 @@
+{
+  "bar": {
+    "placeholder": "Search recipes, ingredients...",
+    "inputLabel": "Search recipes",
+    "clear": "Clear search",
+    "searchFor": "Search for \"{query}\"",
+    "noResults": "No matching recipes found",
+    "recent": "Recent Searches",
+    "hint": "Type to search recipes..."
+  },
+  "dropdown": {
+    "searchQuery": "Search \"{query}\"",
+    "viewAll": "View all results",
+    "noResults": "No results found for “{query}”"
+  },
+  "page": {
+    "title": "Search Results",
+    "resultsFor": "Results for “{query}”",
+    "tabs": {
+      "recipes": "Recipes ({count, number})",
+      "users": "Users ({count, number})"
+    },
+    "noRecipes": "No recipes found",
+    "noUsers": "No users found",
+    "tryDifferent": "Try searching with different keywords"
+  }
+}

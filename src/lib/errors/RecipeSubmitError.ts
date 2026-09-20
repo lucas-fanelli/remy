@@ -3,6 +3,11 @@
  *
  * `message` keeps the server's own text (callers and tests rely on it); `code` is what the
  * form switches on to pick its copy and its recovery action.
+ *
+ * `fromServer` says whether that text came from the API or is the English fallback this
+ * module put there for the log. Only a SERVER sentence is ever shown to the author: the
+ * form has its own translated copy for every other case, which is how a module with no
+ * locale stays out of the translation business (docs/I18N.md, the API error contract).
  */
 export type RecipeSubmitErrorCode =
   | 'unauthorized'
@@ -18,12 +23,21 @@ export class RecipeSubmitError extends Error {
   readonly code: RecipeSubmitErrorCode;
   /** Seconds until a retry makes sense (rate limiting only) */
   readonly retryAfter?: number;
+  /** True when `message` is the API's own sentence, and not this module's fallback */
+  readonly fromServer: boolean;
 
-  constructor(message: string, status: number, code: RecipeSubmitErrorCode, retryAfter?: number) {
+  constructor(
+    message: string,
+    status: number,
+    code: RecipeSubmitErrorCode,
+    retryAfter?: number,
+    fromServer = false
+  ) {
     super(message);
     this.name = 'RecipeSubmitError';
     this.status = status;
     this.code = code;
+    this.fromServer = fromServer;
     if (retryAfter !== undefined) this.retryAfter = retryAfter;
     // Keeps `instanceof` working if the class is ever compiled down to ES5
     Object.setPrototypeOf(this, RecipeSubmitError.prototype);
@@ -62,17 +76,22 @@ export async function toRecipeSubmitError(
   }
 
   const status = typeof response.status === 'number' ? response.status : 0;
-  const message = typeof body.error === 'string' && body.error ? body.error : fallbackMessage;
+  const fromServer = typeof body.error === 'string' && body.error !== '';
+  const message = fromServer ? (body.error as string) : fallbackMessage;
   const code = toCode(status, message);
   const retryAfter =
     code === 'rate_limited'
       ? (toSeconds(body.retryAfter) ?? toSeconds(response.headers?.get?.('Retry-After')))
       : undefined;
 
-  return new RecipeSubmitError(message, status, code, retryAfter);
+  return new RecipeSubmitError(message, status, code, retryAfter, fromServer);
 }
 
-/** `fetch` rejected (offline, DNS, aborted): the original message is kept when there is one */
+/**
+ * `fetch` rejected (offline, DNS, aborted): the original message is kept when there is one.
+ * It is never `fromServer` - a browser's 'Failed to fetch' is for the log, and the form says
+ * 'Could not reach Remy' in the author's language.
+ */
 export const toNetworkSubmitError = (cause: unknown, fallbackMessage: string): RecipeSubmitError =>
   new RecipeSubmitError(
     cause instanceof Error && cause.message ? cause.message : fallbackMessage,

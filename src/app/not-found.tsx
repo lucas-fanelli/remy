@@ -7,8 +7,11 @@ import {
 } from '@mui/icons-material';
 import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function NotFound() {
+  const t = useTranslations('shell');
+  const tCommon = useTranslations('common');
   const router = useRouter();
 
   return (
@@ -44,12 +47,11 @@ export default function NotFound() {
           </Typography>
 
           <Typography variant="h5" gutterBottom fontWeight="600">
-            Page Not Found
+            {t('notFound.title')}
           </Typography>
 
           <Typography variant="body1" color="text.secondary" paragraph sx={{ marginTop: 2 }}>
-            Sorry, we couldn&apos;t find the page you&apos;re looking for. It might have been moved
-            or deleted.
+            {t('notFound.description')}
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: 4 }}>
@@ -59,11 +61,11 @@ export default function NotFound() {
               startIcon={<HomeIcon />}
               onClick={() => router.push('/')}
             >
-              Go Home
+              {tCommon('actions.goHome')}
             </Button>
 
             <Button variant="outlined" startIcon={<BackIcon />} onClick={() => router.back()}>
-              Go Back
+              {tCommon('actions.goBack')}
             </Button>
           </Box>
 
@@ -73,7 +75,7 @@ export default function NotFound() {
             display="block"
             sx={{ marginTop: 4 }}
           >
-            Lost? Try searching for recipes or exploring our community feed.
+            {t('notFound.hint')}
           </Typography>
         </Paper>
       </Container>

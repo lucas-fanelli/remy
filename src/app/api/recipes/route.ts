@@ -92,7 +92,10 @@ export async function GET(request: NextRequest) {
 
     const validSorts = ['newest', 'rating_desc', 'rating_asc', 'most_reviewed'];
     if (sort && !validSorts.includes(sort)) {
-      return NextResponse.json({ error: 'Invalid sort parameter' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid sort parameter', code: 'recipe.invalidSort' },
+        { status: 400 }
+      );
     }
 
     // Build Prisma where clause — exclude recipes from private users by default
@@ -101,7 +104,10 @@ export async function GET(request: NextRequest) {
     };
 
     if (query && query.length > MAX_SEARCH_QUERY_LENGTH) {
-      return NextResponse.json({ error: 'Search query too long' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Search query too long', code: 'search.queryTooLong' },
+        { status: 400 }
+      );
     }
 
     if (query) {
@@ -116,7 +122,10 @@ export async function GET(request: NextRequest) {
       const validDifficulties = ['easy', 'medium', 'hard'];
       if (!validDifficulties.includes(difficulty)) {
         return NextResponse.json(
-          { error: 'Invalid difficulty. Must be: easy, medium, hard' },
+          {
+            error: 'Invalid difficulty. Must be: easy, medium, hard',
+            code: 'recipe.invalidDifficulty',
+          },
           { status: 400 }
         );
       }
@@ -138,7 +147,10 @@ export async function GET(request: NextRequest) {
 
     if (userId) {
       if (!UUID_REGEX.test(userId)) {
-        return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Invalid userId format', code: 'request.invalidUserId' },
+          { status: 400 }
+        );
       }
       where.userId = userId;
     }
@@ -225,7 +237,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logServerError('Error fetching recipes:', error);
-    return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch recipes', code: 'recipe.fetchFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -241,7 +256,7 @@ export async function POST(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -249,18 +264,26 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
 
     let validated;
     try {
       validated = createRecipeSchema.parse(body);
     } catch (err) {
+      // No code on the zod branch: the message names the field that failed, and
+      // 'invalidRequest' would replace it with one generic sentence.
       if (err instanceof ZodError) {
         const firstIssue = err.issues[0]?.message || 'Invalid request body';
         return NextResponse.json({ error: firstIssue }, { status: 400 });
       }
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid request body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
 
     if (validated.imageUrl) {
@@ -306,6 +329,7 @@ export async function POST(request: NextRequest) {
     const recipeService = container.getRecipeService();
     const validationResult = await recipeService.validateRecipeData(recipeData);
     if (!validationResult.valid) {
+      // Same reason as the zod branch above: the message IS the list of problems
       return NextResponse.json(
         { error: `Recipe validation failed: ${validationResult.errors.join(', ')}` },
         { status: 400 }
@@ -353,6 +377,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: `Daily recipe creation limit reached (${MAX_DAILY_RECIPES} per day). Please try again tomorrow.`,
+            code: 'recipe.dailyLimit',
           },
           { status: 429 }
         );
@@ -366,6 +391,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ error: 'Failed to create recipe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to create recipe', code: 'recipe.createFailed' },
+      { status: 500 }
+    );
   }
 }

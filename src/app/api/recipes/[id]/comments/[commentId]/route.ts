@@ -19,31 +19,40 @@ export async function PATCH(
     const { id: recipeId, commentId } = await params;
 
     if (!UUID_REGEX.test(recipeId) || !UUID_REGEX.test(commentId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     let user;
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     let body;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
     const { text, rating, imageUrl } = body;
 
     if (!text || text.trim().length === 0) {
-      return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Comment text is required', code: 'comment.textRequired' },
+        { status: 400 }
+      );
     }
 
     if (text.length > MAX_COMMENT_LENGTH) {
       return NextResponse.json(
-        { error: 'Comment text must be 5000 characters or less' },
+        { error: 'Comment text must be 5000 characters or less', code: 'comment.textTooLong' },
         { status: 400 }
       );
     }
@@ -57,7 +66,7 @@ export async function PATCH(
     // Validate rating before any writes
     if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
       return NextResponse.json(
-        { error: 'Rating must be an integer between 1 and 5' },
+        { error: 'Rating must be an integer between 1 and 5', code: 'comment.invalidRating' },
         { status: 400 }
       );
     }
@@ -161,20 +170,29 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === 'COMMENT_NOT_FOUND') {
-        return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: 'Comment not found', code: 'comment.notFound' },
+          { status: 404 }
+        );
       }
       if (error.message === 'COMMENT_WRONG_RECIPE') {
         return NextResponse.json(
-          { error: 'Comment does not belong to this recipe' },
+          { error: 'Comment does not belong to this recipe', code: 'comment.wrongRecipe' },
           { status: 400 }
         );
       }
       if (error.message === 'COMMENT_UNAUTHORIZED') {
-        return NextResponse.json({ error: 'Unauthorized to edit this comment' }, { status: 403 });
+        return NextResponse.json(
+          { error: 'Unauthorized to edit this comment', code: 'comment.editForbidden' },
+          { status: 403 }
+        );
       }
     }
     logServerError('Error updating comment:', error);
-    return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to update comment', code: 'comment.updateFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -187,14 +205,17 @@ export async function DELETE(
     const { id: recipeId, commentId } = await params;
 
     if (!UUID_REGEX.test(recipeId) || !UUID_REGEX.test(commentId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     let user;
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -254,9 +275,15 @@ export async function DELETE(
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'COMMENT_NOT_FOUND_OR_UNAUTHORIZED') {
-      return NextResponse.json({ error: 'Comment not found or unauthorized' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Comment not found or unauthorized', code: 'comment.notFoundOrForbidden' },
+        { status: 404 }
+      );
     }
     logServerError('Error deleting comment:', error);
-    return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to delete comment', code: 'comment.deleteFailed' },
+      { status: 500 }
+    );
   }
 }

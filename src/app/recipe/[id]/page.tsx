@@ -41,6 +41,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useEffect } from 'react';
 import { MotionBox, MotionCard } from '@/components/motion';
 import CommentsSection from '@/components/recipe/CommentsSection';
@@ -53,7 +54,16 @@ import StepNumber from '@/components/recipe/display/StepNumber';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
-import { useRecipe, useRecipeLikeStatus, useRecipeSaveStatus, ApiRecipe } from '@/hooks/useRecipe';
+import {
+  useRecipe,
+  useRecipeLikeStatus,
+  useRecipeSaveStatus,
+  ApiRecipe,
+  RecipeFetchError,
+} from '@/hooks/useRecipe';
+import { useTextDescriptor } from '@/i18n/text';
+import { useUnitLabels } from '@/i18n/units';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 
 /** Adapt the API recipe shape to the DomainRecipe type expected by EditRecipeModal. */
@@ -94,6 +104,12 @@ function toEditableRecipe(apiRecipe: ApiRecipe): DomainRecipe {
 }
 
 export default function RecipeDetailPage() {
+  const t = useTranslations('recipe');
+  const tCommon = useTranslations('common');
+  const format = useFormatter();
+  const renderText = useTextDescriptor();
+  const units = useUnitLabels();
+  const apiErrorMessage = useApiErrorMessage();
   const router = useRouter();
   const params = useParams();
   const { user } = useAuth();
@@ -108,8 +124,13 @@ export default function RecipeDetailPage() {
   const { data: likeStatus } = useRecipeLikeStatus(recipeId, user?.id ?? null);
   const { data: saveStatus } = useRecipeSaveStatus(recipeId, user?.id ?? null);
 
-  // Derived state from queries
-  const error = queryError?.message || null;
+  // Derived state from queries. A RecipeFetchError carries the message it wants printed
+  // as a descriptor; anything else only has the English text it was thrown with.
+  const error = queryError
+    ? queryError instanceof RecipeFetchError
+      ? renderText(queryError.descriptor)
+      : queryError.message
+    : null;
 
   // Local state for mutations and UI
   const [liked, setLiked] = useState(likeStatus?.liked ?? false);
@@ -160,7 +181,7 @@ export default function RecipeDetailPage() {
   const handleEditSuccess = (_updatedRecipe: DomainRecipe) => {
     // Invalidate the cache to refetch with updated data
     queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
-    setSnackbar({ open: true, message: 'Recipe updated successfully!', severity: 'success' });
+    setSnackbar({ open: true, message: t('toasts.updated'), severity: 'success' });
   };
 
   const handleDelete = () => {
@@ -179,10 +200,10 @@ export default function RecipeDetailPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete recipe');
+        throw new Error(apiErrorMessage(errorData, t('toasts.deleteFailed')));
       }
 
-      setSnackbar({ open: true, message: 'Recipe deleted successfully!', severity: 'success' });
+      setSnackbar({ open: true, message: t('toasts.deleted'), severity: 'success' });
 
       // Navigate back to feed after a short delay
       router.push('/');
@@ -190,7 +211,7 @@ export default function RecipeDetailPage() {
       console.error('Error deleting recipe:', err);
       setSnackbar({
         open: true,
-        message: err instanceof Error ? err.message : 'Failed to delete recipe',
+        message: err instanceof Error ? err.message : t('toasts.deleteFailed'),
         severity: 'error',
       });
       setDeleteDialogOpen(false);
@@ -201,7 +222,7 @@ export default function RecipeDetailPage() {
 
   const handleLike = async () => {
     if (!user) {
-      setSnackbar({ open: true, message: 'Please login to like recipes', severity: 'error' });
+      setSnackbar({ open: true, message: t('toasts.loginToLike'), severity: 'error' });
       return;
     }
 
@@ -218,13 +239,13 @@ export default function RecipeDetailPage() {
         setLikesCount(data.likesCount);
         setSnackbar({
           open: true,
-          message: data.liked ? 'Recipe liked!' : 'Recipe unliked',
+          message: data.liked ? t('toasts.liked') : t('toasts.unliked'),
           severity: 'success',
         });
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      setSnackbar({ open: true, message: 'Failed to like recipe', severity: 'error' });
+      setSnackbar({ open: true, message: t('toasts.likeFailed'), severity: 'error' });
     } finally {
       setLikeLoading(false);
     }
@@ -232,7 +253,7 @@ export default function RecipeDetailPage() {
 
   const handleSave = async () => {
     if (!user) {
-      setSnackbar({ open: true, message: 'Please login to save recipes', severity: 'error' });
+      setSnackbar({ open: true, message: t('toasts.loginToSave'), severity: 'error' });
       return;
     }
 
@@ -248,13 +269,13 @@ export default function RecipeDetailPage() {
         setSaved(data.saved);
         setSnackbar({
           open: true,
-          message: data.saved ? 'Recipe saved!' : 'Recipe removed from saved',
+          message: data.saved ? t('toasts.saved') : t('toasts.unsaved'),
           severity: 'success',
         });
       }
     } catch (error) {
       console.error('Error toggling save:', error);
-      setSnackbar({ open: true, message: 'Failed to save recipe', severity: 'error' });
+      setSnackbar({ open: true, message: t('toasts.saveFailed'), severity: 'error' });
     } finally {
       setSaveLoading(false);
     }
@@ -277,16 +298,16 @@ export default function RecipeDetailPage() {
               await navigator.clipboard.writeText(url);
               setSnackbar({
                 open: true,
-                message: 'Link copied to clipboard!',
+                message: t('toasts.linkCopied'),
                 severity: 'success',
               });
             } catch {
-              setSnackbar({ open: true, message: 'Failed to copy link', severity: 'error' });
+              setSnackbar({ open: true, message: t('toasts.copyFailed'), severity: 'error' });
             }
           } else {
             setSnackbar({
               open: true,
-              message: 'Cannot copy link — please copy the URL manually',
+              message: t('toasts.copyManually'),
               severity: 'warning',
             });
           }
@@ -296,14 +317,14 @@ export default function RecipeDetailPage() {
       if (navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(url);
-          setSnackbar({ open: true, message: 'Link copied to clipboard!', severity: 'success' });
+          setSnackbar({ open: true, message: t('toasts.linkCopied'), severity: 'success' });
         } catch {
-          setSnackbar({ open: true, message: 'Failed to copy link', severity: 'error' });
+          setSnackbar({ open: true, message: t('toasts.copyFailed'), severity: 'error' });
         }
       } else {
         setSnackbar({
           open: true,
-          message: 'Cannot copy link — please copy the URL manually',
+          message: t('toasts.copyManually'),
           severity: 'warning',
         });
       }
@@ -338,7 +359,7 @@ export default function RecipeDetailPage() {
     if (!user) {
       setSnackbar({
         open: true,
-        message: 'Please login to mark recipes as cooked',
+        message: t('toasts.loginToCook'),
         severity: 'error',
       });
       return;
@@ -362,13 +383,13 @@ export default function RecipeDetailPage() {
             .join(', ');
           setSnackbar({
             open: true,
-            message: `Recipe marked as cooked! Note: insufficient pantry stock for: ${names}`,
+            message: t('toasts.cookedPartial', { names }),
             severity: 'success',
           });
         } else {
           setSnackbar({
             open: true,
-            message: 'Recipe marked as cooked!',
+            message: t('toasts.cooked'),
             severity: 'success',
           });
         }
@@ -378,13 +399,13 @@ export default function RecipeDetailPage() {
       } else {
         setSnackbar({
           open: true,
-          message: data.error || 'Failed to mark recipe as cooked',
+          message: apiErrorMessage(data, t('toasts.cookFailed')),
           severity: 'error',
         });
       }
     } catch (error) {
       console.error('Error marking recipe as cooked:', error);
-      setSnackbar({ open: true, message: 'Failed to mark recipe as cooked', severity: 'error' });
+      setSnackbar({ open: true, message: t('toasts.cookFailed'), severity: 'error' });
     } finally {
       setCookedLoading(false);
     }
@@ -401,17 +422,17 @@ export default function RecipeDetailPage() {
         } catch {
           /* best-effort */
         }
-        setSnackbar({ open: true, message: 'Recipe marked as cooked!', severity: 'success' });
+        setSnackbar({ open: true, message: t('toasts.cooked'), severity: 'success' });
       } else {
         setSnackbar({
           open: true,
-          message: data.error || 'Failed to mark recipe as cooked',
+          message: apiErrorMessage(data, t('toasts.cookFailed')),
           severity: 'error',
         });
       }
     } catch (error) {
       console.error('Error marking recipe as cooked:', error);
-      setSnackbar({ open: true, message: 'Failed to mark recipe as cooked', severity: 'error' });
+      setSnackbar({ open: true, message: t('toasts.cookFailed'), severity: 'error' });
     } finally {
       setCookedLoading(false);
       setInsufficientList([]);
@@ -451,14 +472,14 @@ export default function RecipeDetailPage() {
               severity="error"
               sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}
             >
-              {error || 'Recipe not found'}
+              {error || t('states.notFound')}
             </Alert>
             <Button
               onClick={handleBack}
               startIcon={<ArrowBack />}
               size={isMobile ? 'large' : 'medium'}
             >
-              Go Back
+              {tCommon('actions.goBack')}
             </Button>
           </Container>
         )}
@@ -553,13 +574,18 @@ export default function RecipeDetailPage() {
                         color="text.secondary"
                         sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
                       >
-                        {recipe.averageRating.toFixed(1)} ({recipe.totalRatings}{' '}
-                        {recipe.totalRatings === 1 ? 'review' : 'reviews'})
+                        {t('meta.ratingSummary', {
+                          average: format.number(recipe.averageRating, {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          }),
+                          count: recipe.totalRatings ?? 0,
+                        })}
                       </Typography>
                     </>
                   ) : (
                     <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                      No ratings yet
+                      {t('meta.noRatings')}
                     </Typography>
                   )}
                 </Box>
@@ -579,14 +605,14 @@ export default function RecipeDetailPage() {
                   />
                   <Chip
                     icon={<Person sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
-                    label={`${recipe.servings} servings`}
+                    label={t('meta.servings', { count: recipe.servings })}
                     variant="outlined"
                     size={isMobile ? 'small' : 'medium'}
                     sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
                   />
                   <Chip
                     icon={<AccessTime sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
-                    label={`${totalTime} min total`}
+                    label={t('meta.totalTime', { minutes: totalTime })}
                     variant="outlined"
                     size={isMobile ? 'small' : 'medium'}
                     sx={{ fontSize: { xs: '0.75rem', md: '0.8125rem' } }}
@@ -703,17 +729,17 @@ export default function RecipeDetailPage() {
                   size={isMobile ? 'medium' : 'large'}
                   fullWidth={isMobile}
                 >
-                  {cookedLoading ? 'Marking...' : 'Mark as Cooked'}
+                  {cookedLoading ? t('actions.marking') : t('actions.markAsCooked')}
                 </Button>
                 {isOwner && (
                   <>
                     {/* Icon-only: the name is the aria-label, the Tooltip shows it. The hover
                         ink is the palette's contrast colour - dark on the dark theme's teal */}
-                    <Tooltip title="Edit recipe">
+                    <Tooltip title={t('actions.edit')}>
                       <IconButton
                         onClick={handleEdit}
                         color="primary"
-                        aria-label="Edit recipe"
+                        aria-label={t('actions.edit')}
                         size={isMobile ? 'medium' : 'large'}
                         sx={{
                           border: 1,
@@ -730,11 +756,11 @@ export default function RecipeDetailPage() {
                         <Edit />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete recipe">
+                    <Tooltip title={t('actions.delete')}>
                       <IconButton
                         onClick={handleDelete}
                         color="error"
-                        aria-label="Delete recipe"
+                        aria-label={t('actions.delete')}
                         size={isMobile ? 'medium' : 'large'}
                         sx={{
                           border: 1,
@@ -779,7 +805,7 @@ export default function RecipeDetailPage() {
             >
               <CardContent>
                 <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                  Ingredients
+                  {t('ingredients.title')}
                 </Typography>
                 <Box component="ul" sx={{ pl: 2 }}>
                   {/* Seeded and legacy rows store numeric amounts: IngredientLine coerces them */}
@@ -799,7 +825,7 @@ export default function RecipeDetailPage() {
             >
               <CardContent>
                 <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                  Instructions
+                  {t('instructions.title')}
                 </Typography>
                 <Box>
                   {recipe.instructions.map(
@@ -829,13 +855,16 @@ export default function RecipeDetailPage() {
                                 '&:hover .zoom-icon': { opacity: 1 },
                               }}
                               onClick={() =>
-                                handleImageClick(instruction.image!, `Step ${instruction.step}`)
+                                handleImageClick(
+                                  instruction.image!,
+                                  t('instructions.stepAlt', { number: instruction.step })
+                                )
                               }
                             >
                               <Box
                                 component="img"
                                 src={instruction.image}
-                                alt={`Step ${instruction.step}`}
+                                alt={t('instructions.stepAlt', { number: instruction.step })}
                                 sx={{
                                   width: '100%',
                                   borderRadius: 2,
@@ -909,47 +938,50 @@ export default function RecipeDetailPage() {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete Recipe?</DialogTitle>
+          <DialogTitle>{t('deleteDialog.title')}</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete &ldquo;{recipe?.title}&rdquo;? This action cannot be
-              undone.
+              {t('deleteDialog.message', { title: recipe?.title ?? '' })}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
-              Cancel
+              {tCommon('actions.cancel')}
             </Button>
             <Button onClick={confirmDelete} color="error" disabled={deleting} autoFocus>
-              {deleting ? 'Deleting...' : 'Delete'}
+              {deleting ? tCommon('status.deleting') : tCommon('actions.delete')}
             </Button>
           </DialogActions>
         </Dialog>
 
         {/* Insufficient Ingredients Confirmation Dialog */}
         <Dialog open={forceDialogOpen} onClose={() => setForceDialogOpen(false)}>
-          <DialogTitle>Insufficient Ingredients</DialogTitle>
+          <DialogTitle>{t('insufficientDialog.title')}</DialogTitle>
           <DialogContent>
-            <DialogContentText>
-              The following ingredients are insufficient in your pantry:
-            </DialogContentText>
+            <DialogContentText>{t('insufficientDialog.intro')}</DialogContentText>
             <Box component="ul" sx={{ mt: 1, pl: 2 }}>
               {insufficientList.map((item, idx) => (
                 <li key={idx}>
                   <Typography variant="body2">
-                    {item.name}: need {item.required} {item.unit}, have {item.available} {item.unit}
+                    {t('insufficientDialog.row', {
+                      name: item.name,
+                      required: format.number(item.required),
+                      available: format.number(item.available),
+                      // The unit stays stored in English; only its label is translated, and
+                      // each half of the sentence is pluralised by its own amount
+                      requiredUnit: units.label(item.unit, item.required),
+                      availableUnit: units.label(item.unit, item.available),
+                    })}
                   </Typography>
                 </li>
               ))}
             </Box>
-            <DialogContentText sx={{ mt: 1 }}>
-              Do you want to mark this recipe as cooked anyway?
-            </DialogContentText>
+            <DialogContentText sx={{ mt: 1 }}>{t('insufficientDialog.question')}</DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setForceDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setForceDialogOpen(false)}>{tCommon('actions.cancel')}</Button>
             <Button onClick={handleForceConfirm} variant="contained" disabled={cookedLoading}>
-              {cookedLoading ? 'Marking...' : 'Cook Anyway'}
+              {cookedLoading ? t('actions.marking') : t('actions.cookAnyway')}
             </Button>
           </DialogActions>
         </Dialog>

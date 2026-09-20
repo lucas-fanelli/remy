@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     // 401 means exactly one thing to the client: there is no session. A failure to
     // find out (database down, ...) is a 500 below, which must not log anybody out.
     if (!session) {
-      return ApiResponseHelper.unauthorized();
+      return ApiResponseHelper.unauthorized(undefined, 'unauthorized');
     }
 
     const response = ApiResponseHelper.success(session.user);
@@ -27,6 +27,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     logServerError('Get current user error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }

@@ -32,9 +32,13 @@ import {
 } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUnitLabels } from '@/i18n/units';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
+import { UNIT_TO_TASTE } from '@/lib/constants';
 
 interface PantryItem {
   id: string;
@@ -50,7 +54,22 @@ interface PantryItem {
 const categories = ['vegetable', 'protein', 'dairy', 'grain', 'spice', 'fruit', 'other'];
 const units = ['g', 'kg', 'mL', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'];
 
+/**
+ * Which branch of the `pantry.categories` select a stored category picks. The stored value
+ * 'other' cannot name a branch of its own - in ICU `other` IS the catch-all - so it travels
+ * as 'misc', and anything a user typed falls through to the catch-all, which renders the
+ * stored text unchanged.
+ */
+const CATEGORY_SELECTORS: Record<string, string> = { other: 'misc' };
+
+const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
 export default function PantryPage() {
+  const t = useTranslations('pantry');
+  const tCommon = useTranslations('common');
+  const format = useFormatter();
+  const unitLabels = useUnitLabels();
+  const apiErrorMessage = useApiErrorMessage();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<PantryItem[]>([]);
@@ -79,6 +98,39 @@ export default function PantryPage() {
     notes: '',
   });
 
+  // What a category is CALLED. The stored value itself never moves: a category the user
+  // typed is shown back exactly as it was saved, only the seeded ones have a translation.
+  const categoryLabel = useCallback(
+    (category: string) =>
+      t('categories', {
+        category: CATEGORY_SELECTORS[category] ?? category,
+        fallback: capitalise(category),
+      }),
+    [t]
+  );
+
+  // ...and the way back, for the free-text side of the picker: typing "Verdura" has to save
+  // 'vegetable', because that is what the pantry matcher compares recipes against.
+  const storedCategory = useCallback(
+    (typed: string) => {
+      const normalised = typed.toLowerCase().trim();
+      return (
+        categories.find((category) => categoryLabel(category).toLowerCase() === normalised) ??
+        normalised
+      );
+    },
+    [categoryLabel]
+  );
+
+  /** '250 g', '2 tazas', 'a gusto' - a measurement, so only the unit label is translated. */
+  const describeAmount = useCallback(
+    (quantity: number, unit: string) =>
+      quantity === 0
+        ? unitLabels.label(UNIT_TO_TASTE)
+        : `${format.number(quantity)} ${unitLabels.label(unit, quantity)}`,
+    [format, unitLabels]
+  );
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(timer);
@@ -95,11 +147,11 @@ export default function PantryPage() {
       }
     } catch (error) {
       console.error('Error loading pantry:', error);
-      setSnackbar({ open: true, message: 'Failed to load pantry', severity: 'error' });
+      setSnackbar({ open: true, message: t('feedback.loadFailed'), severity: 'error' });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -141,7 +193,7 @@ export default function PantryPage() {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      setSnackbar({ open: true, message: 'Please enter ingredient name', severity: 'error' });
+      setSnackbar({ open: true, message: t('feedback.nameRequired'), severity: 'error' });
       return;
     }
 
@@ -177,7 +229,7 @@ export default function PantryPage() {
         handleCloseDialog();
         setSnackbar({
           open: true,
-          message: editingItem ? 'Item updated successfully' : 'Item added successfully',
+          message: editingItem ? t('feedback.updated') : t('feedback.added'),
           severity: 'success',
         });
       } else if (response.status === 409) {
@@ -192,7 +244,7 @@ export default function PantryPage() {
         } else {
           setSnackbar({
             open: true,
-            message: data.error || 'Ingredient already exists',
+            message: apiErrorMessage(data, t('feedback.alreadyExists')),
             severity: 'error',
           });
         }
@@ -200,13 +252,13 @@ export default function PantryPage() {
         const error = await response.json();
         setSnackbar({
           open: true,
-          message: error.error || 'Failed to save item',
+          message: apiErrorMessage(error, t('feedback.saveFailed')),
           severity: 'error',
         });
       }
     } catch (error) {
       console.error('Error saving item:', error);
-      setSnackbar({ open: true, message: 'Failed to save item', severity: 'error' });
+      setSnackbar({ open: true, message: t('feedback.saveFailed'), severity: 'error' });
     }
   };
 
@@ -239,18 +291,18 @@ export default function PantryPage() {
 
       if (response.ok) {
         await loadPantry();
-        setSnackbar({ open: true, message: 'Item deleted successfully', severity: 'success' });
+        setSnackbar({ open: true, message: t('feedback.deleted'), severity: 'success' });
       } else {
         const error = await response.json();
         setSnackbar({
           open: true,
-          message: error.error || 'Failed to delete item',
+          message: apiErrorMessage(error, t('feedback.deleteFailed')),
           severity: 'error',
         });
       }
     } catch (error) {
       console.error('Error deleting item:', error);
-      setSnackbar({ open: true, message: 'Failed to delete item', severity: 'error' });
+      setSnackbar({ open: true, message: t('feedback.deleteFailed'), severity: 'error' });
     } finally {
       setDeleteDialogOpen(false);
       setItemToDelete(null);
@@ -312,19 +364,19 @@ export default function PantryPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
               <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
               <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                My Pantry
+                {t('title')}
               </Typography>
             </Box>
             <Card sx={{ p: 4, textAlign: 'center' }}>
               <Kitchen sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h5" fontWeight={600} gutterBottom>
-                Sign in to access your pantry
+                {t('guest.title')}
               </Typography>
               <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                Track your ingredients and discover recipes you can make with what you already have.
+                {t('guest.description')}
               </Typography>
               <Button variant="contained" size="large" onClick={() => router.push('/auth')}>
-                Sign In to Continue
+                {t('guest.action')}
               </Button>
             </Card>
           </Container>
@@ -352,7 +404,7 @@ export default function PantryPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
               <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                My Pantry
+                {t('title')}
               </Typography>
             </Box>
             <Button
@@ -361,7 +413,7 @@ export default function PantryPage() {
               onClick={() => handleOpenDialog()}
               size="large"
             >
-              Add Ingredient
+              {t('actions.add')}
             </Button>
           </Box>
 
@@ -369,7 +421,7 @@ export default function PantryPage() {
           <Card sx={{ mb: 3, p: 2 }}>
             <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
               <TextField
-                placeholder="Search ingredients..."
+                placeholder={t('filters.search')}
                 size="small"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -382,24 +434,24 @@ export default function PantryPage() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <FilterList />
                 <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Filter by Category</InputLabel>
+                  <InputLabel>{t('filters.category')}</InputLabel>
                   <Select
                     value={categoryFilter}
-                    label="Filter by Category"
+                    label={t('filters.category')}
                     onChange={(e) => setCategoryFilter(e.target.value)}
                   >
-                    <MenuItem value="all">All Categories</MenuItem>
+                    <MenuItem value="all">{t('filters.allCategories')}</MenuItem>
                     {allCategories.map(
                       (cat) =>
                         cat && (
                           <MenuItem key={cat} value={cat}>
-                            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                            {categoryLabel(cat)}
                           </MenuItem>
                         )
                     )}
                   </Select>
                 </FormControl>
-                <Chip label={`${filteredItems.length} items`} color="primary" />
+                <Chip label={t('filters.count', { count: filteredItems.length })} color="primary" />
               </Box>
             </Box>
           </Card>
@@ -409,13 +461,13 @@ export default function PantryPage() {
             <Card sx={{ p: 6, textAlign: 'center' }}>
               <Kitchen sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
-                Your pantry is empty
+                {t('empty.title')}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Start by adding ingredients you have at home
+                {t('empty.description')}
               </Typography>
               <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
-                Add Your First Ingredient
+                {t('actions.addFirst')}
               </Button>
             </Card>
           ) : (
@@ -432,7 +484,7 @@ export default function PantryPage() {
                         variant="h6"
                         sx={{ mb: 2, textTransform: 'capitalize', fontWeight: 600 }}
                       >
-                        {category}
+                        {categoryLabel(category)}
                       </Typography>
                       <List dense>
                         <AnimatePresence>
@@ -447,7 +499,7 @@ export default function PantryPage() {
                               <ListItem>
                                 <ListItemText
                                   primary={item.name}
-                                  secondary={`${item.quantity === 0 ? 'to taste' : `${item.quantity} ${item.unit}`}${item.notes ? ` • ${item.notes}` : ''}`}
+                                  secondary={`${describeAmount(item.quantity, item.unit)}${item.notes ? ` • ${item.notes}` : ''}`}
                                 />
                                 <ListItemSecondaryAction>
                                   <IconButton
@@ -482,11 +534,11 @@ export default function PantryPage() {
 
           {/* Add/Edit Dialog */}
           <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-            <DialogTitle>{editingItem ? 'Edit Ingredient' : 'Add Ingredient'}</DialogTitle>
+            <DialogTitle>{editingItem ? t('dialog.editTitle') : t('dialog.addTitle')}</DialogTitle>
             <DialogContent>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
                 <TextField
-                  label="Ingredient Name"
+                  label={t('dialog.name')}
                   fullWidth
                   required
                   value={formData.name}
@@ -495,24 +547,25 @@ export default function PantryPage() {
                 />
                 <Box sx={{ display: 'flex', gap: 2 }}>
                   <TextField
-                    label="Quantity (optional)"
+                    label={t('dialog.quantity')}
                     type="number"
                     value={formData.quantity}
                     onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    helperText="Leave empty for 'to taste'"
+                    helperText={t('dialog.quantityHelper')}
                     sx={{ flex: 1 }}
                     autoComplete="off"
                   />
                   <FormControl sx={{ flex: 1 }}>
-                    <InputLabel>Unit</InputLabel>
+                    <InputLabel>{t('dialog.unit')}</InputLabel>
                     <Select
                       value={formData.unit}
-                      label="Unit"
+                      label={t('dialog.unit')}
                       onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                     >
                       {units.map((unit) => (
+                        // The stored code is the value; the plural label is only what is read
                         <MenuItem key={unit} value={unit}>
-                          {unit}
+                          {unitLabels.label(unit, 2)}
                         </MenuItem>
                       ))}
                     </Select>
@@ -524,39 +577,38 @@ export default function PantryPage() {
                   value={formData.category}
                   onChange={(event, newValue) => {
                     // Allow null/empty values
-                    const value = newValue
-                      ? typeof newValue === 'string'
-                        ? newValue.toLowerCase().trim()
-                        : newValue
-                      : '';
+                    const value = newValue ? storedCategory(newValue) : '';
                     setFormData({ ...formData, category: value });
                   }}
                   onInputChange={(event, newInputValue, reason) => {
                     // When user types, pastes, or clears, update the category
                     if (reason === 'input' || reason === 'clear') {
-                      const value = newInputValue.toLowerCase().trim();
-                      setFormData({ ...formData, category: value });
+                      setFormData({ ...formData, category: storedCategory(newInputValue) });
                     }
                   }}
-                  getOptionLabel={(option) =>
-                    option ? option.charAt(0).toUpperCase() + option.slice(1) : ''
-                  }
+                  getOptionLabel={(option) => (option ? categoryLabel(option) : '')}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Category"
-                      placeholder="Select or type a category"
+                      label={t('dialog.category')}
+                      placeholder={t('dialog.categoryPlaceholder')}
                       fullWidth
+                      // What the free text resolves to, as a LABEL - so English keeps its old
+                      // "Will be saved as: Vegetable" (the stored value capitalised, which is
+                      // what it always said) and Spanish only names the category, because
+                      // 'vegetable' is what actually travels to the API.
                       helperText={
                         formData.category
-                          ? `Will be saved as: ${formData.category.charAt(0).toUpperCase() + formData.category.slice(1)}`
+                          ? t('dialog.categoryHelper', {
+                              category: categoryLabel(formData.category),
+                            })
                           : ''
                       }
                     />
                   )}
                 />
                 <TextField
-                  label="Notes (optional)"
+                  label={t('dialog.notes')}
                   fullWidth
                   multiline
                   rows={2}
@@ -567,52 +619,47 @@ export default function PantryPage() {
               </Box>
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleCloseDialog}>Cancel</Button>
+              <Button onClick={handleCloseDialog}>{tCommon('actions.cancel')}</Button>
               <Button onClick={handleSubmit} variant="contained">
-                {editingItem ? 'Update' : 'Add'}
+                {editingItem ? tCommon('actions.update') : tCommon('actions.add')}
               </Button>
             </DialogActions>
           </Dialog>
 
           {/* Delete Confirmation Dialog */}
           <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="xs" fullWidth>
-            <DialogTitle>Delete Pantry Item?</DialogTitle>
+            <DialogTitle>{t('delete.title')}</DialogTitle>
             <DialogContent>
-              <Typography>
-                Ingredient will be permanently removed from your account and all synced devices
-              </Typography>
+              <Typography>{t('delete.message')}</Typography>
             </DialogContent>
             <DialogActions>
               <Button onClick={handleDeleteCancel} color="inherit">
-                Cancel
+                {tCommon('actions.cancel')}
               </Button>
               <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-                Delete
+                {tCommon('actions.delete')}
               </Button>
             </DialogActions>
           </Dialog>
 
           {/* Modify Existing Ingredient Dialog */}
           <Dialog open={modifyDialogOpen} onClose={handleCancelModify} maxWidth="xs" fullWidth>
-            <DialogTitle>Ingredient Already Exists</DialogTitle>
+            <DialogTitle>{t('duplicate.title')}</DialogTitle>
             <DialogContent>
               <Typography>
-                {existingItem?.name} already exists in your pantry with{' '}
-                {existingItem?.quantity === 0
-                  ? 'to taste'
-                  : `${existingItem?.quantity} ${existingItem?.unit}`}
-                .
+                {t('duplicate.message', {
+                  name: existingItem?.name ?? '',
+                  amount: describeAmount(existingItem?.quantity ?? 0, existingItem?.unit ?? ''),
+                })}
               </Typography>
-              <Typography sx={{ mt: 2 }}>
-                Would you like to modify the existing ingredient?
-              </Typography>
+              <Typography sx={{ mt: 2 }}>{t('duplicate.question')}</Typography>
             </DialogContent>
             <DialogActions>
               <Button onClick={handleCancelModify} color="inherit">
-                Cancel
+                {tCommon('actions.cancel')}
               </Button>
               <Button onClick={handleModifyExisting} color="primary" variant="contained">
-                Modify Existing
+                {t('duplicate.action')}
               </Button>
             </DialogActions>
           </Dialog>

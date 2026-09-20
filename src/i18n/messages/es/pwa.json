@@ -1,0 +1,13 @@
+{
+  "install": {
+    "title": "Llevate la experiencia completa",
+    "description": "Instalá {name} en tu pantalla de inicio para que ande más rápido, como una app nativa.",
+    "dismiss": "Cerrar el aviso de instalación",
+    "action": "Instalar la app",
+    "ios": {
+      "intro": "Para instalarla en tu dispositivo:",
+      "share": "1. Tocá el botón <strong>Compartir</strong> en Safari",
+      "addToHomeScreen": "2. Elegí <strong>\"Agregar a la pantalla de inicio\"</strong>"
+    }
+  }
+}

@@ -21,20 +21,26 @@ export async function POST(request: NextRequest) {
   try {
     const authToken = extractAuthToken(request);
     if (!authToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const payload = await verifySessionToken(authToken);
 
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid token', code: 'auth.invalidToken' },
+        { status: 401 }
+      );
     }
 
     // Check Content-Type header
     const contentType = request.headers.get('content-type');
     if (!contentType || !contentType.includes('multipart/form-data')) {
       return NextResponse.json(
-        { error: 'Invalid Content-Type. Expected multipart/form-data.' },
+        {
+          error: 'Invalid Content-Type. Expected multipart/form-data.',
+          code: 'upload.invalidContentType',
+        },
         { status: 400 }
       );
     }
@@ -43,7 +49,10 @@ export async function POST(request: NextRequest) {
     const fileEntry = formData.get('file');
 
     if (!fileEntry || !(fileEntry instanceof File)) {
-      return NextResponse.json({ error: 'No valid file provided' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No valid file provided', code: 'upload.noFile' },
+        { status: 400 }
+      );
     }
     const file = fileEntry;
 
@@ -51,7 +60,10 @@ export async function POST(request: NextRequest) {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' },
+        {
+          error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.',
+          code: 'upload.invalidFileType',
+        },
         { status: 400 }
       );
     }
@@ -59,7 +71,10 @@ export async function POST(request: NextRequest) {
     // Validate file size (5MB max)
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 5MB.', code: 'upload.tooLarge' },
+        { status: 400 }
+      );
     }
 
     // Convert file to buffer and validate magic bytes
@@ -68,7 +83,10 @@ export async function POST(request: NextRequest) {
 
     if (!validateImageMagicBytes(buffer)) {
       return NextResponse.json(
-        { error: 'Invalid file content. File does not match any allowed image format.' },
+        {
+          error: 'Invalid file content. File does not match any allowed image format.',
+          code: 'upload.invalidFileContent',
+        },
         { status: 400 }
       );
     }
@@ -89,6 +107,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logServerError('Error uploading file:', error);
-    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to upload file', code: 'upload.failed' },
+      { status: 500 }
+    );
   }
 }

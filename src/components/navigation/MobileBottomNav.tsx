@@ -2,6 +2,7 @@
 import { FavoriteBorder, Menu as MenuIcon } from '@mui/icons-material';
 import { AppBar, Toolbar, Box, IconButton, Avatar, Badge, Tooltip } from '@mui/material';
 import { motion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import React from 'react';
 import { BRANDING } from '@/config/branding';
 
@@ -35,6 +36,8 @@ export default function MobileBottomNav({
   onNotificationsOpen,
   onNavigateHome,
 }: MobileBottomNavProps) {
+  const t = useTranslations('nav');
+
   return (
     <>
       {/* Top Bar */}
@@ -49,7 +52,12 @@ export default function MobileBottomNav({
         }}
       >
         <Toolbar sx={{ px: { xs: 1, sm: 2 }, minHeight: { xs: 56, sm: 64 } }}>
-          <IconButton edge="start" onClick={onDrawerOpen} size="small" aria-label="Open menu">
+          <IconButton
+            edge="start"
+            onClick={onDrawerOpen}
+            size="small"
+            aria-label={t('menu.openMenu')}
+          >
             <MenuIcon />
           </IconButton>
           <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center' }}>
@@ -83,7 +91,11 @@ export default function MobileBottomNav({
               </Box>
             </Box>
           </Box>
-          <IconButton onClick={onNotificationsOpen} size="small" aria-label="Notifications">
+          <IconButton
+            onClick={onNotificationsOpen}
+            size="small"
+            aria-label={t('menu.notifications')}
+          >
             <Badge badgeContent={unreadNotifications} color="error">
               <FavoriteBorder sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
             </Badge>
@@ -136,7 +148,7 @@ export default function MobileBottomNav({
           <motion.div whileTap={{ scale: 0.9 }}>
             <IconButton
               size="small"
-              aria-label="Profile"
+              aria-label={t('menu.profile')}
               sx={{ p: { xs: 0.5, sm: 1 } }}
               onClick={onProfileClick}
             >

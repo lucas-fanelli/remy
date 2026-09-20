@@ -18,7 +18,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     if (!UUID_REGEX.test(id)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     logAuditEvent('ADMIN_COMMENT_DELETE', { admin: authResult.userId, target: id });
@@ -29,9 +32,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: 'Comment deleted successfully' });
   } catch (error) {
     if (error instanceof Error && error.message === 'COMMENT_NOT_FOUND') {
-      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Comment not found', code: 'comment.notFound' },
+        { status: 404 }
+      );
     }
     logServerError('Error deleting comment:', error);
-    return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to delete comment', code: 'comment.deleteFailed' },
+      { status: 500 }
+    );
   }
 }

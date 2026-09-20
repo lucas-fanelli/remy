@@ -15,29 +15,38 @@ export async function POST(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     const token = extractAuthToken(request);
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const payload = await verifySessionToken(token);
 
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid token', code: 'auth.invalidToken' },
+        { status: 401 }
+      );
     }
 
     const userService = container.getUserService();
     const userToUnfollow = await userService.getUserByUsername(username);
 
     if (!userToUnfollow) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
     if (userToUnfollow.id === payload.userId) {
-      return NextResponse.json({ error: 'Cannot unfollow yourself' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Cannot unfollow yourself', code: 'user.cannotUnfollowSelf' },
+        { status: 400 }
+      );
     }
 
     // Atomic delete + count in a single transaction
@@ -55,7 +64,10 @@ export async function POST(
     });
 
     if (deleteResult.count === 0) {
-      return NextResponse.json({ error: 'Not following this user' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Not following this user', code: 'user.notFollowing' },
+        { status: 400 }
+      );
     }
 
     // Non-critical notification cleanup
@@ -69,6 +81,9 @@ export async function POST(
     return NextResponse.json({ success: true, message: 'Unfollowed successfully', followersCount });
   } catch (error) {
     logServerError('Error unfollowing user:', error);
-    return NextResponse.json({ error: 'Failed to unfollow user' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to unfollow user', code: 'user.unfollowFailed' },
+      { status: 500 }
+    );
   }
 }

@@ -14,7 +14,10 @@ export async function GET(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     // Optional auth — get current user if authenticated
@@ -41,12 +44,15 @@ export async function GET(
     // Get user
     const user = await userService.getUserByUsername(username);
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
     // Privacy check
     if (user.isPrivate && currentUserId !== user.id) {
-      return NextResponse.json({ error: 'This profile is private' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'This profile is private', code: 'user.profilePrivate' },
+        { status: 403 }
+      );
     }
 
     // Pagination params
@@ -91,6 +97,9 @@ export async function GET(
     return NextResponse.json({ recipes: formattedRecipes, total });
   } catch (error) {
     logServerError('Error fetching user recipes:', error);
-    return NextResponse.json({ error: 'Failed to fetch recipes' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch recipes', code: 'recipe.fetchFailed' },
+      { status: 500 }
+    );
   }
 }

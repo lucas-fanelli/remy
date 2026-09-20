@@ -1,0 +1,55 @@
+{
+  "title": "My Pantry",
+  "guest": {
+    "title": "Sign in to access your pantry",
+    "description": "Track your ingredients and discover recipes you can make with what you already have.",
+    "action": "Sign In to Continue"
+  },
+  "actions": {
+    "add": "Add Ingredient",
+    "addFirst": "Add Your First Ingredient"
+  },
+  "filters": {
+    "search": "Search ingredients...",
+    "category": "Filter by Category",
+    "allCategories": "All Categories",
+    "count": "{count, plural, one {# item} other {# items}}"
+  },
+  "empty": {
+    "title": "Your pantry is empty",
+    "description": "Start by adding ingredients you have at home"
+  },
+  "categories": "{category, select, vegetable {Vegetable} protein {Protein} dairy {Dairy} grain {Grain} spice {Spice} fruit {Fruit} misc {Other} other {{fallback}}}",
+  "dialog": {
+    "addTitle": "Add Ingredient",
+    "editTitle": "Edit Ingredient",
+    "name": "Ingredient Name",
+    "quantity": "Quantity (optional)",
+    "quantityHelper": "Leave empty for 'to taste'",
+    "unit": "Unit",
+    "category": "Category",
+    "categoryPlaceholder": "Select or type a category",
+    "categoryHelper": "Will be saved as: {category}",
+    "notes": "Notes (optional)"
+  },
+  "delete": {
+    "title": "Delete Pantry Item?",
+    "message": "Ingredient will be permanently removed from your account and all synced devices"
+  },
+  "duplicate": {
+    "title": "Ingredient Already Exists",
+    "message": "{name} already exists in your pantry with {amount}.",
+    "question": "Would you like to modify the existing ingredient?",
+    "action": "Modify Existing"
+  },
+  "feedback": {
+    "added": "Item added successfully",
+    "alreadyExists": "Ingredient already exists",
+    "deleteFailed": "Failed to delete item",
+    "deleted": "Item deleted successfully",
+    "loadFailed": "Failed to load pantry",
+    "nameRequired": "Please enter ingredient name",
+    "saveFailed": "Failed to save item",
+    "updated": "Item updated successfully"
+  }
+}

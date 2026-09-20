@@ -1,0 +1,48 @@
+{
+  "items": {
+    "add": "Nueva receta",
+    "home": "Inicio",
+    "pantry": "Despensa",
+    "search": "Buscar"
+  },
+  "menu": {
+    "about": "Sobre nosotros",
+    "admin": "Administración",
+    "contact": "Contacto",
+    "darkMode": "Modo oscuro",
+    "guest": "Invitado",
+    "lightMode": "Modo claro",
+    "logout": "Cerrar sesión",
+    "notifications": "Notificaciones",
+    "openMenu": "Abrir menú",
+    "profile": "Perfil",
+    "settings": "Configuración",
+    "signIn": "Iniciar sesión",
+    "tapToSignIn": "Tocá para iniciar sesión",
+    "youtube": "YouTube"
+  },
+  "search": {
+    "placeholder": "Buscá recetas, ingredientes...",
+    "placeholderShort": "Buscar...",
+    "title": "Buscar"
+  },
+  "notificationsPaused": "Notificaciones en pausa por un momento",
+  "logoutWarning": "No pudimos cerrar la sesión del todo. Puede seguir activa hasta que venza la cookie.",
+  "footer": {
+    "about": "Sobre nosotros",
+    "contact": "Contacto",
+    "switchToDark": "Cambiar a modo oscuro",
+    "switchToLight": "Cambiar a modo claro",
+    "youtubeChannel": "Canal de YouTube"
+  },
+  "contactDialog": {
+    "email": "Tu email",
+    "mailBody": "Nombre: {name}\nEmail: {email}\n\nMensaje:\n{message}",
+    "mailSubject": "Contacto de {name}",
+    "message": "Mensaje",
+    "messageTooLong": "Tu mensaje es demasiado largo para enviarlo por email. Acortalo o escribinos directamente a {email}",
+    "name": "Tu nombre",
+    "send": "Enviar email",
+    "title": "Contacto"
+  }
+}

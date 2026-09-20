@@ -1,0 +1,31 @@
+{
+  "label": {
+    "cups": "{count, plural, one {cup} other {cups}}",
+    "g": "g",
+    "kg": "kg",
+    "L": "L",
+    "lb": "lb",
+    "mL": "mL",
+    "oz": "oz",
+    "pinch": "{count, plural, one {pinch} other {pinch}}",
+    "tbsp": "tbsp",
+    "toTaste": "to taste",
+    "tsp": "tsp",
+    "units": "{count, plural, one {unit} other {units}}"
+  },
+  "name": {
+    "cups": "cups",
+    "g": "grams",
+    "kg": "kilograms",
+    "L": "litres",
+    "lb": "pounds",
+    "mL": "millilitres",
+    "oz": "ounces",
+    "pinch": "pinch",
+    "tbsp": "tablespoons",
+    "toTaste": "no exact amount",
+    "tsp": "teaspoons",
+    "units": "whole items"
+  },
+  "option": "{label} - {name}"
+}

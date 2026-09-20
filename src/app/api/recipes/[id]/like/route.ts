@@ -11,14 +11,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id: recipeId } = await params;
 
     if (!UUID_REGEX.test(recipeId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     let user;
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Fully atomic like toggle — recipe check inside the transaction
@@ -61,10 +64,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Recipe not found', code: 'recipe.notFound' },
+        { status: 404 }
+      );
     }
     logServerError('Error toggling like:', error);
-    return NextResponse.json({ error: 'Failed to toggle like' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to toggle like', code: 'recipe.likeFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -74,7 +83,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id: recipeId } = await params;
 
     if (!UUID_REGEX.test(recipeId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     // Get total likes count (works for guests too)

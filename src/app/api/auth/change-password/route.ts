@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      return ApiResponseHelper.badRequest('Invalid JSON body');
+      return ApiResponseHelper.badRequest('Invalid JSON body', 'invalidRequest');
     }
 
     // Validate input
@@ -42,20 +42,28 @@ export async function POST(request: NextRequest) {
     setAuthCookie(response, token);
     return response;
   } catch (error) {
+    // The English `error` strings below are unchanged; each one now carries the machine
+    // `code` the client translates. This is the pattern every other route follows.
     if (error instanceof Error && error.message === 'Authentication required') {
-      return ApiResponseHelper.unauthorized();
+      return ApiResponseHelper.unauthorized(undefined, 'unauthorized');
     }
 
+    // Deliberately NO code: 'invalidRequest' would replace the per-field zod messages with
+    // one generic sentence, which is less useful than the English text it would translate.
+    // These become translatable when the zod schemas move to the `validation` namespace.
     if (error instanceof ZodError) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
     // AuthService.changePassword reports a wrong current password with this message
     if (error instanceof Error && error.message === 'Invalid old password') {
-      return ApiResponseHelper.badRequest('Current password is incorrect');
+      return ApiResponseHelper.badRequest(
+        'Current password is incorrect',
+        'currentPasswordIncorrect'
+      );
     }
 
     logServerError('Change password error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }

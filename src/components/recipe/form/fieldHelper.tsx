@@ -1,5 +1,8 @@
 import { Box } from '@mui/material';
+import { useCallback } from 'react';
+import { useTextDescriptor } from '@/i18n/text';
 import { counterEmphasisSx, type FieldCounter } from './formTokens';
+import type { TextDescriptor } from '@/i18n/text';
 import type { ReactNode } from 'react';
 
 /**
@@ -23,5 +26,19 @@ export function fieldHelper(message?: string, counter?: FieldCounter): ReactNode
         </Box>
       )}
     </Box>
+  );
+}
+
+/**
+ * `useTextDescriptor()` for the descriptors that may not be there: `errors.title` when the
+ * title is fine, a row note the parser did not raise. Keeps `undefined` undefined, so the
+ * helper line and the aria-describedby stay off exactly as they did with plain strings.
+ */
+export function useOptionalText(): (descriptor?: TextDescriptor) => string | undefined {
+  const renderText = useTextDescriptor();
+
+  return useCallback(
+    (descriptor?: TextDescriptor) => (descriptor ? renderText(descriptor) : undefined),
+    [renderText]
   );
 }

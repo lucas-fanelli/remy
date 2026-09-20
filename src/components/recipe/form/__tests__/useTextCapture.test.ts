@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { Recipe } from '@/domain/types/recipe';
+import { text as message } from '@/i18n/text';
 import { parseMethod } from '@/lib/utils/recipeText';
 import { StepRowValue } from '../types';
 import { toDraftValues } from '../useRecipeDraft';
@@ -288,7 +289,7 @@ describe('readIngredientLines', () => {
 
   it('should parse a line that was not written from a row', () => {
     expect(readIngredientLines('2 tazas de leche').rows).toEqual([
-      { name: 'leche', amount: '2', unit: 'cups', reason: '' },
+      { name: 'leche', amount: '2', unit: 'cups', reason: null },
     ]);
   });
 
@@ -351,8 +352,8 @@ describe('readIngredientLines', () => {
     const read = readIngredientLines('1 lata de tomate\n3 dientes de ajo', written);
 
     expect(read.rows.map((row) => row.reason)).toEqual([
-      '',
-      'No unit recognised - is "dientes" part of the name?',
+      null,
+      message('recipeParser.reasons.unknownContainer', { word: 'dientes' }),
     ]);
   });
 
@@ -463,7 +464,7 @@ describe('useTextCapture', () => {
 
       const [, lata] = result.current.form.values.ingredients;
       expect(result.current.capture.checks).toEqual({
-        [lata.id]: 'No unit recognised - is "lata" part of the name?',
+        [lata.id]: message('recipeParser.reasons.unknownContainer', { word: 'lata' }),
       });
       expect(result.current.capture.checkCount).toBe(1);
     });
@@ -565,8 +566,8 @@ describe('useTextCapture', () => {
         expect.objectContaining({ description: 'Bake', image: '' }),
         { id: mix.id, description: '', image: STEP_URL },
       ]);
-      expect(result.current.form.issues.map((issue) => issue.message)).toContain(
-        'Step 2 has a photo but no text - describe it or remove the step'
+      expect(result.current.form.issues.map((issue) => issue.message)).toContainEqual(
+        message('recipeForm.issues.stepPhotoWithoutText', { position: 2 })
       );
     });
 
@@ -856,7 +857,7 @@ describe('useTextCapture', () => {
 
       const [, lata] = result.current.form.values.ingredients;
       expect(result.current.capture.checks).toEqual({
-        [lata.id]: 'No unit recognised - is "lata" part of the name?',
+        [lata.id]: message('recipeParser.reasons.unknownContainer', { word: 'lata' }),
       });
     });
 

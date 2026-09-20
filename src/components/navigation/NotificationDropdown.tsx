@@ -15,7 +15,9 @@ import {
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React from 'react';
+import { useDateFnsLocale } from '@/i18n/dates';
 
 interface Notification {
   id: string;
@@ -58,22 +60,6 @@ function getNotificationIcon(type: string) {
   }
 }
 
-function getNotificationText(notification: Notification) {
-  const senderName = notification.sender.fullName || notification.sender.username;
-  switch (notification.type) {
-    case 'follow':
-      return `${senderName} started following you`;
-    case 'like':
-      return `${senderName} liked your recipe`;
-    case 'comment':
-      return `${senderName} commented on your recipe`;
-    case 'rating':
-      return `${senderName} rated your recipe`;
-    default:
-      return 'You have a new notification';
-  }
-}
-
 export default function NotificationDropdown({
   anchorEl,
   onClose,
@@ -84,7 +70,19 @@ export default function NotificationDropdown({
   mounted,
   onNotificationClick,
 }: NotificationDropdownProps) {
+  const t = useTranslations('notifications');
+  const format = useFormatter();
+  const dateLocale = useDateFnsLocale();
   const router = useRouter();
+
+  // One ICU `select`, not four concatenations: the sender's name sits where each language
+  // wants it ('A Ana le gustó tu receta'), and a type the API adds later falls through to
+  // the generic sentence instead of rendering a missing key.
+  const notificationText = (notification: Notification) =>
+    t('text', {
+      type: notification.type,
+      name: notification.sender.fullName || notification.sender.username,
+    });
 
   return (
     <Menu
@@ -123,7 +121,7 @@ export default function NotificationDropdown({
         }}
       >
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Notifications
+          {t('title')}
         </Typography>
         {unreadCount > 0 && (
           <Button
@@ -132,7 +130,7 @@ export default function NotificationDropdown({
             disabled={markingAsRead}
             sx={{ textTransform: 'none', fontSize: '0.75rem' }}
           >
-            {markingAsRead ? 'Marking...' : 'Mark all read'}
+            {markingAsRead ? t('marking') : t('markAllShort')}
           </Button>
         )}
       </Box>
@@ -140,10 +138,10 @@ export default function NotificationDropdown({
       {notifications.length === 0 ? (
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            No notifications yet
+            {t('empty.title')}
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            When someone follows you or interacts with your recipes, you&apos;ll see it here
+            {t('empty.description')}
           </Typography>
         </Box>
       ) : (
@@ -176,7 +174,7 @@ export default function NotificationDropdown({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       {getNotificationIcon(notification.type)}
                       <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                        {getNotificationText(notification)}
+                        {notificationText(notification)}
                       </Typography>
                     </Box>
                   }
@@ -189,6 +187,7 @@ export default function NotificationDropdown({
                       >
                         {formatDistanceToNow(new Date(notification.createdAt), {
                           addSuffix: true,
+                          locale: dateLocale,
                         })}
                       </Typography>
                     ) : (
@@ -197,7 +196,9 @@ export default function NotificationDropdown({
                         color="text.secondary"
                         sx={{ fontSize: '0.75rem' }}
                       >
-                        {new Date(notification.createdAt).toLocaleDateString()}
+                        {format.dateTime(new Date(notification.createdAt), {
+                          dateStyle: 'short',
+                        })}
                       </Typography>
                     )
                   }
@@ -220,7 +221,7 @@ export default function NotificationDropdown({
             }}
             sx={{ textTransform: 'none' }}
           >
-            View all notifications
+            {t('viewAll')}
           </Button>
         </Box>
       )}

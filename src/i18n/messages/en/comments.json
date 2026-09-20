@@ -1,0 +1,32 @@
+{
+  "title": "Comments ({count, number})",
+  "form": {
+    "placeholder": "Share your thoughts about this recipe...",
+    "rate": "Rate this recipe:",
+    "submit": "Post",
+    "previewAlt": "Preview"
+  },
+  "loginPrompt": "Please login to leave a comment",
+  "empty": {
+    "title": "No comments yet",
+    "body": "Be the first to share your thoughts!"
+  },
+  "creatorBadge": "Creator",
+  "recently": "recently",
+  "photoAlt": "Photo by {username}",
+  "edit": {
+    "ratingLabel": "Rating:"
+  },
+  "deleteDialog": {
+    "title": "Delete selected comment?",
+    "message": "Comment will be permanently removed from your account and all synced devices"
+  },
+  "errors": {
+    "uploadFailed": "Failed to upload image",
+    "postFailed": "Failed to post comment",
+    "updateFailed": "Failed to update comment",
+    "deleteFailed": "Failed to delete comment",
+    "invalidType": "Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.",
+    "tooLarge": "Image too large. Maximum size is 5MB."
+  }
+}

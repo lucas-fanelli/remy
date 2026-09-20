@@ -11,7 +11,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id: recipeId } = await params;
 
     if (!UUID_REGEX.test(recipeId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     const token = extractAuthToken(request);
@@ -48,14 +51,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id: recipeId } = await params;
 
     if (!UUID_REGEX.test(recipeId)) {
-      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid ID format', code: 'request.invalidId' },
+        { status: 400 }
+      );
     }
 
     let user;
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     // Fully atomic save toggle — recipe check + toggle inside one transaction
@@ -88,9 +94,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
-      return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Recipe not found', code: 'recipe.notFound' },
+        { status: 404 }
+      );
     }
     logServerError('Error toggling save:', error);
-    return NextResponse.json({ error: 'Failed to save recipe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to save recipe', code: 'recipe.saveFailed' },
+      { status: 500 }
+    );
   }
 }

@@ -1,9 +1,11 @@
 'use client';
 import { AccessTime } from '@mui/icons-material';
 import { Chip } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import DifficultyChip from './DifficultyChip';
 
 export interface RecipeCoverBadgesProps {
+  /** The value as it is STORED; DifficultyChip translates the label */
   difficulty: string;
   /** Prep + cook, in minutes. The pill is left out while it is 0 (no time typed yet) */
   totalTime: number;
@@ -22,6 +24,8 @@ const pillSx = { fontWeight: 600, height: 28, borderRadius: 14 } as const;
  * holds the 4:3 photo (ImageUpload's `overlay` slot is one).
  */
 export default function RecipeCoverBadges({ difficulty, totalTime }: RecipeCoverBadgesProps) {
+  const t = useTranslations('common');
+
   return (
     <>
       <DifficultyChip
@@ -38,7 +42,7 @@ export default function RecipeCoverBadges({ difficulty, totalTime }: RecipeCover
       {totalTime > 0 && (
         <Chip
           icon={<AccessTime />}
-          label={`${totalTime} min`}
+          label={t('time.minutesShort', { count: totalTime })}
           size="small"
           sx={{
             ...pillSx,

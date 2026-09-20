@@ -1,0 +1,22 @@
+{
+  "reasons": {
+    "noName": "No ingredient name on this line",
+    "nameTooLong": "Longer than {max} characters - shorten the name",
+    "numberInName": "The name still holds a number - is the amount right?",
+    "unitInName": "\"{word}\" looks like a unit - is the amount right?",
+    "amountContinues": "The amount seems to go on in the name - is it right?",
+    "qualifierInName": "\"{word}\" was kept in the name - is the unit right?",
+    "unitWithoutAmount": "\"{word}\" looks like a unit but no amount was read - add one, or leave it",
+    "amountAndToTaste": "An amount and 'to taste' on one line - keep one",
+    "unknownContainer": "No unit recognised - is \"{word}\" part of the name?",
+    "unreadableAmount": "Found a number but could not read it as an amount"
+  },
+  "readout": {
+    "ingredients": "{count, plural, one {# ingredient} other {# ingredients}}",
+    "ingredientsWithChecks": "{count, plural, one {# ingredient} other {# ingredients}} - {checks} to check",
+    "steps": "{count, plural, one {# step} other {# steps}}",
+    "stepsWithOrphans": "{count, plural, one {# step} other {# steps}} - {orphans, plural, one {# photo} other {# photos}} without a step",
+    "checkChip": "Check",
+    "checkRow": "{named, select, yes {Check {name} on the next tab} other {Check this ingredient on the next tab}}"
+  }
+}

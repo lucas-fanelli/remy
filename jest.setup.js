@@ -1,6 +1,39 @@
 // TODO: Create typed mock factories to reduce 'any' usage in test files
 import '@testing-library/jest-dom';
 
+// next-intl, globally, for every test file.
+//
+// Components call useTranslations() without a provider in ~2900 existing tests, each with
+// its own render wrapper, so there is nowhere to add NextIntlClientProvider. Instead the
+// module itself is replaced by bindings backed by use-intl's REAL ICU translator bound to
+// the merged ENGLISH catalogue: a migrated component renders the same English text it used
+// to, plurals and t.rich actually run, and a test opts into Spanish with setTestLocale /
+// renderWithLocale from '@/i18n/testing'. See docs/I18N.md.
+//
+// next-intl and use-intl are ESM-only; `transpilePackages` in next.config.js is what makes
+// next/jest compile them instead of ignoring node_modules.
+// The factory runs the first time a test file reaches for next-intl, so the ~60 suites that
+// render nothing translated never pay for loading use-intl and every message file.
+let mockI18nHarness = null;
+jest.mock('next-intl', () => {
+  mockI18nHarness = require('@/i18n/testing');
+  return mockI18nHarness.createNextIntlModuleMock();
+});
+
+// The server half of the same promise. A Server Component reads its messages from
+// getTranslations(), whose real implementation is bound to a request and throws "not
+// supported in Client Components" under jsdom - so a page with a generateMetadata would
+// otherwise need a mock of its own. Same English translator, same setTestLocale opt-in.
+jest.mock('next-intl/server', () => {
+  mockI18nHarness = require('@/i18n/testing');
+  return mockI18nHarness.createNextIntlServerModuleMock();
+});
+
+beforeEach(() => {
+  // A test that switched to Spanish must not leak into the next one
+  if (mockI18nHarness) mockI18nHarness.resetTestLocale();
+});
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {

@@ -14,18 +14,27 @@ export async function GET(
     const { username } = await params;
 
     if (!USERNAME_REGEX.test(username)) {
-      return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid username format', code: 'request.invalidUsername' },
+        { status: 400 }
+      );
     }
 
     // Require authentication to view follower lists
     const token = extractAuthToken(request);
     if (!token) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required', code: 'auth.required' },
+        { status: 401 }
+      );
     }
 
     const payload = await verifySessionToken(token);
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Invalid token', code: 'auth.invalidToken' },
+        { status: 401 }
+      );
     }
 
     const currentUserId: string = payload.userId;
@@ -35,12 +44,15 @@ export async function GET(
     const user = await userService.getUserByUsername(username);
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
     // Privacy check
     if (user.isPrivate && currentUserId !== user.id) {
-      return NextResponse.json({ error: 'This profile is private' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'This profile is private', code: 'user.profilePrivate' },
+        { status: 403 }
+      );
     }
 
     const limit = Math.min(
@@ -107,6 +119,9 @@ export async function GET(
     return NextResponse.json({ followers: followersList, total });
   } catch (error) {
     logServerError('Error fetching followers:', error);
-    return NextResponse.json({ error: 'Failed to fetch followers' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch followers', code: 'user.followersFailed' },
+      { status: 500 }
+    );
   }
 }

@@ -11,6 +11,7 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha, type Theme } from '@mui/material/styles';
+import { useTranslations } from 'next-intl';
 import React, {
   forwardRef,
   useCallback,
@@ -20,6 +21,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { text, useTextDescriptor } from '@/i18n/text';
 import { MAX_UPLOAD_SIZE } from '@/lib/constants';
 import {
   ACCEPT_ATTRIBUTE,
@@ -32,6 +34,7 @@ import {
   readJsonSafely,
   tooLargeMessage,
   uploadErrorMessage,
+  type UploadMessage,
 } from './imageUploadUtils';
 
 export interface ImageUploadProps {
@@ -46,6 +49,7 @@ export interface ImageUploadProps {
    * callback was created under with the current one.
    */
   onChange: (url: string) => void;
+  /** Defaults to 'Cover photo' in the reader's language */
   label?: string;
   required?: boolean;
   /** Width / height of the tile on sm+ and of every preview. Defaults to 4:3. */
@@ -84,7 +88,7 @@ type Phase = 'idle' | 'uploading' | 'failed';
 type View = 'rest' | 'uploading' | 'failed' | 'broken' | 'filled';
 type FocusTarget = 'trigger' | 'action' | 'cancel' | null;
 
-export const BROKEN_IMAGE_MESSAGE = 'This photo could not be loaded - Replace';
+export const BROKEN_IMAGE_MESSAGE = text('recipeForm.photo.broken');
 
 // The one allowed pair of literal colours: these sit on top of a photo, so they
 // must look the same in both themes (same as RecipeCard's badges).
@@ -186,7 +190,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   {
     value,
     onChange,
-    label = 'Cover photo',
+    label,
     required = true,
     aspectRatio = 4 / 3,
     error = false,
@@ -199,11 +203,15 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   },
   ref
 ) {
+  const t = useTranslations('recipeForm');
+  const tCommon = useTranslations('common');
+  const renderText = useTextDescriptor();
   const inline = variant === 'inline';
+  const fieldLabel = label ?? t('photo.coverLabel');
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<UploadMessage | null>(null);
   const [retryable, setRetryable] = useState(false);
   const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -241,7 +249,11 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   else if (broken) view = 'broken';
   else if (value) view = 'filled';
 
-  const internalError = message || (view === 'broken' ? BROKEN_IMAGE_MESSAGE : '');
+  // The server's own sentence arrives as a plain string and is shown as it came
+  const asText = (copy: UploadMessage): string =>
+    typeof copy === 'string' ? copy : renderText(copy);
+  const failure = message ?? (view === 'broken' ? BROKEN_IMAGE_MESSAGE : null);
+  const internalError = failure === null ? '' : asText(failure);
   const showError = error || Boolean(internalError);
   const helper = internalError || helperText;
   const canAcceptFiles = !disabled && phase !== 'uploading';
@@ -275,8 +287,8 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
       abortRef.current?.abort();
       const controller = createAbortController();
       abortRef.current = controller;
-      const fail = (text: string, canRetry: boolean) => {
-        setMessage(text);
+      const fail = (copy: UploadMessage, canRetry: boolean) => {
+        setMessage(copy);
         setRetryable(canRetry);
         setPhase('failed');
         pendingFocus.current = 'action';
@@ -285,7 +297,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
 
       fileRef.current = file;
       replacePreview(createPreviewUrl(file));
-      setMessage('');
+      setMessage(null);
       setPhase('uploading');
       pendingFocus.current = 'cancel';
       setBusy(true);
@@ -346,7 +358,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
     fileRef.current = null;
     pendingFocus.current = null;
     replacePreview(null);
-    setMessage('');
+    setMessage(null);
     setPhase('idle');
     setBusy(false);
   }, [replacePreview, setBusy]);
@@ -374,7 +386,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   };
 
   const handleRemove = () => {
-    setMessage('');
+    setMessage(null);
     setBrokenUrl(null);
     pendingFocus.current = 'trigger';
     onChange('');
@@ -482,7 +494,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
       component="img"
       ref={imageRef}
       src={previewSrc}
-      alt={`${label} preview`}
+      alt={t('photo.previewAlt', { label: fieldLabel })}
       onError={view === 'filled' ? () => setBrokenUrl(value) : undefined}
       sx={{
         display: 'block',
@@ -496,7 +508,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
 
   const progressBar = (
     <LinearProgress
-      aria-label="Uploading photo"
+      aria-label={t('photo.uploadingPhoto')}
       sx={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
     />
   );
@@ -504,15 +516,15 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   if (inline) {
     // One floating X for every state. Cancelling stays enabled while the form is
     // disabled: it is the only way out of a stalled request.
-    let inlineCloseLabel = 'Remove photo';
-    if (view === 'uploading') inlineCloseLabel = 'Cancel upload';
-    else if (view === 'failed') inlineCloseLabel = 'Dismiss failed upload';
+    let inlineCloseLabel = t('photo.removePhoto');
+    if (view === 'uploading') inlineCloseLabel = t('photo.cancelUpload');
+    else if (view === 'failed') inlineCloseLabel = t('photo.dismissFailed');
 
     return (
       <Box
         ref={rootRef}
         role="group"
-        aria-label={label}
+        aria-label={fieldLabel}
         onPaste={handlePaste}
         sx={{ position: 'relative', minWidth: 0 }}
       >
@@ -529,7 +541,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
               disabled={disabled}
               aria-describedby={helper ? helperId : undefined}
             >
-              Add photo
+              {t('photo.addPhoto')}
             </Button>
           ) : (
             <>
@@ -606,11 +618,11 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                   ref={actionRef}
                   type="button"
                   size="small"
-                  aria-label="Retry upload"
+                  aria-label={t('photo.retryUpload')}
                   onClick={handleRetry}
                   disabled={disabled}
                 >
-                  Retry
+                  {tCommon('actions.retry')}
                 </Button>
               )}
               {/* One text button only: the step action row has ~100px to spare. After a
@@ -620,11 +632,11 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                   ref={actionRef}
                   type="button"
                   size="small"
-                  aria-label="Replace photo"
+                  aria-label={t('photo.replacePhoto')}
                   onClick={openPicker}
                   disabled={disabled}
                 >
-                  Replace
+                  {tCommon('actions.replace')}
                 </Button>
               )}
             </>
@@ -654,7 +666,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
         disabled={disabled}
         sx={{ display: 'block', mb: 1, typography: 'subtitle2' }}
       >
-        {label}
+        {fieldLabel}
       </FormLabel>
 
       <Box
@@ -709,7 +721,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                 color={disabled ? 'text.disabled' : 'text.primary'}
                 sx={{ display: 'block' }}
               >
-                {dragOver ? 'Drop to upload' : 'Add a cover photo'}
+                {dragOver ? t('photo.dropToUpload') : t('photo.addCover')}
               </Typography>
               <Typography
                 id={hintId}
@@ -718,7 +730,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                 color={disabled ? 'text.disabled' : 'text.secondary'}
                 sx={{ display: 'block' }}
               >
-                Drop, paste or click - JPG, PNG, WebP or GIF
+                {t('photo.hint')}
               </Typography>
             </Box>
           </ButtonBase>
@@ -770,11 +782,15 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                       fontWeight: 600,
                     }}
                   >
-                    Uploading...
+                    {t('photo.uploading')}
                   </Typography>
                   {/* Never disabled: the way out of a stalled request */}
-                  <ScrimButton ref={cancelRef} label="Cancel upload" onClick={handleCancel}>
-                    Cancel
+                  <ScrimButton
+                    ref={cancelRef}
+                    label={t('photo.cancelUpload')}
+                    onClick={handleCancel}
+                  >
+                    {tCommon('actions.cancel')}
                   </ScrimButton>
                 </Box>
                 {progressBar}
@@ -799,45 +815,49 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
               >
                 {view === 'broken' && <BrokenImage />}
                 <Typography variant="subtitle2">
-                  {view === 'failed' ? 'Upload failed' : 'Photo unavailable'}
+                  {view === 'failed' ? t('photo.uploadFailed') : t('photo.unavailable')}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
                   {view === 'failed' && retryable && (
                     <ScrimButton
                       ref={actionRef}
-                      label="Retry upload"
+                      label={t('photo.retryUpload')}
                       onClick={handleRetry}
                       disabled={disabled}
                     >
-                      Retry
+                      {tCommon('actions.retry')}
                     </ScrimButton>
                   )}
                   {view === 'failed' ? (
                     <>
                       <ScrimButton
                         ref={retryable ? undefined : actionRef}
-                        label="Choose another photo"
+                        label={t('photo.chooseAnotherLabel')}
                         onClick={openPicker}
                         disabled={disabled}
                       >
-                        Choose another
+                        {t('photo.chooseAnother')}
                       </ScrimButton>
-                      <ScrimButton label="Cancel upload" onClick={handleCancel}>
-                        Cancel
+                      <ScrimButton label={t('photo.cancelUpload')} onClick={handleCancel}>
+                        {tCommon('actions.cancel')}
                       </ScrimButton>
                     </>
                   ) : (
                     <>
                       <ScrimButton
                         ref={actionRef}
-                        label="Replace photo"
+                        label={t('photo.replacePhoto')}
                         onClick={openPicker}
                         disabled={disabled}
                       >
-                        Replace
+                        {tCommon('actions.replace')}
                       </ScrimButton>
-                      <ScrimButton label="Remove photo" onClick={handleRemove} disabled={disabled}>
-                        Remove
+                      <ScrimButton
+                        label={t('photo.removePhoto')}
+                        onClick={handleRemove}
+                        disabled={disabled}
+                      >
+                        {tCommon('actions.remove')}
                       </ScrimButton>
                     </>
                   )}
@@ -849,14 +869,18 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
               <Box sx={{ position: 'absolute', right: 8, bottom: 4, display: 'flex' }}>
                 <ScrimButton
                   ref={actionRef}
-                  label="Replace photo"
+                  label={t('photo.replacePhoto')}
                   onClick={openPicker}
                   disabled={disabled}
                 >
-                  Replace
+                  {tCommon('actions.replace')}
                 </ScrimButton>
-                <ScrimButton label="Remove photo" onClick={handleRemove} disabled={disabled}>
-                  Remove
+                <ScrimButton
+                  label={t('photo.removePhoto')}
+                  onClick={handleRemove}
+                  disabled={disabled}
+                >
+                  {tCommon('actions.remove')}
                 </ScrimButton>
               </Box>
             )}

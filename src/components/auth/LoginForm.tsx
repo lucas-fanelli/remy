@@ -1,6 +1,7 @@
 'use client';
 import { Box, TextField, Button, Typography, Alert, CircularProgress, Link } from '@mui/material';
 import NextLink from 'next/link';
+import { useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
@@ -11,6 +12,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
+  const t = useTranslations('auth');
   const { login } = useAuth();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -43,7 +45,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       await login(emailOrUsername, password);
       // Navigation will happen automatically via AuthContext
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('errors.loginFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +90,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
       {/* Password reset confirmation */}
       {passwordWasReset && (
         <Alert severity="success" role="status" sx={{ mb: 2 }}>
-          Your password was updated. Log in with your new password.
+          {t('login.passwordReset')}
         </Alert>
       )}
 
@@ -104,7 +106,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         <TextField
           fullWidth
           size="small"
-          placeholder="Email or username"
+          placeholder={t('login.emailOrUsername')}
           value={emailOrUsername}
           onChange={(e) => setEmailOrUsername(e.target.value)}
           disabled={isLoading}
@@ -116,7 +118,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           fullWidth
           size="small"
           type="password"
-          placeholder="Password"
+          placeholder={t('login.password')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={isLoading}
@@ -135,7 +137,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             py: 1,
           }}
         >
-          {isLoading ? <CircularProgress size={24} /> : 'Log In'}
+          {isLoading ? <CircularProgress size={24} /> : t('login.submit')}
         </Button>
       </Box>
 
@@ -154,7 +156,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             '&:hover': { textDecoration: 'underline' },
           }}
         >
-          Forgot your password?
+          {t('login.forgotPassword')}
         </Link>
       </Box>
 
@@ -174,7 +176,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         }}
       >
         <Typography variant="body2" component="span">
-          Don&apos;t have an account?
+          {t('login.noAccount')}
         </Typography>
         <Box component="span" translate="no">
           <Typography
@@ -190,7 +192,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
             }}
             onClick={onSwitchToRegister}
           >
-            Sign up
+            {t('login.switchToRegister')}
           </Typography>
         </Box>
       </Box>

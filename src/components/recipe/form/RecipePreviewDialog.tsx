@@ -9,6 +9,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import SlideUp from '@/components/common/SlideUp';
 import RecipePreview from './RecipePreview';
@@ -23,13 +24,6 @@ export interface RecipePreviewDialogProps {
   onEditSection: (section: RecipeFormSection, path?: RecipeFieldPath) => void;
 }
 
-const SECTION_LABELS: Record<RecipeFormSection, string> = {
-  basics: 'Title and at a glance',
-  ingredients: 'Ingredients',
-  steps: 'Steps',
-  presentation: 'Photo and description',
-};
-
 /**
  * The faithful preview, on top of the editor: the recipe as it will be published, built
  * from the same display blocks as the recipe page. Read-only; every section has an [Edit]
@@ -41,6 +35,7 @@ export default function RecipePreviewDialog({
   payload,
   onEditSection,
 }: RecipePreviewDialogProps) {
+  const t = useTranslations('recipeForm');
   const theme = useTheme();
   // Same allowed flag as FormDialog: it only exists after the author opened the preview
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -72,9 +67,9 @@ export default function RecipePreviewDialog({
         }}
       >
         <Typography id={titleId} component="h2" variant="h6" sx={{ fontWeight: 600 }}>
-          Preview
+          {t('preview.title')}
         </Typography>
-        <IconButton type="button" aria-label="Close preview" onClick={onClose}>
+        <IconButton type="button" aria-label={t('preview.close')} onClick={onClose}>
           <Close />
         </IconButton>
       </Box>
@@ -83,7 +78,12 @@ export default function RecipePreviewDialog({
           payload={payload}
           placeholders
           compact
-          sectionLabels={SECTION_LABELS}
+          sectionLabels={{
+            basics: t('preview.dialogSections.basics'),
+            ingredients: t('preview.dialogSections.ingredients'),
+            steps: t('preview.dialogSections.steps'),
+            presentation: t('preview.dialogSections.presentation'),
+          }}
           onEditSection={onEditSection}
         />
       </DialogContent>

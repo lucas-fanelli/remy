@@ -1,0 +1,22 @@
+{
+  "reasons": {
+    "noName": "Esta línea no tiene el nombre del ingrediente",
+    "nameTooLong": "Tiene más de {max} caracteres - acortá el nombre",
+    "numberInName": "El nombre todavía tiene un número - ¿la cantidad está bien?",
+    "unitInName": "\"{word}\" parece una unidad - ¿la cantidad está bien?",
+    "amountContinues": "La cantidad parece seguir en el nombre - ¿está bien?",
+    "qualifierInName": "\"{word}\" quedó en el nombre - ¿la unidad está bien?",
+    "unitWithoutAmount": "\"{word}\" parece una unidad pero no leímos ninguna cantidad - agregá una, o dejalo así",
+    "amountAndToTaste": "Una cantidad y \"a gusto\" en la misma línea - dejá una sola",
+    "unknownContainer": "No reconocimos la unidad - ¿\"{word}\" es parte del nombre?",
+    "unreadableAmount": "Encontramos un número pero no pudimos leerlo como cantidad"
+  },
+  "readout": {
+    "ingredients": "{count, plural, one {# ingrediente} other {# ingredientes}}",
+    "ingredientsWithChecks": "{count, plural, one {# ingrediente} other {# ingredientes}} - {checks} para revisar",
+    "steps": "{count, plural, one {# paso} other {# pasos}}",
+    "stepsWithOrphans": "{count, plural, one {# paso} other {# pasos}} - {orphans, plural, one {# foto} other {# fotos}} sin paso",
+    "checkChip": "Revisar",
+    "checkRow": "{named, select, yes {Revisar {name} en la otra pestaña} other {Revisar este ingrediente en la otra pestaña}}"
+  }
+}

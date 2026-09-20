@@ -1,5 +1,7 @@
+import { text } from '@/i18n/text';
 import { RECIPE_DEFAULT_UNIT, RECIPE_LIMITS, RecipeUnit, UNIT_TO_TASTE } from '@/lib/constants';
 import { normaliseAmount } from '@/lib/utils/normaliseAmount';
+import type { TextDescriptor } from '@/i18n/text';
 
 /**
  * Text <-> rows for the 'Write' tab of the recipe form: the author types or pastes the
@@ -14,6 +16,9 @@ import { normaliseAmount } from '@/lib/utils/normaliseAmount';
  *
  * The Spanish aliases are deliberate: recipes are written in the authors' language while
  * the stored unit stays one of RECIPE_UNITS, which is what pantry matching reads.
+ *
+ * The parser has no locale, so a reason is a DESCRIPTOR (src/i18n/text.ts) and the readout
+ * renders it; the aliases and the amounts it reads never change language.
  */
 
 export type ParseConfidence = 'ok' | 'check';
@@ -25,8 +30,8 @@ export interface ParsedIngredient {
   unit: string;
   name: string;
   confidence: ParseConfidence;
-  /** Why the line deserves a look; '' while `confidence` is 'ok' */
-  reason: string;
+  /** Why the line deserves a look; null while `confidence` is 'ok' */
+  reason: TextDescriptor | null;
   /** The line as typed, trimmed */
   sourceText: string;
 }
@@ -48,9 +53,6 @@ export interface ParsedMethod {
   /** More paragraphs than RECIPE_LIMITS.steps: only the first ones were read */
   capped: boolean;
 }
-
-export const INGREDIENTS_CAPPED_MESSAGE = `Only the first ${RECIPE_LIMITS.ingredients} ingredients were read`;
-export const STEPS_CAPPED_MESSAGE = `Only the first ${RECIPE_LIMITS.steps} steps were read`;
 
 /** Lower-case alias -> canonical unit. This table is the only place the aliases live */
 export const UNIT_ALIASES: Readonly<Record<string, RecipeUnit>> = {
@@ -173,12 +175,12 @@ const STEP_MARKER =
 const TRAILING_AMOUNT_MAX_LENGTH = 250;
 
 /** A line as `sourceText` reports it: trimmed, every run of spaces closed up, the case kept */
-export const collapse = (text: string): string => text.trim().replace(/\s+/g, ' ');
+export const collapse = (source: string): string => source.trim().replace(/\s+/g, ' ');
 
 /** How lines are compared: case and spacing do not make a line a different one */
-export const normaliseLine = (text: string): string => collapse(text).toLowerCase();
+export const normaliseLine = (source: string): string => collapse(source).toLowerCase();
 
-const toLines = (text: string): string[] => text.replace(/\r\n?/g, '\n').split('\n');
+const toLines = (source: string): string[] => source.replace(/\r\n?/g, '\n').split('\n');
 
 const lookUpUnit = (token: string): RecipeUnit | undefined =>
   Object.prototype.hasOwnProperty.call(UNIT_ALIASES, token.toLowerCase())
@@ -190,11 +192,11 @@ const ok = (sourceText: string, amount: string, unit: string, name: string): Par
   unit,
   name,
   confidence: 'ok',
-  reason: '',
+  reason: null,
   sourceText,
 });
 
-const check = (row: ParsedIngredient, reason: string): ParsedIngredient => ({
+const check = (row: ParsedIngredient, reason: TextDescriptor): ParsedIngredient => ({
   ...row,
   confidence: 'check',
   reason,
@@ -202,9 +204,9 @@ const check = (row: ParsedIngredient, reason: string): ParsedIngredient => ({
 
 /** A name the form would reject is worth a look before Publish names it */
 const withNameChecks = (row: ParsedIngredient): ParsedIngredient => {
-  if (row.name === '') return check(row, 'No ingredient name on this line');
+  if (row.name === '') return check(row, text('recipeParser.reasons.noName'));
   if (row.name.length > RECIPE_LIMITS.name) {
-    return check(row, `Longer than ${RECIPE_LIMITS.name} characters - shorten the name`);
+    return check(row, text('recipeParser.reasons.nameTooLong', { max: RECIPE_LIMITS.name }));
   }
   return row;
 };
@@ -227,16 +229,16 @@ const unitWordIn = (name: string): string | undefined =>
 const withLeftoverChecks = (row: ParsedIngredient, unitWasRead: boolean): ParsedIngredient => {
   if (row.confidence === 'check') return row;
   if (holdsNumber(row.name)) {
-    return check(row, 'The name still holds a number - is the amount right?');
+    return check(row, text('recipeParser.reasons.numberInName'));
   }
   const unitWord = unitWordIn(row.name);
-  if (unitWord) return check(row, `"${unitWord}" looks like a unit - is the amount right?`);
+  if (unitWord) return check(row, text('recipeParser.reasons.unitInName', { word: unitWord }));
   if (NAME_GOES_ON.test(row.name)) {
-    return check(row, 'The amount seems to go on in the name - is it right?');
+    return check(row, text('recipeParser.reasons.amountContinues'));
   }
   const qualifier = unitWasRead ? MEASURE_QUALIFIER.exec(row.name) : null;
   return qualifier
-    ? check(row, `"${qualifier[0]}" was kept in the name - is the unit right?`)
+    ? check(row, text('recipeParser.reasons.qualifierInName', { word: qualifier[0] }))
     : row;
 };
 
@@ -245,7 +247,7 @@ const withUnitButNoAmountCheck = (row: ParsedIngredient): ParsedIngredient => {
   if (row.confidence === 'check') return row;
   const unitWord = unitWordIn(row.name);
   return unitWord
-    ? check(row, `"${unitWord}" looks like a unit but no amount was read - add one, or leave it`)
+    ? check(row, text('recipeParser.reasons.unitWithoutAmount', { word: unitWord }))
     : row;
 };
 
@@ -254,10 +256,10 @@ const readAmount = (raw: string): string => normaliseAmount(raw.replace(MIXED_NU
 
 function parseIngredientLine(line: string): ParsedIngredient {
   const sourceText = collapse(line);
-  const text = collapse(line.replace(LIST_MARKER, ''));
+  const body = collapse(line.replace(LIST_MARKER, ''));
 
-  const leading = LEADING_AMOUNT.exec(text);
-  const hasMarker = TO_TASTE_MARKER.test(text);
+  const leading = LEADING_AMOUNT.exec(body);
+  const hasMarker = TO_TASTE_MARKER.test(body);
 
   if (leading) {
     const amount = readAmount(leading[1]);
@@ -270,30 +272,30 @@ function parseIngredientLine(line: string): ParsedIngredient {
       const row = withNameChecks(ok(sourceText, amount, unit, name));
       if (row.confidence === 'check') return row;
       return hasMarker
-        ? check(row, "An amount and 'to taste' on one line - keep one")
+        ? check(row, text('recipeParser.reasons.amountAndToTaste'))
         : withLeftoverChecks(row, true);
     }
 
     // The server needs a unit, so a bare count is stored as 'units' ('2 huevos')
     const row = withNameChecks(ok(sourceText, amount, RECIPE_DEFAULT_UNIT, collapse(rest)));
     if (row.confidence === 'check') return row;
-    if (hasMarker) return check(row, "An amount and 'to taste' on one line - keep one");
+    if (hasMarker) return check(row, text('recipeParser.reasons.amountAndToTaste'));
     // '1 lata de tomate': the first word may be a measure this list does not know
     const container = CONTAINER_OF.exec(row.name);
     return container
-      ? check(row, `No unit recognised - is "${container[1]}" part of the name?`)
+      ? check(row, text('recipeParser.reasons.unknownContainer', { word: container[1] }))
       : withLeftoverChecks(row, false);
   }
 
   if (hasMarker) {
-    const name = collapse(text.replace(TO_TASTE_MARKER, ' '));
+    const name = collapse(body.replace(TO_TASTE_MARKER, ' '));
     return withUnitButNoAmountCheck(withNameChecks(ok(sourceText, '', '', name)));
   }
 
   // 'harina 500 g', 'harina: 500g', 'harina (500 g)'
   const trailing =
-    HAS_NUMBER.test(text) && text.length <= TRAILING_AMOUNT_MAX_LENGTH
-      ? TRAILING_AMOUNT.exec(text)
+    HAS_NUMBER.test(body) && body.length <= TRAILING_AMOUNT_MAX_LENGTH
+      ? TRAILING_AMOUNT.exec(body)
       : null;
   const trailingUnit = trailing ? lookUpUnit(trailing[3]) : undefined;
   if (trailing && trailingUnit && trailing[1].trim() !== '') {
@@ -303,10 +305,10 @@ function parseIngredientLine(line: string): ParsedIngredient {
 
   // No amount at all is 'to taste' (Pantry's model); a number that could not be placed
   // stays in the name and is pointed out
-  const row = withNameChecks(ok(sourceText, '', '', text));
+  const row = withNameChecks(ok(sourceText, '', '', body));
   if (row.confidence === 'check') return row;
-  return holdsNumber(text)
-    ? check(row, 'Found a number but could not read it as an amount')
+  return holdsNumber(body)
+    ? check(row, text('recipeParser.reasons.unreadableAmount'))
     : withUnitButNoAmountCheck(row);
 }
 
@@ -317,8 +319,8 @@ function parseIngredientLine(line: string): ParsedIngredient {
  * amount AND unit). A line whose split leaves a number, a unit or a piece of the measure in
  * the name is flagged 'check' with the reason. Never throws.
  */
-export function parseIngredientLines(text: string): ParsedIngredients {
-  const lines = toLines(text).filter((line) => line.trim() !== '');
+export function parseIngredientLines(source: string): ParsedIngredients {
+  const lines = toLines(source).filter((line) => line.trim() !== '');
   return {
     rows: lines.slice(0, RECIPE_LIMITS.ingredients).map(parseIngredientLine),
     capped: lines.length > RECIPE_LIMITS.ingredients,
@@ -331,9 +333,9 @@ export function parseIngredientLines(text: string): ParsedIngredients {
  * continue the step above them; in a plain block of lines every line is a step. The
  * numbering is dropped: a step's number is its position. Never throws.
  */
-export function parseMethod(text: string): ParsedMethod {
+export function parseMethod(source: string): ParsedMethod {
   // Trimmed first, so a blank line can only be one BETWEEN paragraphs
-  const lines = toLines(text.trim());
+  const lines = toLines(source.trim());
   const structured = lines.some((line) => line.trim() === '' || STEP_MARKER.test(line));
 
   const paragraphs: string[][] = [];

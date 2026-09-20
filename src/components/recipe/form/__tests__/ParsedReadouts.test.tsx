@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+import { text } from '@/i18n/text';
 import ParsedIngredientsReadout, { ingredientsSummary } from '../ParsedIngredientsReadout';
 import ParsedStepsReadout, { stepsSummary } from '../ParsedStepsReadout';
 import RecipePreviewDialog from '../RecipePreviewDialog';
@@ -17,13 +18,17 @@ const row = (id: string, amount: string, unit: string, name: string) => ({
 
 describe('ingredientsSummary', () => {
   it('should count one ingredient in the singular', () => {
-    expect(ingredientsSummary([row('a', '2', 'units', 'huevos')], 0)).toBe('1 ingredient');
+    expect(ingredientsSummary([row('a', '2', 'units', 'huevos')], 0)).toEqual(
+      text('recipeParser.readout.ingredients', { count: 1 })
+    );
   });
 
   it('should skip blank rows and add what is left to check', () => {
     const rows = [row('a', '2', 'units', 'huevos'), row('b', '', '', 'sal'), row('c', '', '', '')];
 
-    expect(ingredientsSummary(rows, 1)).toBe('2 ingredients - 1 to check');
+    expect(ingredientsSummary(rows, 1)).toEqual(
+      text('recipeParser.readout.ingredientsWithChecks', { count: 2, checks: 1 })
+    );
   });
 });
 
@@ -88,7 +93,9 @@ describe('ParsedIngredientsReadout', () => {
 
 describe('stepsSummary', () => {
   it('should count one step in the singular', () => {
-    expect(stepsSummary([{ id: 'a', description: 'Mix', image: '' }])).toBe('1 step');
+    expect(stepsSummary([{ id: 'a', description: 'Mix', image: '' }])).toEqual(
+      text('recipeParser.readout.steps', { count: 1 })
+    );
   });
 
   it('should mention the photos that lost their paragraph', () => {
@@ -98,7 +105,9 @@ describe('stepsSummary', () => {
       { id: 'c', description: '', image: STEP_URL },
     ];
 
-    expect(stepsSummary(rows)).toBe('2 steps - 1 photo without a step');
+    expect(stepsSummary(rows)).toEqual(
+      text('recipeParser.readout.stepsWithOrphans', { count: 2, orphans: 1 })
+    );
   });
 
   it('should count several orphaned photos in the plural', () => {
@@ -107,7 +116,9 @@ describe('stepsSummary', () => {
       { id: 'b', description: ' ', image: STEP_URL },
     ];
 
-    expect(stepsSummary(rows)).toBe('0 steps - 2 photos without a step');
+    expect(stepsSummary(rows)).toEqual(
+      text('recipeParser.readout.stepsWithOrphans', { count: 0, orphans: 2 })
+    );
   });
 });
 

@@ -24,11 +24,13 @@ export async function GET(request: NextRequest) {
 
     return ApiResponseHelper.success(users);
   } catch (error) {
+    // No code: these are the per-field zod messages, and the generic 'invalidRequest'
+    // sentence would say less than the English it would replace
     if (error instanceof ZodError) {
       return ApiResponseHelper.badRequest(error.errors.map((e) => e.message).join(', '));
     }
 
     logServerError('Search users error:', error);
-    return ApiResponseHelper.internalError();
+    return ApiResponseHelper.internalError(undefined, 'serverError');
   }
 }

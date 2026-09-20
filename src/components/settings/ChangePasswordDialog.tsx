@@ -15,9 +15,11 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -25,8 +27,11 @@ interface ChangePasswordDialogProps {
 }
 
 export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProps) {
+  const t = useTranslations('settings');
+  const tCommon = useTranslations('common');
   const { isAuthenticated } = useAuth();
   const { showSuccess, showError } = useToast();
+  const apiErrorMessage = useApiErrorMessage();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -70,29 +75,29 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
     const newErrors: Record<string, string> = {};
 
     if (!formData.currentPassword) {
-      newErrors.currentPassword = 'Current password is required';
+      newErrors.currentPassword = t('changePassword.errors.currentRequired');
     }
 
     if (!formData.newPassword) {
-      newErrors.newPassword = 'New password is required';
+      newErrors.newPassword = t('changePassword.errors.newRequired');
     } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
+      newErrors.newPassword = t('changePassword.errors.tooShort');
     } else if (!/[A-Z]/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one uppercase letter';
+      newErrors.newPassword = t('changePassword.errors.uppercase');
     } else if (!/[a-z]/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one lowercase letter';
+      newErrors.newPassword = t('changePassword.errors.lowercase');
     } else if (!/\d/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one number';
+      newErrors.newPassword = t('changePassword.errors.number');
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your new password';
+      newErrors.confirmPassword = t('changePassword.errors.confirmRequired');
     } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('changePassword.errors.mismatch');
     }
 
     if (formData.currentPassword === formData.newPassword) {
-      newErrors.newPassword = 'New password must be different from current password';
+      newErrors.newPassword = t('changePassword.errors.sameAsCurrent');
     }
 
     setErrors(newErrors);
@@ -107,7 +112,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
     }
 
     if (!isAuthenticated) {
-      showError('You must be logged in to change your password');
+      showError(t('changePassword.notLoggedIn'));
       return;
     }
 
@@ -129,14 +134,16 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to change password');
+        // The server's machine `code` when it sent one this build knows ('the current
+        // password is wrong'), its own English sentence when it did not (zod field errors).
+        throw new Error(apiErrorMessage(data, t('changePassword.failed')));
       }
 
-      showSuccess('Password changed successfully!');
+      showSuccess(t('changePassword.success'));
       handleClose();
     } catch (error) {
       console.error('Error changing password:', error);
-      showError(error instanceof Error ? error.message : 'Failed to change password');
+      showError(error instanceof Error ? error.message : t('changePassword.failed'));
     } finally {
       setSaving(false);
     }
@@ -180,7 +187,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
           py: { xs: 1.5, md: 2 },
         }}
       >
-        Change Password
+        {t('changePassword.title')}
         <IconButton onClick={handleClose} size={isMobile ? 'small' : 'medium'}>
           <CloseIcon sx={{ fontSize: { xs: '1.25rem', md: '1.5rem' } }} />
         </IconButton>
@@ -190,14 +197,13 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
         <DialogContent sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
             <Alert severity="info" sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}>
-              Your password must be at least 8 characters and include uppercase, lowercase, and
-              numbers.
+              {t('changePassword.requirements')}
             </Alert>
 
             {/* Current Password */}
             <TextField
               fullWidth
-              label="Current Password"
+              label={t('changePassword.currentPassword')}
               name="currentPassword"
               type={showPasswords.current ? 'text' : 'password'}
               value={formData.currentPassword}
@@ -227,7 +233,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
             {/* New Password */}
             <TextField
               fullWidth
-              label="New Password"
+              label={t('changePassword.newPassword')}
               name="newPassword"
               type={showPasswords.new ? 'text' : 'password'}
               value={formData.newPassword}
@@ -257,7 +263,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
             {/* Confirm Password */}
             <TextField
               fullWidth
-              label="Confirm New Password"
+              label={t('changePassword.confirmPassword')}
               name="confirmPassword"
               type={showPasswords.confirm ? 'text' : 'password'}
               value={formData.confirmPassword}
@@ -300,7 +306,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
             fullWidth={isMobile}
             size={isMobile ? 'large' : 'medium'}
           >
-            Cancel
+            {tCommon('actions.cancel')}
           </Button>
           <Button
             type="submit"
@@ -310,7 +316,7 @@ export default function ChangePasswordDialog({ open, onClose }: ChangePasswordDi
             size={isMobile ? 'large' : 'medium'}
             startIcon={saving ? <CircularProgress size={isMobile ? 18 : 20} /> : null}
           >
-            {saving ? 'Changing...' : 'Change Password'}
+            {saving ? t('changePassword.submitting') : t('changePassword.submit')}
           </Button>
         </DialogActions>
       </form>

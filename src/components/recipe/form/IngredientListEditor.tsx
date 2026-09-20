@@ -2,10 +2,12 @@
 import { Add, InfoOutlined } from '@mui/icons-material';
 import { Box, Button, FormHelperText, Paper, Typography, useMediaQuery } from '@mui/material';
 import { AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useId, useRef } from 'react';
 import { MotionBox } from '@/components/motion';
 import { RECIPE_LIMITS } from '@/lib/constants';
 import EditorLiveRegion, { useAnnouncer } from './EditorLiveRegion';
+import { useOptionalText } from './fieldHelper';
 import { rowMotion } from './formMotion';
 import { attentionColor } from './formTokens';
 import { isBlankIngredientRow, trimTrailingBlankRows } from './formValues';
@@ -16,6 +18,7 @@ import { RegisterField } from './useFieldRegistry';
 import { usePointerSettled } from './usePointerSettled';
 import { IngredientPatch, RecipeFormApi } from './useRecipeForm';
 import { useRowFocus } from './useRowFocus';
+import type { TextDescriptor } from '@/i18n/text';
 
 export interface IngredientListEditorProps {
   /** The engine, or the slice of it this editor reads */
@@ -30,9 +33,10 @@ export interface IngredientListEditorProps {
   labelledBy?: string;
   /**
    * Row id -> a non-blocking 'look here' note ('No unit recognised - is "lata" part of the
-   * name?'). Attention, not an error: the shell drops the entry once the row was edited.
+   * name?'), as a descriptor. Attention, not an error: the shell drops the entry once the
+   * row was edited.
    */
-  rowNotes?: Readonly<Record<string, string>>;
+  rowNotes?: Readonly<Record<string, TextDescriptor>>;
 }
 
 const GRID_COLUMNS = '88px 128px 1fr 44px';
@@ -52,6 +56,8 @@ export default function IngredientListEditor({
   labelledBy,
   rowNotes,
 }: IngredientListEditorProps) {
+  const t = useTranslations('recipeForm');
+  const showText = useOptionalText();
   const { values, errors, ingredients, touch } = form;
   const rows = values.ingredients;
 
@@ -96,9 +102,9 @@ export default function IngredientListEditor({
       current.ingredients.remove(id);
       if (neighbour) focusRow(neighbour, 'remove');
       else addButtonRef.current?.focus();
-      announce(`Ingredient ${index + 1} removed`);
+      announce(t('ingredients.removed', { position: index + 1 }));
     },
-    [announce, focusRow]
+    [announce, focusRow, t]
   );
 
   const handleNameEnter = useCallback(
@@ -123,9 +129,11 @@ export default function IngredientListEditor({
       if (previous) focusRow(previous.id, 'name', { caretAtEnd: true });
       else focusRow(current.rows[index + 1].id, 'amount');
       // Removing the trailing blank row changes nothing the author can count
-      if (!isTrailingBlank(current.rows, index)) announce(`Ingredient ${index + 1} removed`);
+      if (!isTrailingBlank(current.rows, index)) {
+        announce(t('ingredients.removed', { position: index + 1 }));
+      }
     },
-    [announce, focusRow]
+    [announce, focusRow, t]
   );
 
   const handleAdd = () => {
@@ -133,7 +141,7 @@ export default function IngredientListEditor({
     if (!id) return;
     focusRow(id, 'amount');
     const filled = trimTrailingBlankRows(rows, isBlankIngredientRow).length;
-    announce(`Ingredient ${filled + 1} added`);
+    announce(t('ingredients.added', { position: filled + 1 }));
   };
 
   // 'Add at least one ingredient' has no control of its own: send focus to the first row
@@ -165,9 +173,9 @@ export default function IngredientListEditor({
           bgcolor: 'action.hover',
         }}
       >
-        {['Amount', 'Unit', 'Ingredient'].map((heading) => (
+        {(['columnAmount', 'columnUnit', 'columnName'] as const).map((heading) => (
           <Typography key={heading} variant="caption" color="text.secondary">
-            {heading}
+            {t(`ingredients.${heading}`)}
           </Typography>
         ))}
       </Box>
@@ -205,7 +213,7 @@ export default function IngredientListEditor({
         onClick={handleAdd}
         sx={{ justifyContent: 'flex-start', height: 48, px: 1.5, borderRadius: 0 }}
       >
-        Add ingredient
+        {t('ingredients.add')}
       </Button>
     </>
   );
@@ -214,7 +222,7 @@ export default function IngredientListEditor({
     <Box
       role="group"
       aria-labelledby={labelledBy}
-      aria-label={labelledBy ? undefined : 'Ingredients'}
+      aria-label={labelledBy ? undefined : t('ingredients.groupLabel')}
       aria-describedby={errors.ingredients ? errorId : undefined}
     >
       <Paper ref={containerRef} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
@@ -223,7 +231,7 @@ export default function IngredientListEditor({
 
       {errors.ingredients && (
         <FormHelperText id={errorId} error>
-          {errors.ingredients}
+          {showText(errors.ingredients)}
         </FormHelperText>
       )}
 
@@ -231,7 +239,7 @@ export default function IngredientListEditor({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1, px: 1.5 }}>
           <InfoOutlined fontSize="small" sx={{ color: attentionColor }} />
           <Typography variant="caption" color="text.secondary">
-            {RECIPE_LIMITS.ingredients} ingredients is the most a recipe can have
+            {t('ingredients.limitReached', { max: RECIPE_LIMITS.ingredients })}
           </Typography>
         </Box>
       )}
@@ -241,7 +249,7 @@ export default function IngredientListEditor({
         color="text.secondary"
         sx={{ display: 'block', mt: 1, px: 1.5 }}
       >
-        No exact amount? Leave amount and unit empty - it shows as to taste.
+        {t('ingredients.toTasteHint')}
       </Typography>
 
       <EditorLiveRegion message={message} />

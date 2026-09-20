@@ -1,6 +1,7 @@
 'use client';
 import { Button, CircularProgress } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 import { PUBLISH_GUARD_MS } from './formMotion';
 import { RecipeFormMode } from './types';
@@ -19,9 +20,13 @@ export interface PublishButtonProps {
   sx?: SxProps<Theme>;
 }
 
-const LABELS: Record<RecipeFormMode, { idle: string; pending: string }> = {
-  create: { idle: 'Publish recipe', pending: 'Publishing...' },
-  edit: { idle: 'Save changes', pending: 'Saving...' },
+/** `mode` is a closed union, so the message key may be built from it (docs/I18N.md) */
+const LABEL_KEYS: Record<
+  RecipeFormMode,
+  { idle: 'create' | 'edit'; pending: 'creating' | 'editing' }
+> = {
+  create: { idle: 'create', pending: 'creating' },
+  edit: { idle: 'edit', pending: 'editing' },
 };
 
 /**
@@ -39,6 +44,7 @@ export default function PublishButton({
   'aria-describedby': describedBy,
   sx,
 }: PublishButtonProps) {
+  const t = useTranslations('recipeForm');
   const mountedAt = useRef(Date.now());
   useEffect(() => {
     mountedAt.current = Date.now();
@@ -51,7 +57,7 @@ export default function PublishButton({
     onPublish();
   };
 
-  const labels = LABELS[mode];
+  const labels = LABEL_KEYS[mode];
 
   return (
     <Button
@@ -67,7 +73,7 @@ export default function PublishButton({
       startIcon={pending ? <CircularProgress size={18} color="inherit" /> : undefined}
       sx={[{ minWidth: 168 }, ...(Array.isArray(sx) ? sx : [sx])]}
     >
-      {pending ? labels.pending : labels.idle}
+      {t(`publish.${pending ? labels.pending : labels.idle}`)}
     </Button>
   );
 }

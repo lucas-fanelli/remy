@@ -81,6 +81,36 @@ describe('getIngredientParts', () => {
       expect(parts.name).toBe('');
     });
   });
+
+  // The count only reaches the screen through a labeller that pluralises ('2 tazas'), so a
+  // spy is the only way to see which number the line asked for.
+  describe('the plural count handed to the labeller', () => {
+    const spy = (unit: string, count: number) => `${unit}#${count}`;
+
+    it('should hand over the amount when it is a number', () => {
+      expect(getIngredientParts({ name: 'Flour', amount: '2', unit: 'cups' }, spy).quantity).toBe(
+        '2 cups#2'
+      );
+    });
+
+    it('should hand over zero rather than falling back to one', () => {
+      expect(getIngredientParts({ name: 'Sugar', amount: '0', unit: 'cups' }, spy).quantity).toBe(
+        '0 cups#0'
+      );
+    });
+
+    it('should fall back to one for a fraction it cannot read', () => {
+      expect(getIngredientParts({ name: 'Butter', amount: '1/2', unit: 'cups' }, spy).quantity).toBe(
+        '1/2 cups#1'
+      );
+    });
+
+    it('should fall back to one when there is no amount at all', () => {
+      expect(getIngredientParts({ name: 'Oil', amount: '', unit: 'cups' }, spy).quantity).toBe(
+        'cups#1'
+      );
+    });
+  });
 });
 
 describe('formatServings', () => {

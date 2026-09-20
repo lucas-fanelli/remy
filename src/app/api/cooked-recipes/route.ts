@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -221,7 +221,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logServerError('Error fetching cooked recipes:', error);
-    return NextResponse.json({ error: 'Failed to fetch cooked recipes' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch cooked recipes', code: 'cooked.fetchFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -235,14 +238,17 @@ export async function POST(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     let rawBody;
     try {
       rawBody = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid JSON body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
 
     let postId: string,
@@ -256,11 +262,16 @@ export async function POST(request: NextRequest) {
       notes = parsed.notes;
       force = parsed.force;
     } catch (err) {
+      // No code on the zod branch: the message names the field that failed, and
+      // 'invalidRequest' would replace it with one generic sentence.
       if (err instanceof ZodError) {
         const firstIssue = err.issues[0]?.message || 'Invalid request body';
         return NextResponse.json({ error: firstIssue }, { status: 400 });
       }
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid request body', code: 'invalidRequest' },
+        { status: 400 }
+      );
     }
 
     // Strip HTML from notes to prevent XSS
@@ -441,11 +452,17 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === 'RECIPE_NOT_FOUND') {
-        return NextResponse.json({ error: 'Recipe not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: 'Recipe not found', code: 'recipe.notFound' },
+          { status: 404 }
+        );
       }
       if (error.message === 'ALREADY_COOKED') {
         return NextResponse.json(
-          { error: 'Recipe already marked as cooked in the last 24 hours' },
+          {
+            error: 'Recipe already marked as cooked in the last 24 hours',
+            code: 'cooked.alreadyCooked',
+          },
           { status: 409 }
         );
       }
@@ -453,6 +470,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: `Daily cook limit reached (${MAX_DAILY_COOKS} per day). Please try again tomorrow.`,
+            code: 'cooked.dailyLimit',
           },
           { status: 429 }
         );
@@ -461,6 +479,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: 'Some ingredients are insufficient. Send force: true to proceed anyway.',
+            code: 'cooked.insufficientIngredients',
             insufficientIngredients: (
               error as Error & {
                 insufficientIngredients: Array<{
@@ -477,7 +496,10 @@ export async function POST(request: NextRequest) {
       }
     }
     logServerError('Error marking recipe as cooked:', error);
-    return NextResponse.json({ error: 'Failed to mark recipe as cooked' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to mark recipe as cooked', code: 'cooked.markFailed' },
+      { status: 500 }
+    );
   }
 }
 
@@ -491,14 +513,17 @@ export async function DELETE(request: NextRequest) {
     try {
       user = await requireAuth(request);
     } catch {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const cookedRecipeId = searchParams.get('id');
 
     if (!cookedRecipeId || !UUID_REGEX.test(cookedRecipeId)) {
-      return NextResponse.json({ error: 'Valid cooked recipe ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Valid cooked recipe ID is required', code: 'cooked.invalidId' },
+        { status: 400 }
+      );
     }
 
     logAuditEvent('COOKED_RECIPE_DELETE', { userId: user.id, cookedRecipeId });
@@ -650,7 +675,10 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (!deleted) {
-      return NextResponse.json({ error: 'Cooked recipe not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Cooked recipe not found', code: 'cooked.notFound' },
+        { status: 404 }
+      );
     }
 
     const message = deleted.restorationSkipped
@@ -659,6 +687,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ message });
   } catch (error) {
     logServerError('Error removing cooked recipe:', error);
-    return NextResponse.json({ error: 'Failed to remove cooked recipe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to remove cooked recipe', code: 'cooked.removeFailed' },
+      { status: 500 }
+    );
   }
 }

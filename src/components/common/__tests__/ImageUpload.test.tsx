@@ -15,11 +15,7 @@ import {
 } from '@testing-library/react';
 import React, { useState } from 'react';
 import '@testing-library/jest-dom';
-import ImageUpload, {
-  BROKEN_IMAGE_MESSAGE,
-  type ImageUploadHandle,
-  type ImageUploadProps,
-} from '../ImageUpload';
+import ImageUpload, { type ImageUploadHandle, type ImageUploadProps } from '../ImageUpload';
 
 const theme = createTheme();
 const UPLOADED_URL = 'https://res.cloudinary.com/remy/uploaded.jpg';
@@ -925,7 +921,9 @@ describe('ImageUpload', () => {
 
       fireEvent.error(screen.getByAltText('Cover photo preview'));
 
-      expect(screen.getByRole('alert')).toHaveTextContent(BROKEN_IMAGE_MESSAGE);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'This photo could not be loaded - Replace'
+      );
       expect(screen.getByText('Photo unavailable')).toBeInTheDocument();
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
@@ -940,7 +938,9 @@ describe('ImageUpload', () => {
 
       renderWithTheme(<ImageUpload value={EXISTING_URL} onChange={onChange} />);
 
-      expect(screen.getByRole('alert')).toHaveTextContent(BROKEN_IMAGE_MESSAGE);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'This photo could not be loaded - Replace'
+      );
       complete.mockRestore();
       naturalWidth.mockRestore();
     });
@@ -1274,7 +1274,9 @@ describe('ImageUpload', () => {
 
       fireEvent.error(screen.getByAltText('Step photo preview'));
 
-      expect(screen.getByRole('alert')).toHaveTextContent(BROKEN_IMAGE_MESSAGE);
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'This photo could not be loaded - Replace'
+      );
       expect(screen.getByRole('button', { name: 'Replace photo' })).toBeInTheDocument();
     });
   });

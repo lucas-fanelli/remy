@@ -249,7 +249,13 @@ describe('POST /api/auth/reset-password', () => {
 
     // Assert
     expect(response.status).toBe(400);
-    expect(body).toEqual({ success: false, error: 'This reset link is invalid or has expired' });
+    // The same code for the three cases, for the same reason as the same sentence: a code
+    // per case would tell the caller whether the token exists
+    expect(body).toEqual({
+      success: false,
+      error: 'This reset link is invalid or has expired',
+      code: 'auth.invalidResetToken',
+    });
   });
 
   it('should not clear the session cookie when the token is rejected', async () => {
@@ -356,7 +362,7 @@ describe('POST /api/auth/reset-password', () => {
 
     // Assert
     expect(response.status).toBe(500);
-    expect(body).toEqual({ success: false, error: 'Internal server error' });
+    expect(body).toEqual({ success: false, error: 'Internal server error', code: 'serverError' });
   });
 
   it('should never log the token or the new password', async () => {

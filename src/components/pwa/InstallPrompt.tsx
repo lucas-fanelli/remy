@@ -5,6 +5,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import IosShareIcon from '@mui/icons-material/IosShare';
 import { Drawer, Box, Typography, Button, IconButton, useTheme, alpha } from '@mui/material';
+import { useTranslations } from 'next-intl';
+import { BRANDING } from '@/config/branding';
 import { usePwa } from '@/contexts/PwaContext';
 
 /**
@@ -14,6 +16,8 @@ import { usePwa } from '@/contexts/PwaContext';
  * Consumes the PwaContext for state management.
  */
 export default function InstallPrompt() {
+  const t = useTranslations('pwa');
+  const tCommon = useTranslations('common');
   const theme = useTheme();
   const { showInstallPrompt, isIOSSafari, triggerInstall, dismissInstallPrompt } = usePwa();
 
@@ -49,7 +53,7 @@ export default function InstallPrompt() {
             right: 8,
             color: 'text.secondary',
           }}
-          aria-label="Close install prompt"
+          aria-label={t('install.dismiss')}
         >
           <CloseIcon />
         </IconButton>
@@ -85,19 +89,19 @@ export default function InstallPrompt() {
           gutterBottom
           sx={{ fontWeight: 600 }}
         >
-          Get the Full Experience
+          {t('install.title')}
         </Typography>
 
         {/* Description */}
         <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 3 }}>
-          Install Remy&apos;s on your home screen for a faster, native-like experience.
+          {t('install.description', { name: BRANDING.name })}
         </Typography>
 
         {isIOSSafari ? (
           // iOS Instructions
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 2 }}>
-              To install on your device:
+              {t('install.ios.intro')}
             </Typography>
             <Box
               sx={{
@@ -112,18 +116,22 @@ export default function InstallPrompt() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <IosShareIcon sx={{ color: 'primary.main' }} />
                 <Typography variant="body2">
-                  1. Tap the <strong>Share</strong> button in Safari
+                  {t.rich('install.ios.share', {
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <AddBoxOutlinedIcon sx={{ color: 'primary.main' }} />
                 <Typography variant="body2">
-                  2. Select <strong>&quot;Add to Home Screen&quot;</strong>
+                  {t.rich('install.ios.addToHomeScreen', {
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
                 </Typography>
               </Box>
             </Box>
             <Button fullWidth variant="outlined" onClick={dismissInstallPrompt} sx={{ mt: 2 }}>
-              Got it
+              {tCommon('actions.gotIt')}
             </Button>
           </Box>
         ) : (
@@ -141,7 +149,7 @@ export default function InstallPrompt() {
               fontSize: '1rem',
             }}
           >
-            Install App
+            {t('install.action')}
           </Button>
         )}
 
@@ -157,7 +165,7 @@ export default function InstallPrompt() {
               textTransform: 'none',
             }}
           >
-            Not now
+            {tCommon('actions.notNow')}
           </Button>
         )}
       </Box>

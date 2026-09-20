@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, isLocale, negotiateLocale } from '@/i18n/config';
 import type { NextRequest } from 'next/server';
 
 // Safe base64url decode that handles non-ASCII (e.g. accented usernames)
@@ -125,6 +126,20 @@ function checkRateLimit(
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
+
+  // Language: on the very first visit there is no cookie, so the Accept-Language decision
+  // is written down here. Every later request then reads that cookie and renders the first
+  // HTML in the right language - the choice never depends on the auth session and never
+  // flips when the browser sends a different Accept-Language.
+  // NOT httpOnly on purpose: LanguageSwitcher writes the same cookie from the client.
+  if (!isLocale(request.cookies.get(LOCALE_COOKIE)?.value)) {
+    response.cookies.set(LOCALE_COOKIE, negotiateLocale(request.headers.get('accept-language')), {
+      path: '/',
+      maxAge: LOCALE_COOKIE_MAX_AGE,
+      sameSite: 'lax',
+      httpOnly: false,
+    });
+  }
 
   // Security Headers
   response.headers.set('X-DNS-Prefetch-Control', 'on');
