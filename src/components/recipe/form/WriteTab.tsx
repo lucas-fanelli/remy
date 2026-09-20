@@ -1,7 +1,9 @@
 'use client';
 import { Box, TextField, Typography } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { useEffect, useId, useRef } from 'react';
-import { INGREDIENTS_CAPPED_MESSAGE, STEPS_CAPPED_MESSAGE } from '@/lib/utils/recipeText';
+import { useTextDescriptor } from '@/i18n/text';
+import { RECIPE_LIMITS } from '@/lib/constants';
 import EditorLiveRegion, { useAnnouncer } from './EditorLiveRegion';
 import { formSpacing } from './formTokens';
 import ParsedIngredientsReadout, { ingredientsSummary } from './ParsedIngredientsReadout';
@@ -65,12 +67,14 @@ export default function WriteTab({
   onCheckRow,
   autoFocusTitle = true,
 }: WriteTabProps) {
+  const t = useTranslations('recipeForm');
+  const renderText = useTextDescriptor();
   const ingredientsId = useId();
   const methodId = useId();
   const { message, announce } = useAnnouncer();
 
-  const ingredients = ingredientsSummary(form.values.ingredients, capture.checkCount);
-  const steps = stepsSummary(form.values.steps);
+  const ingredients = renderText(ingredientsSummary(form.values.ingredients, capture.checkCount));
+  const steps = renderText(stepsSummary(form.values.steps));
 
   // Mirrors a summary into the live region after a pause; never when the tab just opened
   const announced = useRef({ ingredients, steps });
@@ -91,7 +95,7 @@ export default function WriteTab({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: formSpacing.group }}>
       <SectionHeading ref={headingRef} component="h3" sx={visuallyHiddenSx}>
-        Write
+        {t('write.heading')}
       </SectionHeading>
 
       <TitleField
@@ -109,7 +113,7 @@ export default function WriteTab({
           color="text.secondary"
           sx={{ display: 'block', mb: formSpacing.label }}
         >
-          Ingredients
+          {t('write.ingredientsLabel')}
         </Typography>
         <TextField
           id={ingredientsId}
@@ -123,8 +127,8 @@ export default function WriteTab({
           placeholder={INGREDIENTS_EXAMPLE}
           helperText={
             capture.ingredientsCapped
-              ? `One per line. ${INGREDIENTS_CAPPED_MESSAGE}`
-              : 'One per line'
+              ? t('write.ingredientsHelpCapped', { max: RECIPE_LIMITS.ingredients })
+              : t('write.ingredientsHelp')
           }
           disabled={disabled}
           // Not the hidden twin MUI measures with: a floor on it would inflate every row
@@ -148,7 +152,7 @@ export default function WriteTab({
           color="text.secondary"
           sx={{ display: 'block', mb: formSpacing.label }}
         >
-          Method
+          {t('write.methodLabel')}
         </Typography>
         <TextField
           id={methodId}
@@ -162,8 +166,8 @@ export default function WriteTab({
           placeholder={METHOD_EXAMPLE}
           helperText={
             capture.stepsCapped
-              ? `One step per paragraph - numbers are optional. ${STEPS_CAPPED_MESSAGE}`
-              : 'One step per paragraph - numbers are optional'
+              ? t('write.methodHelpCapped', { max: RECIPE_LIMITS.steps })
+              : t('write.methodHelp')
           }
           disabled={disabled}
           slotProps={{ htmlInput: { autoCapitalize: 'sentences' } }}
@@ -174,8 +178,7 @@ export default function WriteTab({
       </Box>
 
       <Typography variant="caption" color="text.secondary">
-        Photos, times and servings are on the next tab. You can also add rows there instead of
-        writing here - both tabs edit the same recipe.
+        {t('write.footnote')}
       </Typography>
 
       <EditorLiveRegion message={message} />

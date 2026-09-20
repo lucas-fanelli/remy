@@ -1,6 +1,7 @@
 'use client';
 import { Edit, Person } from '@mui/icons-material';
 import { Box, Button, Chip, Skeleton, Typography } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { useState } from 'react';
 import CaptionQuote from '@/components/recipe/display/CaptionQuote';
 import DifficultyChip from '@/components/recipe/display/DifficultyChip';
@@ -27,16 +28,12 @@ export interface RecipePreviewProps {
   compact?: boolean;
   /** Empty blocks render a quiet, named shape ('Cover photo', 'No steps yet') instead of nothing */
   placeholders?: boolean;
-  /** Names used by the Edit buttons ('Edit basics'); match them to the shell's own section names */
+  /**
+   * Names used by the Edit buttons ('Edit basics'), ALREADY in the reader's language: match
+   * them to the shell's own section names. Left out, the preview names them itself.
+   */
   sectionLabels?: Partial<Record<RecipeFormSection, string>>;
 }
-
-const DEFAULT_SECTION_LABELS: Record<RecipeFormSection, string> = {
-  basics: 'Basics',
-  ingredients: 'Ingredients',
-  steps: 'Steps',
-  presentation: 'Photo and description',
-};
 
 interface PlaceholderProps {
   name: string;
@@ -80,11 +77,18 @@ export default function RecipePreview({
   placeholders = false,
   sectionLabels,
 }: RecipePreviewProps) {
+  const t = useTranslations('recipeForm');
   // Keyed by URL, so a replaced photo gets a fresh chance
   const [brokenImages, setBrokenImages] = useState<Record<string, true>>({});
   const markBroken = (url: string) => setBrokenImages((prev) => ({ ...prev, [url]: true }));
 
-  const labels = { ...DEFAULT_SECTION_LABELS, ...sectionLabels };
+  const labels: Record<RecipeFormSection, string> = {
+    basics: t('preview.sections.basics'),
+    ingredients: t('preview.sections.ingredients'),
+    steps: t('preview.sections.steps'),
+    presentation: t('preview.sections.presentation'),
+    ...sectionLabels,
+  };
   const bodyVariant = compact ? 'body2' : 'body1';
   const { title, description, imageUrl, caption, prepTime, cookingTime, servings } = payload;
   const hasCover = imageUrl !== '' && !brokenImages[imageUrl];
@@ -96,11 +100,11 @@ export default function RecipePreview({
         type="button"
         size="small"
         startIcon={<Edit />}
-        aria-label={`Edit ${labels[section].toLowerCase()}`}
+        aria-label={t('preview.editSection', { section: labels[section].toLowerCase() })}
         onClick={() => onEditSection(section, path)}
         sx={{ ml: 'auto', flexShrink: 0 }}
       >
-        Edit
+        {t('preview.edit')}
       </Button>
     );
 
@@ -147,7 +151,7 @@ export default function RecipePreview({
               <Box
                 component="img"
                 src={imageUrl}
-                alt={title ? `${title} cover` : 'Recipe cover'}
+                alt={t('preview.coverAlt', { titled: title ? 'yes' : 'no', title })}
                 onError={() => markBroken(imageUrl)}
                 sx={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -177,7 +181,7 @@ export default function RecipePreview({
                   p: 1,
                 }}
               >
-                {imageUrl === '' ? 'Cover photo' : 'Cover photo could not be loaded'}
+                {imageUrl === '' ? t('preview.coverPlaceholder') : t('preview.coverBroken')}
               </Typography>
             </Box>
           )}
@@ -199,7 +203,7 @@ export default function RecipePreview({
           )}
           {title === '' && placeholders && (
             <Box sx={{ flex: '1 1 auto' }}>
-              <Placeholder name="No title yet" shapes={[28]} width="70%" />
+              <Placeholder name={t('preview.noTitle')} shapes={[28]} width="70%" />
             </Box>
           )}
           {editButton('basics', 'title')}
@@ -215,7 +219,7 @@ export default function RecipePreview({
           </Typography>
         )}
         {description === '' && placeholders && (
-          <Placeholder name="No description yet" shapes={[14, 14]} />
+          <Placeholder name={t('preview.noDescription')} shapes={[14, 14]} />
         )}
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -235,13 +239,13 @@ export default function RecipePreview({
           <RecipeTimeStrip prepTime={prepTime} cookingTime={cookingTime} compact={compact} />
         )}
         {!hasTimes && placeholders && (
-          <Placeholder name="No times yet" shapes={[36]} width="220px" />
+          <Placeholder name={t('preview.noTimes')} shapes={[36]} width="220px" />
         )}
       </Box>
 
       {showIngredients && (
         <Box>
-          {listHeader('ingredients', 'Ingredients')}
+          {listHeader('ingredients', t('preview.ingredientsHeading'))}
           {payload.ingredients.length > 0 ? (
             <Box component="ul" sx={{ pl: 2, m: 0 }}>
               {payload.ingredients.map((ingredient, index) => (
@@ -249,14 +253,14 @@ export default function RecipePreview({
               ))}
             </Box>
           ) : (
-            placeholders && <Placeholder name="No ingredients yet" shapes={[14, 14, 14]} />
+            placeholders && <Placeholder name={t('preview.noIngredients')} shapes={[14, 14, 14]} />
           )}
         </Box>
       )}
 
       {showSteps && (
         <Box>
-          {listHeader('steps', 'Instructions')}
+          {listHeader('steps', t('preview.instructionsHeading'))}
           {payload.instructions.length > 0
             ? payload.instructions.map((instruction) => (
                 <Box key={instruction.step} sx={{ display: 'flex', gap: 2, mb: compact ? 2 : 3 }}>
@@ -276,7 +280,7 @@ export default function RecipePreview({
                       <Box
                         component="img"
                         src={instruction.image}
-                        alt={`Step ${instruction.step} photo`}
+                        alt={t('preview.stepPhotoAlt', { position: instruction.step })}
                         onError={() => markBroken(instruction.image as string)}
                         sx={{
                           display: 'block',
@@ -293,7 +297,7 @@ export default function RecipePreview({
                   </Box>
                 </Box>
               ))
-            : placeholders && <Placeholder name="No steps yet" shapes={[40, 40]} />}
+            : placeholders && <Placeholder name={t('preview.noSteps')} shapes={[40, 40]} />}
         </Box>
       )}
 

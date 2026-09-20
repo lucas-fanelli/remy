@@ -12,10 +12,12 @@ import {
   Typography,
 } from '@mui/material';
 import { alpha, type Theme } from '@mui/material/styles';
+import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import { DifficultyLevel } from '@/domain/types/recipe';
 import { RECIPE_LIMITS } from '@/lib/constants';
 import { getDifficultyColor } from '@/lib/utils/recipe';
+import { useOptionalText } from './fieldHelper';
 import { formSpacing } from './formTokens';
 import { focusNextField } from './keyboard';
 import { NumericFieldValue } from './types';
@@ -38,11 +40,14 @@ type TimePath = 'prepTime' | 'cookingTime';
 const PREP_PICKS = [0, 5, 10, 15, 20, 30];
 const COOK_PICKS = [10, 15, 20, 30, 45, 60, 90];
 
-const DIFFICULTIES: { value: DifficultyLevel; label: string }[] = [
-  { value: 'easy', label: 'Easy' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'hard', label: 'Hard' },
-];
+/** A closed union, so the key may be built from it (docs/I18N.md) */
+const DIFFICULTIES: DifficultyLevel[] = ['easy', 'medium', 'hard'];
+
+/** The two minute fields name themselves differently from their paths */
+const TIME_LABEL_KEY = {
+  prepTime: 'atAGlance.prepTime',
+  cookingTime: 'atAGlance.cookTime',
+} as const;
 
 /** Digits only, three at most: what the numeric fields accept */
 const toWholeNumber = (raw: string): NumericFieldValue => {
@@ -82,7 +87,6 @@ const difficultySx = (value: DifficultyLevel) => {
 
 interface TimeCellProps {
   path: TimePath;
-  label: string;
   picks: number[];
   value: NumericFieldValue;
   error?: string;
@@ -95,7 +99,6 @@ interface TimeCellProps {
 /** A minutes field plus its quick picks: completable by tapping, editable by typing */
 function TimeCell({
   path,
-  label,
   picks,
   value,
   error,
@@ -104,7 +107,9 @@ function TimeCell({
   onChange,
   onBlur,
 }: TimeCellProps) {
-  const noun = label.toLowerCase();
+  const t = useTranslations('recipeForm');
+  const tCommon = useTranslations('common');
+  const label = t(TIME_LABEL_KEY[path]);
 
   return (
     // minWidth 0 lets the xs chip row scroll inside the cell instead of widening the grid
@@ -124,12 +129,13 @@ function TimeCell({
         inputRef={inputRef}
         slotProps={{
           htmlInput: numericInputProps,
+          // 'min' is a unit symbol: the style guide keeps those out of the catalogues
           input: { endAdornment: <InputAdornment position="end">min</InputAdornment> },
         }}
       />
       <Box
         role="group"
-        aria-label={`Quick pick ${noun}`}
+        aria-label={t('atAGlance.quickPick', { field: path })}
         sx={{
           mt: formSpacing.label,
           display: 'flex',
@@ -146,8 +152,12 @@ function TimeCell({
           return (
             <Chip
               key={minutes}
-              label={minutes === 0 ? 'None' : minutes}
-              aria-label={minutes === 0 ? `No ${noun}` : `${minutes} minutes`}
+              label={minutes === 0 ? t('atAGlance.none') : minutes}
+              aria-label={
+                minutes === 0
+                  ? t('atAGlance.noTime', { field: path })
+                  : tCommon('time.minutes', { count: minutes })
+              }
               aria-pressed={selected}
               color={selected ? 'primary' : 'default'}
               variant={selected ? 'filled' : 'outlined'}
@@ -167,6 +177,8 @@ function TimeCell({
  * Difficulty in Create and Edit.
  */
 export default function AtAGlance({ form, registerField, disabled = false }: AtAGlanceProps) {
+  const t = useTranslations('recipeForm');
+  const showText = useOptionalText();
   const { values, errors, setField, touch } = form;
   const difficultyLabelId = useId();
   const whenPointerSettles = usePointerSettled();
@@ -224,10 +236,9 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
     >
       <TimeCell
         path="prepTime"
-        label="Prep time"
         picks={PREP_PICKS}
         value={prepTime}
-        error={errors.prepTime}
+        error={showText(errors.prepTime)}
         disabled={disabled}
         inputRef={prepRef}
         onChange={setField}
@@ -235,10 +246,9 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
       />
       <TimeCell
         path="cookingTime"
-        label="Cook time"
         picks={COOK_PICKS}
         value={cookingTime}
-        error={errors.cookingTime}
+        error={showText(errors.cookingTime)}
         disabled={disabled}
         inputRef={cookRef}
         onChange={setField}
@@ -251,7 +261,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
           color="text.secondary"
           sx={{ gridColumn: '1 / -1', textAlign: 'right' }}
         >
-          Total {totalMinutes} min
+          {t('atAGlance.total', { minutes: totalMinutes })}
         </Typography>
       )}
 
@@ -265,7 +275,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
           &nbsp;
         </Typography>
         <TextField
-          label="Servings"
+          label={t('atAGlance.servings')}
           required
           fullWidth
           type="text"
@@ -274,7 +284,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
           onBlur={handleServingsBlur}
           onKeyDown={handleServingsKeyDown}
           error={Boolean(errors.servings)}
-          helperText={errors.servings}
+          helperText={showText(errors.servings)}
           disabled={disabled}
           inputRef={servingsRef}
           sx={{ '& input': { textAlign: 'center' } }}
@@ -286,7 +296,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
                   <IconButton
                     type="button"
                     edge="start"
-                    aria-label="Fewer servings"
+                    aria-label={t('atAGlance.fewerServings')}
                     aria-disabled={atMinimum}
                     disabled={disabled}
                     onClick={() => stepServings(-1)}
@@ -301,7 +311,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
                   <IconButton
                     type="button"
                     edge="end"
-                    aria-label="More servings"
+                    aria-label={t('atAGlance.moreServings')}
                     aria-disabled={atMaximum}
                     disabled={disabled}
                     onClick={() => stepServings(1)}
@@ -323,7 +333,7 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
           color="text.secondary"
           sx={{ display: 'block' }}
         >
-          Difficulty
+          {t('atAGlance.difficulty')}
         </Typography>
         <ToggleButtonGroup
           exclusive
@@ -337,18 +347,18 @@ export default function AtAGlance({ form, registerField, disabled = false }: AtA
           disabled={disabled}
           sx={{ height: 56 }}
         >
-          {DIFFICULTIES.map(({ value, label }) => (
+          {DIFFICULTIES.map((value) => (
             <ToggleButton
               key={value}
               value={value}
               ref={value === values.difficulty ? difficultyRef : undefined}
               sx={difficultySx(value)}
             >
-              {label}
+              {t(`atAGlance.difficulties.${value}`)}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        {errors.difficulty && <FormHelperText error>{errors.difficulty}</FormHelperText>}
+        {errors.difficulty && <FormHelperText error>{showText(errors.difficulty)}</FormHelperText>}
       </Box>
     </Box>
   );

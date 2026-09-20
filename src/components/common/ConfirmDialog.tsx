@@ -7,6 +7,7 @@ import {
   DialogActions,
   Button,
 } from '@mui/material';
+import { useTranslations } from 'next-intl';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  /** Defaults to the shared 'Confirm' / 'Cancel' of the `common` namespace */
   confirmText?: string;
   cancelText?: string;
   confirmColor?: 'inherit' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
@@ -28,12 +30,14 @@ export default function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   confirmColor = 'primary',
   loading = false,
   fullScreen = false,
 }: ConfirmDialogProps) {
+  const t = useTranslations('common');
+
   const handleConfirm = () => {
     onConfirm();
   };
@@ -57,7 +61,7 @@ export default function ConfirmDialog({
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={loading}>
-          {cancelText}
+          {cancelText ?? t('actions.cancel')}
         </Button>
         <Button
           onClick={handleConfirm}
@@ -66,7 +70,7 @@ export default function ConfirmDialog({
           disabled={loading}
           autoFocus
         >
-          {loading ? 'Processing...' : confirmText}
+          {loading ? t('status.processing') : (confirmText ?? t('actions.confirm'))}
         </Button>
       </DialogActions>
     </Dialog>

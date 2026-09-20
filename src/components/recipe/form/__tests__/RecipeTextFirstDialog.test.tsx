@@ -7,7 +7,6 @@ import '@testing-library/jest-dom';
 import './editorHarness';
 import { Recipe } from '@/domain/types/recipe';
 import RecipeTextFirstDialog, {
-  DRAFT_SAVED_TOAST,
   RecipeTextFirstDialogProps,
   tabForPath,
 } from '../RecipeTextFirstDialog';
@@ -1025,7 +1024,7 @@ describe('RecipeTextFirstDialog - create', () => {
       });
 
       expect(saidAtOnce).toBe(0);
-      expect(mockShowInfo).toHaveBeenCalledWith(DRAFT_SAVED_TOAST);
+      expect(mockShowInfo).toHaveBeenCalledWith('Draft saved - open New recipe to continue');
       jest.useRealTimers();
     });
 
@@ -1231,7 +1230,7 @@ describe('RecipeTextFirstDialog - create', () => {
 
         expect(onClose).toHaveBeenCalledTimes(1);
         expect(JSON.parse(storage.data.get(USER_KEY) ?? 'null').values.title).toBe('Pan');
-        expect(mockShowInfo).toHaveBeenCalledWith(DRAFT_SAVED_TOAST);
+        expect(mockShowInfo).toHaveBeenCalledWith('Draft saved - open New recipe to continue');
       });
 
       it('should close without a word when only a prefilled number was changed', async () => {

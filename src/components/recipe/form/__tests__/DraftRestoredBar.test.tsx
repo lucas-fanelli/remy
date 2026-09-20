@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { text } from '@/i18n/text';
 import DraftRestoredBar, { DraftRestoredBarProps, formatDraftAge } from '../DraftRestoredBar';
 
 const NOW = Date.UTC(2026, 0, 10, 12, 0, 0);
@@ -22,24 +23,26 @@ const renderBar = (props: Partial<DraftRestoredBarProps> = {}) => {
   return { onStartOver, onDismiss, user: userEvent.setup() };
 };
 
+// The bar has no locale of its own: it names a message and the component renders it, so
+// what is asserted here is the INTENT. DraftRestoredBar's own cases below read the English.
 describe('formatDraftAge', () => {
   it.each([
-    [30_000, 'a moment ago'],
-    [10 * MINUTE, '10 min ago'],
-    [HOUR, '1 hour ago'],
-    [5 * HOUR, '5 hours ago'],
-    [30 * HOUR, 'yesterday'],
-    [72 * HOUR, '3 days ago'],
-  ])('should describe a draft saved %i ms ago as "%s"', (age, expected) => {
-    expect(formatDraftAge(NOW - age, NOW)).toBe(expected);
+    [30_000, text('recipeForm.draft.ageMoment')],
+    [10 * MINUTE, text('recipeForm.draft.ageMinutes', { count: 10 })],
+    [HOUR, text('recipeForm.draft.ageHours', { count: 1 })],
+    [5 * HOUR, text('recipeForm.draft.ageHours', { count: 5 })],
+    [30 * HOUR, text('recipeForm.draft.ageYesterday')],
+    [72 * HOUR, text('recipeForm.draft.ageDays', { count: 3 })],
+  ])('should name the message for a draft saved %i ms ago', (age, expected) => {
+    expect(formatDraftAge(NOW - age, NOW)).toEqual(expected);
   });
 
   it('should not print a negative age when the clock went backwards', () => {
-    expect(formatDraftAge(NOW + HOUR, NOW)).toBe('a moment ago');
+    expect(formatDraftAge(NOW + HOUR, NOW)).toEqual(text('recipeForm.draft.ageMoment'));
   });
 
   it('should survive a broken timestamp', () => {
-    expect(formatDraftAge(Number.NaN, NOW)).toBe('a moment ago');
+    expect(formatDraftAge(Number.NaN, NOW)).toEqual(text('recipeForm.draft.ageMoment'));
   });
 });
 

@@ -1,4 +1,5 @@
 import { DifficultyLevel, Ingredient, Instruction } from '@/domain/types/recipe';
+import type { TextDescriptor } from '@/i18n/text';
 
 /** The four sections of a recipe, in the author's order: what an issue or an [Edit] names */
 export const RECIPE_FORM_SECTIONS = ['basics', 'ingredients', 'steps', 'presentation'] as const;
@@ -55,16 +56,20 @@ export type RecipeFormValuesInput = Omit<RecipeFormValues, 'ingredients' | 'step
  */
 export type RecipeFieldPath = string;
 
+/**
+ * validateRecipe has no locale and no hooks, so an issue carries DESCRIPTORS (see
+ * src/i18n/text.ts) and the component that shows it renders them with useTextDescriptor().
+ */
 export interface RecipeIssue {
   path: RecipeFieldPath;
   section: RecipeFormSection;
   /** Names the field and the fix: 'Cook time: whole minutes between 1 and 720' */
-  message: string;
+  message: TextDescriptor;
   /** Short noun for status lines: 'cook time', 'cover photo', 'step 2' */
-  label: string;
+  label: TextDescriptor;
 }
 
-export type RecipeFormErrors = Record<RecipeFieldPath, string>;
+export type RecipeFormErrors = Record<RecipeFieldPath, TextDescriptor>;
 export type RecipeFormTouched = Record<RecipeFieldPath, true>;
 
 export type RecipeFormMode = 'create' | 'edit';

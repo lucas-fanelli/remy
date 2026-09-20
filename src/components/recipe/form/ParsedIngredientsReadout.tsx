@@ -1,30 +1,32 @@
 'use client';
 import { WarningAmber } from '@mui/icons-material';
 import { Box, ButtonBase, Chip, Typography } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import { useId } from 'react';
 import IngredientLine from '@/components/recipe/display/IngredientLine';
+import { text, useTextDescriptor } from '@/i18n/text';
 import { UNIT_TO_TASTE } from '@/lib/constants';
 import { attentionColor } from './formTokens';
 import { isBlankIngredientRow, isToTasteRow, normaliseIngredientRow } from './formValues';
 import ParsedReadout from './ParsedReadout';
 import { IngredientRowValue } from './types';
+import type { TextDescriptor } from '@/i18n/text';
 
 export interface ParsedIngredientsReadoutProps {
   /** `form.values.ingredients`; blank rows are skipped */
   rows: IngredientRowValue[];
   /** Row id -> why the parser was unsure (`useTextCapture().checks`) */
-  checks: Readonly<Record<string, string>>;
+  checks: Readonly<Record<string, TextDescriptor>>;
   /** A flagged row was activated: show it on the other tab */
   onCheckRow: (rowId: string) => void;
 }
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-
 /** '8 ingredients - 1 to check': also what the editor's live region announces */
-export function ingredientsSummary(rows: IngredientRowValue[], checkCount: number): string {
-  const filled = rows.filter((row) => !isBlankIngredientRow(row)).length;
-  const summary = plural(filled, 'ingredient', 'ingredients');
-  return checkCount > 0 ? `${summary} - ${checkCount} to check` : summary;
+export function ingredientsSummary(rows: IngredientRowValue[], checkCount: number): TextDescriptor {
+  const count = rows.filter((row) => !isBlankIngredientRow(row)).length;
+  return checkCount > 0
+    ? text('recipeParser.readout.ingredientsWithChecks', { count, checks: checkCount })
+    : text('recipeParser.readout.ingredients', { count });
 }
 
 /** The row as toPayload will send it, so the line reads exactly like the published one */
@@ -41,16 +43,19 @@ function CheckRow({
   onCheckRow,
 }: {
   row: IngredientRowValue;
-  reason: string;
+  reason: TextDescriptor;
   onCheckRow: (rowId: string) => void;
 }) {
+  const t = useTranslations('recipeParser');
+  const renderText = useTextDescriptor();
   const reasonId = useId();
+  const name = row.name.trim();
 
   return (
     <Box component="li" sx={{ mb: 0.75 }}>
       <ButtonBase
         type="button"
-        aria-label={`Check ${row.name.trim() || 'this ingredient'} on the next tab`}
+        aria-label={t('readout.checkRow', { named: name ? 'yes' : 'no', name })}
         aria-describedby={reasonId}
         onClick={() => onCheckRow(row.id)}
         sx={{
@@ -70,13 +75,13 @@ function CheckRow({
           <Chip
             size="small"
             variant="outlined"
-            label="Check"
+            label={t('readout.checkChip')}
             icon={<WarningAmber />}
             sx={{ flexShrink: 0, '& .MuiChip-icon': { color: attentionColor } }}
           />
         </Box>
         <Typography id={reasonId} component="span" variant="caption" color="text.secondary">
-          {reason}
+          {renderText(reason)}
         </Typography>
       </ButtonBase>
     </Box>
@@ -89,13 +94,14 @@ export default function ParsedIngredientsReadout({
   checks,
   onCheckRow,
 }: ParsedIngredientsReadoutProps) {
+  const renderText = useTextDescriptor();
   const filled = rows.filter((row) => !isBlankIngredientRow(row));
   if (filled.length === 0) return null;
 
   const checkCount = filled.filter((row) => row.id in checks).length;
 
   return (
-    <ParsedReadout summary={ingredientsSummary(filled, checkCount)}>
+    <ParsedReadout summary={renderText(ingredientsSummary(filled, checkCount))}>
       {filled.map((row) =>
         row.id in checks ? (
           <CheckRow key={row.id} row={row} reason={checks[row.id]} onCheckRow={onCheckRow} />

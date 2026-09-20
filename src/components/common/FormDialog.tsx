@@ -11,6 +11,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { forwardRef, useId } from 'react';
 import SlideUp from './SlideUp';
 
@@ -67,6 +68,7 @@ const FormDialog = forwardRef<HTMLDivElement, FormDialogProps>(function FormDial
   },
   ref
 ) {
+  const t = useTranslations('common');
   const theme = useTheme();
   // ONE breakpoint for the shell and its content
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -130,7 +132,7 @@ const FormDialog = forwardRef<HTMLDivElement, FormDialogProps>(function FormDial
         {titleActions}
         <IconButton
           type="button"
-          aria-label="Close"
+          aria-label={t('actions.close')}
           onClick={() => onClose('closeButton')}
           disabled={busy}
         >

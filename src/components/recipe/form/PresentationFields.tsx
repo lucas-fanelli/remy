@@ -1,10 +1,12 @@
 'use client';
 import { Box, TextField } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import React, { useCallback, useRef } from 'react';
 import ImageUpload, { ImageUploadHandle } from '@/components/common/ImageUpload';
 import { firstFileFrom } from '@/components/common/imageUploadUtils';
 import RecipeCoverBadges from '@/components/recipe/display/RecipeCoverBadges';
 import { RECIPE_LIMITS } from '@/lib/constants';
+import { useOptionalText } from './fieldHelper';
 import { FieldCounter, counterEmphasisSx, formSpacing, getFieldCounter } from './formTokens';
 import { NumericFieldValue, RecipeFieldPath } from './types';
 import type { RecipeFormApi } from './useRecipeForm';
@@ -110,6 +112,8 @@ export default function PresentationFields({
   coverHandleRef,
   onCoverBrokenChange,
 }: PresentationFieldsProps) {
+  const t = useTranslations('recipeForm');
+  const showText = useOptionalText();
   const { values, errors, setField, touch, setUploading } = form;
   const coverRef = useRef<ImageUploadHandle | null>(null);
   const coverBusy = useRef(false);
@@ -186,10 +190,10 @@ export default function PresentationFields({
         ref={setCoverHandle}
         value={values.imageUrl}
         onChange={handleCoverChange}
-        label="Cover photo"
+        label={t('presentation.coverLabel')}
         required
         error={Boolean(errors.imageUrl)}
-        helperText={errors.imageUrl}
+        helperText={showText(errors.imageUrl)}
         onUploadingChange={handleCoverUploading}
         onBrokenChange={onCoverBrokenChange}
         disabled={disabled}
@@ -203,7 +207,7 @@ export default function PresentationFields({
 
       <Box sx={{ display: 'grid', gap: formSpacing.field, minWidth: 0 }}>
         <TextField
-          label="Description"
+          label={t('presentation.descriptionLabel')}
           required
           fullWidth
           multiline
@@ -214,7 +218,7 @@ export default function PresentationFields({
           error={Boolean(errors.description)}
           helperText={
             <HelperLine
-              message={errors.description}
+              message={showText(errors.description)}
               counter={getFieldCounter(values.description.length, RECIPE_LIMITS.description, true)}
             />
           }
@@ -226,7 +230,7 @@ export default function PresentationFields({
         />
 
         <TextField
-          label="Closing note (optional)"
+          label={t('presentation.captionLabel')}
           fullWidth
           multiline
           rows={2}
@@ -236,7 +240,7 @@ export default function PresentationFields({
           error={Boolean(errors.caption)}
           helperText={
             <HelperLine
-              message={errors.caption ?? 'Shown as a quote after the last step'}
+              message={showText(errors.caption) ?? t('presentation.captionHelp')}
               counter={getFieldCounter(values.caption.length, RECIPE_LIMITS.caption)}
             />
           }

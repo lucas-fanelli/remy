@@ -1,17 +1,19 @@
 'use client';
 import { ArrowDownward, ArrowUpward, Close } from '@mui/icons-material';
 import { Box, IconButton, TextField } from '@mui/material';
+import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 import ImageUpload, { type ImageUploadHandle } from '@/components/common/ImageUpload';
 import StepNumber from '@/components/recipe/display/StepNumber';
 import { RECIPE_LIMITS } from '@/lib/constants';
-import { fieldHelper } from './fieldHelper';
+import { fieldHelper, useOptionalText } from './fieldHelper';
 import { getFieldCounter } from './formTokens';
 import { isModEnter } from './keyboard';
 import { StepRowValue } from './types';
 import { RegisterField, useFieldRef } from './useFieldRegistry';
 import { StepPatch } from './useRecipeForm';
 import { useRowIdRef } from './useRowFocus';
+import type { TextDescriptor } from '@/i18n/text';
 import type { FocusEvent, KeyboardEvent } from 'react';
 
 export interface StepRowProps {
@@ -21,8 +23,8 @@ export interface StepRowProps {
   isFirst: boolean;
   isLast: boolean;
   /** Visible errors of this row: `errors['steps.<id>.description']` / `'.image'` */
-  descriptionError?: string;
-  imageError?: string;
+  descriptionError?: TextDescriptor;
+  imageError?: TextDescriptor;
   disabled?: boolean;
   onChange: (id: string, patch: StepPatch) => void;
   /** Focus left the ROW: the moment a step validates */
@@ -61,6 +63,8 @@ function StepRow({
   onUploadingChange,
   registerField,
 }: StepRowProps) {
+  const t = useTranslations('recipeForm');
+  const showText = useOptionalText();
   const position = index + 1;
   const path = `steps.${row.id}`;
   const rowRef = useRowIdRef(row.id);
@@ -86,7 +90,7 @@ function StepRow({
   return (
     <Box
       role="group"
-      aria-label={`Step ${position}`}
+      aria-label={t('steps.rowLabel', { position })}
       ref={rowRef}
       onBlur={handleBlur}
       sx={{
@@ -113,15 +117,15 @@ function StepRow({
           onKeyDown={handleKeyDown}
           error={Boolean(descriptionError)}
           helperText={fieldHelper(
-            descriptionError,
+            showText(descriptionError),
             getFieldCounter(row.description.length, RECIPE_LIMITS.stepText)
           )}
           disabled={disabled}
-          placeholder="What happens in this step?"
+          placeholder={t('steps.placeholder')}
           inputRef={registerDescription}
           slotProps={{
             htmlInput: {
-              'aria-label': `Step ${position}`,
+              'aria-label': t('steps.rowLabel', { position }),
               'data-field': 'description',
               maxLength: RECIPE_LIMITS.stepText,
               autoCapitalize: 'sentences',
@@ -140,20 +144,20 @@ function StepRow({
           <ImageUpload
             ref={registerImage}
             variant="inline"
-            label={`Step ${position} photo (optional)`}
+            label={t('steps.photoLabel', { position })}
             required={false}
             value={row.image}
             onChange={(url) => onChange(row.id, { image: url })}
             onUploadingChange={(busy) => onUploadingChange(row.id, busy)}
             error={Boolean(imageError)}
-            helperText={imageError}
+            helperText={showText(imageError)}
             disabled={disabled}
           />
 
           <Box sx={{ display: 'flex', flexShrink: 0 }}>
             <IconButton
               type="button"
-              aria-label={`Move step ${position} up`}
+              aria-label={t('steps.moveUp', { position })}
               data-field="move-up"
               disabled={disabled || isFirst}
               onClick={() => onMove(row.id, -1)}
@@ -163,7 +167,7 @@ function StepRow({
             </IconButton>
             <IconButton
               type="button"
-              aria-label={`Move step ${position} down`}
+              aria-label={t('steps.moveDown', { position })}
               data-field="move-down"
               disabled={disabled || isLast}
               onClick={() => onMove(row.id, 1)}
@@ -173,7 +177,7 @@ function StepRow({
             </IconButton>
             <IconButton
               type="button"
-              aria-label={`Remove step ${position}`}
+              aria-label={t('steps.remove', { position })}
               data-field="remove"
               disabled={disabled}
               onClick={() => onRemove(row.id)}

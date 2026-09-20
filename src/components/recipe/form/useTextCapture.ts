@@ -19,6 +19,7 @@ import {
 import { IngredientRowInput, StepRowInput, StepRowValue } from './types';
 import type { RecipeDraftText, RecipeDraftValues } from './useRecipeDraft';
 import type { RecipeFormApi } from './useRecipeForm';
+import type { TextDescriptor } from '@/i18n/text';
 
 /**
  * The 'Write' tab's view over the form engine. ROWS stay the single source of truth for
@@ -44,7 +45,7 @@ export interface TextCaptureApi {
   setIngredientsText(text: string): void;
   setMethodText(text: string): void;
   /** Row id -> why the parser was unsure about it; only rows that still exist */
-  checks: Readonly<Record<string, string>>;
+  checks: Readonly<Record<string, TextDescriptor>>;
   checkCount: number;
   /** The author edited the row by hand: it is no longer the parser's guess */
   confirmRow(id: string): void;
@@ -88,8 +89,8 @@ export function writtenLinesOf(rows: IngredientRowInput[]): WrittenLines {
 }
 
 export interface ReadIngredient extends IngredientReading {
-  /** Why the parser was unsure; '' for a sure line and for a line that was not parsed */
-  reason: string;
+  /** Why the parser was unsure; null for a sure line and for a line that was not parsed */
+  reason: TextDescriptor | null;
 }
 
 /**
@@ -110,7 +111,7 @@ export function readIngredientLines(
     }
     const turn = taken.get(line.sourceText) ?? 0;
     taken.set(line.sourceText, turn + 1);
-    return { ...readings[Math.min(turn, readings.length - 1)], reason: '' };
+    return { ...readings[Math.min(turn, readings.length - 1)], reason: null };
   });
   return { rows, capped: parsed.capped };
 }
@@ -295,7 +296,7 @@ interface CaptureState {
   methodText: string;
   /** The lines of `ingredientsText` that were written from rows, and those rows */
   writtenLines: WrittenLines;
-  checks: Record<string, string>;
+  checks: Record<string, TextDescriptor>;
   ingredientsCapped: boolean;
   stepsCapped: boolean;
 }
@@ -323,10 +324,10 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
 
   const setIngredientsText = useCallback((text: string) => {
     const read = readIngredientLines(text, writtenLines.current);
-    const checks: Record<string, string> = {};
+    const checks: Record<string, TextDescriptor> = {};
     const rows = read.rows.map(({ reason, ...row }) => {
       const id = createRowId();
-      if (reason !== '') checks[id] = reason;
+      if (reason) checks[id] = reason;
       return { id, ...row };
     });
 
@@ -419,11 +420,11 @@ export function useTextCapture(form: TextCaptureForm): TextCaptureApi {
     const keepMethod = text !== undefined && stepsMatchText(draftValues.steps, text.method);
 
     // The wording still fits the rows: read it again for what the parser was unsure about
-    const checks: Record<string, string> = {};
+    const checks: Record<string, TextDescriptor> = {};
     const parsed = keepIngredients ? parseIngredientLines(text.ingredients) : null;
     const filled = ingredients.filter((row) => !isBlankIngredientRow(row));
     parsed?.rows.forEach((row, index) => {
-      if (row.confidence === 'check') checks[filled[index].id] = row.reason;
+      if (row.reason) checks[filled[index].id] = row.reason;
     });
 
     formRef.current.load({ ...draftValues, ingredients });
