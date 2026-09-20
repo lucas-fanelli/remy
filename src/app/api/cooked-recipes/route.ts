@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import striptags from 'striptags';
 import { z, ZodError } from 'zod';
 import { requireAuth } from '@/lib/api/auth';
-import {
-  UUID_REGEX,
-  MAX_NOTES_LENGTH,
-  MAX_DAILY_COOKS,
-  PG_ADVISORY_LOCK_COOKED_RECIPE,
-} from '@/lib/constants';
+import { UUID_REGEX, MAX_DAILY_COOKS, PG_ADVISORY_LOCK_COOKED_RECIPE } from '@/lib/constants';
 import {
   applyPantryPlan,
   readRecipeIngredients,
@@ -31,8 +26,9 @@ import { requireJsonContentType } from '@/lib/utils/request';
 const cookedRecipeSchema = z
   .object({
     postId: z.string().regex(UUID_REGEX, 'Invalid recipe ID'),
-    rating: z.number().int().min(1).max(5).optional(),
-    notes: z.string().max(MAX_NOTES_LENGTH).optional().nullable(),
+    // `rating` and `notes` are gone: no caller ever sent them, the columns behind them
+    // were never read, and a score now belongs to PUT /api/recipes/[id]/rating rather
+    // than being a side effect of saying you cooked something.
     force: z.boolean().optional(),
   })
   .strict();
@@ -120,15 +116,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let postId: string,
-      rating: number | undefined,
-      notes: string | null | undefined,
-      force: boolean | undefined;
+    let postId: string, force: boolean | undefined;
     try {
       const parsed = cookedRecipeSchema.parse(rawBody);
       postId = parsed.postId;
-      rating = parsed.rating;
-      notes = parsed.notes;
       force = parsed.force;
     } catch (err) {
       // No code on the zod branch: the message names the field that failed, and
@@ -142,9 +133,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Strip HTML from notes to prevent XSS
-    const validatedNotes = typeof notes === 'string' ? striptags(notes.trim()) || null : notes;
 
     // All checks and mutations inside a single transaction for atomicity
     const { cookedRecipe, shortfall, deductedIngredients, deductionSkipped, timesCooked } =
@@ -215,8 +203,6 @@ export async function POST(request: NextRequest) {
           data: {
             userId: user.id,
             postId,
-            rating,
-            notes: validatedNotes,
             deductedIngredients:
               deductedIngredients.length > 0
                 ? JSON.parse(JSON.stringify(deductedIngredients))
@@ -242,47 +228,6 @@ export async function POST(request: NextRequest) {
             },
           },
         });
-
-        // Persist rating to Rating table and recalculate Post averages
-        if (rating !== undefined) {
-          // Lock the Post row BEFORE the upsert to serialize the entire read-modify-write
-          // cycle and prevent concurrent rating aggregation races.
-          await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${postId} FOR UPDATE`;
-
-          await tx.rating.upsert({
-            where: {
-              userId_postId: {
-                userId: user.id,
-                postId,
-              },
-            },
-            create: {
-              userId: user.id,
-              postId,
-              rating,
-            },
-            update: {
-              rating,
-            },
-          });
-
-          const ratingAggregation = await tx.rating.aggregate({
-            where: { postId },
-            _avg: { rating: true },
-            _count: { rating: true },
-          });
-
-          await tx.post.update({
-            where: { id: postId },
-            data: {
-              averageRating:
-                ratingAggregation._avg.rating != null
-                  ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                  : undefined,
-              reviewCount: ratingAggregation._count.rating ?? 0,
-            },
-          });
-        }
 
         const timesCooked = await tx.cookedRecipe.count({
           where: { userId: user.id, postId, deletedAt: null },
@@ -483,41 +428,10 @@ export async function DELETE(request: NextRequest) {
         },
       });
 
-      // 4. Only delete the associated rating if user has no comment on this post.
-      // If a comment exists, the rating was created via the comment flow and should be preserved.
-      const userComment = await tx.comment.findFirst({
-        where: { userId: user.id, postId: cookedRecipe.postId },
-      });
-
-      if (!userComment) {
-        // Lock the post row to prevent concurrent rating aggregation races
-        await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${cookedRecipe.postId} FOR UPDATE`;
-
-        await tx.rating.deleteMany({
-          where: {
-            userId: user.id,
-            postId: cookedRecipe.postId,
-          },
-        });
-
-        // Recalculate and cache the recipe's average rating
-        const ratingAggregation = await tx.rating.aggregate({
-          where: { postId: cookedRecipe.postId },
-          _avg: { rating: true },
-          _count: { rating: true },
-        });
-
-        await tx.post.update({
-          where: { id: cookedRecipe.postId },
-          data: {
-            averageRating:
-              ratingAggregation._avg.rating != null
-                ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                : undefined,
-            reviewCount: ratingAggregation._count.rating ?? 0,
-          },
-        });
-      }
+      // Undoing a cook leaves your score alone. It used to delete it unless you also
+      // had a comment on the recipe — the mirror of the exception in the comment route,
+      // and the same confusion: your score's lifetime belonged to whichever of the two
+      // you happened to keep. It is its own thing now.
 
       return { cookedRecipe, restorationSkipped };
     });

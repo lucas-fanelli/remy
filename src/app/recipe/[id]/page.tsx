@@ -132,6 +132,7 @@ export default function RecipeDetailPage() {
   const likeCount = recipe?.likeCount ?? 0;
   const saved = recipe?.viewer?.saved ?? false;
   const timesCooked = recipe?.viewer?.timesCooked ?? 0;
+  const myRating = recipe?.viewer?.myRating ?? null;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -145,6 +146,7 @@ export default function RecipeDetailPage() {
   const [cookedLoading, setCookedLoading] = useState(false);
   const [cookDialogOpen, setCookDialogOpen] = useState(false);
   const [cookPlan, setCookPlan] = useState<PantryPlan | null>(null);
+  const [ratingLoading, setRatingLoading] = useState(false);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
@@ -162,6 +164,51 @@ export default function RecipeDetailPage() {
     },
     [queryClient, recipeId]
   );
+
+  /**
+   * Set your score, or clear it by passing null. MUI's Rating sends null when you click
+   * the star you already chose, which is the gesture people expect for undoing it.
+   */
+  const saveMyRating = async (value: number | null) => {
+    try {
+      setRatingLoading(true);
+      const response = await fetch(`/api/recipes/${recipeId}/rating`, {
+        method: value === null ? 'DELETE' : 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        ...(value === null ? {} : { body: JSON.stringify({ rating: value }) }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setSnackbar({
+          open: true,
+          message: apiErrorMessage(data, t('toasts.ratingFailed')),
+          severity: 'error',
+        });
+        return;
+      }
+
+      // The endpoint returns the recipe's new average alongside your score, so the two
+      // never disagree on screen — your fifth star and the average that includes it.
+      patchCachedRecipe((cached) => ({
+        ...cached,
+        averageRating: data.averageRating,
+        totalRatings: data.reviewCount,
+        viewer: cached.viewer ? { ...cached.viewer, myRating: data.myRating } : cached.viewer,
+      }));
+
+      setSnackbar({
+        open: true,
+        message: value === null ? t('toasts.ratingCleared') : t('toasts.rated'),
+        severity: 'success',
+      });
+    } catch (error) {
+      console.error('Error saving rating:', error);
+      setSnackbar({ open: true, message: t('toasts.ratingFailed'), severity: 'error' });
+    } finally {
+      setRatingLoading(false);
+    }
+  };
 
   const handleBack = () => {
     router.back();
@@ -622,6 +669,41 @@ export default function RecipeDetailPage() {
                     </Typography>
                   )}
                 </Box>
+
+                {/* Your own score, next to everyone else's. Rating used to be something
+                    you could only do by writing a comment — there was no endpoint for it
+                    and `viewer.myRating` travelled with every recipe unread. */}
+                {user && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      flexWrap: 'wrap',
+                      mb: { xs: 1.5, md: 2 },
+                    }}
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      {t('meta.yourRating')}
+                    </Typography>
+                    <Rating
+                      value={myRating}
+                      size={isMobile ? 'medium' : 'large'}
+                      disabled={ratingLoading}
+                      onChange={(_event, value) => saveMyRating(value)}
+                      aria-label={t('meta.yourRating')}
+                    />
+                    {myRating !== null && (
+                      <Button
+                        size="small"
+                        onClick={() => saveMyRating(null)}
+                        disabled={ratingLoading}
+                      >
+                        {t('actions.clearRating')}
+                      </Button>
+                    )}
+                  </Box>
+                )}
 
                 <Box
                   sx={{

@@ -1,28 +1,4 @@
 {
-  "currentPasswordIncorrect": "La contraseña actual no es correcta",
-  "forbidden": "No tenés permiso para hacer eso.",
-  "invalidRequest": "Hay datos que no son válidos. Revisalos y probá de nuevo.",
-  "network": "No pudimos conectarnos. Revisá tu conexión y probá de nuevo.",
-  "notFound": "No encontramos lo que buscabas.",
-  "rateLimited": "Demasiados intentos. Esperá un momento y probá de nuevo.",
-  "serverError": "Algo falló de nuestro lado. Probá de nuevo en un rato.",
-  "unauthorized": "Tenés que iniciar sesión para hacer eso.",
-  "unknown": "Algo salió mal. Probá de nuevo.",
-  "request": {
-    "contentTypeJson": "No pudimos procesar el pedido. Probá de nuevo.",
-    "invalidId": "Ese enlace no es válido.",
-    "invalidPostId": "Ese enlace de receta no es válido.",
-    "invalidUserId": "Ese enlace de usuario no es válido.",
-    "invalidUsername": "Ese nombre de usuario no es válido."
-  },
-  "auth": {
-    "invalidCredentials": "El email, el usuario o la contraseña no son correctos.",
-    "invalidResetToken": "Este enlace para restablecer la contraseña no es válido o expiró",
-    "invalidToken": "Tu sesión ya no es válida. Iniciá sesión de nuevo.",
-    "required": "Iniciá sesión para continuar.",
-    "sessionExpired": "Tu sesión expiró. Iniciá sesión de nuevo.",
-    "userExists": "Ese email o nombre de usuario ya está en uso."
-  },
   "admin": {
     "accessRequired": "Necesitás permisos de administrador para hacer eso.",
     "cannotDeleteLastAdmin": "No podés borrar al último administrador.",
@@ -35,55 +11,45 @@
     "roleUpdateFailed": "No pudimos actualizar el rol.",
     "statsFailed": "No pudimos cargar las estadísticas."
   },
-  "user": {
-    "cannotFollowSelf": "No podés seguirte a vos mismo.",
-    "cannotUnfollowSelf": "No podés dejar de seguirte a vos mismo.",
-    "deleteFailed": "No pudimos borrar al usuario.",
-    "fetchFailed": "No pudimos cargar los usuarios.",
-    "followFailed": "No pudimos seguir a ese usuario.",
-    "followersFailed": "No pudimos cargar los seguidores.",
-    "followingFailed": "No pudimos cargar a quiénes sigue.",
-    "notFollowing": "No seguís a este usuario.",
-    "notFound": "No encontramos a ese usuario.",
-    "profileFailed": "No pudimos cargar el perfil.",
-    "profilePrivate": "Este perfil es privado.",
-    "statsFailed": "No pudimos cargar las estadísticas.",
-    "unfollowFailed": "No pudimos dejar de seguir a ese usuario."
-  },
-  "recipe": {
-    "createFailed": "No pudimos crear la receta.",
-    "dailyLimit": "Llegaste al límite de 10 recetas nuevas por día. Probá de nuevo mañana.",
-    "deleteFailed": "No pudimos borrar la receta.",
-    "deleteForbidden": "Solo podés borrar tus propias recetas.",
-    "fetchFailed": "No pudimos cargar las recetas.",
-    "ingredientsOrPantryRequired": "Elegí ingredientes o usá tu despensa.",
-    "invalidDifficulty": "Esa dificultad no es válida.",
-    "invalidIngredients": "Esa lista de ingredientes no es válida.",
-    "invalidSort": "Ese orden no es válido.",
-    "likeFailed": "No pudimos guardar tu me gusta.",
-    "loadFailed": "No pudimos cargar la receta.",
-    "matchFailed": "No pudimos buscar recetas con tu despensa.",
-    "matchInProgress": "Ya estamos buscando recetas con tu despensa. Esperá un momento y probá de nuevo.",
-    "noIngredients": "Agregá al menos un ingrediente.",
-    "notFound": "No encontramos esa receta.",
-    "savedFetchFailed": "No pudimos cargar las recetas guardadas.",
-    "saveFailed": "No pudimos guardar la receta.",
-    "suggestFailed": "No pudimos sugerirte recetas.",
-    "updateFailed": "No pudimos actualizar la receta.",
-    "updateForbidden": "Solo podés editar tus propias recetas."
+  "auth": {
+    "invalidCredentials": "El email, el usuario o la contraseña no son correctos.",
+    "invalidResetToken": "Este enlace para restablecer la contraseña no es válido o expiró",
+    "invalidToken": "Tu sesión ya no es válida. Iniciá sesión de nuevo.",
+    "required": "Iniciá sesión para continuar.",
+    "sessionExpired": "Tu sesión expiró. Iniciá sesión de nuevo.",
+    "userExists": "Ese email o nombre de usuario ya está en uso."
   },
   "comment": {
     "createFailed": "No pudimos publicar tu comentario.",
     "deleteFailed": "No pudimos borrar el comentario.",
     "editForbidden": "Solo podés editar tus propios comentarios.",
     "fetchFailed": "No pudimos cargar los comentarios.",
-    "invalidRating": "Elegí una puntuación del 1 al 5.",
     "notFound": "No encontramos ese comentario.",
     "notFoundOrForbidden": "No encontramos ese comentario, o no es tuyo.",
     "textRequired": "Escribí algo antes de enviar.",
     "textTooLong": "El comentario es demasiado largo. El máximo es 5000 caracteres.",
     "updateFailed": "No pudimos actualizar el comentario.",
     "wrongRecipe": "Ese comentario no pertenece a esta receta."
+  },
+  "cooked": {
+    "dailyLimit": "Llegaste al límite de 20 recetas cocinadas por día. Probá de nuevo mañana.",
+    "fetchFailed": "No pudimos cargar tus recetas cocinadas.",
+    "insufficientIngredients": "No te alcanzan algunos ingredientes.",
+    "invalidId": "Ese registro no es válido.",
+    "markFailed": "No pudimos marcar la receta como cocinada.",
+    "notFound": "No encontramos ese registro.",
+    "planFailed": "No pudimos calcular qué usaría esta receta de tu despensa.",
+    "removeFailed": "No pudimos borrar ese registro."
+  },
+  "currentPasswordIncorrect": "La contraseña actual no es correcta",
+  "forbidden": "No tenés permiso para hacer eso.",
+  "invalidRequest": "Hay datos que no son válidos. Revisalos y probá de nuevo.",
+  "network": "No pudimos conectarnos. Revisá tu conexión y probá de nuevo.",
+  "notFound": "No encontramos lo que buscabas.",
+  "notification": {
+    "fetchFailed": "No pudimos cargar tus notificaciones.",
+    "markAllReadFailed": "No pudimos marcar tus notificaciones como leídas.",
+    "markReadFailed": "No pudimos marcar la notificación como leída."
   },
   "pantry": {
     "addFailed": "No pudimos agregar el ingrediente.",
@@ -107,26 +73,49 @@
     "unitTooLong": "Esa unidad es demasiado larga. El máximo es 50 caracteres.",
     "updateFailed": "No pudimos actualizar el ingrediente."
   },
-  "cooked": {
-    "dailyLimit": "Llegaste al límite de 20 recetas cocinadas por día. Probá de nuevo mañana.",
-    "fetchFailed": "No pudimos cargar tus recetas cocinadas.",
-    "insufficientIngredients": "No te alcanzan algunos ingredientes.",
-    "invalidId": "Ese registro no es válido.",
-    "markFailed": "No pudimos marcar la receta como cocinada.",
-    "notFound": "No encontramos ese registro.",
-    "planFailed": "No pudimos calcular qué usaría esta receta de tu despensa.",
-    "removeFailed": "No pudimos borrar ese registro."
+  "rateLimited": "Demasiados intentos. Esperá un momento y probá de nuevo.",
+  "rating": {
+    "invalid": "El puntaje tiene que ser un número entero del 1 al 5.",
+    "removeFailed": "No pudimos quitar tu puntaje.",
+    "saveFailed": "No pudimos guardar tu puntaje."
   },
-  "notification": {
-    "fetchFailed": "No pudimos cargar tus notificaciones.",
-    "markAllReadFailed": "No pudimos marcar tus notificaciones como leídas.",
-    "markReadFailed": "No pudimos marcar la notificación como leída."
+  "recipe": {
+    "createFailed": "No pudimos crear la receta.",
+    "dailyLimit": "Llegaste al límite de 10 recetas nuevas por día. Probá de nuevo mañana.",
+    "deleteFailed": "No pudimos borrar la receta.",
+    "deleteForbidden": "Solo podés borrar tus propias recetas.",
+    "fetchFailed": "No pudimos cargar las recetas.",
+    "ingredientsOrPantryRequired": "Elegí ingredientes o usá tu despensa.",
+    "invalidDifficulty": "Esa dificultad no es válida.",
+    "invalidIngredients": "Esa lista de ingredientes no es válida.",
+    "invalidSort": "Ese orden no es válido.",
+    "likeFailed": "No pudimos guardar tu me gusta.",
+    "loadFailed": "No pudimos cargar la receta.",
+    "matchFailed": "No pudimos buscar recetas con tu despensa.",
+    "matchInProgress": "Ya estamos buscando recetas con tu despensa. Esperá un momento y probá de nuevo.",
+    "noIngredients": "Agregá al menos un ingrediente.",
+    "notFound": "No encontramos esa receta.",
+    "savedFetchFailed": "No pudimos cargar las recetas guardadas.",
+    "saveFailed": "No pudimos guardar la receta.",
+    "suggestFailed": "No pudimos sugerirte recetas.",
+    "updateFailed": "No pudimos actualizar la receta.",
+    "updateForbidden": "Solo podés editar tus propias recetas."
+  },
+  "request": {
+    "contentTypeJson": "No pudimos procesar el pedido. Probá de nuevo.",
+    "invalidId": "Ese enlace no es válido.",
+    "invalidPostId": "Ese enlace de receta no es válido.",
+    "invalidUserId": "Ese enlace de usuario no es válido.",
+    "invalidUsername": "Ese nombre de usuario no es válido."
   },
   "search": {
     "failed": "No pudimos hacer la búsqueda.",
     "queryRequired": "Escribí algo para buscar.",
     "queryTooLong": "Esa búsqueda es demasiado larga."
   },
+  "serverError": "Algo falló de nuestro lado. Probá de nuevo en un rato.",
+  "unauthorized": "Tenés que iniciar sesión para hacer eso.",
+  "unknown": "Algo salió mal. Probá de nuevo.",
   "upload": {
     "avatarFailed": "No pudimos subir tu foto.",
     "failed": "No pudimos subir el archivo.",
@@ -138,5 +127,20 @@
     "notFromApp": "Subí la imagen desde la app.",
     "tooLarge": "El archivo es demasiado grande. El máximo es 5MB.",
     "unavailable": "No se pueden subir imágenes en este momento."
+  },
+  "user": {
+    "cannotFollowSelf": "No podés seguirte a vos mismo.",
+    "cannotUnfollowSelf": "No podés dejar de seguirte a vos mismo.",
+    "deleteFailed": "No pudimos borrar al usuario.",
+    "fetchFailed": "No pudimos cargar los usuarios.",
+    "followFailed": "No pudimos seguir a ese usuario.",
+    "followersFailed": "No pudimos cargar los seguidores.",
+    "followingFailed": "No pudimos cargar a quiénes sigue.",
+    "notFollowing": "No seguís a este usuario.",
+    "notFound": "No encontramos a ese usuario.",
+    "profileFailed": "No pudimos cargar el perfil.",
+    "profilePrivate": "Este perfil es privado.",
+    "statsFailed": "No pudimos cargar las estadísticas.",
+    "unfollowFailed": "No pudimos dejar de seguir a ese usuario."
   }
 }

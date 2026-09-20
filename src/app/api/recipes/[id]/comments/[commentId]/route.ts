@@ -41,7 +41,7 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const { text, rating, imageUrl } = body;
+    const { text, imageUrl } = body;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json(
@@ -61,14 +61,6 @@ export async function PATCH(
     if (imageUrl) {
       const cloudinaryError = validateCloudinaryUrl(imageUrl);
       if (cloudinaryError) return cloudinaryError;
-    }
-
-    // Validate rating before any writes
-    if (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5)) {
-      return NextResponse.json(
-        { error: 'Rating must be an integer between 1 and 5', code: 'comment.invalidRating' },
-        { status: 400 }
-      );
     }
 
     // Ownership check + update atomically in a transaction to prevent TOCTOU race
@@ -106,49 +98,10 @@ export async function PATCH(
         },
       });
 
-      // If rating provided, upsert rating
-      if (rating !== undefined) {
-        // Lock the post row to prevent concurrent rating aggregation races
-        await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${recipeId} FOR UPDATE`;
-
-        await tx.rating.upsert({
-          where: {
-            userId_postId: {
-              userId: user.id,
-              postId: recipeId,
-            },
-          },
-          create: {
-            userId: user.id,
-            postId: recipeId,
-            rating,
-          },
-          update: {
-            rating,
-          },
-        });
-
-        // Recalculate and cache the recipe's average rating
-        const ratingAggregation = await tx.rating.aggregate({
-          where: { postId: recipeId },
-          _avg: { rating: true },
-          _count: { rating: true },
-        });
-
-        await tx.post.update({
-          where: { id: recipeId },
-          data: {
-            // Use null when no ratings exist so unrated recipes are distinguishable from 0-rated
-            averageRating:
-              ratingAggregation._avg.rating != null
-                ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                : undefined,
-            reviewCount: ratingAggregation._count.rating ?? 0,
-          },
-        });
-      }
-
-      // Fetch rating inside transaction for consistency
+      // Your score still travels beside the comment in the response, so the list can
+      // show it — but this endpoint no longer writes it. That moved to
+      // PUT /api/recipes/[id]/rating, where changing your mind does not mean editing
+      // something you wrote.
       const ratingRecord = await tx.rating.findUnique({
         where: {
           userId_postId: {
@@ -233,41 +186,11 @@ export async function DELETE(
         where: { id: commentId },
       });
 
-      // 3. Only delete the associated rating if the user has no cooked-recipe for this post.
-      // Symmetric with cooked-recipe DELETE, which preserves ratings when a comment exists.
-      const cookedRecipe = await tx.cookedRecipe.findFirst({
-        where: { userId: user.id, postId: recipeId },
-      });
-
-      if (!cookedRecipe) {
-        // Lock the post row to prevent concurrent rating aggregation races
-        await tx.$executeRaw`SELECT id FROM "posts" WHERE id = ${recipeId} FOR UPDATE`;
-
-        await tx.rating.deleteMany({
-          where: {
-            userId: user.id,
-            postId: recipeId,
-          },
-        });
-
-        // Recalculate and cache the recipe's average rating
-        const ratingAggregation = await tx.rating.aggregate({
-          where: { postId: recipeId },
-          _avg: { rating: true },
-          _count: { rating: true },
-        });
-
-        await tx.post.update({
-          where: { id: recipeId },
-          data: {
-            averageRating:
-              ratingAggregation._avg.rating != null
-                ? Math.round(ratingAggregation._avg.rating * 10) / 10
-                : undefined,
-            reviewCount: ratingAggregation._count.rating ?? 0,
-          },
-        });
-      }
+      // Deleting what you wrote does not take your score away. It used to, unless you
+      // also had a cooked entry for the recipe — an exception someone had to carve out by
+      // hand, and which did not filter soft-deleted cooked entries, so a cook you had
+      // already undone still saved a rating. Your score is yours until you remove it at
+      // DELETE /api/recipes/[id]/rating.
     });
 
     return NextResponse.json({

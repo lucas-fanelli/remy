@@ -69,12 +69,10 @@ export default function CommentsSection({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
-  const [rating, setRating] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
-  const [editRating, setEditRating] = useState<number | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<{ [key: string]: HTMLElement | null }>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
@@ -159,7 +157,6 @@ export default function CommentsSection({
         },
         body: JSON.stringify({
           text: commentText.trim(),
-          rating: rating || undefined,
           imageUrl,
         }),
       });
@@ -173,7 +170,6 @@ export default function CommentsSection({
           return [data.comment, ...prevComments];
         });
         setCommentText('');
-        setRating(null);
         // Clear image state and revoke object URL to free memory
         if (imagePreview) URL.revokeObjectURL(imagePreview);
         setSelectedImage(null);
@@ -244,14 +240,12 @@ export default function CommentsSection({
   const handleEditClick = (comment: Comment) => {
     setEditingCommentId(comment.id);
     setEditText(comment.text);
-    setEditRating(comment.rating || null);
     handleMenuClose(comment.id);
   };
 
   const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditText('');
-    setEditRating(null);
   };
 
   const handleSaveEdit = async (commentId: string) => {
@@ -267,7 +261,6 @@ export default function CommentsSection({
         },
         body: JSON.stringify({
           text: editText.trim(),
-          rating: editRating || undefined,
         }),
       });
 
@@ -429,21 +422,11 @@ export default function CommentsSection({
                     gap: { xs: 1.5, sm: 0 },
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
-                    >
-                      {t('form.rate')}
-                    </Typography>
-                    <Rating
-                      value={rating}
-                      onChange={(event, newValue) => setRating(newValue)}
-                      size={isMobile ? 'small' : 'medium'}
-                      disabled={submitting}
-                    />
-                  </Box>
+                  {/* The stars used to live here, and were the only way to score a
+                      recipe — you could not rate without writing something, and this row
+                      always started empty even if you had already rated. Scoring is its
+                      own control now, beside the average at the top of the page. */}
+                  <Box />
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {/* Camera Button */}
                     <IconButton
@@ -621,21 +604,7 @@ export default function CommentsSection({
                               mb: { xs: 0.75, md: 1 },
                             }}
                           >
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{ fontSize: { xs: '0.8125rem', md: '0.875rem' } }}
-                              >
-                                {t('edit.ratingLabel')}
-                              </Typography>
-                              <Rating
-                                value={editRating}
-                                onChange={(event, newValue) => setEditRating(newValue)}
-                                size="small"
-                                disabled={submitting}
-                              />
-                            </Box>
+                            <Box />
                             <Box sx={{ display: 'flex', gap: 1 }}>
                               <Button
                                 size="small"

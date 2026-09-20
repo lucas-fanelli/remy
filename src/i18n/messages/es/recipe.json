@@ -5,10 +5,11 @@
   },
   "meta": {
     "difficulty": "{level, select, easy {fácil} medium {media} hard {difícil} other {{level}}}",
+    "noRatings": "Todavía no tiene puntuaciones",
+    "ratingSummary": "{average} ({count, plural, one {# reseña} other {# reseñas}})",
     "servings": "{count, plural, one {# porción} other {# porciones}}",
     "totalTime": "{minutes, number} min en total",
-    "noRatings": "Todavía no tiene puntuaciones",
-    "ratingSummary": "{average} ({count, plural, one {# reseña} other {# reseñas}})"
+    "yourRating": "Tu puntaje"
   },
   "times": {
     "prep": "PREPARACIÓN",
@@ -24,6 +25,7 @@
     "stepAlt": "Paso {number, number}"
   },
   "actions": {
+    "clearRating": "Quitar",
     "cookAgain": "Cocinar de nuevo",
     "cookedOnce": "La cocinaste una vez",
     "cookedTimes": "La cocinaste {count} veces",
@@ -53,6 +55,9 @@
     "loginToCook": "Iniciá sesión para marcar recetas como cocinadas",
     "loginToLike": "Iniciá sesión para marcar me gusta",
     "loginToSave": "Iniciá sesión para guardar recetas",
+    "rated": "Puntaje guardado",
+    "ratingCleared": "Puntaje quitado",
+    "ratingFailed": "No pudimos guardar tu puntaje",
     "saveFailed": "No pudimos guardar la receta",
     "saved": "¡Receta guardada!",
     "undoFailed": "No se pudo deshacer",

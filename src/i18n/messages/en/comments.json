@@ -2,7 +2,6 @@
   "title": "Comments ({count, number})",
   "form": {
     "placeholder": "Share your thoughts about this recipe...",
-    "rate": "Rate this recipe:",
     "submit": "Post",
     "previewAlt": "Preview"
   },
@@ -14,9 +13,7 @@
   "creatorBadge": "Creator",
   "recently": "recently",
   "photoAlt": "Photo by {username}",
-  "edit": {
-    "ratingLabel": "Rating:"
-  },
+  "edit": {},
   "deleteDialog": {
     "title": "Delete selected comment?",
     "message": "Comment will be permanently removed from your account and all synced devices"

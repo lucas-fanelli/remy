@@ -452,7 +452,8 @@ describe('CommentsSection in Spanish', () => {
     expect(
       await screen.findByPlaceholderText('Contá qué te pareció esta receta...')
     ).toBeInTheDocument();
-    expect(screen.getByText('Puntuá esta receta:')).toBeInTheDocument();
+    // No star prompt here any more — scoring moved out of the comment form.
+    expect(screen.queryByText('Puntuá esta receta:')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Publicar' })).toBeInTheDocument();
     expect(screen.getByText('Todavía no hay comentarios')).toBeInTheDocument();
   });
