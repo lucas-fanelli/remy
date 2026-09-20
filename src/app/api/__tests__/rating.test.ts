@@ -7,7 +7,7 @@ jest.mock('@/lib/database/prisma', () => ({
   __esModule: true,
   default: {
     post: { findUnique: jest.fn(), update: jest.fn() },
-    rating: { upsert: jest.fn(), deleteMany: jest.fn(), aggregate: jest.fn() },
+    rating: { upsert: jest.fn(), deleteMany: jest.fn(), aggregate: jest.fn(), groupBy: jest.fn() },
     $executeRaw: jest.fn(),
     $transaction: jest.fn(),
   },
@@ -17,6 +17,7 @@ jest.mock('@/lib/api/auth', () => ({ requireAuth: jest.fn() }));
 
 import { requireAuth } from '@/lib/api/auth';
 import prisma from '@/lib/database/prisma';
+import { loadRatingBreakdown } from '@/lib/ratings/recipeRating';
 import { DELETE as ratingDELETE, PUT as ratingPUT } from '../recipes/[id]/rating/route';
 
 const VALID_UUID = '7e783849-1e07-4ac7-9b95-fe3a40fe622e';
@@ -164,5 +165,60 @@ describe('DELETE /api/recipes/[id]/rating', () => {
 
     expect(response.status).toBe(401);
     expect(prisma.rating.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('loadRatingBreakdown', () => {
+  it('reports every score, including the ones nobody gave', async () => {
+    (prisma.rating.groupBy as jest.Mock).mockResolvedValue([
+      { rating: 5, _count: { _all: 12 } },
+      { rating: 3, _count: { _all: 1 } },
+    ]);
+
+    // An average of 4.7 hides that one person hated it. All five keys, always.
+    await expect(loadRatingBreakdown(prisma, VALID_UUID)).resolves.toEqual({
+      1: 0,
+      2: 0,
+      3: 1,
+      4: 0,
+      5: 12,
+    });
+  });
+
+  it('counts nobody, rather than nothing, for an unrated recipe', async () => {
+    (prisma.rating.groupBy as jest.Mock).mockResolvedValue([]);
+
+    await expect(loadRatingBreakdown(prisma, VALID_UUID)).resolves.toEqual({
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    });
+  });
+
+  it('ignores a score outside 1-5 left behind by older data', async () => {
+    (prisma.rating.groupBy as jest.Mock).mockResolvedValue([
+      { rating: 0, _count: { _all: 3 } },
+      { rating: 9, _count: { _all: 2 } },
+      { rating: 4, _count: { _all: 1 } },
+    ]);
+
+    const breakdown = await loadRatingBreakdown(prisma, VALID_UUID);
+
+    expect(breakdown).toEqual({ 1: 0, 2: 0, 3: 0, 4: 1, 5: 0 });
+  });
+
+  it('never carries counts between recipes', async () => {
+    (prisma.rating.groupBy as jest.Mock).mockResolvedValue([{ rating: 5, _count: { _all: 7 } }]);
+    const first = await loadRatingBreakdown(prisma, VALID_UUID);
+
+    (prisma.rating.groupBy as jest.Mock).mockResolvedValue([]);
+    const second = await loadRatingBreakdown(prisma, VALID_UUID);
+
+    // The zero-filled default is copied, not shared — a module-level object handed out
+    // twice would accumulate.
+    expect(first[5]).toBe(7);
+    expect(second[5]).toBe(0);
   });
 });

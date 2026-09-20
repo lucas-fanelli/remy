@@ -16,7 +16,7 @@ jest.mock('@/lib/database/prisma', () => ({
     like: { findMany: jest.fn() },
     savedRecipe: { findMany: jest.fn() },
     cookedRecipe: { groupBy: jest.fn() },
-    rating: { findMany: jest.fn() },
+    rating: { findMany: jest.fn(), groupBy: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
@@ -348,6 +348,7 @@ describe('GET /api/recipes/[id]', () => {
     (prisma.savedRecipe.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.cookedRecipe.groupBy as jest.Mock).mockResolvedValue([]);
     (prisma.rating.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.rating.groupBy as jest.Mock).mockResolvedValue([]);
   });
 
   it('should carry the engagement counts the page used to probe for', async () => {

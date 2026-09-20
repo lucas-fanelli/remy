@@ -1,3 +1,4 @@
+import type { RatingBreakdown } from '@/domain/types/recipe';
 import type { PrismaClient } from '@prisma/client';
 
 /**
@@ -69,4 +70,34 @@ export async function lockRecipeForRating(tx: RatingStore, postId: string): Prom
 /** Whether a value is a score this app accepts. */
 export function isValidRating(value: unknown): value is number {
   return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 5;
+}
+
+const NO_RATINGS: RatingBreakdown = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+/**
+ * The shape of the opinion, not just its mean.
+ *
+ * An average of 3 can be everyone shrugging or half the room loving it and half hating
+ * it, and those are different recipes. Rating is anonymous — this says how many, never
+ * who — so it can be shown to anyone without turning a quiet score into a public one.
+ */
+export async function loadRatingBreakdown(
+  db: Pick<PrismaClient, 'rating'>,
+  postId: string
+): Promise<RatingBreakdown> {
+  const rows = await db.rating.groupBy({
+    by: ['rating'],
+    where: { postId },
+    _count: { _all: true },
+  });
+
+  const breakdown: RatingBreakdown = { ...NO_RATINGS };
+  for (const row of rows) {
+    // A score outside 1-5 cannot be written through the API, but the column is a plain
+    // int and this data predates that endpoint — ignore anything that does not fit.
+    if (row.rating >= 1 && row.rating <= 5) {
+      breakdown[row.rating as 1 | 2 | 3 | 4 | 5] = row._count._all;
+    }
+  }
+  return breakdown;
 }

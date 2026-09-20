@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { text, type TextDescriptor } from '@/i18n/text';
-import type { ViewerState } from '@/domain/types/recipe';
+import type { RatingBreakdown, ViewerState } from '@/domain/types/recipe';
 
 // API Recipe type - matches what the API actually returns
 // This is more complete than the domain Recipe type
@@ -45,6 +45,8 @@ interface ApiRecipe {
   commentCount: number;
   averageRating?: number;
   totalRatings?: number;
+  /** How many people gave each score. Counts only — rating is anonymous. */
+  ratingBreakdown?: RatingBreakdown;
   hasMadeCount?: number;
   /**
    * What this reader did to this recipe; null when signed out. Required, not optional:

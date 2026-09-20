@@ -6,6 +6,8 @@
   "meta": {
     "difficulty": "{level, select, easy {easy} medium {medium} hard {hard} other {{level}}}",
     "noRatings": "No ratings yet",
+    "ratingBreakdown": "How people scored it",
+    "ratingBreakdownRow": "{count} people gave it {score} stars",
     "ratingSummary": "{average} ({count, plural, one {# review} other {# reviews}})",
     "servings": "{count, plural, one {# serving} other {# servings}}",
     "totalTime": "{minutes, number} min total",

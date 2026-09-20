@@ -5,6 +5,8 @@ import { getCurrentUser, requireAuth } from '@/lib/api/auth';
 import { loadViewerState } from '@/lib/api/viewerState';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
+import prisma from '@/lib/database/prisma';
+import { loadRatingBreakdown } from '@/lib/ratings/recipeRating';
 import { cleanupCloudinaryImage } from '@/lib/utils/cloudinary-cleanup';
 import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
 import { logServerError } from '@/lib/utils/logger';
@@ -52,7 +54,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // The page used to learn all of this from two extra requests — /like and /save — which
     // resolved after first paint, so the heart and the bookmark rendered empty and then
     // flipped. It comes with the recipe now.
-    const viewerState = await loadViewerState(viewer?.id, [recipe.id]);
+    const [viewerState, ratingBreakdown] = await Promise.all([
+      loadViewerState(viewer?.id, [recipe.id]),
+      // How the scores are spread, so the page can show more than a mean. Names are never
+      // part of it: rating stays anonymous.
+      loadRatingBreakdown(prisma, recipe.id),
+    ]);
 
     // Use cached rating values from the post record
     return NextResponse.json({
@@ -63,6 +70,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         likeCount: counts.likes,
         commentCount: counts.comments,
         viewer: viewerState(recipe.id),
+        ratingBreakdown,
       },
     });
   } catch (error) {
