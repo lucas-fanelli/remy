@@ -15,7 +15,7 @@ jest.mock('@/lib/database/prisma', () => ({
     // The four tables that answer "what did THIS reader do to these recipes".
     like: { findMany: jest.fn() },
     savedRecipe: { findMany: jest.fn() },
-    cookedRecipe: { findMany: jest.fn() },
+    cookedRecipe: { groupBy: jest.fn() },
     rating: { findMany: jest.fn() },
     $transaction: jest.fn(),
   },
@@ -346,7 +346,7 @@ describe('GET /api/recipes/[id]', () => {
     (getCurrentUser as jest.Mock).mockResolvedValue(null);
     (prisma.like.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.savedRecipe.findMany as jest.Mock).mockResolvedValue([]);
-    (prisma.cookedRecipe.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.cookedRecipe.groupBy as jest.Mock).mockResolvedValue([]);
     (prisma.rating.findMany as jest.Mock).mockResolvedValue([]);
   });
 
@@ -388,7 +388,8 @@ describe('GET /api/recipes/[id]', () => {
     expect(body.recipe.viewer).toEqual({
       liked: true,
       saved: false,
-      cooked: false,
+      timesCooked: 0,
+      lastCookedAt: null,
       myRating: 5,
     });
   });

@@ -27,7 +27,14 @@ export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 export interface ViewerState {
   liked: boolean;
   saved: boolean;
-  cooked: boolean;
+  /**
+   * How many times this reader has cooked it; 0 means never. A count rather than a flag
+   * because cooking something again is the normal case — the schema was always keyed for
+   * it, and the button used to refuse the second time as though it were a mistake.
+   */
+  timesCooked: number;
+  /** When they last cooked it, ISO 8601, or null if they never have. */
+  lastCookedAt: string | null;
   /** This reader's own rating, 1-5, or null if they have not rated it. */
   myRating: number | null;
 }

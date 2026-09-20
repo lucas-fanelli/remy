@@ -24,48 +24,62 @@
     "stepAlt": "Paso {number, number}"
   },
   "actions": {
+    "cookAgain": "Cocinar de nuevo",
+    "cookedOnce": "La cocinaste una vez",
+    "cookedTimes": "La cocinaste {count} veces",
+    "delete": "Eliminar receta",
+    "edit": "Editar receta",
     "markAsCooked": "Marcar como cocinada",
     "marking": "Marcando...",
-    "cookAnyway": "Cocinar igual",
-    "edit": "Editar receta",
-    "delete": "Eliminar receta"
+    "undoCook": "Deshacer la última"
   },
   "deleteDialog": {
     "title": "¿Eliminar la receta?",
     "message": "¿Seguro que querés eliminar “{title}”? No se puede deshacer."
   },
-  "insufficientDialog": {
-    "title": "Ingredientes insuficientes",
-    "intro": "Te falta stock de estos ingredientes en la despensa:",
-    "row": "{name}: necesitás {required} {requiredUnit} y tenés {available} {availableUnit}",
-    "question": "¿Querés marcarla como cocinada igual?"
-  },
   "toasts": {
-    "updated": "¡Receta actualizada!",
-    "deleted": "¡Receta eliminada!",
-    "deleteFailed": "No pudimos eliminar la receta",
-    "loginToLike": "Iniciá sesión para marcar me gusta",
-    "liked": "¡Te gusta esta receta!",
-    "unliked": "Sacaste tu me gusta",
-    "likeFailed": "No pudimos marcar me gusta",
-    "loginToSave": "Iniciá sesión para guardar recetas",
-    "saved": "¡Receta guardada!",
-    "unsaved": "Receta quitada de guardadas",
-    "saveFailed": "No pudimos guardar la receta",
-    "linkCopied": "¡Enlace copiado!",
+    "cookFailed": "No pudimos marcarla como cocinada",
+    "cookUndone": "Deshecho. Tu despensa volvió a como estaba.",
+    "cookUndoneNoRestore": "Deshecho, pero la despensa no volvió atrás — pasó demasiado tiempo.",
+    "cooked": "¡Receta marcada como cocinada!",
+    "cookedShort": "Marcada como cocinada. Te faltaba en la despensa: {names}",
     "copyFailed": "No pudimos copiar el enlace",
     "copyManually": "No podemos copiar el enlace — copiá la URL a mano",
+    "deleteFailed": "No pudimos eliminar la receta",
+    "deleted": "¡Receta eliminada!",
+    "likeFailed": "No pudimos marcar me gusta",
+    "liked": "¡Te gusta esta receta!",
+    "linkCopied": "¡Enlace copiado!",
     "loginToCook": "Iniciá sesión para marcar recetas como cocinadas",
-    "cooked": "¡Receta marcada como cocinada!",
-    "cookedPartial": "¡Receta marcada como cocinada! Ojo: no te alcanza el stock de: {names}",
-    "cookFailed": "No pudimos marcarla como cocinada"
+    "loginToLike": "Iniciá sesión para marcar me gusta",
+    "loginToSave": "Iniciá sesión para guardar recetas",
+    "saveFailed": "No pudimos guardar la receta",
+    "saved": "¡Receta guardada!",
+    "undoFailed": "No se pudo deshacer",
+    "unliked": "Sacaste tu me gusta",
+    "unsaved": "Receta quitada de guardadas",
+    "updated": "¡Receta actualizada!"
   },
   "card": {
-    "like": "Me gusta",
-    "unlike": "Ya no me gusta",
     "comments": "Comentarios",
-    "options": "opciones de la receta",
+    "cookedOnce": "La cocinaste una vez",
+    "cookedTimes": "La cocinaste {count} veces",
+    "delete": "Eliminar receta",
     "edit": "Editar receta",
-    "delete": "Eliminar receta"
+    "like": "Me gusta",
+    "options": "opciones de la receta",
+    "unlike": "Ya no me gusta"
+  },
+  "cookDialog": {
+    "cancel": "Cancelar",
+    "confirm": "Cocinar",
+    "missing": "Esto no lo tenés:",
+    "missingRow": "necesita {needed}",
+    "missingUnitRow": "necesita {needed}, y tus {have} no se pueden comparar con eso",
+    "nothingToDeduct": "Nada de esta receta coincide con tu despensa, así que no se saca nada.",
+    "short": "De esto no te alcanza — se usa todo lo que tenés:",
+    "shortRow": "necesita {needed}, tenés {have}",
+    "taking": "Esto sale de tu despensa:",
+    "title": "¿Cocinar esta receta?"
   }
 }

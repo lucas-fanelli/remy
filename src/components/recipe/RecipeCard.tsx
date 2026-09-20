@@ -74,6 +74,7 @@ export default function RecipeCard({
   currentUserId,
 }: RecipeCardProps) {
   const liked = viewer?.liked ?? false;
+  const timesCooked = viewer?.timesCooked ?? 0;
   const t = useTranslations('recipe');
   const tCommon = useTranslations('common');
   const format = useFormatter();
@@ -417,6 +418,36 @@ export default function RecipeCard({
               {commentCount}
             </Typography>
           </Box>
+
+          {/* Read-only on purpose: cooking something takes ingredients out of your pantry,
+              and that is a decision to confirm on the recipe page, not a card tap. This
+              only says you have made it — which the card could never say before. */}
+          {timesCooked > 0 && (
+            <Tooltip
+              title={
+                timesCooked === 1
+                  ? t('card.cookedOnce')
+                  : t('card.cookedTimes', { count: timesCooked })
+              }
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  ml: 'auto',
+                  color: 'success.main',
+                }}
+              >
+                <RestaurantIcon sx={{ fontSize: 20 }} />
+                {timesCooked > 1 && (
+                  <Typography variant="body2" color="inherit">
+                    {timesCooked}
+                  </Typography>
+                )}
+              </Box>
+            </Tooltip>
+          )}
         </CardActions>
       )}
 

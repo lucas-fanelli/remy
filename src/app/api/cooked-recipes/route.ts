@@ -8,8 +8,19 @@ import {
   MAX_DAILY_COOKS,
   PG_ADVISORY_LOCK_COOKED_RECIPE,
 } from '@/lib/constants';
+import {
+  applyPantryPlan,
+  readRecipeIngredients,
+  type DeductedIngredient,
+} from '@/lib/cooking/applyPantryPlan';
+import {
+  planPantryDeduction,
+  shortfalls,
+  type IngredientPlan,
+  type PantryPlan,
+} from '@/lib/cooking/pantryPlan';
 import prisma from '@/lib/database/prisma';
-import { normalizeIngredientName, unitsMatch, parseAmount } from '@/lib/utils/ingredients';
+import { normalizeIngredientName } from '@/lib/utils/ingredients';
 import { logAuditEvent, logServerError } from '@/lib/utils/logger';
 // striptags strips HTML tags but does NOT escape attribute-context characters (", ', &).
 // This is acceptable because React JSX auto-escapes all interpolated values in text and
@@ -25,148 +36,6 @@ const cookedRecipeSchema = z
     force: z.boolean().optional(),
   })
   .strict();
-
-interface InsufficientIngredient {
-  name: string;
-  required: number;
-  available: number;
-  unit: string;
-}
-interface PantryItemLike {
-  id: string;
-  name: string;
-  unit: string;
-  quantity: number;
-}
-interface RecipeIngredient {
-  name: string;
-  amount: string;
-  unit: string;
-}
-
-/**
- * Plan and apply pantry deductions for a cooked recipe inside a transaction.
- * Returns a list of insufficient ingredients (empty if all deductions succeeded).
- */
-interface DeductedIngredient {
-  name: string;
-  amount: number;
-  unit: string;
-  pantryItemId: string;
-}
-
-interface DeductionResult {
-  insufficientIngredients: InsufficientIngredient[];
-  deductedIngredients: DeductedIngredient[];
-}
-
-async function deductPantryItems(
-  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  pantryItems: PantryItemLike[],
-  recipeIngredients: RecipeIngredient[],
-  force: boolean
-): Promise<DeductionResult> {
-  const insufficientIngredients: InsufficientIngredient[] = [];
-  const deductedIngredients: DeductedIngredient[] = [];
-  const matchedPantryIds = new Set<string>();
-
-  // Pass 1: Plan all deductions before applying any
-  const deductions: {
-    itemId: string;
-    newQuantity: number;
-    name: string;
-    amount: number;
-    unit: string;
-  }[] = [];
-  const deletions: { id: string; name: string; amount: number; unit: string }[] = [];
-
-  for (const ingredient of recipeIngredients) {
-    // Find matching pantry item using exact normalized name + unit match
-    // (not fuzzy substring) to avoid deducting wrong items like "rice vinegar" for "rice"
-    const pantryItem = pantryItems.find(
-      (item) =>
-        !matchedPantryIds.has(item.id) &&
-        normalizeIngredientName(item.name) === normalizeIngredientName(ingredient.name) &&
-        unitsMatch(item.unit, ingredient.unit)
-    );
-    if (pantryItem) {
-      matchedPantryIds.add(pantryItem.id);
-
-      // Parse amounts - supports fractions like "1/2", skips "to taste"
-      const recipeAmount = parseAmount(ingredient.amount);
-      if (isNaN(recipeAmount) || !isFinite(recipeAmount) || recipeAmount <= 0) continue;
-
-      const pantryQuantity = pantryItem.quantity;
-
-      if (pantryQuantity >= recipeAmount) {
-        const newQuantity = pantryQuantity - recipeAmount;
-        if (newQuantity <= 0) {
-          deletions.push({
-            id: pantryItem.id,
-            name: ingredient.name,
-            amount: recipeAmount,
-            unit: ingredient.unit,
-          });
-        } else {
-          deductions.push({
-            itemId: pantryItem.id,
-            newQuantity,
-            name: ingredient.name,
-            amount: recipeAmount,
-            unit: ingredient.unit,
-          });
-        }
-      } else {
-        insufficientIngredients.push({
-          name: striptags(ingredient.name),
-          required: recipeAmount,
-          available: pantryQuantity,
-          unit: striptags(ingredient.unit),
-        });
-        // When force=true, deduct whatever is available (consume the pantry item entirely)
-        if (force && pantryQuantity > 0) {
-          deletions.push({
-            id: pantryItem.id,
-            name: ingredient.name,
-            amount: pantryQuantity,
-            unit: ingredient.unit,
-          });
-        }
-      }
-    }
-  }
-
-  // Block if ingredients are insufficient and force was not requested
-  if (insufficientIngredients.length > 0 && !force) {
-    throw Object.assign(new Error('INSUFFICIENT_INGREDIENTS'), { insufficientIngredients });
-  }
-
-  // Pass 2: Apply all deductions sequentially (we're inside a transaction)
-  for (const d of deductions) {
-    await tx.pantryItem.update({
-      where: { id: d.itemId },
-      data: { quantity: d.newQuantity },
-    });
-    deductedIngredients.push({
-      name: striptags(d.name),
-      amount: d.amount,
-      unit: d.unit,
-      pantryItemId: d.itemId,
-    });
-  }
-
-  for (const d of deletions) {
-    await tx.pantryItem.delete({ where: { id: d.id } });
-    deductedIngredients.push({
-      name: striptags(d.name),
-      amount: d.amount,
-      unit: d.unit,
-      pantryItemId: d.id,
-    });
-  }
-
-  return { insufficientIngredients, deductedIngredients };
-}
 
 // GET - Get user's cooked recipes
 export async function GET(request: NextRequest) {
@@ -278,9 +147,9 @@ export async function POST(request: NextRequest) {
     const validatedNotes = typeof notes === 'string' ? striptags(notes.trim()) || null : notes;
 
     // All checks and mutations inside a single transaction for atomicity
-    const { cookedRecipe, insufficientIngredients, deductedIngredients, deductionSkipped } =
+    const { cookedRecipe, shortfall, deductedIngredients, deductionSkipped, timesCooked } =
       await prisma.$transaction(async (tx) => {
-        let insufficientIngredients: InsufficientIngredient[] = [];
+        let shortfall: IngredientPlan[] = [];
         let deductedIngredients: DeductedIngredient[] = [];
         let deductionSkipped = false;
 
@@ -290,18 +159,17 @@ export async function POST(request: NextRequest) {
           throw new Error('RECIPE_NOT_FOUND');
         }
 
-        // Check for duplicate within a rolling 24-hour window (timezone-safe)
+        // Cooking the same thing twice is the normal case, not a mistake — the schema was
+        // always keyed to allow it. A rolling 24-hour duplicate check used to reject the
+        // second one, which is why the button answered "you already cooked this" to
+        // somebody who had just cooked it again.
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const existingCooked = await tx.cookedRecipe.findFirst({
-          where: { userId: user.id, postId, cookedAt: { gte: twentyFourHoursAgo } },
-        });
-        if (existingCooked) {
-          throw new Error('ALREADY_COOKED');
-        }
 
-        // Enforce daily cook limit to prevent abuse
+        // Enforce daily cook limit to prevent abuse. Entries the user has deleted do not
+        // count against it — they are gone from every other query, and burning quota for
+        // a record nobody can see was a way to be locked out with no explanation.
         const dailyCookCount = await tx.cookedRecipe.count({
-          where: { userId: user.id, cookedAt: { gte: twentyFourHoursAgo } },
+          where: { userId: user.id, cookedAt: { gte: twentyFourHoursAgo }, deletedAt: null },
         });
         if (dailyCookCount >= MAX_DAILY_COOKS) {
           throw new Error('DAILY_LIMIT_REACHED');
@@ -319,43 +187,26 @@ export async function POST(request: NextRequest) {
           include: { items: true },
         });
 
-        if (pantry && recipe.ingredients && Array.isArray(recipe.ingredients)) {
-          // Sanitize ingredient names from the DB to prevent stored XSS in deductedIngredients
-          // Filter out non-object elements to handle corrupted JSON gracefully
-          const recipeIngredients = (recipe.ingredients as unknown[])
-            .filter(
-              (i): i is Record<string, unknown> =>
-                i != null && typeof i === 'object' && !Array.isArray(i)
-            )
-            .map((i) => ({
-              name: striptags(String(i.name || '')),
-              amount: String(i.amount || ''),
-              unit: striptags(String(i.unit || '')),
-            }));
+        if (pantry) {
+          const recipeIngredients = readRecipeIngredients(recipe.ingredients);
 
-          const ingredientsValid = recipeIngredients.every(
-            (i) =>
-              typeof i?.name === 'string' &&
-              i.name.length > 0 &&
-              i.name.length <= 200 &&
-              (typeof i?.amount === 'string' || typeof i?.amount === 'number') &&
-              typeof i?.unit === 'string' &&
-              i.unit.length < 50
-          );
-          if (!ingredientsValid) {
+          if (recipeIngredients === null) {
             console.warn(
               `[COOKED-RECIPES] Skipping pantry deduction for recipe ${postId}: ingredient validation failed (oversized name or unit)`
             );
             deductionSkipped = true;
           } else {
-            const result = await deductPantryItems(
-              tx,
-              pantry.items,
-              recipeIngredients,
-              force === true
-            );
-            insufficientIngredients = result.insufficientIngredients;
-            deductedIngredients = result.deductedIngredients;
+            const plan = planPantryDeduction(pantry.items, recipeIngredients);
+            shortfall = shortfalls(plan);
+
+            // Everything the reader was shown has to still be true when they confirm. If
+            // the pantry changed under them — another tab, another device — the plan is
+            // stale and nothing is written.
+            if (shortfall.length > 0 && force !== true) {
+              throw Object.assign(new Error('INSUFFICIENT_INGREDIENTS'), { plan });
+            }
+
+            deductedIngredients = await applyPantryPlan(tx, plan);
           }
         }
 
@@ -433,19 +284,23 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        return { cookedRecipe, insufficientIngredients, deductedIngredients, deductionSkipped };
+        const timesCooked = await tx.cookedRecipe.count({
+          where: { userId: user.id, postId, deletedAt: null },
+        });
+
+        return { cookedRecipe, shortfall, deductedIngredients, deductionSkipped, timesCooked };
       });
 
     return NextResponse.json(
       {
         cookedRecipe,
         deductedIngredients,
-        insufficientIngredients,
+        // What could not be taken out, so the page can say so rather than claim a clean
+        // deduction. The client used to be sent this only on the refusal path.
+        shortfall,
         deductionSkipped,
-        message:
-          insufficientIngredients.length > 0
-            ? 'Recipe marked as cooked. Some ingredients could not be fully deducted from pantry.'
-            : 'Recipe marked as cooked successfully!',
+        // How many times this reader has now cooked it — the page shows a count.
+        timesCooked,
       },
       { status: 201 }
     );
@@ -455,15 +310,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Recipe not found', code: 'recipe.notFound' },
           { status: 404 }
-        );
-      }
-      if (error.message === 'ALREADY_COOKED') {
-        return NextResponse.json(
-          {
-            error: 'Recipe already marked as cooked in the last 24 hours',
-            code: 'cooked.alreadyCooked',
-          },
-          { status: 409 }
         );
       }
       if (error.message === 'DAILY_LIMIT_REACHED') {
@@ -480,16 +326,7 @@ export async function POST(request: NextRequest) {
           {
             error: 'Some ingredients are insufficient. Send force: true to proceed anyway.',
             code: 'cooked.insufficientIngredients',
-            insufficientIngredients: (
-              error as Error & {
-                insufficientIngredients: Array<{
-                  name: string;
-                  required: number;
-                  available: number;
-                  unit: string;
-                }>;
-              }
-            ).insufficientIngredients,
+            plan: (error as Error & { plan: PantryPlan }).plan,
           },
           { status: 409 }
         );
@@ -518,15 +355,23 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const cookedRecipeId = searchParams.get('id');
+    // `?postId=` undoes the most recent cook of that recipe. The page offering "undo last
+    // cook" knows which recipe it is showing, not which of the reader's cook entries is
+    // the newest — asking it to find out first would be a round trip to learn an id it
+    // only wants to hand straight back.
+    const postIdToUndo = searchParams.get('postId');
 
-    if (!cookedRecipeId || !UUID_REGEX.test(cookedRecipeId)) {
+    const byEntryId = cookedRecipeId !== null;
+    const target = byEntryId ? cookedRecipeId : postIdToUndo;
+
+    if (!target || !UUID_REGEX.test(target)) {
       return NextResponse.json(
         { error: 'Valid cooked recipe ID is required', code: 'cooked.invalidId' },
         { status: 400 }
       );
     }
 
-    logAuditEvent('COOKED_RECIPE_DELETE', { userId: user.id, cookedRecipeId });
+    logAuditEvent('COOKED_RECIPE_DELETE', { userId: user.id, cookedRecipeId: target });
 
     // Delete cooked recipe, its rating, and recalculate post averages in a transaction.
     // Uses exactly-once delete semantics: delete() throws P2025 if the record is already
@@ -538,7 +383,10 @@ export async function DELETE(request: NextRequest) {
 
       // 2. Find the cooked recipe (verify ownership and get postId + deducted ingredients)
       const cookedRecipe = await tx.cookedRecipe.findFirst({
-        where: { id: cookedRecipeId, userId: user.id, deletedAt: null },
+        where: byEntryId
+          ? { id: target, userId: user.id, deletedAt: null }
+          : { postId: target, userId: user.id, deletedAt: null },
+        orderBy: { cookedAt: 'desc' },
         select: {
           id: true,
           postId: true,
@@ -578,7 +426,7 @@ export async function DELETE(request: NextRequest) {
         const parsed = deductedArraySchema.safeParse(cookedRecipe.deductedIngredients);
         if (!parsed.success) {
           console.warn(
-            `[COOKED-RECIPES] Skipping pantry restoration for ${cookedRecipeId}: invalid deductedIngredients shape`
+            `[COOKED-RECIPES] Skipping pantry restoration for ${cookedRecipe.id}: invalid deductedIngredients shape`
           );
         }
         const validDeducted = parsed.success ? parsed.data : [];
@@ -628,7 +476,7 @@ export async function DELETE(request: NextRequest) {
       // preventing double-restoration. deletedAt marks the record as deleted for query filtering.
       const now = new Date();
       await tx.cookedRecipe.update({
-        where: { id: cookedRecipeId },
+        where: { id: cookedRecipe.id },
         data: {
           deletedAt: now,
           ...(canRestore ? { restoredAt: now } : {}),
@@ -681,10 +529,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const message = deleted.restorationSkipped
-      ? 'Cooked recipe removed. Pantry restoration skipped (restoration window expired or already restored).'
-      : 'Cooked recipe removed';
-    return NextResponse.json({ message });
+    // A flag rather than an English sentence: the page says this in the reader's language,
+    // and the two outcomes are genuinely different — one put the pantry back, one did not.
+    return NextResponse.json({ restorationSkipped: deleted.restorationSkipped });
   } catch (error) {
     logServerError('Error removing cooked recipe:', error);
     return NextResponse.json(

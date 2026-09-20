@@ -108,13 +108,13 @@
     "updateFailed": "No pudimos actualizar el ingrediente."
   },
   "cooked": {
-    "alreadyCooked": "Ya marcaste esta receta como cocinada en las últimas 24 horas.",
     "dailyLimit": "Llegaste al límite de 20 recetas cocinadas por día. Probá de nuevo mañana.",
     "fetchFailed": "No pudimos cargar tus recetas cocinadas.",
     "insufficientIngredients": "No te alcanzan algunos ingredientes.",
     "invalidId": "Ese registro no es válido.",
     "markFailed": "No pudimos marcar la receta como cocinada.",
     "notFound": "No encontramos ese registro.",
+    "planFailed": "No pudimos calcular qué usaría esta receta de tu despensa.",
     "removeFailed": "No pudimos borrar ese registro."
   },
   "notification": {

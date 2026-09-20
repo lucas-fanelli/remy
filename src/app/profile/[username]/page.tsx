@@ -30,6 +30,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { MotionBox, MotionCard } from '@/components/motion';
+import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
@@ -388,8 +389,13 @@ export default function ProfilePage() {
           <AnimatedTabs
             tabs={[
               { key: 0, label: t('tabs.recipes'), icon: <GridOn /> },
+              // Both are about you, not about the profile being viewed, so neither shows
+              // on someone else's.
               ...(isOwnProfile
-                ? [{ key: 1, label: t('tabs.saved'), icon: <BookmarkBorder /> }]
+                ? [
+                    { key: 1, label: t('tabs.saved'), icon: <BookmarkBorder /> },
+                    { key: 2, label: t('tabs.cooked'), icon: <Restaurant /> },
+                  ]
                 : []),
             ]}
             activeKey={activeTab}
@@ -582,6 +588,8 @@ export default function ProfilePage() {
                   )}
                 </Grid>
               )}
+
+              {activeTab === 2 && isOwnProfile && <CookingLog />}
             </TabPanelTransition>
           </Box>
         </Container>

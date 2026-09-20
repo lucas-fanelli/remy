@@ -42,7 +42,13 @@ interface FeedRecipe extends Recipe {
  * the API does not produce. It keeps the optimistic update from having to invent the other
  * three fields — and, unlike the old default, it is never what gets rendered.
  */
-const UNTOUCHED_VIEWER: ViewerState = { liked: false, saved: false, cooked: false, myRating: null };
+const UNTOUCHED_VIEWER: ViewerState = {
+  liked: false,
+  saved: false,
+  timesCooked: 0,
+  lastCookedAt: null,
+  myRating: null,
+};
 
 const PAGE_SIZE = 12;
 const MAX_PAGES = 25;

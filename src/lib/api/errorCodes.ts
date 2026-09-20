@@ -134,13 +134,13 @@ export const API_ERROR_CODES = [
   'pantry.updateFailed',
 
   // src/app/api/cooked-recipes/**
-  'cooked.alreadyCooked',
   'cooked.dailyLimit',
   'cooked.fetchFailed',
   'cooked.insufficientIngredients',
   'cooked.invalidId',
   'cooked.markFailed',
   'cooked.notFound',
+  'cooked.planFailed',
   'cooked.removeFailed',
 
   // src/app/api/notifications/**

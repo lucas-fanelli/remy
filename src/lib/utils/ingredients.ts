@@ -225,6 +225,37 @@ const UNIT_ALIASES: Record<string, string> = {
   kg: 'kilogram',
   kilograms: 'kilogram',
   cups: 'cup',
+  // Countable things, plural to singular. Without these a recipe asking for "2 pieces"
+  // did not match a pantry holding "piece" — the two strings simply differed, and the
+  // deduction was skipped in silence.
+  pieces: 'piece',
+  cloves: 'clove',
+  sprigs: 'sprig',
+  stalks: 'stalk',
+  sheets: 'sheet',
+  slices: 'slice',
+  cans: 'can',
+  packs: 'pack',
+  units: 'unit',
+};
+
+/**
+ * What a unit measures, and how much of the dimension's base unit it is worth.
+ * Base units: gram for mass, milliliter for volume.
+ *
+ * Anything absent from this table — a piece, a clove, "to taste" — is countable or
+ * unmeasurable and converts only to itself.
+ */
+const UNIT_SCALE: Record<string, { dimension: 'mass' | 'volume'; inBaseUnits: number }> = {
+  gram: { dimension: 'mass', inBaseUnits: 1 },
+  kilogram: { dimension: 'mass', inBaseUnits: 1000 },
+  ounce: { dimension: 'mass', inBaseUnits: 28.349523125 },
+  pound: { dimension: 'mass', inBaseUnits: 453.59237 },
+  milliliter: { dimension: 'volume', inBaseUnits: 1 },
+  liter: { dimension: 'volume', inBaseUnits: 1000 },
+  cup: { dimension: 'volume', inBaseUnits: 240 },
+  tablespoon: { dimension: 'volume', inBaseUnits: 15 },
+  teaspoon: { dimension: 'volume', inBaseUnits: 5 },
 };
 
 /**
@@ -236,10 +267,43 @@ export function normalizeUnit(unit: string): string {
 }
 
 /**
- * Check if two units are compatible
+ * Check if two units are the same unit. Prefer {@link convertAmount} when you need to
+ * compare quantities: a pantry holding kilograms can satisfy a recipe asking for grams,
+ * and this returns false for that.
  */
 export function unitsMatch(a: string, b: string): boolean {
   return normalizeUnit(a) === normalizeUnit(b);
+}
+
+/**
+ * Express `amount` of `from` in `to`, or null when the two do not measure the same thing.
+ *
+ * This is why a recipe asking for 500 g found nothing in a pantry holding 1 kg: matching
+ * was string equality on the unit, so every mixed-unit pairing silently deducted nothing
+ * and reported no shortage. Grams and millilitres stay apart — converting between mass and
+ * volume needs a density this app does not know.
+ *
+ * ```ts
+ * convertAmount(1, 'kg', 'g')  // 1000
+ * convertAmount(500, 'g', 'kg') // 0.5
+ * convertAmount(2, 'cloves', 'g') // null — a clove is not a mass
+ * ```
+ */
+export function convertAmount(amount: number, from: string, to: string): number | null {
+  if (!Number.isFinite(amount)) return null;
+
+  const fromScale = UNIT_SCALE[normalizeUnit(from)];
+  const toScale = UNIT_SCALE[normalizeUnit(to)];
+
+  if (fromScale && toScale) {
+    if (fromScale.dimension !== toScale.dimension) return null;
+    return (amount * fromScale.inBaseUnits) / toScale.inBaseUnits;
+  }
+
+  // One or both are countable ("2 pieces") or unrecognised. Those only convert to
+  // themselves — guessing how many grams a clove weighs is how you get a pantry that
+  // quietly disagrees with reality.
+  return unitsMatch(from, to) ? amount : null;
 }
 
 /**
