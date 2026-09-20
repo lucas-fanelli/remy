@@ -64,7 +64,7 @@
     },
     "match": "{percent, number}% coincide",
     "ingredientsRatio": "{matched, number}/{total, number} ingredientes",
-    "missing": "Te falta: {names}",
+    "missing": "{count, plural, one {Te falta} other {Te faltan}}: {names}",
     "noReady": "Todavía no hay recetas que coincidan al 100% con tu despensa. Mirá la pestaña “Casi listas”, esas las tenés al alcance.",
     "noAlmost": "No hay recetas cerca de coincidir. Agregá más ingredientes a tu despensa."
   }

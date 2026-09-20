@@ -37,7 +37,7 @@
   "insufficientDialog": {
     "title": "Insufficient Ingredients",
     "intro": "The following ingredients are insufficient in your pantry:",
-    "row": "{name}: need {required} {unit}, have {available} {unit}",
+    "row": "{name}: need {required} {requiredUnit}, have {available} {availableUnit}",
     "question": "Do you want to mark this recipe as cooked anyway?"
   },
   "toasts": {

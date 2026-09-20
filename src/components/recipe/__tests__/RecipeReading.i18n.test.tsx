@@ -1,11 +1,13 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useFormatter, useTranslations } from 'next-intl';
 import React from 'react';
 import '@testing-library/jest-dom';
 import { Recipe } from '@/domain/types/recipe';
 import { RecipeFetchError } from '@/hooks/useRecipe';
 import { renderWithLocale } from '@/i18n/testing';
 import { text, useTextDescriptor } from '@/i18n/text';
+import { useUnitLabels } from '@/i18n/units';
 import CommentsSection from '../CommentsSection';
 import DifficultyChip from '../display/DifficultyChip';
 import IngredientLine from '../display/IngredientLine';
@@ -85,6 +87,37 @@ function LoadFailure({ error }: { error: RecipeFetchError }) {
   return <p>{renderText(error.descriptor)}</p>;
 }
 
+interface InsufficientItem {
+  name: string;
+  required: number;
+  available: number;
+  unit: string;
+}
+
+/**
+ * One row of the force-cook dialog, rendered exactly as `src/app/recipe/[id]/page.tsx`
+ * renders it. The page has no test file of its own, and the row is the one message in the
+ * area that labels the same unit twice: each half is pluralised by its own amount, because
+ * the list only exists when the two amounts differ.
+ */
+function InsufficientRow({ item }: { item: InsufficientItem }) {
+  const t = useTranslations('recipe');
+  const format = useFormatter();
+  const units = useUnitLabels();
+
+  return (
+    <p>
+      {t('insufficientDialog.row', {
+        name: item.name,
+        required: format.number(item.required),
+        available: format.number(item.available),
+        requiredUnit: units.label(item.unit, item.required),
+        availableUnit: units.label(item.unit, item.available),
+      })}
+    </p>
+  );
+}
+
 describe("useRecipe's failures", () => {
   it('should say in Spanish that the recipe is not there', () => {
     const error = new RecipeFetchError(text('recipe.states.notFound'), 'Recipe not found');
@@ -103,6 +136,30 @@ describe("useRecipe's failures", () => {
 
     expect(screen.getByText('No pudimos cargar la receta')).toBeInTheDocument();
     expect(error.message).toBe('Failed to load recipe');
+  });
+});
+
+describe("the recipe page's insufficient-ingredients row", () => {
+  const flour: InsufficientItem = { name: 'harina', required: 2, available: 1, unit: 'cups' };
+
+  it('should label each amount with its own plural, in Spanish', () => {
+    renderInSpanish(<InsufficientRow item={flour} />);
+
+    expect(screen.getByText('harina: necesitás 2 tazas y tenés 1 taza')).toBeInTheDocument();
+  });
+
+  it('should label each amount with its own plural in English as well', () => {
+    render(<InsufficientRow item={{ ...flour, name: 'flour' }} />);
+
+    expect(screen.getByText('flour: need 2 cups, have 1 cup')).toBeInTheDocument();
+  });
+
+  it('should keep the plural for an empty pantry shelf', () => {
+    renderInSpanish(
+      <InsufficientRow item={{ name: 'huevos', required: 1, available: 0, unit: 'units' }} />
+    );
+
+    expect(screen.getByText('huevos: necesitás 1 unidad y tenés 0 unidades')).toBeInTheDocument();
   });
 });
 
@@ -239,6 +296,48 @@ describe('MatchedRecipes in Spanish', () => {
     expect(await screen.findByRole('tab', { name: 'Listas para cocinar (1)' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Casi listas (0)' })).toBeInTheDocument();
     expect(screen.getByText('100% coincide')).toBeInTheDocument();
+  });
+
+  /** The Casi listas tab is the 1-to-3-missing bucket, so both plural cases are common */
+  const almostThereWith = (missingIngredients: string[]) => ({
+    ok: true,
+    json: async () => ({
+      readyToCook: [],
+      almostThere: [
+        {
+          id: '2',
+          title: 'Salsa criolla',
+          description: 'Para la carne',
+          imageUrl: 'https://example.com/salsa.jpg',
+          difficulty: 'easy',
+          matchPercentage: 60,
+          matchedIngredients: 3,
+          totalIngredients: 3 + missingIngredients.length,
+          missingIngredients,
+        },
+      ],
+      pantryItemsCount: 8,
+    }),
+  });
+
+  it('should agree the verb with a list of missing ingredients', async () => {
+    mockFetch.mockResolvedValueOnce(almostThereWith(['cebolla', 'ajo']));
+
+    renderInSpanish(<MatchedRecipes />);
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Casi listas (1)' }));
+
+    expect(await screen.findByText('Te faltan: cebolla, ajo')).toBeInTheDocument();
+  });
+
+  it('should keep the singular verb when a single ingredient is missing', async () => {
+    mockFetch.mockResolvedValueOnce(almostThereWith(['cebolla']));
+
+    renderInSpanish(<MatchedRecipes />);
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Casi listas (1)' }));
+
+    expect(await screen.findByText('Te falta: cebolla')).toBeInTheDocument();
   });
 
   it('should keep the pantry count inside one Spanish sentence', async () => {

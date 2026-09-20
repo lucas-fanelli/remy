@@ -402,6 +402,8 @@ export default function MatchedRecipes() {
                         >
                           {t('matches.missing', {
                             names: recipe.missingIngredients.join(', '),
+                            // Spanish conjugates the verb; English ignores the count
+                            count: recipe.missingIngredients.length,
                           })}
                         </Typography>
                       </Box>

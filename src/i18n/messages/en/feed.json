@@ -64,7 +64,7 @@
     },
     "match": "{percent, number}% Match",
     "ingredientsRatio": "{matched, number}/{total, number} ingredients",
-    "missing": "Missing: {names}",
+    "missing": "{count, plural, one {Missing} other {Missing}}: {names}",
     "noReady": "No recipes match 100% with your pantry yet. Check the “Almost There” tab for recipes you're close to making!",
     "noAlmost": "No recipes are close to matching. Add more ingredients to your pantry!"
   }

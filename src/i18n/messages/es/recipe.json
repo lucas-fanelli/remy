@@ -37,7 +37,7 @@
   "insufficientDialog": {
     "title": "Ingredientes insuficientes",
     "intro": "Te falta stock de estos ingredientes en la despensa:",
-    "row": "{name}: necesitás {required} {unit} y tenés {available} {unit}",
+    "row": "{name}: necesitás {required} {requiredUnit} y tenés {available} {availableUnit}",
     "question": "¿Querés marcarla como cocinada igual?"
   },
   "toasts": {

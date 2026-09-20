@@ -967,8 +967,10 @@ export default function RecipeDetailPage() {
                       name: item.name,
                       required: format.number(item.required),
                       available: format.number(item.available),
-                      // The unit stays stored in English; only its label is translated
-                      unit: units.label(item.unit, item.required),
+                      // The unit stays stored in English; only its label is translated, and
+                      // each half of the sentence is pluralised by its own amount
+                      requiredUnit: units.label(item.unit, item.required),
+                      availableUnit: units.label(item.unit, item.available),
                     })}
                   </Typography>
                 </li>
