@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import striptags from 'striptags';
 import { z, ZodError } from 'zod';
 import { ValidationError } from '@/domain/errors';
-import { requireAuth } from '@/lib/api/auth';
+import { getCurrentUser, requireAuth } from '@/lib/api/auth';
+import { loadViewerState } from '@/lib/api/viewerState';
 import {
   MAX_SEARCH_QUERY_LENGTH,
   MAX_DAILY_RECIPES,
@@ -200,6 +201,15 @@ export async function GET(request: NextRequest) {
       prisma.post.count({ where }),
     ]);
 
+    // Who is asking, and what have they already done to these recipes? Optional auth: a
+    // guest gets `viewer: null` on every card rather than a card that claims they liked
+    // nothing.
+    const requester = await getCurrentUser(request);
+    const viewerState = await loadViewerState(
+      requester?.id,
+      recipes.map((r) => r.id)
+    );
+
     // Transform to expected format with author and ratings
     const recipesWithRatings = recipes.map((recipe) => ({
       id: recipe.id,
@@ -227,6 +237,7 @@ export async function GET(request: NextRequest) {
       totalRatings: recipe.reviewCount,
       likeCount: recipe._count.likes,
       commentCount: recipe._count.comments,
+      viewer: viewerState(recipe.id),
     }));
 
     return NextResponse.json({

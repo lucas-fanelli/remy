@@ -26,15 +26,23 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Recipe } from '@/domain/types/recipe';
+import { Recipe, ViewerState } from '@/domain/types/recipe';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import EditRecipeModal from './EditRecipeModal';
 import RecipeCard from './RecipeCard';
 
 interface FeedRecipe extends Recipe {
-  likeCount?: number;
-  commentCount?: number;
+  likeCount: number;
+  commentCount: number;
+  viewer: ViewerState | null;
 }
+
+/**
+ * Only reached if a signed-in reader somehow holds a card whose `viewer` is null, which
+ * the API does not produce. It keeps the optimistic update from having to invent the other
+ * three fields — and, unlike the old default, it is never what gets rendered.
+ */
+const UNTOUCHED_VIEWER: ViewerState = { liked: false, saved: false, cooked: false, myRating: null };
 
 const PAGE_SIZE = 12;
 const MAX_PAGES = 25;
@@ -51,7 +59,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<FeedRecipe[]>([]);
   const [loading, setLoading] = useState(false);
   const loadingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -65,11 +73,11 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const [timeFilter, setTimeFilter] = useState<string>('any'); // 'any', 'under30', 'under60', 'over60'
   const [sortOrder, setSortOrder] = useState<string>('newest');
 
-  // Like and comment states
-  const [recipeLikes, setRecipeLikes] = useState<Record<string, { liked: boolean; count: number }>>(
-    {}
-  );
-  const [recipeComments, setRecipeComments] = useState<Record<string, number>>({});
+  // There is no separate engagement state. There used to be two maps kept alongside the
+  // recipes — one for likes, one for comment counts — seeded with `liked: false` for every
+  // recipe because the API did not say otherwise, and then spread over the real data. A
+  // reader who had already liked a recipe saw an empty heart, and clicking it sent the
+  // server an unlike. The recipe carries its own `viewer` now, and it is the only copy.
 
   // Delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -146,16 +154,6 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
         // Check before ALL state updates to avoid partial state from outdated responses.
         if (thisRequestId !== requestIdRef.current) return;
 
-        // Use engagement data already included in the API response
-        const newLikes: Record<string, { liked: boolean; count: number }> = {};
-        const newComments: Record<string, number> = {};
-        data.recipes.forEach((r: FeedRecipe) => {
-          newLikes[r.id] = { liked: false, count: r.likeCount || 0 };
-          newComments[r.id] = r.commentCount || 0;
-        });
-        setRecipeLikes((prev) => ({ ...prev, ...newLikes }));
-        setRecipeComments((prev) => ({ ...prev, ...newComments }));
-
         if (reset) {
           pageRef.current = 1;
           recipesLengthRef.current = data.recipes.length;
@@ -166,7 +164,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
           setRecipes((prev) => {
             // Prevent duplicate keys by filtering out recipes that already exist
             const existingIds = new Set(prev.map((r) => r.id));
-            const newRecipes = data.recipes.filter((r: Recipe) => !existingIds.has(r.id));
+            const newRecipes = data.recipes.filter((r: FeedRecipe) => !existingIds.has(r.id));
             const updated = [...prev, ...newRecipes];
             recipesLengthRef.current = updated.length;
             return updated;
@@ -298,8 +296,11 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   };
 
   const handleEditSuccess = (updatedRecipe: Recipe) => {
-    // Update recipe in list
-    setRecipes((prev) => prev.map((r) => (r.id === updatedRecipe.id ? updatedRecipe : r)));
+    // The edit response carries the recipe, not the reader's relationship to it, so keep
+    // the card's existing engagement rather than letting an edit blank out its heart.
+    setRecipes((prev) =>
+      prev.map((r) => (r.id === updatedRecipe.id ? { ...r, ...updatedRecipe } : r))
+    );
 
     setSnackbar({
       open: true,
@@ -312,6 +313,11 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
+  /** Replace one recipe in the feed, leaving the rest of the list untouched. */
+  const patchRecipe = useCallback((recipeId: string, patch: Partial<FeedRecipe>) => {
+    setRecipes((prev) => prev.map((r) => (r.id === recipeId ? { ...r, ...patch } : r)));
+  }, []);
+
   const handleLike = async (recipeId: string) => {
     if (!user) {
       setSnackbar({
@@ -322,42 +328,42 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
       return;
     }
 
-    // Optimistic update
-    const currentLikeState = recipeLikes[recipeId] || { liked: false, count: 0 };
-    const optimisticLiked = !currentLikeState.liked;
-    const optimisticCount = optimisticLiked
-      ? currentLikeState.count + 1
-      : Math.max(0, currentLikeState.count - 1);
+    const current = recipes.find((r) => r.id === recipeId);
+    if (!current) return;
 
-    setRecipeLikes((prev) => ({
-      ...prev,
-      [recipeId]: { liked: optimisticLiked, count: optimisticCount },
-    }));
+    // The card shows what `viewer.liked` says, so "the opposite of what is on screen" is
+    // now the same thing as "the opposite of the truth" — which is what makes this safe.
+    const previous = { viewer: current.viewer, likeCount: current.likeCount };
+    const nextLiked = !(current.viewer?.liked ?? false);
+    const nextCount = nextLiked ? current.likeCount + 1 : Math.max(0, current.likeCount - 1);
+
+    patchRecipe(recipeId, {
+      viewer: { ...(current.viewer ?? UNTOUCHED_VIEWER), liked: nextLiked },
+      likeCount: nextCount,
+    });
 
     try {
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
-        headers: { 'X-Requested-With': 'fetch' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        // State the intent rather than asking for a flip: if this is retried, or if it
+        // races another tab, it still lands on what the reader asked for.
+        body: JSON.stringify({ liked: nextLiked }),
       });
 
       if (response.ok) {
         try {
           const data = await response.json();
-          // Update with server response
-          setRecipeLikes((prev) => ({
-            ...prev,
-            [recipeId]: { liked: data.liked, count: data.likesCount },
-          }));
+          patchRecipe(recipeId, {
+            viewer: { ...(current.viewer ?? UNTOUCHED_VIEWER), liked: data.liked },
+            likeCount: data.likeCount,
+          });
         } catch (parseError) {
           console.warn('Like response parse failed, keeping optimistic state:', parseError);
           // Server returned 200 — the like was processed. Keep optimistic state.
         }
       } else {
-        // Revert on error
-        setRecipeLikes((prev) => ({
-          ...prev,
-          [recipeId]: currentLikeState,
-        }));
+        patchRecipe(recipeId, previous);
         setSnackbar({
           open: true,
           message: t('toasts.likeFailed'),
@@ -365,12 +371,8 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
         });
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
-      // Revert on error
-      setRecipeLikes((prev) => ({
-        ...prev,
-        [recipeId]: currentLikeState,
-      }));
+      console.error('Error setting like:', error);
+      patchRecipe(recipeId, previous);
       setSnackbar({
         open: true,
         message: t('toasts.likeFailed'),
@@ -521,9 +523,9 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                   recipe={recipe}
                   currentUserId={user?.id}
                   showActions={true}
-                  liked={recipeLikes[recipe.id]?.liked || false}
-                  likeCount={recipeLikes[recipe.id]?.count || 0}
-                  commentCount={recipeComments[recipe.id] || 0}
+                  viewer={recipe.viewer}
+                  likeCount={recipe.likeCount}
+                  commentCount={recipe.commentCount}
                   onClick={() => router.push(`/recipe/${recipe.id}`)}
                   onLike={() => handleLike(recipe.id)}
                   onComment={() => router.push(`/recipe/${recipe.id}#comments`)}

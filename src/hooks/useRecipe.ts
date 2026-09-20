@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { text, type TextDescriptor } from '@/i18n/text';
+import type { ViewerState } from '@/domain/types/recipe';
 
 // API Recipe type - matches what the API actually returns
 // This is more complete than the domain Recipe type
@@ -40,11 +41,17 @@ interface ApiRecipe {
     fullName?: string;
     avatar?: string;
   };
-  likesCount?: number;
-  commentsCount?: number;
+  likeCount: number;
+  commentCount: number;
   averageRating?: number;
   totalRatings?: number;
   hasMadeCount?: number;
+  /**
+   * What this reader did to this recipe; null when signed out. Required, not optional:
+   * the page used to ask two extra endpoints for it after first paint, so the heart and
+   * the bookmark rendered empty and then flipped once the answers arrived.
+   */
+  viewer: ViewerState | null;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
@@ -96,47 +103,9 @@ export function useRecipe(id: string) {
   });
 }
 
-// Hook for like status
-interface LikeStatusResponse {
-  liked: boolean;
-  likesCount: number;
-}
-
-async function fetchLikeStatus(recipeId: string): Promise<LikeStatusResponse | null> {
-  const response = await fetch(`/api/recipes/${recipeId}/like`);
-
-  if (!response.ok) return null;
-  return response.json();
-}
-
-export function useRecipeLikeStatus(recipeId: string, userId: string | null) {
-  return useQuery({
-    queryKey: ['recipe-like', recipeId, userId],
-    queryFn: () => fetchLikeStatus(recipeId),
-    enabled: !!recipeId && !!userId,
-    staleTime: 30 * 1000, // 30 seconds
-  });
-}
-
-// Hook for save status
-interface SaveStatusResponse {
-  saved: boolean;
-}
-
-async function fetchSaveStatus(recipeId: string): Promise<SaveStatusResponse | null> {
-  const response = await fetch(`/api/recipes/${recipeId}/save`);
-
-  if (!response.ok) return null;
-  return response.json();
-}
-
-export function useRecipeSaveStatus(recipeId: string, userId: string | null) {
-  return useQuery({
-    queryKey: ['recipe-save', recipeId, userId],
-    queryFn: () => fetchSaveStatus(recipeId),
-    enabled: !!recipeId && !!userId,
-    staleTime: 30 * 1000, // 30 seconds
-  });
-}
+// `useRecipeLikeStatus` and `useRecipeSaveStatus` used to live here: two extra requests,
+// each with its own cache key and its own 30-second staleness, asking the server what the
+// recipe response should have said in the first place. They are gone — read
+// `recipe.viewer` instead, which arrives with the recipe and cannot disagree with it.
 
 export type { ApiRecipe, RecipeResponse };

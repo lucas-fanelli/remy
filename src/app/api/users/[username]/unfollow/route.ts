@@ -63,12 +63,11 @@ export async function POST(
       return { deleteResult, followersCount };
     });
 
-    if (deleteResult.count === 0) {
-      return NextResponse.json(
-        { error: 'Not following this user', code: 'user.notFollowing' },
-        { status: 400 }
-      );
-    }
+    // Already not following is the state the caller asked for, so this succeeded. Follow
+    // has always answered 'Already following' with a 200; unfollow answered 400, which
+    // meant a retry after a dropped response surfaced as an error on a request that had
+    // in fact worked.
+    const wasFollowing = deleteResult.count > 0;
 
     // Non-critical notification cleanup
     try {
@@ -78,7 +77,11 @@ export async function POST(
       logServerError('Failed to delete follow notification:', notifError);
     }
 
-    return NextResponse.json({ success: true, message: 'Unfollowed successfully', followersCount });
+    return NextResponse.json({
+      success: true,
+      message: wasFollowing ? 'Unfollowed successfully' : 'Not following',
+      followersCount,
+    });
   } catch (error) {
     logServerError('Error unfollowing user:', error);
     return NextResponse.json(

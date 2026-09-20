@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import striptags from 'striptags';
 import { IUserService } from '@/domain/services/IUserService';
+import { getCurrentUser } from '@/lib/api/auth';
+import { loadViewerState } from '@/lib/api/viewerState';
 import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
@@ -69,9 +71,22 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Optional auth — search is open to guests, but a signed-in reader's own hearts belong
+    // on these cards too. Search is the surface where the heart was not merely wrong but
+    // missing: it hid the actions rather than admit it did not know.
+    const requester = await getCurrentUser(request);
+    const viewerState = await loadViewerState(
+      requester?.id,
+      recipes.map((r) => r.id)
+    );
+
     // Format recipes response - use cached rating values from post record
     const formattedRecipes = recipes.map((recipe) => ({
       id: recipe.id,
+      // The author's user id, as every other recipe list returns it. Search omitted it, so
+      // the page substituted the username — a value that can never match a user id, which
+      // quietly meant "you are never the owner of a search result".
+      userId: recipe.userId,
       title: recipe.title ? striptags(recipe.title) : recipe.title,
       description: recipe.description ? striptags(recipe.description) : null,
       imageUrl: recipe.imageUrl,
@@ -87,6 +102,7 @@ export async function GET(request: NextRequest) {
         username: recipe.user.username,
         avatar: recipe.user.avatar,
       },
+      viewer: viewerState(recipe.id),
     }));
 
     return NextResponse.json({

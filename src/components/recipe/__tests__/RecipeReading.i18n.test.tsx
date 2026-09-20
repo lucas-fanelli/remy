@@ -169,7 +169,7 @@ describe('RecipeCard in Spanish', () => {
   });
 
   it('should print the difficulty, the servings and the total time in Spanish', () => {
-    renderInSpanish(<RecipeCard recipe={spanishRecipe} />);
+    renderInSpanish(<RecipeCard recipe={spanishRecipe} viewer={null} />);
 
     // The stored value stays 'easy'; only the label is translated
     expect(screen.getByText('fácil')).toBeInTheDocument();
@@ -178,20 +178,22 @@ describe('RecipeCard in Spanish', () => {
   });
 
   it('should say in Spanish that nobody rated the recipe yet', () => {
-    renderInSpanish(<RecipeCard recipe={spanishRecipe} />);
+    renderInSpanish(<RecipeCard recipe={spanishRecipe} viewer={null} />);
 
     expect(screen.getByText('Todavía no tiene puntuaciones')).toBeInTheDocument();
   });
 
   it('should label the like and comment actions in Spanish', () => {
-    renderInSpanish(<RecipeCard recipe={spanishRecipe} showActions likeCount={2} />);
+    renderInSpanish(<RecipeCard recipe={spanishRecipe} viewer={null} showActions likeCount={2} />);
 
     expect(screen.getByRole('button', { name: 'Me gusta' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Comentarios' })).toBeInTheDocument();
   });
 
   it('should open the owner menu in Spanish', async () => {
-    renderInSpanish(<RecipeCard recipe={spanishRecipe} showActions currentUserId="user-1" />);
+    renderInSpanish(
+      <RecipeCard recipe={spanishRecipe} viewer={null} showActions currentUserId="user-1" />
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'opciones de la receta' }));
 

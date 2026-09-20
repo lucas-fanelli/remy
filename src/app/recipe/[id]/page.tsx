@@ -42,7 +42,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { MotionBox, MotionCard } from '@/components/motion';
 import CommentsSection from '@/components/recipe/CommentsSection';
 import CaptionQuote from '@/components/recipe/display/CaptionQuote';
@@ -54,13 +54,7 @@ import StepNumber from '@/components/recipe/display/StepNumber';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
-import {
-  useRecipe,
-  useRecipeLikeStatus,
-  useRecipeSaveStatus,
-  ApiRecipe,
-  RecipeFetchError,
-} from '@/hooks/useRecipe';
+import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
 import { useTextDescriptor } from '@/i18n/text';
 import { useUnitLabels } from '@/i18n/units';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
@@ -121,8 +115,6 @@ export default function RecipeDetailPage() {
 
   // React Query hooks - with keepPreviousData for smooth transitions
   const { data: recipe, isLoading: loading, error: queryError } = useRecipe(recipeId);
-  const { data: likeStatus } = useRecipeLikeStatus(recipeId, user?.id ?? null);
-  const { data: saveStatus } = useRecipeSaveStatus(recipeId, user?.id ?? null);
 
   // Derived state from queries. A RecipeFetchError carries the message it wants printed
   // as a descriptor; anything else only has the English text it was thrown with.
@@ -132,10 +124,13 @@ export default function RecipeDetailPage() {
       : queryError.message
     : null;
 
-  // Local state for mutations and UI
-  const [liked, setLiked] = useState(likeStatus?.liked ?? false);
-  const [likesCount, setLikesCount] = useState(likeStatus?.likesCount ?? 0);
-  const [saved, setSaved] = useState(saveStatus?.saved ?? false);
+  // The heart, the count and the bookmark come with the recipe, so they are right on the
+  // first paint. They used to be three pieces of local state seeded to false/0 and then
+  // corrected by two extra requests, which is why they visibly flipped a moment after the
+  // page appeared — and why a reload could leave them wrong.
+  const liked = recipe?.viewer?.liked ?? false;
+  const likeCount = recipe?.likeCount ?? 0;
+  const saved = recipe?.viewer?.saved ?? false;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -156,19 +151,18 @@ export default function RecipeDetailPage() {
 
   const isOwner = user && recipe && user.id === recipe.userId;
 
-  // Sync like/save status from query to local state
-  useEffect(() => {
-    if (likeStatus) {
-      setLiked(likeStatus.liked);
-      setLikesCount(likeStatus.likesCount);
-    }
-  }, [likeStatus]);
-
-  useEffect(() => {
-    if (saveStatus) {
-      setSaved(saveStatus.saved);
-    }
-  }, [saveStatus]);
+  /**
+   * Edit the cached recipe in place. `useRecipe` selects `data.recipe` out of the
+   * response, so the cache holds the envelope and this has to reach inside it.
+   */
+  const patchCachedRecipe = useCallback(
+    (update: (cached: ApiRecipe) => ApiRecipe) => {
+      queryClient.setQueryData<RecipeResponse>(['recipe', recipeId], (previous) =>
+        previous ? { ...previous, recipe: update(previous.recipe) } : previous
+      );
+    },
+    [queryClient, recipeId]
+  );
 
   const handleBack = () => {
     router.back();
@@ -230,13 +224,21 @@ export default function RecipeDetailPage() {
       setLikeLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/like`, {
         method: 'POST',
-        headers: { 'X-Requested-With': 'fetch' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        body: JSON.stringify({ liked: !liked }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setLiked(data.liked);
-        setLikesCount(data.likesCount);
+        // The recipe query owns this state now, so the cached copy is what has to change.
+        // Writing the server's answer straight in beats invalidating: no second round trip,
+        // and no window where a refetch hands back the pre-click answer — which is what
+        // made the heart appear to undo itself.
+        patchCachedRecipe((cached) => ({
+          ...cached,
+          likeCount: data.likeCount,
+          viewer: cached.viewer ? { ...cached.viewer, liked: data.liked } : cached.viewer,
+        }));
         setSnackbar({
           open: true,
           message: data.liked ? t('toasts.liked') : t('toasts.unliked'),
@@ -261,12 +263,16 @@ export default function RecipeDetailPage() {
       setSaveLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/save`, {
         method: 'POST',
-        headers: { 'X-Requested-With': 'fetch' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        body: JSON.stringify({ saved: !saved }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setSaved(data.saved);
+        patchCachedRecipe((cached) => ({
+          ...cached,
+          viewer: cached.viewer ? { ...cached.viewer, saved: data.saved } : cached.viewer,
+        }));
         setSnackbar({
           open: true,
           message: data.saved ? t('toasts.saved') : t('toasts.unsaved'),
@@ -698,13 +704,13 @@ export default function RecipeDetailPage() {
                   >
                     {liked ? <Favorite /> : <FavoriteBorder />}
                   </IconButton>
-                  {likesCount > 0 && (
+                  {likeCount > 0 && (
                     <Typography
                       variant="body2"
                       fontWeight={600}
                       sx={{ color: 'text.primary', fontSize: { xs: '0.875rem', md: '1rem' } }}
                     >
-                      {likesCount}
+                      {likeCount}
                     </Typography>
                   )}
                 </Box>

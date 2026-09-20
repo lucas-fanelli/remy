@@ -30,7 +30,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useRef } from 'react';
-import { Recipe } from '@/domain/types/recipe';
+import { Recipe, ViewerState } from '@/domain/types/recipe';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { getDifficultyColor } from '@/lib/utils/recipe';
 
@@ -46,7 +46,14 @@ interface RecipeCardProps {
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
-  liked?: boolean;
+  /**
+   * What the reader did to this recipe, straight from the API; null when signed out.
+   *
+   * Required, and deliberately without a default. `liked = false` used to be the default,
+   * which meant a surface that simply forgot to pass it rendered a confident empty heart
+   * — indistinguishable from a real answer. Now forgetting it does not compile.
+   */
+  viewer: ViewerState | null;
   likeCount?: number;
   commentCount?: number;
   showActions?: boolean;
@@ -60,12 +67,13 @@ export default function RecipeCard({
   onClick,
   onEdit,
   onDelete,
-  liked = false,
+  viewer,
   likeCount = 0,
   commentCount = 0,
   showActions = false,
   currentUserId,
 }: RecipeCardProps) {
+  const liked = viewer?.liked ?? false;
   const t = useTranslations('recipe');
   const tCommon = useTranslations('common');
   const format = useFormatter();
