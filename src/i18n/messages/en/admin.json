@@ -1,1 +1,121 @@
-{}
+{
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "welcome": "Welcome back, {username}. Here's an overview of your platform.",
+    "statsError": "Failed to load stats",
+    "stats": {
+      "totalUsers": "Total Users",
+      "totalAdmins": "Total Admins",
+      "totalRecipes": "Total Recipes",
+      "totalComments": "Total Comments",
+      "totalLikes": "Total Likes",
+      "newToday": "New Today"
+    },
+    "management": {
+      "title": "Management",
+      "users": { "label": "Manage Users", "description": "View, promote, demote, or delete users" },
+      "recipes": { "label": "Manage Recipes", "description": "View or delete recipes" },
+      "comments": { "label": "Manage Comments", "description": "View or delete comments" }
+    }
+  },
+  "nav": { "back": "Go back" },
+  "pagination": {
+    "rowsPerPage": "Rows per page:",
+    "firstPage": "Go to first page",
+    "lastPage": "Go to last page",
+    "nextPage": "Go to next page",
+    "previousPage": "Go to previous page"
+  },
+  "users": {
+    "title": "Manage Users",
+    "searchPlaceholder": "Search users...",
+    "empty": "No users found",
+    "displayedRows": "{from, number}–{to, number} of {count, plural, one {# user} other {# users}}",
+    "role": "{role, select, ADMIN {Admin} USER {User} other {Unknown}}",
+    "roleFilter": { "label": "Role", "all": "All", "user": "User", "admin": "Admin" },
+    "columns": {
+      "user": "User",
+      "email": "Email",
+      "role": "Role",
+      "recipes": "Recipes",
+      "followers": "Followers",
+      "joined": "Joined",
+      "actions": "Actions"
+    },
+    "actions": {
+      "promote": "Promote to Admin",
+      "promoteAria": "Promote to admin",
+      "demote": "Demote to User",
+      "demoteAria": "Demote to user",
+      "delete": "Delete User",
+      "deleteAria": "Delete user"
+    },
+    "deleteDialog": {
+      "title": "Delete User",
+      "message": "Are you sure you want to delete <name>{username}</name>? This will permanently delete their account and all associated content (recipes, comments, etc.)."
+    },
+    "roleDialog": {
+      "promoteTitle": "Promote to Admin",
+      "promoteMessage": "Are you sure you want to promote <name>{username}</name> to Admin?",
+      "demoteTitle": "Demote to User",
+      "demoteMessage": "Are you sure you want to demote <name>{username}</name> to User?"
+    },
+    "errors": {
+      "load": "Failed to load users.",
+      "delete": "Failed to delete user.",
+      "role": "Failed to update user role. Please try again."
+    }
+  },
+  "recipes": {
+    "title": "Manage Recipes",
+    "searchPlaceholder": "Search recipes...",
+    "empty": "No recipes found",
+    "displayedRows": "{from, number}–{to, number} of {count, plural, one {# recipe} other {# recipes}}",
+    "untitled": "Untitled",
+    "noDescription": "No description",
+    "columns": {
+      "recipe": "Recipe",
+      "author": "Author",
+      "likes": "Likes",
+      "comments": "Comments",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "actions": {
+      "view": "View Recipe",
+      "viewAria": "View recipe",
+      "delete": "Delete Recipe",
+      "deleteAria": "Delete recipe"
+    },
+    "deleteDialog": {
+      "title": "Delete Recipe",
+      "fallbackTitle": "this recipe",
+      "message": "Are you sure you want to delete <name>{title}</name>? This action cannot be undone."
+    },
+    "errors": { "load": "Failed to load recipes.", "delete": "Failed to delete recipe." }
+  },
+  "comments": {
+    "title": "Manage Comments",
+    "empty": "No comments found",
+    "displayedRows": "{from, number}–{to, number} of {count, plural, one {# comment} other {# comments}}",
+    "untitledRecipe": "Untitled Recipe",
+    "columns": {
+      "comment": "Comment",
+      "author": "Author",
+      "recipe": "Recipe",
+      "date": "Date",
+      "actions": "Actions"
+    },
+    "actions": {
+      "view": "View Recipe",
+      "viewAria": "View recipe",
+      "delete": "Delete Comment",
+      "deleteAria": "Delete comment"
+    },
+    "deleteDialog": {
+      "title": "Delete Comment",
+      "message": "Are you sure you want to delete this comment by <name>{username}</name>? This action cannot be undone."
+    },
+    "errors": { "load": "Failed to load comments.", "delete": "Failed to delete comment." }
+  }
+}

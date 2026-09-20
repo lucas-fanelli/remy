@@ -28,8 +28,12 @@ import {
   Alert,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
+
+/** Which request failed, not what to say about it - the sentence is looked up at render time. */
+type RecipesFailure = 'load' | 'delete';
 
 interface AdminRecipe {
   id: string;
@@ -49,6 +53,9 @@ interface AdminRecipe {
 }
 
 export default function AdminRecipesPage() {
+  const t = useTranslations('admin');
+  const tCommon = useTranslations('common');
+  const format = useFormatter();
   const router = useRouter();
   const { isReady, isLoading: guardLoading } = useAdminGuard();
 
@@ -62,7 +69,7 @@ export default function AdminRecipesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<AdminRecipe | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<RecipesFailure | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -83,11 +90,11 @@ export default function AdminRecipesPage() {
       if (!response.ok) throw new Error('Failed to fetch recipes');
 
       const data = await response.json();
-      setError(null);
+      setFailure(null);
       setRecipes(data.recipes);
       setTotal(data.total);
     } catch (error) {
-      setError('Failed to load recipes.');
+      setFailure('load');
       console.error('Error fetching recipes:', error);
     } finally {
       setLoading(false);
@@ -121,7 +128,7 @@ export default function AdminRecipesPage() {
       fetchRecipes();
     } catch (error) {
       console.error('Error deleting recipe:', error);
-      setError('Failed to delete recipe.');
+      setFailure('delete');
     } finally {
       setActionLoading(false);
     }
@@ -148,11 +155,11 @@ export default function AdminRecipesPage() {
     >
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <IconButton onClick={() => router.push('/admin')} aria-label="Go back">
+          <IconButton onClick={() => router.push('/admin')} aria-label={t('nav.back')}>
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight={700} color="text.primary">
-            Manage Recipes
+            {t('recipes.title')}
           </Typography>
         </Box>
 
@@ -160,7 +167,7 @@ export default function AdminRecipesPage() {
         <Paper sx={{ p: 2, mb: 3 }}>
           <TextField
             size="small"
-            placeholder="Search recipes..."
+            placeholder={t('recipes.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -177,9 +184,9 @@ export default function AdminRecipesPage() {
           />
         </Paper>
 
-        {error && (
+        {failure && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {t(`recipes.errors.${failure}`)}
           </Alert>
         )}
 
@@ -188,12 +195,12 @@ export default function AdminRecipesPage() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Recipe</TableCell>
-                <TableCell>Author</TableCell>
-                <TableCell align="center">Likes</TableCell>
-                <TableCell align="center">Comments</TableCell>
-                <TableCell>Created</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('recipes.columns.recipe')}</TableCell>
+                <TableCell>{t('recipes.columns.author')}</TableCell>
+                <TableCell align="center">{t('recipes.columns.likes')}</TableCell>
+                <TableCell align="center">{t('recipes.columns.comments')}</TableCell>
+                <TableCell>{t('recipes.columns.created')}</TableCell>
+                <TableCell align="right">{t('recipes.columns.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -206,7 +213,7 @@ export default function AdminRecipesPage() {
               ) : recipes.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                    No recipes found
+                    {t('recipes.empty')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -219,7 +226,7 @@ export default function AdminRecipesPage() {
                         </Avatar>
                         <Box>
                           <Typography fontWeight={600} color="text.primary">
-                            {recipe.title || 'Untitled'}
+                            {recipe.title || t('recipes.untitled')}
                           </Typography>
                           <Typography
                             variant="body2"
@@ -227,7 +234,7 @@ export default function AdminRecipesPage() {
                             sx={{ maxWidth: 300 }}
                             noWrap
                           >
-                            {recipe.description || 'No description'}
+                            {recipe.description || t('recipes.noDescription')}
                           </Typography>
                         </Box>
                       </Box>
@@ -241,27 +248,27 @@ export default function AdminRecipesPage() {
                     <TableCell align="center">{recipe._count?.likes || 0}</TableCell>
                     <TableCell align="center">{recipe._count?.comments || 0}</TableCell>
                     <TableCell>
-                      {new Date(recipe.createdAt).toLocaleDateString(undefined, {
+                      {format.dateTime(new Date(recipe.createdAt), {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
                       })}
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="View Recipe">
+                      <Tooltip title={t('recipes.actions.view')}>
                         <IconButton
                           onClick={() => router.push(`/recipe/${recipe.id}`)}
                           color="primary"
-                          aria-label="View recipe"
+                          aria-label={t('recipes.actions.viewAria')}
                         >
                           <Visibility />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete Recipe">
+                      <Tooltip title={t('recipes.actions.delete')}>
                         <IconButton
                           onClick={() => handleDeleteClick(recipe)}
                           color="error"
-                          aria-label="Delete recipe"
+                          aria-label={t('recipes.actions.deleteAria')}
                         >
                           <Delete />
                         </IconButton>
@@ -283,23 +290,31 @@ export default function AdminRecipesPage() {
               setPage(0);
             }}
             rowsPerPageOptions={[10, 20, 50]}
+            labelRowsPerPage={t('pagination.rowsPerPage')}
+            labelDisplayedRows={({ from, to, count }) =>
+              t('recipes.displayedRows', { from, to, count })
+            }
+            getItemAriaLabel={(type) => t(`pagination.${type}Page`)}
           />
         </TableContainer>
 
         {/* Delete Dialog */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete Recipe</DialogTitle>
+          <DialogTitle>{t('recipes.deleteDialog.title')}</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete{' '}
-              <strong>{selectedRecipe?.title || 'this recipe'}</strong>? This action cannot be
-              undone.
+              {t.rich('recipes.deleteDialog.message', {
+                // `title` is a noun slot: either the recipe's own title or, when it has none,
+                // the translated stand-in for it. Each language decides where that noun sits.
+                title: selectedRecipe?.title || t('recipes.deleteDialog.fallbackTitle'),
+                name: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setDeleteDialogOpen(false)}>{tCommon('actions.cancel')}</Button>
             <Button onClick={handleDelete} color="error" disabled={actionLoading}>
-              {actionLoading ? <CircularProgress size={20} /> : 'Delete'}
+              {actionLoading ? <CircularProgress size={20} /> : tCommon('actions.delete')}
             </Button>
           </DialogActions>
         </Dialog>

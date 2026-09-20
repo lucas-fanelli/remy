@@ -8,6 +8,7 @@ import {
 import { Box, Button, Container, Typography, Paper } from '@mui/material';
 import * as Sentry from '@sentry/nextjs';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import React, { useEffect } from 'react';
 
 interface ErrorProps {
@@ -16,6 +17,8 @@ interface ErrorProps {
 }
 
 export default function Error({ error, reset }: ErrorProps) {
+  const t = useTranslations('shell');
+  const tCommon = useTranslations('common');
   const router = useRouter();
 
   useEffect(() => {
@@ -55,12 +58,11 @@ export default function Error({ error, reset }: ErrorProps) {
           />
 
           <Typography variant="h4" gutterBottom fontWeight="bold">
-            Oops! Something went wrong
+            {t('error.title')}
           </Typography>
 
           <Typography variant="body1" color="text.secondary" paragraph>
-            We encountered an unexpected error. Don&apos;t worry, our team has been notified and
-            we&apos;re working on it.
+            {t('error.description')}
           </Typography>
 
           {process.env.NODE_ENV === 'development' && (
@@ -79,7 +81,7 @@ export default function Error({ error, reset }: ErrorProps) {
               </Typography>
               {error.digest && (
                 <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                  Error ID: {error.digest}
+                  {t('error.errorId', { digest: error.digest })}
                 </Typography>
               )}
             </Paper>
@@ -87,11 +89,11 @@ export default function Error({ error, reset }: ErrorProps) {
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', marginTop: 3 }}>
             <Button variant="contained" color="primary" startIcon={<RefreshIcon />} onClick={reset}>
-              Try Again
+              {t('actions.tryAgain')}
             </Button>
 
             <Button variant="outlined" startIcon={<HomeIcon />} onClick={() => router.push('/')}>
-              Go Home
+              {tCommon('actions.goHome')}
             </Button>
           </Box>
         </Paper>

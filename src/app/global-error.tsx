@@ -3,6 +3,15 @@
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 
+/**
+ * The only screen in the app that stays English, and deliberately so.
+ *
+ * global-error REPLACES the root layout - it renders its own <html>/<body> - so by the time
+ * it is shown, NextIntlClientProvider never mounted and `useTranslations()` would throw.
+ * docs/I18N.md defines no provider-free way to translate, and importing the catalogue here
+ * would make the last-resort screen depend on the very module graph whose failure brought it
+ * up. `lang="en"` is kept honest with the copy for the same reason. See the report for area E.
+ */
 export default function GlobalError({
   error,
   reset,

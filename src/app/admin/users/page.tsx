@@ -33,9 +33,13 @@ import {
   MenuItem,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
+
+/** Which request failed, not what to say about it - the sentence is looked up at render time. */
+type UsersFailure = 'load' | 'delete' | 'role';
 
 interface AdminUser {
   id: string;
@@ -55,6 +59,9 @@ interface AdminUser {
 }
 
 export default function AdminUsersPage() {
+  const t = useTranslations('admin');
+  const tCommon = useTranslations('common');
+  const format = useFormatter();
   const router = useRouter();
   const { user } = useAuth();
   const { isReady, isLoading: guardLoading } = useAdminGuard();
@@ -71,7 +78,7 @@ export default function AdminUsersPage() {
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<UsersFailure | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -93,11 +100,11 @@ export default function AdminUsersPage() {
       if (!response.ok) throw new Error('Failed to fetch users');
 
       const data = await response.json();
-      setError(null);
+      setFailure(null);
       setUsers(data.users);
       setTotal(data.total);
     } catch (error) {
-      setError('Failed to load users.');
+      setFailure('load');
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
@@ -136,7 +143,7 @@ export default function AdminUsersPage() {
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      setError('Failed to delete user.');
+      setFailure('delete');
     } finally {
       setActionLoading(false);
     }
@@ -162,7 +169,7 @@ export default function AdminUsersPage() {
       fetchUsers();
     } catch (error) {
       console.error('Error updating role:', error);
-      setError('Failed to update user role. Please try again.');
+      setFailure('role');
     } finally {
       setActionLoading(false);
     }
@@ -189,11 +196,11 @@ export default function AdminUsersPage() {
     >
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <IconButton onClick={() => router.push('/admin')} aria-label="Go back">
+          <IconButton onClick={() => router.push('/admin')} aria-label={t('nav.back')}>
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight={700} color="text.primary">
-            Manage Users
+            {t('users.title')}
           </Typography>
         </Box>
 
@@ -201,7 +208,7 @@ export default function AdminUsersPage() {
         <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <TextField
             size="small"
-            placeholder="Search users..."
+            placeholder={t('users.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -217,25 +224,26 @@ export default function AdminUsersPage() {
             sx={{ minWidth: 250 }}
           />
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Role</InputLabel>
+            <InputLabel>{t('users.roleFilter.label')}</InputLabel>
             <Select
               value={roleFilter}
-              label="Role"
+              label={t('users.roleFilter.label')}
               onChange={(e) => {
                 setRoleFilter(e.target.value);
                 setPage(0);
               }}
             >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="USER">User</MenuItem>
-              <MenuItem value="ADMIN">Admin</MenuItem>
+              {/* The values are the stored role enum and never change language */}
+              <MenuItem value="">{t('users.roleFilter.all')}</MenuItem>
+              <MenuItem value="USER">{t('users.roleFilter.user')}</MenuItem>
+              <MenuItem value="ADMIN">{t('users.roleFilter.admin')}</MenuItem>
             </Select>
           </FormControl>
         </Paper>
 
-        {error && (
+        {failure && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {t(`users.errors.${failure}`)}
           </Alert>
         )}
 
@@ -244,13 +252,13 @@ export default function AdminUsersPage() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>User</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell align="center">Recipes</TableCell>
-                <TableCell align="center">Followers</TableCell>
-                <TableCell>Joined</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('users.columns.user')}</TableCell>
+                <TableCell>{t('users.columns.email')}</TableCell>
+                <TableCell>{t('users.columns.role')}</TableCell>
+                <TableCell align="center">{t('users.columns.recipes')}</TableCell>
+                <TableCell align="center">{t('users.columns.followers')}</TableCell>
+                <TableCell>{t('users.columns.joined')}</TableCell>
+                <TableCell align="right">{t('users.columns.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -263,7 +271,7 @@ export default function AdminUsersPage() {
               ) : users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                    No users found
+                    {t('users.empty')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -288,8 +296,9 @@ export default function AdminUsersPage() {
                     </TableCell>
                     <TableCell>{u.email}</TableCell>
                     <TableCell>
+                      {/* The stored enum stays as it is; only the label on screen is translated */}
                       <Chip
-                        label={u.role}
+                        label={t('users.role', { role: u.role })}
                         size="small"
                         color={u.role === 'ADMIN' ? 'warning' : 'default'}
                       />
@@ -297,29 +306,39 @@ export default function AdminUsersPage() {
                     <TableCell align="center">{u._count?.posts || 0}</TableCell>
                     <TableCell align="center">{u._count?.followers || 0}</TableCell>
                     <TableCell>
-                      {new Date(u.createdAt).toLocaleDateString(undefined, {
+                      {format.dateTime(new Date(u.createdAt), {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
                       })}
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title={u.role === 'ADMIN' ? 'Demote to User' : 'Promote to Admin'}>
+                      <Tooltip
+                        title={
+                          u.role === 'ADMIN'
+                            ? t('users.actions.demote')
+                            : t('users.actions.promote')
+                        }
+                      >
                         <IconButton
                           onClick={() => handleRoleClick(u)}
                           disabled={u.id === user?.id}
                           color={u.role === 'ADMIN' ? 'warning' : 'primary'}
-                          aria-label={u.role === 'ADMIN' ? 'Demote to user' : 'Promote to admin'}
+                          aria-label={
+                            u.role === 'ADMIN'
+                              ? t('users.actions.demoteAria')
+                              : t('users.actions.promoteAria')
+                          }
                         >
                           {u.role === 'ADMIN' ? <ArrowDownward /> : <ArrowUpward />}
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete User">
+                      <Tooltip title={t('users.actions.delete')}>
                         <IconButton
                           onClick={() => handleDeleteClick(u)}
                           disabled={u.id === user?.id}
                           color="error"
-                          aria-label="Delete user"
+                          aria-label={t('users.actions.deleteAria')}
                         >
                           <Delete />
                         </IconButton>
@@ -341,22 +360,29 @@ export default function AdminUsersPage() {
               setPage(0);
             }}
             rowsPerPageOptions={[10, 20, 50]}
+            labelRowsPerPage={t('pagination.rowsPerPage')}
+            labelDisplayedRows={({ from, to, count }) =>
+              t('users.displayedRows', { from, to, count })
+            }
+            getItemAriaLabel={(type) => t(`pagination.${type}Page`)}
           />
         </TableContainer>
 
         {/* Delete Dialog */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete User</DialogTitle>
+          <DialogTitle>{t('users.deleteDialog.title')}</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete <strong>{selectedUser?.username}</strong>? This will
-              permanently delete their account and all associated content (recipes, comments, etc.).
+              {t.rich('users.deleteDialog.message', {
+                username: selectedUser?.username ?? '',
+                name: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setDeleteDialogOpen(false)}>{tCommon('actions.cancel')}</Button>
             <Button onClick={handleDelete} color="error" disabled={actionLoading}>
-              {actionLoading ? <CircularProgress size={20} /> : 'Delete'}
+              {actionLoading ? <CircularProgress size={20} /> : tCommon('actions.delete')}
             </Button>
           </DialogActions>
         </Dialog>
@@ -364,17 +390,25 @@ export default function AdminUsersPage() {
         {/* Role Change Dialog */}
         <Dialog open={roleDialogOpen} onClose={() => setRoleDialogOpen(false)}>
           <DialogTitle>
-            {selectedUser?.role === 'ADMIN' ? 'Demote to User' : 'Promote to Admin'}
+            {selectedUser?.role === 'ADMIN'
+              ? t('users.roleDialog.demoteTitle')
+              : t('users.roleDialog.promoteTitle')}
           </DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to {selectedUser?.role === 'ADMIN' ? 'demote' : 'promote'}{' '}
-              <strong>{selectedUser?.username}</strong> to{' '}
-              {selectedUser?.role === 'ADMIN' ? 'User' : 'Admin'}?
+              {t.rich(
+                selectedUser?.role === 'ADMIN'
+                  ? 'users.roleDialog.demoteMessage'
+                  : 'users.roleDialog.promoteMessage',
+                {
+                  username: selectedUser?.username ?? '',
+                  name: (chunks) => <strong>{chunks}</strong>,
+                }
+              )}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setRoleDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setRoleDialogOpen(false)}>{tCommon('actions.cancel')}</Button>
             <Button
               onClick={() =>
                 handleRoleChange(selectedUser?.role === 'ADMIN' ? 'demote' : 'promote')
@@ -382,7 +416,7 @@ export default function AdminUsersPage() {
               color="primary"
               disabled={actionLoading}
             >
-              {actionLoading ? <CircularProgress size={20} /> : 'Confirm'}
+              {actionLoading ? <CircularProgress size={20} /> : tCommon('actions.confirm')}
             </Button>
           </DialogActions>
         </Dialog>

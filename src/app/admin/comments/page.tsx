@@ -25,8 +25,12 @@ import {
   Alert,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
+
+/** Which request failed, not what to say about it - the sentence is looked up at render time. */
+type CommentsFailure = 'load' | 'delete';
 
 interface AdminComment {
   id: string;
@@ -44,6 +48,9 @@ interface AdminComment {
 }
 
 export default function AdminCommentsPage() {
+  const t = useTranslations('admin');
+  const tCommon = useTranslations('common');
+  const format = useFormatter();
   const router = useRouter();
   const { isReady, isLoading: guardLoading } = useAdminGuard();
 
@@ -55,7 +62,7 @@ export default function AdminCommentsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedComment, setSelectedComment] = useState<AdminComment | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<CommentsFailure | null>(null);
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -70,11 +77,11 @@ export default function AdminCommentsPage() {
       if (!response.ok) throw new Error('Failed to fetch comments');
 
       const data = await response.json();
-      setError(null);
+      setFailure(null);
       setComments(data.comments);
       setTotal(data.total);
     } catch (error) {
-      setError('Failed to load comments.');
+      setFailure('load');
       console.error('Error fetching comments:', error);
     } finally {
       setLoading(false);
@@ -108,7 +115,7 @@ export default function AdminCommentsPage() {
       fetchComments();
     } catch (error) {
       console.error('Error deleting comment:', error);
-      setError('Failed to delete comment.');
+      setFailure('delete');
     } finally {
       setActionLoading(false);
     }
@@ -135,17 +142,17 @@ export default function AdminCommentsPage() {
     >
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <IconButton onClick={() => router.push('/admin')} aria-label="Go back">
+          <IconButton onClick={() => router.push('/admin')} aria-label={t('nav.back')}>
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight={700} color="text.primary">
-            Manage Comments
+            {t('comments.title')}
           </Typography>
         </Box>
 
-        {error && (
+        {failure && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {t(`comments.errors.${failure}`)}
           </Alert>
         )}
 
@@ -154,11 +161,11 @@ export default function AdminCommentsPage() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Comment</TableCell>
-                <TableCell>Author</TableCell>
-                <TableCell>Recipe</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t('comments.columns.comment')}</TableCell>
+                <TableCell>{t('comments.columns.author')}</TableCell>
+                <TableCell>{t('comments.columns.recipe')}</TableCell>
+                <TableCell>{t('comments.columns.date')}</TableCell>
+                <TableCell align="right">{t('comments.columns.actions')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -171,7 +178,7 @@ export default function AdminCommentsPage() {
               ) : comments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                    No comments found
+                    {t('comments.empty')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -199,31 +206,31 @@ export default function AdminCommentsPage() {
                     </TableCell>
                     <TableCell>
                       <Typography color="text.primary" noWrap sx={{ maxWidth: 200 }}>
-                        {comment.post.title || 'Untitled Recipe'}
+                        {comment.post.title || t('comments.untitledRecipe')}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      {new Date(comment.createdAt).toLocaleDateString(undefined, {
+                      {format.dateTime(new Date(comment.createdAt), {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
                       })}
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="View Recipe">
+                      <Tooltip title={t('comments.actions.view')}>
                         <IconButton
                           onClick={() => router.push(`/recipe/${comment.postId}`)}
                           color="primary"
-                          aria-label="View recipe"
+                          aria-label={t('comments.actions.viewAria')}
                         >
                           <Visibility />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete Comment">
+                      <Tooltip title={t('comments.actions.delete')}>
                         <IconButton
                           onClick={() => handleDeleteClick(comment)}
                           color="error"
-                          aria-label="Delete comment"
+                          aria-label={t('comments.actions.deleteAria')}
                         >
                           <Delete />
                         </IconButton>
@@ -245,22 +252,29 @@ export default function AdminCommentsPage() {
               setPage(0);
             }}
             rowsPerPageOptions={[10, 20, 50]}
+            labelRowsPerPage={t('pagination.rowsPerPage')}
+            labelDisplayedRows={({ from, to, count }) =>
+              t('comments.displayedRows', { from, to, count })
+            }
+            getItemAriaLabel={(type) => t(`pagination.${type}Page`)}
           />
         </TableContainer>
 
         {/* Delete Dialog */}
         <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete Comment</DialogTitle>
+          <DialogTitle>{t('comments.deleteDialog.title')}</DialogTitle>
           <DialogContent>
             <DialogContentText>
-              Are you sure you want to delete this comment by{' '}
-              <strong>{selectedComment?.user.username}</strong>? This action cannot be undone.
+              {t.rich('comments.deleteDialog.message', {
+                username: selectedComment?.user.username ?? '',
+                name: (chunks) => <strong>{chunks}</strong>,
+              })}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => setDeleteDialogOpen(false)}>{tCommon('actions.cancel')}</Button>
             <Button onClick={handleDelete} color="error" disabled={actionLoading}>
-              {actionLoading ? <CircularProgress size={20} /> : 'Delete'}
+              {actionLoading ? <CircularProgress size={20} /> : tCommon('actions.delete')}
             </Button>
           </DialogActions>
         </Dialog>

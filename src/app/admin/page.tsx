@@ -30,6 +30,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useFormatter, useTranslations } from 'next-intl';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
@@ -45,13 +46,17 @@ interface AdminStats {
 }
 
 export default function AdminDashboard() {
+  const t = useTranslations('admin');
+  const format = useFormatter();
   const router = useRouter();
   const theme = useTheme();
   const { user, isAdmin } = useAuth();
   const { isReady, isLoading: guardLoading } = useAdminGuard();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // A flag rather than a sentence: the message is looked up at render time, so the banner
+  // follows the language even if the user switches it after the request failed.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -64,7 +69,8 @@ export default function AdminDashboard() {
       const data = await response.json();
       setStats(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load stats');
+      console.error('Error fetching stats:', err);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -90,65 +96,52 @@ export default function AdminDashboard() {
     return null;
   }
 
+  // Each card's `id` is its key under admin.dashboard.stats / .management - a closed union,
+  // which is the one case where a message key may be built from a variable.
   const statCards = [
     {
-      label: 'Total Users',
+      id: 'totalUsers',
       value: stats?.totalUsers || 0,
       icon: <People />,
       color: theme.palette.primary.main,
     },
     {
-      label: 'Total Admins',
+      id: 'totalAdmins',
       value: stats?.totalAdmins || 0,
       icon: <AdminPanelSettings />,
       color: theme.palette.warning.main,
     },
     {
-      label: 'Total Recipes',
+      id: 'totalRecipes',
       value: stats?.totalRecipes || 0,
       icon: <Restaurant />,
       color: theme.palette.success.main,
     },
     {
-      label: 'Total Comments',
+      id: 'totalComments',
       value: stats?.totalComments || 0,
       icon: <Comment />,
       color: theme.palette.info.main,
     },
     {
-      label: 'Total Likes',
+      id: 'totalLikes',
       value: stats?.totalLikes || 0,
       icon: <Favorite />,
       color: theme.palette.error.main,
     },
     {
-      label: 'New Today',
+      id: 'newToday',
       value: (stats?.newUsersToday || 0) + (stats?.newRecipesToday || 0),
       icon: <TrendingUp />,
       color: theme.palette.secondary.main,
     },
-  ];
+  ] as const;
 
   const managementCards = [
-    {
-      label: 'Manage Users',
-      description: 'View, promote, demote, or delete users',
-      href: '/admin/users',
-      icon: <People sx={{ fontSize: 40 }} />,
-    },
-    {
-      label: 'Manage Recipes',
-      description: 'View or delete recipes',
-      href: '/admin/recipes',
-      icon: <Restaurant sx={{ fontSize: 40 }} />,
-    },
-    {
-      label: 'Manage Comments',
-      description: 'View or delete comments',
-      href: '/admin/comments',
-      icon: <Comment sx={{ fontSize: 40 }} />,
-    },
-  ];
+    { id: 'users', href: '/admin/users', icon: <People sx={{ fontSize: 40 }} /> },
+    { id: 'recipes', href: '/admin/recipes', icon: <Restaurant sx={{ fontSize: 40 }} /> },
+    { id: 'comments', href: '/admin/comments', icon: <Comment sx={{ fontSize: 40 }} /> },
+  ] as const;
 
   return (
     <Box
@@ -162,16 +155,16 @@ export default function AdminDashboard() {
       <Container maxWidth="lg">
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" fontWeight={700} color="text.primary" gutterBottom>
-            Admin Dashboard
+            {t('dashboard.title')}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Welcome back, {user?.username}. Here&apos;s an overview of your platform.
+            {t('dashboard.welcome', { username: user?.username ?? '' })}
           </Typography>
         </Box>
 
-        {error && (
+        {loadFailed && (
           <Paper sx={{ p: 2, mb: 4, bgcolor: 'error.light' }}>
-            <Typography color="error.contrastText">{error}</Typography>
+            <Typography color="error.contrastText">{t('dashboard.statsError')}</Typography>
           </Paper>
         )}
 
@@ -179,7 +172,7 @@ export default function AdminDashboard() {
         {stats && (
           <Grid container spacing={3} sx={{ mb: 6 }}>
             {statCards.map((stat) => (
-              <Grid item xs={6} sm={4} md={2} key={stat.label}>
+              <Grid item xs={6} sm={4} md={2} key={stat.id}>
                 <Paper
                   elevation={0}
                   sx={{
@@ -192,10 +185,10 @@ export default function AdminDashboard() {
                 >
                   <Box sx={{ color: stat.color, mb: 1 }}>{stat.icon}</Box>
                   <Typography variant="h4" fontWeight={700} color="text.primary">
-                    {stat.value.toLocaleString()}
+                    {format.number(stat.value)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {stat.label}
+                    {t(`dashboard.stats.${stat.id}`)}
                   </Typography>
                 </Paper>
               </Grid>
@@ -205,11 +198,11 @@ export default function AdminDashboard() {
 
         {/* Management Cards */}
         <Typography variant="h5" fontWeight={600} color="text.primary" gutterBottom sx={{ mb: 3 }}>
-          Management
+          {t('dashboard.management.title')}
         </Typography>
         <Grid container spacing={3}>
           {managementCards.map((card) => (
-            <Grid item xs={12} sm={6} md={4} key={card.label}>
+            <Grid item xs={12} sm={6} md={4} key={card.id}>
               <Card
                 elevation={0}
                 sx={{
@@ -227,10 +220,10 @@ export default function AdminDashboard() {
                   <CardContent sx={{ textAlign: 'center' }}>
                     <Box sx={{ color: 'primary.main', mb: 2 }}>{card.icon}</Box>
                     <Typography variant="h6" fontWeight={600} gutterBottom color="text.primary">
-                      {card.label}
+                      {t(`dashboard.management.${card.id}.label`)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {card.description}
+                      {t(`dashboard.management.${card.id}.description`)}
                     </Typography>
                   </CardContent>
                 </CardActionArea>

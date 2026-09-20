@@ -2,8 +2,11 @@
 
 import WifiOffIcon from '@mui/icons-material/WifiOff';
 import { Box, Typography, Button } from '@mui/material';
+import { useTranslations } from 'next-intl';
 
 export default function OfflinePage() {
+  const t = useTranslations('shell');
+
   const handleRetry = () => {
     window.location.reload();
   };
@@ -23,14 +26,13 @@ export default function OfflinePage() {
     >
       <WifiOffIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
       <Typography variant="h4" component="h1" gutterBottom>
-        You&apos;re Offline
+        {t('offline.title')}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 400 }}>
-        It looks like you&apos;ve lost your internet connection. Some features may be unavailable
-        until you&apos;re back online.
+        {t('offline.description')}
       </Typography>
       <Button onClick={handleRetry} variant="contained" color="primary">
-        Try Again
+        {t('actions.tryAgain')}
       </Button>
     </Box>
   );

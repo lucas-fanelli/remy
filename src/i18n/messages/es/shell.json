@@ -1,1 +1,62 @@
-{}
+{
+  "about": {
+    "hero": {
+      "title": "Sobre {name}",
+      "subtitle": "Una plataforma moderna para compartir recetas, donde quienes cocinan en casa se juntan a descubrir, crear y compartir platos ricos."
+    },
+    "intro": {
+      "title": "¿Qué es {name}?",
+      "lead": "{name} es una red social de recetas inspirada en el amor por la cocina y por la comunidad. Lleva el nombre de la famosa rata chef de Ratatouille y encarna la idea de que \"cualquiera puede cocinar\": todos tenemos algo rico para compartir.",
+      "body": "Ya sea que estés dando tus primeros pasos en la cocina o que tengas recetas de familia pasadas de generación en generación, {name} te da un lugar para anotarlas, descubrir otras y conectarte con gente que ama la comida."
+    },
+    "features": {
+      "title": "Funciones",
+      "subtitle": "Todo lo que necesitás para ordenar tus recetas y conectarte con otra gente que ama la comida.",
+      "shareRecipes": {
+        "title": "Compartí recetas",
+        "description": "Creá y compartí tus recetas preferidas con la comunidad. Sumá fotos, ingredientes y los pasos de la preparación."
+      },
+      "smartPantry": {
+        "title": "Despensa inteligente",
+        "description": "Llevá el control de los ingredientes de tu despensa y descubrí recetas que podés hacer con lo que ya tenés."
+      },
+      "discover": {
+        "title": "Descubrí",
+        "description": "Explorá las recetas de otra gente que cocina en casa. Filtrá por ingredientes, tipo de cocina o preferencias alimentarias."
+      },
+      "saveFavorites": {
+        "title": "Guardá tus favoritas",
+        "description": "Guardá en tu perfil las recetas que te gustan y tenelas a mano cada vez que necesites ideas."
+      },
+      "connect": {
+        "title": "Conectate",
+        "description": "Seguí a tus cocineros preferidos, comentá recetas y armá una comunidad alrededor de la comida."
+      },
+      "share": {
+        "title": "Compartí",
+        "description": "Compartí tus creaciones de cocina con amigos y familia desde las funciones sociales de la app."
+      }
+    },
+    "creator": {
+      "title": "Quién la hizo",
+      "bio": "Desarrollador full-stack apasionado por crear aplicaciones web lindas y funcionales. {name} nació como un proyecto hecho con cariño, mezclando la pasión por la tecnología y por la comida."
+    },
+    "techStack": { "title": "Hecha con" },
+    "backHome": "← Volver al inicio"
+  },
+  "error": {
+    "title": "¡Uy! Algo salió mal",
+    "description": "Tuvimos un error inesperado. No te preocupes: ya nos avisaron y lo estamos solucionando.",
+    "errorId": "ID del error: {digest}"
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "No encontramos la página que buscás. Puede que la hayan movido o borrado.",
+    "hint": "¿Te perdiste? Probá buscar recetas o mirá las recetas de la comunidad."
+  },
+  "offline": {
+    "title": "Estás sin conexión",
+    "description": "Parece que te quedaste sin internet. Algunas funciones no van a estar disponibles hasta que vuelvas a conectarte."
+  },
+  "actions": { "tryAgain": "Probar de nuevo" }
+}

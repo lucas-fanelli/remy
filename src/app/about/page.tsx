@@ -11,50 +11,25 @@ import YouTube from '@mui/icons-material/YouTube';
 import { Box, Container, Typography, Avatar, Chip, Divider, Link } from '@mui/material';
 import { useReducedMotion } from 'framer-motion';
 import NextLink from 'next/link';
+import { useTranslations } from 'next-intl';
 import { MotionBox, MotionPaper } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
 
-const features = [
-  {
-    icon: Restaurant,
-    title: 'Share Recipes',
-    description:
-      'Create and share your favorite recipes with the community. Add photos, ingredients, and step-by-step instructions.',
-  },
-  {
-    icon: Kitchen,
-    title: 'Smart Pantry',
-    description:
-      'Track ingredients in your pantry and discover recipes you can make with what you already have.',
-  },
-  {
-    icon: Search,
-    title: 'Discover',
-    description:
-      'Explore recipes from other home cooks. Filter by ingredients, cuisine, or dietary preferences.',
-  },
-  {
-    icon: Favorite,
-    title: 'Save Favorites',
-    description:
-      'Save recipes you love to your profile for quick access anytime you need inspiration.',
-  },
-  {
-    icon: People,
-    title: 'Connect',
-    description:
-      'Follow your favorite home cooks, comment on recipes, and build a community around food.',
-  },
-  {
-    icon: Share,
-    title: 'Share',
-    description: 'Share your culinary creations with friends and family through social features.',
-  },
-];
+// The copy is not here any more: each feature's `id` IS its key under about.features, and the
+// ids are a closed union, which is the one case where a key may be built from a variable.
+const FEATURES = [
+  { id: 'shareRecipes', icon: Restaurant },
+  { id: 'smartPantry', icon: Kitchen },
+  { id: 'discover', icon: Search },
+  { id: 'saveFavorites', icon: Favorite },
+  { id: 'connect', icon: People },
+  { id: 'share', icon: Share },
+] as const;
 
 const { techStack } = BRANDING;
 
 export default function AboutPage() {
+  const t = useTranslations('shell');
   const shouldReduceMotion = useReducedMotion();
   const fadeUp = shouldReduceMotion
     ? { transition: { duration: 0 } }
@@ -89,15 +64,14 @@ export default function AboutPage() {
               WebkitTextFillColor: 'transparent',
             })}
           >
-            {`About ${BRANDING.name}`}
+            {t('about.hero.title', { name: BRANDING.name })}
           </Typography>
           <Typography
             variant="h5"
             color="text.secondary"
             sx={{ maxWidth: 600, mx: 'auto', fontSize: { xs: '1rem', sm: '1.25rem' } }}
           >
-            A modern recipe sharing platform where home cooks come together to discover, create, and
-            share delicious recipes.
+            {t('about.hero.subtitle')}
           </Typography>
         </MotionBox>
 
@@ -116,13 +90,13 @@ export default function AboutPage() {
           }}
         >
           <Typography variant="h4" fontWeight={600} gutterBottom color="text.primary">
-            {`What is ${BRANDING.name}?`}
+            {t('about.intro.title', { name: BRANDING.name })}
           </Typography>
           <Typography variant="body1" color="text.secondary" paragraph>
-            {`${BRANDING.name} is a recipe sharing social platform inspired by the love of cooking and community. ${BRANDING.taglineExtended}`}
+            {t('about.intro.lead', { name: BRANDING.name })}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            {`Whether you're a beginner learning your first recipes or a seasoned home cook with family recipes passed down through generations, ${BRANDING.name} provides a space to document, discover, and connect with fellow food enthusiasts.`}
+            {t('about.intro.body', { name: BRANDING.name })}
           </Typography>
         </MotionPaper>
 
@@ -139,7 +113,7 @@ export default function AboutPage() {
             gutterBottom
             color="text.primary"
           >
-            Features
+            {t('about.features.title')}
           </Typography>
           <Typography
             variant="body1"
@@ -147,7 +121,7 @@ export default function AboutPage() {
             textAlign="center"
             sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}
           >
-            Everything you need to organize your recipes and connect with other food lovers.
+            {t('about.features.subtitle')}
           </Typography>
           <Box
             sx={{
@@ -156,9 +130,9 @@ export default function AboutPage() {
               gap: 3,
             }}
           >
-            {features.map((feature, index) => (
+            {FEATURES.map((feature, index) => (
               <MotionPaper
-                key={feature.title}
+                key={feature.id}
                 {...fadeUp}
                 transition={
                   shouldReduceMotion
@@ -184,10 +158,10 @@ export default function AboutPage() {
                   <feature.icon sx={{ fontSize: 40 }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600} gutterBottom color="text.primary">
-                  {feature.title}
+                  {t(`about.features.${feature.id}.title`)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {feature.description}
+                  {t(`about.features.${feature.id}.description`)}
                 </Typography>
               </MotionPaper>
             ))}
@@ -203,7 +177,7 @@ export default function AboutPage() {
           sx={{ textAlign: 'center', mb: 6 }}
         >
           <Typography variant="h4" fontWeight={600} gutterBottom color="text.primary">
-            Created By
+            {t('about.creator.title')}
           </Typography>
           <Box
             sx={{
@@ -228,7 +202,7 @@ export default function AboutPage() {
               {BRANDING.creator.name}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500 }}>
-              {BRANDING.creator.bio}
+              {t('about.creator.bio', { name: BRANDING.name })}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
               <Link
@@ -250,7 +224,7 @@ export default function AboutPage() {
           sx={{ textAlign: 'center' }}
         >
           <Typography variant="h5" fontWeight={600} gutterBottom color="text.primary">
-            Built With
+            {t('about.techStack.title')}
           </Typography>
           <Box
             sx={{
@@ -287,7 +261,7 @@ export default function AboutPage() {
               '&:hover': { textDecoration: 'underline' },
             }}
           >
-            ← Back to Home
+            {t('about.backHome')}
           </Link>
         </Box>
       </Container>
