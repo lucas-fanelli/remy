@@ -23,15 +23,23 @@ html {
   overflow-y: scroll;
 }
 
-/* Prevent white flash in dark mode */
-html.dark-mode {
-  background-color: #1e1e1e;
-  color-scheme: dark;
+/*
+ * Painted before React runs, by the boot script in layout.tsx. These two are the only
+ * colours this file is allowed to state, and a test checks them against src/theme/tokens
+ * so the copy cannot drift — four hand-kept copies of the palette is what this work is
+ * unpicking.
+ *
+ * Everything else about body colour belongs to MUI's CssBaseline. A plain `body` rule
+ * here used to set the background and win on cascade order, which meant changing the
+ * theme's `background.default` did not move the page.
+ */
+html {
+  background-color: #fafafa;
 }
 
-html.dark-mode body {
-  background-color: #1e1e1e;
-  color: #e8e8e8;
+html.dark-mode {
+  background-color: #1c1825;
+  color-scheme: dark;
 }
 
 /* Hide content until theme is ready to prevent flash */
@@ -61,8 +69,6 @@ body {
     'Helvetica Neue',
     Arial,
     sans-serif !important;
-  background-color: #fafafa;
-  color: #212121;
   font-size: 16px;
   line-height: 1.6;
 }
@@ -130,7 +136,8 @@ a {
   text-decoration: none;
 }
 
-/* Custom scrollbar */
+/* `color-scheme` on :root already tells the browser which scrollbar to draw; these only
+   restyle the WebKit one. Firefox follows color-scheme, which it did not before. */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -208,7 +215,7 @@ a,
  */
 html.dark-mode::-webkit-scrollbar-track,
 html.dark-mode ::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #1c1825;
 }
 
 html.dark-mode::-webkit-scrollbar-thumb,

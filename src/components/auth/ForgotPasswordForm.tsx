@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import React, { useEffect, useRef, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
+import { useBrandLogo } from '@/config/useBrandLogo';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 
 // globals.css gives every link a 44px touch target; inline-flex centres the text inside it
@@ -18,6 +19,7 @@ const linkSx = {
 } as const;
 
 export default function ForgotPasswordForm() {
+  const brandLogo = useBrandLogo();
   const t = useTranslations('auth');
   const tCommon = useTranslations('common');
   // The server's machine `code` when it sent one this build knows, its own English
@@ -90,12 +92,7 @@ export default function ForgotPasswordForm() {
     >
       {/* Logo */}
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, gap: 1 }}>
-        <Box
-          component="img"
-          src={BRANDING.logo}
-          alt={BRANDING.name}
-          sx={{ height: 60, width: 60 }}
-        />
+        <Box component="img" src={brandLogo} alt={BRANDING.name} sx={{ height: 60, width: 60 }} />
         <Typography variant="h5" component="h1" align="center" sx={{ fontWeight: 600 }}>
           {t('forgotPassword.title')}
         </Typography>

@@ -2,6 +2,7 @@ import { useTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
+import { darkTokens, lightTokens } from '@/theme/tokens';
 import { ThemeProvider, useThemeMode } from '../ThemeContext';
 
 // Test component that uses the theme context
@@ -31,6 +32,12 @@ function ThemeProbe() {
     </div>
   );
 }
+
+/** jsdom reports inline colours as rgb(); the tokens are hex. */
+const hexToRgb = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+};
 
 describe('ThemeContext', () => {
   beforeEach(() => {
@@ -170,7 +177,9 @@ describe('ThemeContext', () => {
 
     expect(document.documentElement.className).toContain('dark-mode');
     expect(document.documentElement.style.colorScheme).toBe('dark');
-    expect(document.documentElement.style.backgroundColor).toBe('rgb(30, 30, 30)');
+    // Read from the tokens rather than repeating the hex — a copy here is exactly the
+    // drift this work is unpicking.
+    expect(document.documentElement.style.backgroundColor).toBe(hexToRgb(darkTokens.surface.base));
 
     // Toggle back to light - this should remove dark-mode class
     fireEvent.click(screen.getByText('Toggle Theme'));
@@ -187,10 +196,10 @@ describe('ThemeContext', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByTestId('primary-contrast')).toHaveTextContent('#FFFFFF');
+    expect(screen.getByTestId('primary-contrast')).toHaveTextContent(lightTokens.text.onBrand);
   });
 
-  it('should use dark text on the dark teal primary for AA contrast', () => {
+  it('should use dark ink on the light purple primary, where white would fail AA', () => {
     render(
       <ThemeProvider>
         <TestComponent />
@@ -200,7 +209,8 @@ describe('ThemeContext', () => {
 
     fireEvent.click(screen.getByText('Toggle Theme'));
 
-    expect(screen.getByTestId('primary-contrast')).toHaveTextContent('rgba(0,0,0,0.87)');
+    // #BD9CF6 is light enough that white on it is 1.8:1. The token says dark ink.
+    expect(screen.getByTestId('primary-contrast')).toHaveTextContent(darkTokens.text.onBrand);
   });
 
   it('should round dialog papers except full-screen ones', () => {

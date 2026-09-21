@@ -30,6 +30,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useRef } from 'react';
+import { useBrandLogo } from '@/config/useBrandLogo';
 import { Recipe, ViewerState } from '@/domain/types/recipe';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { getDifficultyColor } from '@/lib/utils/recipe';
@@ -73,6 +74,7 @@ export default function RecipeCard({
   showActions = false,
   currentUserId,
 }: RecipeCardProps) {
+  const brandLogo = useBrandLogo();
   const liked = viewer?.liked ?? false;
   const timesCooked = viewer?.timesCooked ?? 0;
   const t = useTranslations('recipe');
@@ -150,7 +152,7 @@ export default function RecipeCard({
     >
       {/* Hero Image Container
         Image state machine:
-        1. Cloudinary URL -> render directly, onError -> fallback (/chef-logo.png)
+        1. Cloudinary URL -> render directly, onError -> fallback (the brand logo)
         2. Fallback fails -> imgHidden (show placeholder icon)
         3. Non-Cloudinary URL -> imgHidden immediately (CSP blocks, show placeholder) */}
       <Box sx={{ position: 'relative', overflow: 'hidden' }} onClick={handleCardClick}>
@@ -174,11 +176,7 @@ export default function RecipeCard({
         ) : (
           <Box
             component="img"
-            src={
-              recipe.imageUrl && isCloudinaryUrl(recipe.imageUrl)
-                ? recipe.imageUrl
-                : '/chef-logo.png'
-            }
+            src={recipe.imageUrl && isCloudinaryUrl(recipe.imageUrl) ? recipe.imageUrl : brandLogo}
             alt={recipe.title}
             onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
               // Non-Cloudinary URLs already use the fallback as src, so skip
@@ -187,7 +185,7 @@ export default function RecipeCard({
                 setImgHidden(true);
               } else if (!imgFallbackUsed) {
                 setImgFallbackUsed(true);
-                e.currentTarget.src = '/chef-logo.png';
+                e.currentTarget.src = brandLogo;
               } else {
                 console.error(`Recipe ${recipe.id}: both primary and fallback images failed`);
                 setImgHidden(true);

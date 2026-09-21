@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
+import { useBrandLogo } from '@/config/useBrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginFormProps {
@@ -12,6 +13,7 @@ interface LoginFormProps {
 }
 
 export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
+  const brandLogo = useBrandLogo();
   const t = useTranslations('auth');
   const { login } = useAuth();
   const [emailOrUsername, setEmailOrUsername] = useState('');
@@ -68,12 +70,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
     >
       {/* Logo */}
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3, gap: 1 }}>
-        <Box
-          component="img"
-          src={BRANDING.logo}
-          alt={BRANDING.name}
-          sx={{ height: 60, width: 60 }}
-        />
+        <Box component="img" src={brandLogo} alt={BRANDING.name} sx={{ height: 60, width: 60 }} />
         <Typography
           variant="h4"
           align="center"

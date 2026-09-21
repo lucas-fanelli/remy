@@ -59,9 +59,8 @@ export default function RatingBreakdown({ breakdown, total }: RatingBreakdownPro
                 flexGrow: 1,
                 height: 6,
                 borderRadius: 3,
-                // The track has to stay visible on both themes; the default is nearly
-                // the paper colour in dark mode.
-                backgroundColor: (theme) => theme.palette.action.hover,
+                // The track colour is the theme's now. This used to set it by hand
+                // because MUI's default sat almost exactly on the dark paper colour.
                 '& .MuiLinearProgress-bar': { borderRadius: 3 },
               }}
             />

@@ -1,6 +1,6 @@
 'use client';
 import { CssBaseline } from '@mui/material';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import React, {
   createContext,
   useContext,
@@ -9,7 +9,8 @@ import React, {
   useLayoutEffect,
   useEffect,
 } from 'react';
-import { BRANDING, THEME_COLORS } from '@/config/branding';
+import { createAppTheme } from '@/theme/createAppTheme';
+import { tokensFor } from '@/theme/tokens';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -40,8 +41,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useIsomorphicLayoutEffect(() => {
     hasMounted.current = true;
     const savedMode = localStorage.getItem('themeMode') as 'light' | 'dark' | null;
-    if (savedMode && savedMode !== mode) {
-      setMode(savedMode);
+    const preferred: 'light' | 'dark' =
+      savedMode ?? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if (preferred !== mode) {
+      setMode(preferred);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -74,222 +77,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (newMode === 'dark') {
         document.documentElement.classList.add('dark-mode');
         document.documentElement.style.colorScheme = 'dark';
-        document.documentElement.style.backgroundColor = THEME_COLORS.darkBackground;
+        document.documentElement.style.backgroundColor = tokensFor('dark').surface.base;
       } else {
         document.documentElement.classList.remove('dark-mode');
         document.documentElement.style.colorScheme = 'light';
-        document.documentElement.style.backgroundColor = THEME_COLORS.lightBackground;
+        document.documentElement.style.backgroundColor = tokensFor('light').surface.base;
       }
 
       return newMode;
     });
   };
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-          // Light mode: Rich, saturated colors
-          // Dark mode: Modern neutral with teal accents
-          primary:
-            mode === 'light'
-              ? {
-                  main: BRANDING.colors.primary, // #673AB7 - Rich purple
-                  light: '#9575CD', // Medium purple
-                  dark: BRANDING.colors.secondary, // #512DA8 - Deep purple
-                  contrastText: '#FFFFFF',
-                }
-              : {
-                  main: '#26A69A', // Modern teal for dark mode
-                  light: '#4DB6AC', // Light teal
-                  dark: '#00897B', // Deep teal
-                  // White on #26A69A is only 3.0:1; dark text is ~6.2:1 (WCAG AA)
-                  contrastText: 'rgba(0,0,0,0.87)',
-                },
-          secondary:
-            mode === 'light'
-              ? {
-                  main: BRANDING.colors.accent, // #FFC107 - Golden yellow
-                  light: '#FFECB3', // Pale yellow
-                  dark: '#FFA000', // Dark amber
-                  contrastText: '#000000',
-                }
-              : {
-                  main: '#80CBC4', // Soft teal accent for dark mode
-                  light: '#B2DFDB', // Very light teal
-                  dark: '#4DB6AC', // Medium teal
-                  contrastText: '#000000',
-                },
-          error:
-            mode === 'light'
-              ? {
-                  main: '#D32F2F', // Standard red
-                  light: '#E57373',
-                  dark: '#C62828',
-                }
-              : {
-                  main: '#EF5350', // Softer red for dark mode
-                  light: '#E57373',
-                  dark: '#D32F2F',
-                },
-          warning:
-            mode === 'light'
-              ? {
-                  main: '#F57C00', // Orange
-                  light: '#FFB74D',
-                  dark: '#E65100',
-                }
-              : {
-                  main: '#FF9800', // Softer orange for dark mode
-                  light: '#FFB74D',
-                  dark: '#F57C00',
-                },
-          info:
-            mode === 'light'
-              ? {
-                  main: '#0288D1', // Blue
-                  light: '#4FC3F7',
-                  dark: '#01579B',
-                }
-              : {
-                  main: '#29B6F6', // Softer blue for dark mode
-                  light: '#4FC3F7',
-                  dark: '#0288D1',
-                },
-          success:
-            mode === 'light'
-              ? {
-                  main: '#388E3C', // Green
-                  light: '#81C784',
-                  dark: '#2E7D32',
-                }
-              : {
-                  main: '#66BB6A', // Softer green for dark mode
-                  light: '#81C784',
-                  dark: '#388E3C',
-                },
-          background:
-            mode === 'light'
-              ? {
-                  default: THEME_COLORS.lightBackground, // Light gray (clean background)
-                  paper: '#FFFFFF', // White surfaces
-                }
-              : {
-                  default: THEME_COLORS.darkBackground, // Lighter dark background
-                  paper: '#2C2C2C', // Lighter elevated surfaces
-                },
-          text:
-            mode === 'light'
-              ? {
-                  primary: '#212121', // Almost black (high contrast)
-                  secondary: '#616161', // Medium gray
-                  disabled: '#9E9E9E', // Light gray
-                }
-              : {
-                  primary: '#E8E8E8', // High contrast white for dark mode
-                  secondary: '#B0B0B0', // Medium gray
-                  disabled: '#757575', // Darker gray
-                },
-          divider: mode === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.12)',
-        },
-        typography: {
-          fontFamily: [
-            '-apple-system',
-            'BlinkMacSystemFont',
-            '"Segoe UI"',
-            'Roboto',
-            '"Helvetica Neue"',
-            'Arial',
-            'sans-serif',
-          ].join(','),
-          h6: {
-            fontWeight: 600,
-          },
-        },
-        shape: {
-          borderRadius: 8,
-        },
-        components: {
-          MuiCssBaseline: {
-            styleOverrides: {
-              body: {
-                // Material Design smooth transitions for theme changes
-                // Disable transitions during initial load to prevent flash
-                transition: isInitialLoad
-                  ? 'none'
-                  : 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              },
-              '*': {
-                // Apply transitions to all elements
-                // Disable transitions during initial load to prevent flash
-                transition: isInitialLoad
-                  ? 'none'
-                  : 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              },
-            },
-          },
-          MuiButton: {
-            styleOverrides: {
-              root: {
-                textTransform: 'none',
-                fontWeight: 600,
-              },
-            },
-          },
-          MuiCard: {
-            styleOverrides: {
-              root: {
-                boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
-                transition:
-                  'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              },
-            },
-          },
-          MuiPaper: {
-            styleOverrides: {
-              root: {
-                transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              },
-            },
-          },
-          MuiAppBar: {
-            styleOverrides: {
-              root: {
-                transition: 'background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-              },
-            },
-          },
-          MuiDialog: {
-            styleOverrides: {
-              paper: {
-                borderRadius: 16,
-              },
-              paperFullScreen: {
-                borderRadius: 0,
-              },
-            },
-          },
-          MuiDialogTitle: {
-            styleOverrides: {
-              root: {
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                padding: '16px 24px',
-              },
-            },
-          },
-          MuiDialogActions: {
-            styleOverrides: {
-              root: {
-                padding: '12px 24px 16px',
-              },
-            },
-          },
-        },
-      }),
-    [mode, isInitialLoad]
-  );
+  const theme = useMemo(() => createAppTheme(mode, !isInitialLoad), [mode, isInitialLoad]);
 
   return (
     <ThemeContext.Provider value={{ mode, toggleTheme }}>
