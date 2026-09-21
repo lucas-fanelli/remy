@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { BRANDING } from '@/config/branding';
+import { useBrandLogo } from '@/config/useBrandLogo';
 
 interface NavItem {
   id: string;
@@ -36,6 +37,7 @@ export default function MobileBottomNav({
   onNotificationsOpen,
   onNavigateHome,
 }: MobileBottomNavProps) {
+  const brandLogo = useBrandLogo();
   const t = useTranslations('nav');
 
   return (
@@ -72,7 +74,7 @@ export default function MobileBottomNav({
             >
               <Box
                 component="img"
-                src={BRANDING.logo}
+                src={brandLogo}
                 alt={BRANDING.name}
                 sx={{ height: { xs: 24, sm: 28 }, width: { xs: 24, sm: 28 } }}
               />

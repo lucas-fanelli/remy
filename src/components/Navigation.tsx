@@ -29,6 +29,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useMemo } from 'react';
 import { BRANDING } from '@/config/branding';
+import { useBrandLogo } from '@/config/useBrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
@@ -72,6 +73,7 @@ const MOBILE_NAV_ITEMS = [
 ] as const;
 
 export default function Navigation() {
+  const brandLogo = useBrandLogo();
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
   const theme = useTheme();
@@ -228,7 +230,7 @@ export default function Navigation() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1, md: 1.5 } }}>
               <Box
                 component="img"
-                src={BRANDING.logo}
+                src={brandLogo}
                 alt={BRANDING.name}
                 sx={{
                   height: { xs: 36, sm: 40, md: 48 },

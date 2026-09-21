@@ -14,7 +14,11 @@ export const BRANDING = {
     'Named after the famous chef rat from Ratatouille, this platform embodies the belief that "anyone can cook" — and everyone has something delicious to share.',
 
   // Logo paths
+  // Two drawings, because one dark-ink logo cannot be seen on a dark page. Pick between
+  // them with useBrandLogo(); `icon` is what the browser and the OS bake once and cannot
+  // change with the theme.
   logo: '/chef-logo.png',
+  logoDark: '/chef-logo-dark.png',
   icon: '/chef-logo.png',
 
   // Color scheme

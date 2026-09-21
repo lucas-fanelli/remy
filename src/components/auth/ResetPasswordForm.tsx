@@ -22,6 +22,7 @@ import { useTranslations } from 'next-intl';
 import React, { useLayoutEffect, useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { BRANDING } from '@/config/branding';
+import { useBrandLogo } from '@/config/useBrandLogo';
 import { INVALID_RESET_TOKEN_MESSAGE } from '@/domain/errors';
 import { useTextDescriptor } from '@/i18n/text';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
@@ -56,6 +57,7 @@ const visuallyHiddenSx = {
 const VISIBLE_RULES = PASSWORD_RULES.filter((rule) => rule.id !== 'maxLength');
 
 export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswordFormProps) {
+  const brandLogo = useBrandLogo();
   const t = useTranslations('auth');
   const tCommon = useTranslations('common');
   // The password rules are a plain list with no locale of its own: it hands back
@@ -171,12 +173,7 @@ export default function ResetPasswordForm({ token: tokenFromLink }: ResetPasswor
     >
       {/* Logo */}
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, gap: 1 }}>
-        <Box
-          component="img"
-          src={BRANDING.logo}
-          alt={BRANDING.name}
-          sx={{ height: 60, width: 60 }}
-        />
+        <Box component="img" src={brandLogo} alt={BRANDING.name} sx={{ height: 60, width: 60 }} />
         <Typography variant="h5" component="h1" align="center" sx={{ fontWeight: 600 }}>
           {isLinkInvalid ? t('resetPassword.invalidTitle') : t('resetPassword.title')}
         </Typography>
