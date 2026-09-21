@@ -405,7 +405,7 @@ export default function ProfilePage() {
             <TabPanelTransition activeKey={activeTab}>
               {/* Recipe Grid */}
               {activeTab === 0 && (
-                <Grid container spacing={2}>
+                <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
                   {recipes.length === 0 ? (
                     <Grid item xs={12}>
                       <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -441,7 +441,7 @@ export default function ProfilePage() {
 
               {/* Saved Recipes Tab */}
               {activeTab === 1 && isOwnProfile && (
-                <Grid container spacing={2}>
+                <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
                   {savedRecipes.length === 0 ? (
                     <Grid item xs={12}>
                       <Box sx={{ textAlign: 'center', py: 8 }}>
