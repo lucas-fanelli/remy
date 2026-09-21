@@ -11,7 +11,6 @@ import {
   Avatar,
   Button,
   Alert,
-  Toolbar,
   IconButton,
   Paper,
   Snackbar,
@@ -109,8 +108,7 @@ export default function FollowingPage() {
 
   if (!isAuthenticated) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Toolbar />
+      <Box sx={{ backgroundColor: 'background.default' }}>
         <Container maxWidth="md" sx={{ pt: 4, textAlign: 'center' }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
             {t('followingList.signInPrompt')}
@@ -125,8 +123,7 @@ export default function FollowingPage() {
 
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Toolbar />
+      <Box sx={{ backgroundColor: 'background.default' }}>
         <Container maxWidth="md" sx={{ pt: 4 }}>
           <Alert severity="error" sx={{ mb: 2 }}>
             {t('followingList.loadFailed')}
@@ -138,8 +135,7 @@ export default function FollowingPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-      <Toolbar />
+    <Box sx={{ backgroundColor: 'background.default' }}>
       <Container maxWidth="md" sx={{ pt: 2, pb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
           <IconButton onClick={() => router.back()} edge="start">

@@ -45,7 +45,9 @@ export default function AuthPage() {
     return (
       <Box
         sx={{
-          minHeight: '100vh',
+          // No header here, so this Box IS the column's content: take the slack rather
+          // than claiming a viewport, or the card centres against the wrong height.
+          flex: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -60,7 +62,7 @@ export default function AuthPage() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        flex: 1,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

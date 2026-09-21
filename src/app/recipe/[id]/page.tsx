@@ -32,7 +32,6 @@ import {
   DialogContentText,
   DialogActions,
   Snackbar,
-  Toolbar,
   useTheme,
   useMediaQuery,
   Rating,
@@ -534,14 +533,10 @@ export default function RecipeDetailPage() {
     >
       <Box
         sx={{
-          minHeight: '100vh',
           pb: { xs: 10, sm: 11, md: 4 },
           backgroundColor: 'background.default',
         }}
       >
-        {/* Spacer for fixed AppBar - Material Design pattern */}
-        <Toolbar />
-
         {/* Loading state - inside MotionBox for animation */}
         {loading && !recipe && (
           <Box sx={{ minHeight: 'calc(100vh - 64px)' }}>
