@@ -4,6 +4,7 @@ import { UUID_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
 import {
   isValidRating,
+  loadRatingBreakdown,
   lockRecipeForRating,
   recalculateRecipeRating,
 } from '@/lib/ratings/recipeRating';
@@ -69,7 +70,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         update: { rating },
       });
 
-      return recalculateRecipeRating(tx, postId);
+      const recalculated = await recalculateRecipeRating(tx, postId);
+      // The spread, not just the mean. Without it the page could only patch the average
+      // and the breakdown table sat on the previous numbers until a reload.
+      const breakdown = await loadRatingBreakdown(tx, postId);
+      return { ...recalculated, breakdown };
     });
 
     return NextResponse.json({ myRating: rating, ...summary });
@@ -114,7 +119,9 @@ export async function DELETE(
       // deleteMany, not delete: removing a score you do not have is the state you asked
       // for, not an error.
       await tx.rating.deleteMany({ where: { userId: user.id, postId } });
-      return recalculateRecipeRating(tx, postId);
+      const recalculated = await recalculateRecipeRating(tx, postId);
+      const breakdown = await loadRatingBreakdown(tx, postId);
+      return { ...recalculated, breakdown };
     });
 
     return NextResponse.json({ myRating: null, ...summary });

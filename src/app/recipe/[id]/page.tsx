@@ -53,6 +53,7 @@ import IngredientLine from '@/components/recipe/display/IngredientLine';
 import RecipeTimeStrip from '@/components/recipe/display/RecipeTimeStrip';
 import StepNumber from '@/components/recipe/display/StepNumber';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
+import RatingBreakdown from '@/components/recipe/RatingBreakdown';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
@@ -194,6 +195,7 @@ export default function RecipeDetailPage() {
         ...cached,
         averageRating: data.averageRating,
         totalRatings: data.reviewCount,
+        ratingBreakdown: data.breakdown ?? cached.ratingBreakdown,
         viewer: cached.viewer ? { ...cached.viewer, myRating: data.myRating } : cached.viewer,
       }));
 
@@ -670,6 +672,13 @@ export default function RecipeDetailPage() {
                   )}
                 </Box>
 
+                {recipe.ratingBreakdown && (
+                  <RatingBreakdown
+                    breakdown={recipe.ratingBreakdown}
+                    total={recipe.totalRatings ?? 0}
+                  />
+                )}
+
                 {/* Your own score, next to everyone else's. Rating used to be something
                     you could only do by writing a comment — there was no endpoint for it
                     and `viewer.myRating` travelled with every recipe unread. */}
@@ -1068,6 +1077,7 @@ export default function RecipeDetailPage() {
                 recipeId={recipeId}
                 recipeAuthorId={recipe.userId}
                 onImageClick={handleImageClick}
+                myRating={myRating}
               />
             </MotionBox>
           </Container>

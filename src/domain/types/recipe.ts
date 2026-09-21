@@ -39,6 +39,16 @@ export interface ViewerState {
   myRating: number | null;
 }
 
+/**
+ * How many people gave each score, 1 through 5. Counts only, never names — rating is
+ * anonymous, and an average alone cannot tell a room that shrugged from a room that
+ * split down the middle.
+ *
+ * Lives here rather than beside the query that builds it so client components can name
+ * it without importing anything that reaches the database.
+ */
+export type RatingBreakdown = Record<1 | 2 | 3 | 4 | 5, number>;
+
 export interface Recipe {
   id: string;
   title: string;

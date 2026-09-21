@@ -52,18 +52,37 @@ interface CommentsSectionProps {
   recipeId: string;
   recipeAuthorId?: string;
   onImageClick?: (url: string, alt: string) => void;
+  /**
+   * The reader's current score for this recipe, live from the page. The comment list is
+   * fetched once into local state, so without this a rating given after the thread loaded
+   * would not show beside your own comment until a reload.
+   */
+  myRating?: number | null;
 }
 
 export default function CommentsSection({
   recipeId,
   recipeAuthorId,
   onImageClick,
+  myRating = null,
 }: CommentsSectionProps) {
   const t = useTranslations('comments');
   const tCommon = useTranslations('common');
   const apiErrorMessage = useApiErrorMessage();
   const dateLocale = useDateFnsLocale();
   const { user } = useAuth();
+
+  /**
+   * The stars beside a comment are that person's score for the recipe, read from Rating
+   * when the list was fetched — not something the comment carries. So when YOU change
+   * your score, every comment of yours is showing a number that is now out of date, and
+   * the list is local state that no refetch is coming for.
+   *
+   * Rather than refetch the whole thread to learn something this page already knows, your
+   * own comments read the live value.
+   */
+  const ratingFor = (comment: Comment) =>
+    user && comment.user.id === user.id ? myRating : (comment.rating ?? null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [comments, setComments] = useState<Comment[]>([]);
@@ -631,9 +650,9 @@ export default function CommentsSection({
                       ) : (
                         // View Mode
                         <>
-                          {comment.rating && (
+                          {ratingFor(comment) !== null && (
                             <Box sx={{ mb: { xs: 0.75, md: 1 } }}>
-                              <Rating value={comment.rating} readOnly size="small" />
+                              <Rating value={ratingFor(comment)} readOnly size="small" />
                             </Box>
                           )}
                           <Typography
