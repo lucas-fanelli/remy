@@ -53,6 +53,19 @@ export function contrast(over: string, base: string): number {
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
+/** A token colour at partial strength, the way `alpha()` writes it at runtime. */
+function withAlpha(color: string, a: number): string {
+  const { rgb } = parse(color);
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${a})`;
+}
+
+/** Flatten a stack to the one opaque colour the eye actually receives. */
+function flatten(over: string, base: string): string {
+  return `#${composite(over, base)
+    .map((c) => c.toString(16).padStart(2, '0'))
+    .join('')}`;
+}
+
 describe('contrast() itself', () => {
   it('measures the extremes correctly', () => {
     expect(round(contrast('#FFFFFF', '#000000'))).toBe(21);
@@ -150,6 +163,103 @@ describe.each([
     const asHex = `#${scrimOverWorstCasePhoto.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
 
     expect(contrast(tokens.text.onOverlay, asHex)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  /**
+   * The tinted chip, which is a colour that exists in no token file.
+   *
+   * Everything above measures a value someone declared. A tint is composited at runtime —
+   * `alpha(palette[tone].main, 0.16)` laid over whichever surface happens to be behind it —
+   * so it is invisible to every rule in this file unless it is built here too. That is
+   * precisely how difficulty chips shipped at 2.16:1 the first time: nobody could measure
+   * a colour that was never written down.
+   */
+  describe.each([
+    ['success', tokens.state.success],
+    ['warning', tokens.state.warning],
+    ['danger', tokens.state.danger],
+  ] as const)('%s tinted on a card', (_name, tone) => {
+    const TINT = 0.16;
+    const EDGE = 0.45;
+    const card = tokens.surface.raised;
+    const tinted = flatten(withAlpha(tone, TINT), card);
+
+    it('keeps the label readable with neutral ink', () => {
+      // NOT the fill's contrastText, which is calibrated for a 100%-opacity fill — light
+      // mode's is #FFFFFF, and white over a 16% tint of white paper is nothing at all.
+      // That is the hardcoded-white failure arriving from the other side.
+      //
+      // And NOT the tone either, tempting as it looks: the tone on a 16% bed of itself
+      // measures 4.13 / 4.27 / 4.37 in light and 4.21 on dark danger. Neutral is 8.73+.
+      expect(contrast(tokens.text.primary, tinted)).toBeGreaterThanOrEqual(4.5);
+    });
+
+    it('is perceptible as a chip against the card it sits on', () => {
+      // Only perceptible: the label carries the meaning and is measured above. The tint
+      // is what makes it read as a pill rather than as loose text.
+      expect(contrast(tinted, card)).toBeGreaterThanOrEqual(1.2);
+    });
+
+    it('bounds itself with an edge that meets the rule for a UI boundary', () => {
+      expect(contrast(tone, tinted)).toBeGreaterThanOrEqual(3);
+      expect(contrast(tone, card)).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  it('keeps the three difficulties telling apart, which the tint alone does not', () => {
+    // Contrast is the wrong instrument here — it measures luminance, and two colours can
+    // match in luminance while being obviously different hues. This asks the question the
+    // eye asks: how far apart are they.
+    //
+    // The tints are NOT far apart. Composited at 16% they sit 6 units apart for warning
+    // vs danger on a dark card; the same two at full strength are 37. That gap is the
+    // whole reason the tone lives in the border rather than in the fill.
+    const spread = (a: string, b: string) => {
+      const [x, y] = [a, b].map((c) => parse(c).rgb);
+      return Math.round(Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]));
+    };
+
+    const pairs = [
+      [tokens.state.success, tokens.state.warning],
+      [tokens.state.success, tokens.state.danger],
+      [tokens.state.warning, tokens.state.danger],
+    ] as const;
+
+    pairs.forEach(([a, b]) => {
+      const asBorder = spread(a, b);
+      const onCard = (c: string) => flatten(withAlpha(c, 0.16), tokens.surface.raised);
+      const asTint = spread(onCard(a), onCard(b));
+
+      expect(asBorder).toBeGreaterThanOrEqual(30);
+      expect(asBorder).toBeGreaterThan(asTint);
+    });
+  });
+});
+
+/**
+ * A badge over a photograph is not in either mode.
+ *
+ * The scrim is `rgba(0, 0, 0, 0.62)` and the ink `#FFFFFF` in both palettes, because the
+ * thing behind the badge is the food, never the page. So the tone that marks it cannot be
+ * read from the current mode either — and this is not theoretical: the first attempt used
+ * `palette[tone].main`, which in light mode put a deep green rule on a mid-grey scrim at
+ * 1.21:1. Invisible. The dark set is the one calibrated for a dark ground.
+ */
+describe('a badge laid over a photo', () => {
+  const scrim = flatten(darkTokens.surface.overlay, '#FFFFFF');
+
+  it.each([
+    ['success', darkTokens.state.success, lightTokens.state.success],
+    ['warning', darkTokens.state.warning, lightTokens.state.warning],
+    ['danger', darkTokens.state.danger, lightTokens.state.danger],
+  ] as const)('marks %s with a rule that can be seen on the scrim', (_name, onCover, modeBound) => {
+    // The rule is redundant with the label — the label's own legibility is measured by
+    // "shows text laid over a photo scrim" — so it only has to be perceptible.
+    expect(contrast(onCover, scrim)).toBeGreaterThanOrEqual(1.5);
+
+    // And the negative control: the mode-bound colour is exactly what must not be used.
+    // If this ever stops holding, the branch in DifficultyChip has become unnecessary.
+    expect(contrast(modeBound, scrim)).toBeLessThan(contrast(onCover, scrim));
   });
 });
 

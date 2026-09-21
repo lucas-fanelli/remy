@@ -524,15 +524,17 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: (index % PAGE_SIZE) * 0.05 }}
+                // The card asks for `height: '100%'` so a row of cards lines up. It was
+                // resolving against this box, which had no height of its own, so it
+                // collapsed to content and the cards never equalised.
+                sx={{ height: '100%' }}
               >
                 <RecipeCard
                   recipe={recipe}
                   currentUserId={user?.id}
-                  showActions={true}
                   viewer={recipe.viewer}
-                  likeCount={recipe.likeCount}
-                  commentCount={recipe.commentCount}
-                  onClick={() => router.push(`/recipe/${recipe.id}`)}
+                  // No `onClick`: the title is a real anchor to this same place now, so
+                  // the card opens in a new tab, takes keyboard focus and has an href.
                   onLike={() => handleLike(recipe.id)}
                   onComment={() => router.push(`/recipe/${recipe.id}#comments`)}
                   onEdit={() => handleEditClick(recipe)}

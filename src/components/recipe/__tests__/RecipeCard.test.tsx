@@ -130,9 +130,7 @@ describe('RecipeCard Component', () => {
   });
 
   it('should display difficulty badge for all users including owners', () => {
-    renderWithTheme(
-      <RecipeCard viewer={null} recipe={mockRecipe} currentUserId="user-1" showActions={false} />
-    );
+    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} currentUserId="user-1" />);
 
     // Difficulty badge is now always shown
     expect(screen.getByText('easy')).toBeInTheDocument();
@@ -148,20 +146,27 @@ describe('RecipeCard Component', () => {
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
-  it('should navigate to recipe page when clicked without onClick prop - line 72', () => {
+  it('should reach the recipe through a real link, not a click handler', () => {
+    // It used to be `router.push` on a Typography. That meant no middle-click, no
+    // open-in-new-tab, no href for a crawler and nothing for a screen reader to announce
+    // as a link — on the primary navigation of the entire app.
     renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} />);
 
-    const title = screen.getByText('Test Recipe');
-    fireEvent.click(title);
+    const link = screen.getByRole('link', { name: 'Test Recipe' });
 
-    expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-1');
+    expect(link).toHaveAttribute('href', '/recipe/recipe-1');
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('should let a caller point the link somewhere else', () => {
+    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} href="/elsewhere" />);
+
+    expect(screen.getByRole('link', { name: 'Test Recipe' })).toHaveAttribute('href', '/elsewhere');
   });
 
   it('should call onLike when like button is clicked', () => {
     const handleLike = jest.fn();
-    renderWithTheme(
-      <RecipeCard viewer={null} recipe={mockRecipe} onLike={handleLike} showActions={true} />
-    );
+    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} onLike={handleLike} />);
 
     const likeButton = screen.getByRole('button', { name: /like/i });
     fireEvent.click(likeButton);
@@ -171,9 +176,7 @@ describe('RecipeCard Component', () => {
 
   it('should call onComment when comment button is clicked', () => {
     const handleComment = jest.fn();
-    renderWithTheme(
-      <RecipeCard viewer={null} recipe={mockRecipe} onComment={handleComment} showActions={true} />
-    );
+    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} onComment={handleComment} />);
 
     const commentButton = screen.getByRole('button', { name: /comments/i });
     fireEvent.click(commentButton);
@@ -182,23 +185,19 @@ describe('RecipeCard Component', () => {
   });
 
   it('should display like count', () => {
-    renderWithTheme(
-      <RecipeCard viewer={null} recipe={mockRecipe} likeCount={42} showActions={true} />
-    );
+    renderWithTheme(<RecipeCard viewer={null} recipe={{ ...mockRecipe, likeCount: 42 }} />);
 
     expect(screen.getByText('42')).toBeInTheDocument();
   });
 
   it('should display comment count', () => {
-    renderWithTheme(
-      <RecipeCard viewer={null} recipe={mockRecipe} commentCount={15} showActions={true} />
-    );
+    renderWithTheme(<RecipeCard viewer={null} recipe={{ ...mockRecipe, commentCount: 15 }} />);
 
     expect(screen.getByText('15')).toBeInTheDocument();
   });
 
   it('should show filled heart when liked', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={LIKED_BY_ME} showActions={true} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={LIKED_BY_ME} onLike={jest.fn()} />);
 
     const likeButton = screen.getByRole('button', { name: /unlike/i });
     expect(likeButton).toBeInTheDocument();
@@ -209,9 +208,8 @@ describe('RecipeCard Component', () => {
     // list and read by nothing.
     renderWithTheme(
       <RecipeCard
-        recipe={mockRecipe}
+        recipe={{ ...mockRecipe, likeCount: 0 }}
         viewer={{ ...NOT_LIKED_BY_ME, timesCooked: 3 }}
-        showActions={true}
       />
     );
 
@@ -219,25 +217,39 @@ describe('RecipeCard Component', () => {
   });
 
   it('should say nothing about cooking when the reader never has', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} showActions={true} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} />);
 
     expect(screen.queryByLabelText(/You cooked this/)).not.toBeInTheDocument();
   });
 
   it('should show outlined heart when not liked', () => {
-    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} showActions={true} />);
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onLike={jest.fn()} />);
 
     const likeButton = screen.getByRole('button', { name: /like/i });
     expect(likeButton).toBeInTheDocument();
   });
 
-  it('should show menu button for owner when showActions is true', () => {
+  it('should report the counts without a handler, as a reading rather than a control', () => {
+    // The search page fetched viewer state and both counts and then discarded all of it,
+    // because the only switch available also turned on a heart it had no mutation for.
+    renderWithTheme(
+      <RecipeCard recipe={{ ...mockRecipe, likeCount: 7, commentCount: 2 }} viewer={LIKED_BY_ME} />
+    );
+
+    expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /like/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /comments/i })).not.toBeInTheDocument();
+  });
+
+  it('should show the menu to an owner who was given something to do with it', () => {
     renderWithTheme(
       <RecipeCard
         viewer={null}
         recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
-        showActions={true}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
       />
     );
 
@@ -245,14 +257,18 @@ describe('RecipeCard Component', () => {
     expect(menuButton).toBeInTheDocument();
   });
 
+  it('should not show an owner menu that would open onto nothing', () => {
+    // `showActions` turned the kebab on for any owner, handlers or not.
+    renderWithTheme(
+      <RecipeCard viewer={null} recipe={mockRecipeWithAuthor} currentUserId="user-1" />
+    );
+
+    expect(screen.queryByRole('button', { name: /recipe options/i })).not.toBeInTheDocument();
+  });
+
   it('should not show menu button for non-owner', () => {
     renderWithTheme(
-      <RecipeCard
-        viewer={null}
-        recipe={mockRecipeWithAuthor}
-        currentUserId="different-user"
-        showActions={true}
-      />
+      <RecipeCard viewer={null} recipe={mockRecipeWithAuthor} currentUserId="different-user" />
     );
 
     const menuButton = screen.queryByRole('button', { name: /recipe options/i });
@@ -265,7 +281,8 @@ describe('RecipeCard Component', () => {
         viewer={null}
         recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
-        showActions={true}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
       />
     );
 
@@ -283,7 +300,6 @@ describe('RecipeCard Component', () => {
         viewer={null}
         recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
-        showActions={true}
         onEdit={handleEdit}
       />
     );
@@ -304,7 +320,6 @@ describe('RecipeCard Component', () => {
         viewer={null}
         recipe={mockRecipeWithAuthor}
         currentUserId="user-1"
-        showActions={true}
         onDelete={handleDelete}
       />
     );
@@ -357,24 +372,26 @@ describe('RecipeCard Component', () => {
       expect(screen.queryByText('John Doe')).not.toBeInTheDocument();
     });
 
-    it('should navigate to author profile when clicking author name', () => {
+    it('should reach the author through real links, from both the name and the avatar', () => {
       renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipeWithAuthor} />);
 
-      const authorName = screen.getByText('John Doe');
-      fireEvent.click(authorName);
+      const toProfile = screen
+        .getAllByRole('link')
+        .filter((a) => a.getAttribute('href') === '/profile/johndoe');
 
-      expect(mockPush).toHaveBeenCalledWith('/profile/johndoe');
+      // The name and the avatar, both anchors rather than two copies of a push handler.
+      expect(toProfile).toHaveLength(2);
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
-    it('should navigate to author profile when clicking avatar (lines 194-195)', () => {
-      mockPush.mockClear();
+    it('should keep the author link above the card link rather than under it', () => {
+      // The title stretches an invisible `::after` over the whole card. If the author row
+      // did not sit above it, clicking a name would open the recipe.
       renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipeWithAuthor} />);
 
-      // Find the avatar and click it - it should stop propagation and navigate
-      const avatar = screen.getByAltText('johndoe');
-      fireEvent.click(avatar);
+      const authorRow = screen.getByText('John Doe').closest('div');
 
-      expect(mockPush).toHaveBeenCalledWith('/profile/johndoe');
+      expect(authorRow).toHaveStyle({ position: 'relative', zIndex: '1' });
     });
 
     it('should display username when fullName is not provided', () => {
@@ -425,7 +442,13 @@ describe('RecipeCard Component', () => {
       expect(screen.getByText('unknown')).toBeInTheDocument();
     });
 
-    it('should stop propagation when clicking on menu - line 345', async () => {
+    it('should open the owner menu without the card link intercepting it', async () => {
+      // This used to assert that the menu called `stopPropagation`, which it needed
+      // because a click anywhere on the card ran `router.push`. There is no card click
+      // any more — the title is an anchor and the buttons sit above its stretched
+      // overlay — so the propagation guards went with it. What is worth holding is the
+      // behaviour those guards existed to protect: opening the menu, and choosing from
+      // it, must not navigate.
       const mockOnEdit = jest.fn();
       const mockOnDelete = jest.fn();
 
@@ -434,38 +457,21 @@ describe('RecipeCard Component', () => {
           viewer={null}
           recipe={mockRecipeWithAuthor}
           currentUserId="user-1"
-          showActions={true}
           onEdit={mockOnEdit}
           onDelete={mockOnDelete}
         />
       );
 
-      // Find and click the more button to open menu
-      const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
+      fireEvent.click(screen.getByRole('button', { name: /recipe options/i }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('menu')).toBeInTheDocument();
       });
 
-      expect(moreButton).toBeDefined();
-      if (moreButton) {
-        fireEvent.click(moreButton);
+      fireEvent.click(screen.getByText('Edit Recipe'));
 
-        // Wait for menu to open
-        await waitFor(() => {
-          expect(screen.getByRole('menu')).toBeInTheDocument();
-        });
-
-        // Click on the menu itself (not a menu item) to test stopPropagation
-        const menu = screen.getByRole('menu');
-        const clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
-        const stopPropagationSpy = jest.spyOn(clickEvent, 'stopPropagation');
-
-        fireEvent(menu, clickEvent);
-
-        // stopPropagation should have been called (line 345)
-        expect(stopPropagationSpy).toHaveBeenCalled();
-      }
+      expect(mockOnEdit).toHaveBeenCalledTimes(1);
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 });

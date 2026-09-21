@@ -208,13 +208,31 @@ describe('RecipeCard in Spanish', () => {
   });
 
   it('should say in Spanish that nobody rated the recipe yet', () => {
-    renderInSpanish(<RecipeCard recipe={spanishRecipe} viewer={null} />);
+    // Explicitly zero. An ABSENT `totalRatings` now means the surface does not know, and
+    // the card says nothing rather than asserting that nobody has rated it — which is the
+    // difference between the feed, whose API answers, and a pantry match, whose does not.
+    renderInSpanish(<RecipeCard recipe={{ ...spanishRecipe, totalRatings: 0 }} viewer={null} />);
 
     expect(screen.getByText('Todavía no tiene puntuaciones')).toBeInTheDocument();
   });
 
+  it('should stay quiet about ratings the surface never reported', () => {
+    renderInSpanish(
+      <RecipeCard recipe={{ ...spanishRecipe, totalRatings: undefined }} viewer={null} />
+    );
+
+    expect(screen.queryByText('Todavía no tiene puntuaciones')).not.toBeInTheDocument();
+  });
+
   it('should label the like and comment actions in Spanish', () => {
-    renderInSpanish(<RecipeCard recipe={spanishRecipe} viewer={null} showActions likeCount={2} />);
+    renderInSpanish(
+      <RecipeCard
+        recipe={{ ...spanishRecipe, likeCount: 2 }}
+        viewer={null}
+        onLike={jest.fn()}
+        onComment={jest.fn()}
+      />
+    );
 
     expect(screen.getByRole('button', { name: 'Me gusta' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Comentarios' })).toBeInTheDocument();
@@ -222,7 +240,13 @@ describe('RecipeCard in Spanish', () => {
 
   it('should open the owner menu in Spanish', async () => {
     renderInSpanish(
-      <RecipeCard recipe={spanishRecipe} viewer={null} showActions currentUserId="user-1" />
+      <RecipeCard
+        recipe={spanishRecipe}
+        viewer={null}
+        currentUserId="user-1"
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'opciones de la receta' }));
