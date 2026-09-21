@@ -124,10 +124,14 @@ export const lightTokens: ColorTokens = {
 /**
  * Dark mode, now the same brand as light.
  *
- * `brand.main` #BD9CF6 measures 7.34:1 on #16131B, against 5.56:1 for the teal it
- * replaces. Surfaces step up rather than relying on MUI's elevation overlay, which used
- * to invent eight greys nobody wrote. Borders are white at 22% — the old 12% composited
- * to 1.35:1, which is why they read as invisible.
+ * Deliberately low saturation. A light, highly saturated colour on a dark page glows —
+ * the first pass had the brand at 83% and the hover and focus rings at 100%, and it read
+ * as neon. Everything here sits between roughly 20% and 35%, which is also why the greens
+ * and reds came down: muting only the purple would have left the states shouting beside
+ * a brand that had stopped.
+ *
+ * Contrast does not pay for it. Desaturating a light tone barely moves its luminance, and
+ * the tests in __tests__/contrast.test.ts hold every threshold regardless.
  */
 export const darkTokens: ColorTokens = {
   surface: {
@@ -139,7 +143,7 @@ export const darkTokens: ColorTokens = {
   border: {
     subtle: 'rgba(255, 255, 255, 0.22)',
     strong: 'rgba(255, 255, 255, 0.38)',
-    focus: '#D7C2FF',
+    focus: '#C9BCE0',
   },
   text: {
     primary: '#EDE9F2',
@@ -150,15 +154,15 @@ export const darkTokens: ColorTokens = {
     onOverlay: '#FFFFFF',
   },
   brand: {
-    main: '#BD9CF6',
-    hover: '#D3BCFF',
-    subtle: 'rgba(189, 156, 246, 0.16)',
+    main: '#B0A0CB',
+    hover: '#C4B6DC',
+    subtle: 'rgba(176, 160, 203, 0.18)',
   },
   state: {
-    success: '#7BC97F',
-    warning: '#F0A44A',
-    danger: '#F2726F',
-    info: '#5FC2F5',
+    success: '#93B896',
+    warning: '#D0A36E',
+    danger: '#D6908D',
+    info: '#8FB3CB',
     // Every one of these fills is light enough that white text fails AA on it. The six
     // files hardcoding `color: 'white'` over difficulty chips were 2.16:1 to 3.49:1.
     onSuccess: '#10240F',
@@ -167,7 +171,7 @@ export const darkTokens: ColorTokens = {
     onInfo: '#04202E',
   },
   accent: {
-    gold: '#F3C969',
+    gold: '#D8BE86',
   },
   shadow: {
     // Black on a dark page is invisible, so elevation leans on a lifted surface and a
