@@ -412,7 +412,9 @@ export default function CommentsSection({
                         bgcolor: 'background.paper',
                         border: '1px solid',
                         borderColor: 'divider',
-                        '&:hover': { bgcolor: 'error.light', color: 'white' },
+                        // The ink comes with the fill. White was legible on light mode's
+                        // red and not on dark mode's, which is lighter than the icon was.
+                        '&:hover': { bgcolor: 'error.main', color: 'error.contrastText' },
                         width: 24,
                         height: 24,
                       }}

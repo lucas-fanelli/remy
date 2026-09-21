@@ -26,8 +26,10 @@ export default function DifficultyChip({ difficulty, size = 'medium', sx }: Diff
         {
           textTransform: 'capitalize',
           fontWeight: 600,
-          color: 'common.white',
-          '& .MuiChip-label': { color: 'common.white' },
+          // The ink is left to MUI, which takes it from the fill's contrastText. It used to
+          // be forced white, which reads on light mode's deep fills and measures 2.16:1 on
+          // the lighter ones dark mode uses — and this chip is also rendered off a photo,
+          // on a card, where there is nothing else for it to sit on.
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

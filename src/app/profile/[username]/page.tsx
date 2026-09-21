@@ -475,8 +475,6 @@ export default function ProfilePage() {
                                     color={getDifficultyColor(recipe.difficulty)}
                                     sx={{
                                       textTransform: 'capitalize',
-                                      color: 'white',
-                                      '& .MuiChip-label': { color: 'white' },
                                     }}
                                   />
                                 </Box>
@@ -574,8 +572,6 @@ export default function ProfilePage() {
                                     color={getDifficultyColor(recipe.difficulty)}
                                     sx={{
                                       textTransform: 'capitalize',
-                                      color: 'white',
-                                      '& .MuiChip-label': { color: 'white' },
                                     }}
                                   />
                                 </Box>

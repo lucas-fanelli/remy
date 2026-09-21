@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/nextjs';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useEffect } from 'react';
+import { useTokens } from '@/theme/useTokens';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -20,6 +21,7 @@ export default function Error({ error, reset }: ErrorProps) {
   const t = useTranslations('shell');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const tokens = useTokens();
 
   useEffect(() => {
     // Log error to console in development
@@ -70,7 +72,7 @@ export default function Error({ error, reset }: ErrorProps) {
               sx={{
                 padding: 2,
                 marginY: 2,
-                backgroundColor: 'grey.100',
+                backgroundColor: tokens.surface.sunken,
                 textAlign: 'left',
                 maxHeight: 200,
                 overflow: 'auto',

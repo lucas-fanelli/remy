@@ -1,6 +1,7 @@
 'use client';
 import { Paper, Typography } from '@mui/material';
 import { SxProps, Theme } from '@mui/material/styles';
+import { useTokens } from '@/theme/useTokens';
 
 export interface CaptionQuoteProps {
   caption: string;
@@ -11,16 +12,17 @@ export interface CaptionQuoteProps {
 
 /** The closing note, printed as a quote after the last step */
 export default function CaptionQuote({ caption, variant = 'elevation', sx }: CaptionQuoteProps) {
+  const tokens = useTokens();
+
   return (
     <Paper
       variant={variant}
       sx={[
         {
           p: 3,
-          bgcolor:
-            variant === 'outlined'
-              ? 'action.hover'
-              : (theme: Theme) => (theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50'),
+          // The quote is an inset panel, which `surface.sunken` already answers for both
+          // modes — so the mode branch that picked between two greys goes with it
+          bgcolor: variant === 'outlined' ? 'action.hover' : tokens.surface.sunken,
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

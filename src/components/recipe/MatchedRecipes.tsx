@@ -247,7 +247,9 @@ export default function MatchedRecipes() {
                       height: '100%',
                       transition: 'all 0.2s',
                       '&:hover': {
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        // No shadow here any more: the theme gives Card its own elevation,
+                        // and the black one this used to draw was invisible in dark mode.
+                        // The lift is the transform.
                         transform: 'translateY(-4px)',
                       },
                     }}
@@ -295,10 +297,6 @@ export default function MatchedRecipes() {
                           sx={{
                             fontSize: { xs: '0.7rem', md: '0.8125rem' },
                             textTransform: 'capitalize',
-                            color: 'white',
-                            '& .MuiChip-label': {
-                              color: 'white',
-                            },
                           }}
                         />
                       </Box>
@@ -335,7 +333,9 @@ export default function MatchedRecipes() {
                       height: '100%',
                       transition: 'all 0.2s',
                       '&:hover': {
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        // No shadow here any more: the theme gives Card its own elevation,
+                        // and the black one this used to draw was invisible in dark mode.
+                        // The lift is the transform.
                         transform: 'translateY(-4px)',
                       },
                     }}
@@ -419,10 +419,6 @@ export default function MatchedRecipes() {
                           sx={{
                             fontSize: { xs: '0.7rem', md: '0.8125rem' },
                             textTransform: 'capitalize',
-                            color: 'white',
-                            '& .MuiChip-label': {
-                              color: 'white',
-                            },
                           }}
                         />
                       </Box>

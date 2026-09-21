@@ -167,6 +167,8 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               size="small"
+              // YouTube's own red, not one of ours: it is the mark's colour, so it does
+              // not follow the theme and there is no token for it.
               sx={{ color: 'text.secondary', '&:hover': { color: '#FF0000' } }}
             >
               <YouTube />

@@ -23,6 +23,7 @@ import React, {
 } from 'react';
 import { text, useTextDescriptor } from '@/i18n/text';
 import { MAX_UPLOAD_SIZE } from '@/lib/constants';
+import { useTokens } from '@/theme/useTokens';
 import {
   ACCEPT_ATTRIBUTE,
   GENERIC_UPLOAD_ERROR,
@@ -90,12 +91,13 @@ type FocusTarget = 'trigger' | 'action' | 'cancel' | null;
 
 export const BROKEN_IMAGE_MESSAGE = text('recipeForm.photo.broken');
 
-// The one allowed pair of literal colours: these sit on top of a photo, so they
-// must look the same in both themes (same as RecipeCard's badges).
-const PHOTO_SCRIM = 'rgba(0,0,0,0.6)';
+// The pills and panels drawn over the photo take `surface.overlay` and `text.onOverlay`,
+// so they stay the same in both themes without being literals. These two shades are the
+// exception: a darker scrim for the pill's hover and a lighter one that keeps the photo
+// readable while it uploads. The token layer names neither, and inventing tokens for two
+// one-off depths would be worse than leaving them here.
 const PHOTO_SCRIM_HOVER = 'rgba(0,0,0,0.8)';
 const PHOTO_SCRIM_LIGHT = 'rgba(0,0,0,0.4)';
-const ON_PHOTO_SCRIM = '#fff';
 
 const visuallyHidden: React.CSSProperties = {
   border: 0,
@@ -148,6 +150,8 @@ const ScrimButton = forwardRef<HTMLButtonElement, ScrimButtonProps>(function Scr
   { label, children, onClick, disabled },
   ref
 ) {
+  const tokens = useTokens();
+
   return (
     <ButtonBase
       ref={ref}
@@ -160,7 +164,7 @@ const ScrimButton = forwardRef<HTMLButtonElement, ScrimButtonProps>(function Scr
         '&:hover > span': { bgcolor: PHOTO_SCRIM_HOVER },
         '&:focus-visible > span': {
           outline: '2px solid',
-          outlineColor: ON_PHOTO_SCRIM,
+          outlineColor: tokens.text.onOverlay,
           outlineOffset: 2,
         },
         '&.Mui-disabled': { opacity: 0.5 },
@@ -174,8 +178,8 @@ const ScrimButton = forwardRef<HTMLButtonElement, ScrimButtonProps>(function Scr
           height: 32,
           px: 1.5,
           borderRadius: 16,
-          bgcolor: PHOTO_SCRIM,
-          color: ON_PHOTO_SCRIM,
+          bgcolor: tokens.surface.overlay,
+          color: tokens.text.onOverlay,
           typography: 'caption',
           fontWeight: 600,
         }}
@@ -206,6 +210,7 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
   const t = useTranslations('recipeForm');
   const tCommon = useTranslations('common');
   const renderText = useTextDescriptor();
+  const tokens = useTokens();
   const inline = variant === 'inline';
   const fieldLabel = label ?? t('photo.coverLabel');
 
@@ -777,8 +782,8 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                       px: 1.5,
                       py: 0.5,
                       borderRadius: 16,
-                      bgcolor: PHOTO_SCRIM,
-                      color: ON_PHOTO_SCRIM,
+                      bgcolor: tokens.surface.overlay,
+                      color: tokens.text.onOverlay,
                       fontWeight: 600,
                     }}
                   >
@@ -808,8 +813,8 @@ const ImageUpload = forwardRef<ImageUploadHandle, ImageUploadProps>(function Ima
                   justifyContent: 'center',
                   gap: 0.5,
                   p: 1,
-                  bgcolor: PHOTO_SCRIM,
-                  color: ON_PHOTO_SCRIM,
+                  bgcolor: tokens.surface.overlay,
+                  color: tokens.text.onOverlay,
                   textAlign: 'center',
                 }}
               >

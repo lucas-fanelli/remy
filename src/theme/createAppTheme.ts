@@ -189,20 +189,26 @@ export function createAppTheme(mode: 'light' | 'dark', animate = true): Theme {
       },
 
       MuiChip: {
-        styleOverrides: {
-          // Scoped to the default colour. Styling `filled` outright covers every
-          // variant, so it painted over `color="success"` and friends — the match badge
-          // and the difficulty chips went grey.
-          filled: {
-            '&.MuiChip-colorDefault': {
-              backgroundColor: t.surface.sunken,
-              color: t.text.primary,
-            },
+        // `variants`, not a `&.MuiChip-colorDefault` selector inside styleOverrides.
+        //
+        // That selector matches two classes, which out-specifies the `sx` prop — so a
+        // chip asking for a dark scrim and light ink over a photo lost its background
+        // and its text to the theme while its icon (a descendant rule, and one of them
+        // `!important`) kept the light ink. The result was a pale pill with a white
+        // clock on it, unreadable, on top of the photo it was meant to sit over.
+        //
+        // Variants generate a class at the same level as the base, so `sx` wins again,
+        // which is the contract `sx` is supposed to have.
+        variants: [
+          {
+            props: { variant: 'filled', color: 'default' },
+            style: { backgroundColor: t.surface.sunken, color: t.text.primary },
           },
-          outlined: {
-            '&.MuiChip-colorDefault': { borderColor: t.border.strong },
+          {
+            props: { variant: 'outlined', color: 'default' },
+            style: { borderColor: t.border.strong },
           },
-        },
+        ],
       },
 
       MuiButton: {

@@ -34,6 +34,7 @@ import { useBrandLogo } from '@/config/useBrandLogo';
 import { Recipe, ViewerState } from '@/domain/types/recipe';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { getDifficultyColor } from '@/lib/utils/recipe';
+import { useTokens } from '@/theme/useTokens';
 
 // motion.create must be at module scope — calling inside a component creates
 // a new type each render, breaking React reconciliation.
@@ -75,6 +76,7 @@ export default function RecipeCard({
   currentUserId,
 }: RecipeCardProps) {
   const brandLogo = useBrandLogo();
+  const tokens = useTokens();
   const liked = viewer?.liked ?? false;
   const timesCooked = viewer?.timesCooked ?? 0;
   const t = useTranslations('recipe');
@@ -143,11 +145,10 @@ export default function RecipeCard({
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         cursor: 'pointer',
-        '&:hover': {
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        },
+        // Elevation, resting and on hover, belongs to the theme's MuiCard now: a shadow in
+        // light mode, a lifted surface and a quiet border in dark, where a black shadow
+        // renders as nothing at all. The hover response is the whileHover lift above.
       }}
     >
       {/* Hero Image Container
@@ -165,11 +166,11 @@ export default function RecipeCard({
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: 'grey.200',
+              bgcolor: tokens.surface.sunken,
             }}
           >
-            <RestaurantIcon sx={{ fontSize: 48, color: 'grey.400' }} />
-            <Typography variant="caption" sx={{ color: 'grey.500', mt: 0.5 }}>
+            <RestaurantIcon sx={{ fontSize: 48, color: 'text.disabled' }} />
+            <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5 }}>
               {tCommon('states.imageUnavailable')}
             </Typography>
           </Box>
@@ -213,27 +214,31 @@ export default function RecipeCard({
             fontSize: '0.75rem',
             height: 28,
             borderRadius: 14,
-            color: 'white',
+            // No ink here on purpose: the fill is a palette colour, so MUI hands the label
+            // that colour's contrastText — dark on the lighter fills dark mode uses, where
+            // the white this used to force measured 2.16:1.
             '& .MuiChip-label': { px: 1.5 },
           }}
         />
 
-        {/* Time Badge - Bottom Left */}
+        {/* Time Badge - Bottom Left
+            Light ink in both modes, deliberately: this pill sits on the photo's scrim and
+            not on the card, so it never sees the page's background. */}
         <Chip
-          icon={<AccessTime sx={{ fontSize: 16, color: 'white !important' }} />}
+          icon={<AccessTime sx={{ fontSize: 16, color: `${tokens.text.onOverlay} !important` }} />}
           label={tCommon('time.minutesShort', { count: totalTime })}
           size="small"
           sx={{
             position: 'absolute',
             bottom: 12,
             left: 12,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            color: 'white',
+            backgroundColor: tokens.surface.overlay,
+            color: tokens.text.onOverlay,
             fontWeight: 500,
             fontSize: '0.8125rem',
             height: 28,
             borderRadius: 14,
-            '& .MuiChip-icon': { color: 'white' },
+            '& .MuiChip-icon': { color: tokens.text.onOverlay },
             '& .MuiChip-label': { pr: 1.5 },
           }}
         />
