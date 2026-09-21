@@ -101,10 +101,6 @@ function SearchPageContent() {
     router.push(`/profile/${username}`);
   };
 
-  const handleRecipeClick = (recipeId: string) => {
-    router.push(`/recipe/${recipeId}`);
-  };
-
   if (!query) {
     return null;
   }
@@ -154,36 +150,35 @@ function SearchPageContent() {
                     </Typography>
                   </Box>
                 ) : (
-                  <Grid container spacing={3}>
+                  <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
                     {recipes.map((recipe) => (
                       <Grid item xs={12} sm={6} md={4} key={recipe.id}>
                         <RecipeCard
+                          // No more `ingredients: []`, `instructions: []` or a
+                          // `createdAt: new Date()` invented on the spot to satisfy a type
+                          // for fields the card never reads — and no `servings || 4`,
+                          // which was answering a question the data had not answered.
                           recipe={{
                             id: recipe.id,
                             title: recipe.title,
                             description: recipe.description,
                             imageUrl: recipe.imageUrl,
-                            difficulty: recipe.difficulty as 'easy' | 'medium' | 'hard',
+                            difficulty: recipe.difficulty,
                             prepTime: recipe.prepTime,
                             cookingTime: recipe.cookingTime,
-                            servings: recipe.servings || 4,
-                            ingredients: [],
-                            instructions: [],
+                            servings: recipe.servings,
                             userId: recipe.userId,
                             author: recipe.author,
-                            createdAt: new Date(),
-                            updatedAt: new Date(),
                             averageRating: recipe.averageRating,
                             totalRatings: recipe.totalRatings,
+                            likeCount: recipe.likeCount,
+                            commentCount: recipe.commentCount,
                           }}
                           viewer={recipe.viewer}
-                          likeCount={recipe.likeCount}
-                          commentCount={recipe.commentCount}
-                          // Search still hides the actions — turning them on belongs with
-                          // the card convergence, not here. The state is passed anyway so
-                          // that switch is a one-word change and not another data hunt.
-                          showActions={false}
-                          onClick={() => handleRecipeClick(recipe.id)}
+                          // The counts show here for the first time — they were fetched
+                          // and then discarded. No `onLike`/`onComment` on purpose: this
+                          // page has no like mutation, and a heart that fills and then
+                          // reverts is worse than one that plainly reports the count.
                         />
                       </Grid>
                     ))}

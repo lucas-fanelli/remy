@@ -56,9 +56,7 @@ jest.mock('../RecipeCard', () => {
   return function MockRecipeCard({
     recipe,
     viewer,
-    likeCount,
-    commentCount,
-    onClick,
+    href,
     onLike,
     onComment,
     onEdit,
@@ -66,13 +64,16 @@ jest.mock('../RecipeCard', () => {
   }: any) {
     return (
       <div data-testid={`recipe-card-${recipe.id}`}>
-        <div>{recipe.title}</div>
+        {/* A link, because the real card's title is one now — the feed's navigation is an
+            anchor rather than a handler, and a mock that still rendered a button would
+            hide that from every test in this file. */}
+        <a href={href ?? `/recipe/${recipe.id}`}>{recipe.title}</a>
         <div data-testid={`viewer-liked-${recipe.id}`}>
           {viewer === null ? 'signed-out' : String(viewer?.liked)}
         </div>
-        <div data-testid={`like-count-${recipe.id}`}>{String(likeCount)}</div>
-        <div data-testid={`comment-count-${recipe.id}`}>{String(commentCount)}</div>
-        <button onClick={onClick}>View</button>
+        {/* The counts ride on the recipe now, not as sibling props. */}
+        <div data-testid={`like-count-${recipe.id}`}>{String(recipe.likeCount)}</div>
+        <div data-testid={`comment-count-${recipe.id}`}>{String(recipe.commentCount)}</div>
         <button onClick={onLike}>Like</button>
         <button onClick={onComment}>Comment</button>
         {onEdit && <button onClick={onEdit}>Edit</button>}
@@ -339,7 +340,9 @@ describe('RecipeFeed Component', () => {
     });
   });
 
-  it('should navigate to recipe detail page when recipe is clicked', async () => {
+  it('should reach the recipe detail through a link, not a scripted push', async () => {
+    // The feed is the primary navigation of the app and it used to be a click handler on
+    // a card: no new tab, no href, nothing announced as a link.
     setupSuccessfulFetch();
 
     renderWithProviders(<RecipeFeed />);
@@ -348,10 +351,10 @@ describe('RecipeFeed Component', () => {
       expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
     });
 
-    const viewButton = screen.getByRole('button', { name: /view/i });
-    fireEvent.click(viewButton);
-
-    expect(mockPush).toHaveBeenCalledWith('/recipe/1');
+    expect(screen.getByRole('link', { name: 'Test Recipe 1' })).toHaveAttribute(
+      'href',
+      '/recipe/1'
+    );
   });
 
   it('should navigate to comment section when comment button is clicked', async () => {

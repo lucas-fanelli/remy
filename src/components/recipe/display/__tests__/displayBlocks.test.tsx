@@ -1,6 +1,7 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, within } from '@testing-library/react';
 import React from 'react';
+import { createAppTheme } from '@/theme/createAppTheme';
 import { darkTokens } from '@/theme/tokens';
 import CaptionQuote from '../CaptionQuote';
 import DifficultyChip from '../DifficultyChip';
@@ -178,6 +179,16 @@ describe('sx passthrough', () => {
 });
 
 describe('DifficultyChip', () => {
+  /**
+   * Mounted in the real theme, not MUI's default.
+   *
+   * These assertions are about the tones the palette hands out, and a bare render gets
+   * MUI's `#d32f2f` rather than the token `#C62828` — which would pass just as happily
+   * while proving nothing about this app.
+   */
+  const inTheme = (ui: React.ReactElement, mode: 'light' | 'dark' = 'light') =>
+    render(<ThemeProvider theme={createAppTheme(mode)}>{ui}</ThemeProvider>);
+
   it('should print the difficulty capitalised through CSS', () => {
     render(<DifficultyChip difficulty="medium" />);
 
@@ -186,10 +197,40 @@ describe('DifficultyChip', () => {
     });
   });
 
-  it('should use the difficulty colour', () => {
-    render(<DifficultyChip difficulty="hard" size="small" sx={[{ marginTop: '2px' }]} />);
+  it('should carry the difficulty tone without asking MUI to fill the chip', () => {
+    // It used to assert `MuiChip-colorError`, i.e. a saturated error-coloured pill. The
+    // chip is now tinted, and `color="default"` is the mechanism: asking for the tone
+    // would paint palette.error.main at full opacity underneath and hand the label that
+    // colour's contrastText, so the tint would be fighting a fill it then has to cover.
+    inTheme(<DifficultyChip difficulty="hard" size="small" sx={[{ marginTop: '2px' }]} />);
+    const chip = screen.getByText('hard').closest('.MuiChip-root');
 
-    expect(screen.getByText('hard').closest('.MuiChip-root')).toHaveClass('MuiChip-colorError');
+    expect(chip).toHaveClass('MuiChip-colorDefault');
+    expect(chip).not.toHaveClass('MuiChip-colorError');
+    // The tone lives in the border, which is where it survives being only 16% strong.
+    // Asserted as the shorthand: jsdom does not expand `border` into `border-color`.
+    expect(chip).toHaveStyle({ border: '1px solid #C62828' });
+    expect(chip).toHaveStyle({ marginTop: '2px' });
+  });
+
+  it('should leave an unrecognised difficulty untinted rather than guess a tone', () => {
+    // The column is still `String?`; a row written before the list was closed can hold
+    // anything, and there is no palette colour to reach for.
+    inTheme(<DifficultyChip difficulty="impossible" />);
+    const chip = screen.getByText('impossible').closest('.MuiChip-root');
+
+    expect(chip).toHaveClass('MuiChip-colorDefault');
+    expect(chip).not.toHaveStyle({ border: '1px solid #C62828' });
+  });
+
+  it('should swap the tint for an opaque scrim when it sits on a photo', () => {
+    // A 16% tint composites against whatever is behind it. Over a cover that is the food,
+    // so the fill becomes the scrim and the tone moves to a rule down the side.
+    inTheme(<DifficultyChip difficulty="easy" appearance="onCover" />);
+    const chip = screen.getByText('easy').closest('.MuiChip-root');
+
+    expect(chip).toHaveStyle({ backgroundColor: 'rgba(0, 0, 0, 0.62)' });
+    expect(chip).toHaveStyle({ borderLeft: '3px solid #93B896' });
   });
 });
 
