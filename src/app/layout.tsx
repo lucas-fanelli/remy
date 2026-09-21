@@ -6,7 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import AppAnalytics from '@/components/analytics/AppAnalytics';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import InstallPrompt from '@/components/pwa/InstallPrompt';
-import { BRANDING, THEME_COLORS } from '@/config/branding';
+import { BRANDING } from '@/config/branding';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CreateRecipeProvider } from '@/contexts/CreateRecipeContext';
 import { MotionProvider } from '@/contexts/MotionContext';
@@ -17,6 +17,7 @@ import { OPEN_GRAPH_LOCALES } from '@/i18n/config';
 import { getServerLocale } from '@/i18n/locale';
 import { getMessages } from '@/i18n/messages';
 import QueryProvider from '@/providers/QueryProvider';
+import { tokensFor } from '@/theme/tokens';
 import type { Metadata } from 'next';
 import './globals.css';
 
@@ -117,7 +118,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={nunito.variable}
     >
       <head>
-        <meta name="theme-color" content="#000000" />
+        {/* Both modes, so the browser chrome follows the page instead of sitting on a
+            black that matched neither. The in-app toggle updates these at runtime. */}
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAFAFA" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#16131B" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {/* Browsers blank the nonce attribute in the DOM once parsed (nonce hiding), so
             hydration always sees nonce="" here. The mismatch is expected and harmless. */}
@@ -132,13 +136,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   document.documentElement.classList.add('initial-load');
                   document.documentElement.classList.add('loading');
 
-                  var mode = localStorage.getItem('themeMode');
+                  // No stored choice means follow the operating system. It used to mean
+                  // light for everyone, whatever they had asked their OS for.
+                  var stored = localStorage.getItem('themeMode');
+                  var mode = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                   if (mode === 'dark') {
                     document.documentElement.classList.add('dark-mode');
                     document.documentElement.style.colorScheme = 'dark';
-                    document.documentElement.style.backgroundColor = '${THEME_COLORS.darkBackground}';
+                    document.documentElement.style.backgroundColor = '${tokensFor('dark').surface.base}';
                   } else {
-                    document.documentElement.style.backgroundColor = '${THEME_COLORS.lightBackground}';
+                    document.documentElement.style.backgroundColor = '${tokensFor('light').surface.base}';
                     // Light mode doesn't need loading class
                     document.documentElement.classList.remove('loading');
                     document.documentElement.classList.add('theme-ready');

@@ -1,49 +1,49 @@
 {
-    "name": "Remy's - Anyone can cook",
-    "short_name": "Remy's",
-    "description": "A social network for chefs and cooking enthusiasts with AI-powered cooking tools",
-    "start_url": "/",
-    "display": "standalone",
-    "orientation": "portrait-primary",
-    "theme_color": "#000000",
-    "background_color": "#000000",
-    "icons": [
-        {
-            "src": "/rat-icon-v3.png?v=final",
-            "sizes": "any",
-            "type": "image/png",
-            "purpose": "any"
-        },
-        {
-            "src": "/rat-icon-v3.png?v=final",
-            "sizes": "any",
-            "type": "image/png",
-            "purpose": "maskable"
-        }
-    ],
-    "categories": [
-        "food",
-        "social",
-        "lifestyle"
-    ],
-    "screenshots": [],
-    "related_applications": [
-        {
-            "platform": "webapp",
-            "url": "https://remy-s.vercel.app/site.webmanifest"
-        }
-    ],
-    "prefer_related_applications": false,
-    "shortcuts": [
-        {
-            "name": "Home Feed",
-            "url": "/",
-            "description": "View your recipe feed"
-        },
-        {
-            "name": "Create Recipe",
-            "url": "/recipes/create",
-            "description": "Create a new recipe"
-        }
-    ]
+  "name": "Remy's - Anyone can cook",
+  "short_name": "Remy's",
+  "description": "A social network for chefs and cooking enthusiasts with AI-powered cooking tools",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#16131B",
+  "background_color": "#16131B",
+  "icons": [
+    {
+      "src": "/rat-icon-v3.png?v=final",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/rat-icon-v3.png?v=final",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": [
+    "food",
+    "social",
+    "lifestyle"
+  ],
+  "screenshots": [],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://remy-s.vercel.app/site.webmanifest"
+    }
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Home Feed",
+      "url": "/",
+      "description": "View your recipe feed"
+    },
+    {
+      "name": "Create Recipe",
+      "url": "/recipes/create",
+      "description": "Create a new recipe"
+    }
+  ]
 }
