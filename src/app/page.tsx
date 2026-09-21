@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Container, Toolbar } from '@mui/material';
+import { Box, Container } from '@mui/material';
 import { motion, useReducedMotion } from 'framer-motion';
 import React from 'react';
 import MatchedRecipes from '@/components/recipe/MatchedRecipes';
@@ -24,10 +24,7 @@ export default function Home() {
       animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={shouldReduceMotion ? undefined : { type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        {/* Spacer for fixed AppBar - Material Design pattern */}
-        <Toolbar />
-
+      <Box sx={{ backgroundColor: 'background.default' }}>
         {/* Main Content */}
         <Container
           maxWidth="lg"

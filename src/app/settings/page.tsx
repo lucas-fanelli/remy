@@ -17,7 +17,6 @@ import {
   Divider,
   Switch,
   FormControlLabel,
-  Toolbar,
   List,
   ListItem,
   ListItemIcon,
@@ -81,9 +80,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', pb: { xs: 6, md: 8 }, backgroundColor: 'background.default' }}>
-      <Toolbar />
-
+    <Box sx={{ pb: { xs: 6, md: 8 }, backgroundColor: 'background.default' }}>
       <Container maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, px: { xs: 2, md: 3 } }}>
         {/* Header */}
         <Box sx={{ mb: { xs: 3, md: 4 } }}>

@@ -134,7 +134,6 @@ export default function AdminCommentsPage() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
         pt: { xs: 10, md: 12 },
         pb: { xs: 10, md: 6 },
         backgroundColor: 'background.default',

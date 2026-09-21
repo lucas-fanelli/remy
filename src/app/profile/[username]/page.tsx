@@ -20,7 +20,6 @@ import {
   IconButton,
   Chip,
   Alert,
-  Toolbar,
   Grow,
   Rating,
   type Theme,
@@ -212,7 +211,6 @@ export default function ProfilePage() {
   if (error || !profile) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Toolbar />
         <Alert severity="error" sx={{ mb: 2 }}>
           {error ? t(`errors.${error}`) : t('errors.notFound')}
         </Alert>
@@ -227,10 +225,7 @@ export default function ProfilePage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <Box sx={{ minHeight: '100vh', pb: 8, backgroundColor: 'background.default' }}>
-        {/* Spacer for fixed AppBar */}
-        <Toolbar />
-
+      <Box sx={{ pb: 8, backgroundColor: 'background.default' }}>
         <Container maxWidth="lg" sx={{ pt: 2 }}>
           {/* Profile Header */}
           <MotionBox

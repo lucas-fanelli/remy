@@ -37,7 +37,7 @@ export default function RecipeTemplate({ children }: { children: React.ReactNode
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        style={{ minHeight: '100vh' }}
+        style={{ display: 'flex', flexDirection: 'column', flex: 1 }}
       >
         {children}
       </motion.div>

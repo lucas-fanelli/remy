@@ -27,7 +27,6 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Divider,
-  Toolbar,
   Autocomplete,
 } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -358,8 +357,7 @@ export default function PantryPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
-        <Box sx={{ minHeight: '100vh', pb: 8, bgcolor: 'background.default' }}>
-          <Toolbar />
+        <Box sx={{ pb: 8, bgcolor: 'background.default' }}>
           <Container maxWidth="lg" sx={{ pt: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
               <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
@@ -391,10 +389,7 @@ export default function PantryPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <Box sx={{ minHeight: '100vh', pb: 8, bgcolor: 'background.default' }}>
-        {/* Spacer for fixed AppBar - Material Design pattern */}
-        <Toolbar />
-
+      <Box sx={{ pb: 8, bgcolor: 'background.default' }}>
         <Container maxWidth="lg" sx={{ pt: 2 }}>
           {/* Note: Back button is now in the Navigation component */}
 

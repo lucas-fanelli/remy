@@ -18,7 +18,6 @@ export default function OfflinePage() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: '100vh',
         textAlign: 'center',
         p: 3,
         bgcolor: 'background.default',

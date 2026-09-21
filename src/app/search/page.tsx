@@ -110,11 +110,8 @@ function SearchPageContent() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-      <Container
-        maxWidth="lg"
-        sx={{ pt: { xs: 9, sm: 10, md: 12 }, pb: { xs: 12, sm: 13, md: 4 } }}
-      >
+    <Box sx={{ backgroundColor: 'background.default' }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 2, sm: 3, md: 4 }, pb: { xs: 4, sm: 5, md: 4 } }}>
         <Box sx={{ mb: 3 }}>
           <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom color="text.primary">
             {t('page.title')}
