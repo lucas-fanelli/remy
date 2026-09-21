@@ -3,7 +3,6 @@
 import { Delete, ArrowBack, Visibility } from '@mui/icons-material';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   Table,
@@ -27,6 +26,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useEffect, useState, useCallback } from 'react';
+import PageFrame from '@/components/layout/PageFrame';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
 
 /** Which request failed, not what to say about it - the sentence is looked up at render time. */
@@ -139,7 +139,7 @@ export default function AdminCommentsPage() {
         backgroundColor: 'background.default',
       }}
     >
-      <Container maxWidth="lg">
+      <PageFrame>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
           <IconButton onClick={() => router.push('/admin')} aria-label={t('nav.back')}>
             <ArrowBack />
@@ -277,7 +277,7 @@ export default function AdminCommentsPage() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
+      </PageFrame>
     </Box>
   );
 }

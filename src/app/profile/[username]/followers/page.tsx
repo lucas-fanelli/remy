@@ -3,7 +3,6 @@
 import { ArrowBack } from '@mui/icons-material';
 import {
   Box,
-  Container,
   Typography,
   List,
   ListItem,
@@ -19,6 +18,7 @@ import NextLink from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
+import PageFrame from '@/components/layout/PageFrame';
 import { MotionPaper } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -108,35 +108,31 @@ export default function FollowersPage() {
 
   if (!isAuthenticated) {
     return (
-      <Box sx={{ backgroundColor: 'background.default' }}>
-        <Container maxWidth="md" sx={{ pt: 4, textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-            {t('followers.signInPrompt')}
-          </Typography>
-          <Button component={NextLink} href="/auth" variant="contained">
-            {t('signIn')}
-          </Button>
-        </Container>
-      </Box>
+      <PageFrame width="reading" sx={{ textAlign: 'center' }}>
+        <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+          {t('followers.signInPrompt')}
+        </Typography>
+        <Button component={NextLink} href="/auth" variant="contained">
+          {t('signIn')}
+        </Button>
+      </PageFrame>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ backgroundColor: 'background.default' }}>
-        <Container maxWidth="md" sx={{ pt: 4 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {t('followers.loadFailed')}
-          </Alert>
-          <Button onClick={() => router.back()}>{tCommon('actions.goBack')}</Button>
-        </Container>
-      </Box>
+      <PageFrame width="reading">
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {t('followers.loadFailed')}
+        </Alert>
+        <Button onClick={() => router.back()}>{tCommon('actions.goBack')}</Button>
+      </PageFrame>
     );
   }
 
   return (
-    <Box sx={{ backgroundColor: 'background.default' }}>
-      <Container maxWidth="md" sx={{ pt: 2, pb: 4 }}>
+    <>
+      <PageFrame width="reading">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
           <IconButton onClick={() => router.back()} edge="start">
             <ArrowBack />
@@ -231,7 +227,7 @@ export default function FollowersPage() {
             ))}
           </List>
         )}
-      </Container>
+      </PageFrame>
 
       <Snackbar
         open={!!followError}
@@ -243,6 +239,6 @@ export default function FollowersPage() {
           {followError}
         </Alert>
       </Snackbar>
-    </Box>
+    </>
   );
 }
