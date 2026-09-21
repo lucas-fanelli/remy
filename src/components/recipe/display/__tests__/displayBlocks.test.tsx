@@ -1,6 +1,7 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, within } from '@testing-library/react';
 import React from 'react';
+import { darkTokens } from '@/theme/tokens';
 import CaptionQuote from '../CaptionQuote';
 import DifficultyChip from '../DifficultyChip';
 import { StoredIngredient } from '../displayFormat';
@@ -208,6 +209,8 @@ describe('CaptionQuote', () => {
   });
 
   it('should use the dark surface in dark mode', () => {
+    // Was pinned to MUI's grey[900] — one of the undeclared greys the token layer
+    // removed. The quote sits in a well, so it takes the sunken surface.
     const theme = createTheme({ palette: { mode: 'dark' } });
 
     render(
@@ -217,7 +220,7 @@ describe('CaptionQuote', () => {
     );
 
     expect(screen.getByText(/Enjoy/).closest('.MuiPaper-root')).toHaveStyle({
-      backgroundColor: theme.palette.grey[900],
+      backgroundColor: darkTokens.surface.sunken,
     });
   });
 });

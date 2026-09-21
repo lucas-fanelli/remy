@@ -2,6 +2,7 @@
 import { AccessTime } from '@mui/icons-material';
 import { Chip } from '@mui/material';
 import { useTranslations } from 'next-intl';
+import { useTokens } from '@/theme/useTokens';
 import DifficultyChip from './DifficultyChip';
 
 export interface RecipeCoverBadgesProps {
@@ -10,11 +11,6 @@ export interface RecipeCoverBadgesProps {
   /** Prep + cook, in minutes. The pill is left out while it is 0 (no time typed yet) */
   totalTime: number;
 }
-
-// Literal colours on purpose: the pill sits on a photo, so it must look the same in both
-// themes (same values as the feed's RecipeCard)
-const ON_PHOTO = '#fff';
-const PHOTO_SCRIM = 'rgba(0,0,0,0.7)';
 
 const pillSx = { fontWeight: 600, height: 28, borderRadius: 14 } as const;
 
@@ -25,9 +21,12 @@ const pillSx = { fontWeight: 600, height: 28, borderRadius: 14 } as const;
  */
 export default function RecipeCoverBadges({ difficulty, totalTime }: RecipeCoverBadgesProps) {
   const t = useTranslations('common');
+  const tokens = useTokens();
 
   return (
     <>
+      {/* The difficulty pill brings its own filled colour, so it is readable over any
+          photo without help; its ink comes from that fill's contrastText, not from here */}
       <DifficultyChip
         difficulty={difficulty}
         size="small"
@@ -36,7 +35,7 @@ export default function RecipeCoverBadges({ difficulty, totalTime }: RecipeCover
           position: 'absolute',
           top: 12,
           right: 12,
-          '& .MuiChip-label': { px: 1.5, color: 'common.white' },
+          '& .MuiChip-label': { px: 1.5 },
         }}
       />
       {totalTime > 0 && (
@@ -50,9 +49,11 @@ export default function RecipeCoverBadges({ difficulty, totalTime }: RecipeCover
             position: 'absolute',
             bottom: 12,
             left: 12,
-            bgcolor: PHOTO_SCRIM,
-            color: ON_PHOTO,
-            '& .MuiChip-icon': { color: ON_PHOTO, fontSize: 16 },
+            // Light ink on a scrim, the same in both modes: this pill sits on the photo,
+            // never on the page behind it
+            bgcolor: tokens.surface.overlay,
+            color: tokens.text.onOverlay,
+            '& .MuiChip-icon': { color: tokens.text.onOverlay, fontSize: 16 },
             '& .MuiChip-label': { pr: 1.5 },
           }}
         />

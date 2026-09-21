@@ -60,6 +60,7 @@ import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/
 import { useTextDescriptor } from '@/i18n/text';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import { useTokens } from '@/theme/useTokens';
 import type { PantryPlan } from '@/lib/cooking/pantryPlan';
 
 /** Adapt the API recipe shape to the DomainRecipe type expected by EditRecipeModal. */
@@ -110,6 +111,7 @@ export default function RecipeDetailPage() {
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const tokens = useTokens();
   const queryClient = useQueryClient();
 
   const recipeId = params.id as string;
@@ -603,8 +605,10 @@ export default function RecipeDetailPage() {
                   position: 'absolute',
                   top: 16,
                   right: 16,
-                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                  color: 'white',
+                  // On the photo, not on the page: the scrim and its light ink are the
+                  // same in both modes, which is what these two tokens are for.
+                  backgroundColor: tokens.surface.overlay,
+                  color: tokens.text.onOverlay,
                   borderRadius: '50%',
                   width: 40,
                   height: 40,
@@ -1031,8 +1035,9 @@ export default function RecipeDetailPage() {
                                   position: 'absolute',
                                   top: 24,
                                   right: 8,
-                                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                                  color: 'white',
+                                  // Over the step photo, like the cover's zoom icon
+                                  backgroundColor: tokens.surface.overlay,
+                                  color: tokens.text.onOverlay,
                                   borderRadius: '50%',
                                   width: 32,
                                   height: 32,
@@ -1141,7 +1146,8 @@ export default function RecipeDetailPage() {
           slotProps={{
             backdrop: {
               sx: {
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                // No colour here any more: the theme's backdrop is the scrim. Only the
+                // blur and the click-to-close cursor are particular to this viewer.
                 backdropFilter: 'blur(8px)',
                 cursor: 'pointer',
               },
@@ -1150,6 +1156,10 @@ export default function RecipeDetailPage() {
               sx: {
                 backgroundColor: 'transparent',
                 boxShadow: 'none',
+                // The theme gives dialog papers a border and a radius; this one is a
+                // transparent frame around a photo and wants neither.
+                border: 'none',
+                borderRadius: 0,
                 margin: 0,
                 // 100% of the Dialog's fixed container, so the viewer never exceeds the
                 // usable width; 100vw includes the scrollbar and overflowed by 8px
@@ -1167,7 +1177,12 @@ export default function RecipeDetailPage() {
               position: 'absolute',
               top: { xs: 72, sm: 16 },
               right: { xs: 16, sm: 16 },
-              color: 'white',
+              // Sits on the scrim over the photo, so the ink stays light in both modes
+              color: tokens.text.onOverlay,
+              // A translucent white wash for chrome resting on a photo. Not a token: it
+              // is the same in both modes by definition, and the token layer has no name
+              // for "slightly lighter than whatever is behind me". ImageUpload keeps two
+              // of these for the same reason — if a third turns up, it earns a token.
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
               '&:hover': {
                 backgroundColor: 'rgba(255, 255, 255, 0.2)',

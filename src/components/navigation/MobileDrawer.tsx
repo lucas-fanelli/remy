@@ -163,6 +163,8 @@ export default function MobileDrawer({
               sx={{ py: { xs: 1.5, sm: 2 } }}
             >
               <ListItemIcon>
+                {/* YouTube's own red, not one of ours: it is the mark's colour, so it
+                    does not follow the theme and there is no token for it. */}
                 <YouTube sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, color: '#FF0000' }} />
               </ListItemIcon>
               <ListItemText
