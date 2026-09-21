@@ -121,7 +121,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Both modes, so the browser chrome follows the page instead of sitting on a
             black that matched neither. The in-app toggle updates these at runtime. */}
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAFAFA" />
-        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#16131B" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1C1825" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {/* Browsers blank the nonce attribute in the DOM once parsed (nonce hiding), so
             hydration always sees nonce="" here. The mismatch is expected and harmless. */}

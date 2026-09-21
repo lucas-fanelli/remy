@@ -38,7 +38,7 @@ html {
 }
 
 html.dark-mode {
-  background-color: #16131b;
+  background-color: #1c1825;
   color-scheme: dark;
 }
 
@@ -215,7 +215,7 @@ a,
  */
 html.dark-mode::-webkit-scrollbar-track,
 html.dark-mode ::-webkit-scrollbar-track {
-  background: #16131b;
+  background: #1c1825;
 }
 
 html.dark-mode::-webkit-scrollbar-thumb,

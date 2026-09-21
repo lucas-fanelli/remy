@@ -81,7 +81,7 @@ export const lightTokens: ColorTokens = {
   surface: {
     base: '#FAFAFA',
     raised: '#FFFFFF',
-    sunken: '#F1F0F4',
+    sunken: '#EAE7F0',
     overlay: 'rgba(0, 0, 0, 0.62)',
   },
   border: {
@@ -135,14 +135,20 @@ export const lightTokens: ColorTokens = {
  */
 export const darkTokens: ColorTokens = {
   surface: {
-    base: '#16131B',
-    raised: '#211D29',
-    sunken: '#0F0D13',
+    base: '#1C1825',
+    // A card has to separate because it is lighter, not because a line was drawn round
+    // it. At the old #211D29 the step was 1.11:1 — invisible — so a border was doing the
+    // structural work, and a light line on a dark page reads as neon outline.
+    raised: '#2E2839',
+    sunken: '#15121C',
     overlay: 'rgba(0, 0, 0, 0.62)',
   },
   border: {
-    subtle: 'rgba(255, 255, 255, 0.22)',
-    strong: 'rgba(255, 255, 255, 0.38)',
+    // Tinted into the surface family rather than neutral white. Composited, the old one
+    // landed at 4% saturation against surfaces sitting at 17%, so it read as a grey wire
+    // laid over purple material instead of the edge of that material.
+    subtle: 'rgba(205, 192, 228, 0.13)',
+    strong: 'rgba(205, 192, 228, 0.52)',
     focus: '#C9BCE0',
   },
   text: {

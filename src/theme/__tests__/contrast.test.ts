@@ -93,18 +93,19 @@ describe.each([
       expect(contrast(tokens.brand.main, surface)).toBeGreaterThanOrEqual(3);
     });
 
-    // Two thresholds, because the two borders do different jobs. A subtle divider
-    // separates things you can already tell apart, so it only has to be seen — 1.5:1.
-    // A strong border is sometimes the ONLY thing defining an element (the audit found
-    // about a dozen: AppBar, bottom nav, admin cards, the tab rail), which makes it a
-    // component boundary and puts it under WCAG's 3:1 non-text rule.
+    // A subtle border is a refinement, not the structure. Cards separate because
+    // `surface.raised` is lighter than the page — see "a card separates on its own"
+    // below — so this only has to be perceptible at the edge.
     //
-    // The old dark divider was white at 12%, which composites to 1.35:1 — below even the
-    // lower bar. That is the "invisible borders" complaint, as a number.
-    it('draws a subtle border that can actually be seen', () => {
-      expect(contrast(tokens.border.subtle, surface)).toBeGreaterThanOrEqual(1.5);
+    // It was 1.5:1 here, which forced a bright line, and a bright line on a dark page
+    // reads as a neon outline: every card became a drawn rectangle. Loud borders and
+    // invisible ones are both wrong; the surface is what should carry the shape.
+    it('draws a subtle border that can be perceived at an edge', () => {
+      expect(contrast(tokens.border.subtle, surface)).toBeGreaterThanOrEqual(1.2);
     });
 
+    // This one genuinely is the only thing defining its element — a text field's
+    // outline, an outlined button — so WCAG's 3:1 for a component boundary applies.
     it('draws a strong border that can carry an element on its own', () => {
       expect(contrast(tokens.border.strong, surface)).toBeGreaterThanOrEqual(3);
     });
@@ -149,6 +150,33 @@ describe.each([
     const asHex = `#${scrimOverWorstCasePhoto.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
 
     expect(contrast(tokens.text.onOverlay, asHex)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('dark mode separates by surface, not by outline', () => {
+  // Light mode does this with a drop shadow, which works on a light page and is not a
+  // contrast question. On a dark page a black shadow is invisible, so the surface has to
+  // do it — and when it did not, a bright border stood in and every card turned into a
+  // drawn rectangle.
+  it('lifts a card clear of the page on its own', () => {
+    expect(contrast(darkTokens.surface.raised, darkTokens.surface.base)).toBeGreaterThanOrEqual(
+      1.2
+    );
+  });
+
+  it('sinks a well clear of the surface above it', () => {
+    expect(contrast(darkTokens.surface.sunken, darkTokens.surface.raised)).toBeGreaterThanOrEqual(
+      1.2
+    );
+  });
+
+  it('keeps the border quieter than the surface step it decorates', () => {
+    // The border is a refinement. If it out-shouts the lift it becomes the structure
+    // again, which is the look being removed.
+    const lift = contrast(darkTokens.surface.raised, darkTokens.surface.base);
+    const line = contrast(darkTokens.border.subtle, darkTokens.surface.raised);
+
+    expect(line).toBeLessThan(lift * 1.6);
   });
 });
 
