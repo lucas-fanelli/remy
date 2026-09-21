@@ -8,33 +8,18 @@ import {
   Edit as EditIcon,
   Link as LinkIcon,
 } from '@mui/icons-material';
-import {
-  Container,
-  Box,
-  Typography,
-  Avatar,
-  Button,
-  Grid,
-  CardMedia,
-  CardContent,
-  IconButton,
-  Chip,
-  Alert,
-  Grow,
-  Rating,
-  type Theme,
-} from '@mui/material';
+import { Container, Box, Typography, Avatar, Button, Grid, IconButton, Alert } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
-import { MotionBox, MotionCard } from '@/components/motion';
+import { MotionBox } from '@/components/motion';
 import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
+import RecipeCard, { type RecipeCardModel } from '@/components/recipe/RecipeCard';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDifficultyColor } from '@/lib/utils/recipe';
 
 interface User {
   id: string;
@@ -60,6 +45,27 @@ interface Recipe {
     avatar?: string;
   };
 }
+
+/**
+ * A profile recipe, narrowed to what a card shows.
+ *
+ * Note the rename: the profile API says `likesCount` and `commentsCount` while the feed,
+ * search and detail endpoints all say `likeCount` and `commentCount`. Both were required
+ * on the interface above, returned by the server and rendered by nothing at all — this is
+ * the first time either appears on a profile. The counts are the app's, so the card takes
+ * the app's spelling; making the two endpoints agree belongs to the data-layer pass.
+ */
+const toCardModel = (recipe: Recipe): RecipeCardModel => ({
+  id: recipe.id,
+  title: recipe.title,
+  imageUrl: recipe.imageUrl,
+  difficulty: recipe.difficulty,
+  author: recipe.author,
+  averageRating: recipe.averageRating,
+  totalRatings: recipe.totalRatings,
+  likeCount: recipe.likesCount,
+  commentCount: recipe.commentsCount,
+});
 
 interface ProfileStats {
   recipesCount: number;
@@ -104,9 +110,11 @@ export default function ProfilePage() {
   const isOwnProfile = currentUser?.username === username;
   const bioPreviewLength = 100;
 
-  // The stored difficulty never changes; a value this build does not know is shown as it
-  // came back, which is what the chip already did.
-  const difficultyLabel = (level: string) => t('difficulty', { level, fallback: level });
+  // The page no longer spells difficulty itself. It had its own key, `profile.difficulty`,
+  // whose `other` arm named `{fallback}` rather than `{level}` and so required the value be
+  // passed twice — which meant a profile could render a difficulty differently from the
+  // recipe page showing the same recipe. One key now: `recipe.meta.difficulty`, inside
+  // DifficultyChip.
 
   const loadProfile = useCallback(async () => {
     try {
@@ -197,10 +205,6 @@ export default function ProfilePage() {
     } finally {
       setFollowLoading(false);
     }
-  };
-
-  const handleRecipeClick = (recipeId: string) => {
-    router.push(`/recipe/${recipeId}`);
   };
 
   // Return null during loading - the global LoadingBar shows progress
@@ -418,65 +422,17 @@ export default function ProfilePage() {
                     </Grid>
                   ) : (
                     recipes.map((recipe, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-                        <Grow in={true} timeout={(index + 1) * 200}>
-                          <div>
-                            <MotionCard
-                              whileHover={{ scale: 1.02 }}
-                              onClick={() => handleRecipeClick(recipe.id)}
-                              sx={{
-                                backgroundColor: (theme: Theme) => theme.palette.background.paper,
-                                cursor: 'pointer',
-                                height: '100%',
-                                borderRadius: '20px',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              <CardMedia
-                                component="img"
-                                height="200"
-                                image={recipe.imageUrl}
-                                alt={recipe.title}
-                                sx={{ objectFit: 'cover' }}
-                              />
-                              <CardContent>
-                                <Typography variant="h6" gutterBottom noWrap>
-                                  {recipe.title}
-                                </Typography>
-                                {recipe.averageRating !== undefined && recipe.averageRating > 0 && (
-                                  <Box
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}
-                                  >
-                                    <Rating
-                                      value={recipe.averageRating}
-                                      precision={0.5}
-                                      size="small"
-                                      readOnly
-                                      sx={{ color: 'warning.main' }}
-                                    />
-                                    <Typography
-                                      variant="body2"
-                                      color="text.secondary"
-                                      sx={{ fontSize: '0.8125rem' }}
-                                    >
-                                      ({recipe.totalRatings || 0})
-                                    </Typography>
-                                  </Box>
-                                )}
-                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                  <Chip
-                                    label={difficultyLabel(recipe.difficulty)}
-                                    size="small"
-                                    color={getDifficultyColor(recipe.difficulty)}
-                                    sx={{
-                                      textTransform: 'capitalize',
-                                    }}
-                                  />
-                                </Box>
-                              </CardContent>
-                            </MotionCard>
-                          </div>
-                        </Grow>
+                      <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
+                        <MotionBox
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          // Bounded, unlike the `Grow timeout={(index + 1) * 200}` it
+                          // replaces — that made the twentieth card wait four seconds.
+                          transition={{ delay: Math.min(index, 11) * 0.05 }}
+                          sx={{ width: '100%' }}
+                        >
+                          <RecipeCard recipe={toCardModel(recipe)} viewer={null} />
+                        </MotionBox>
                       </Grid>
                     ))
                   )}
@@ -500,80 +456,20 @@ export default function ProfilePage() {
                     </Grid>
                   ) : (
                     savedRecipes.map((recipe, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-                        <Grow in={true} timeout={(index + 1) * 200}>
-                          <div>
-                            <MotionCard
-                              whileHover={{ scale: 1.02 }}
-                              onClick={() => handleRecipeClick(recipe.id)}
-                              sx={{
-                                backgroundColor: (theme: Theme) => theme.palette.background.paper,
-                                cursor: 'pointer',
-                                height: '100%',
-                                borderRadius: '20px',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              <CardMedia
-                                component="img"
-                                height="200"
-                                image={recipe.imageUrl}
-                                alt={recipe.title}
-                                sx={{ objectFit: 'cover' }}
-                              />
-                              <CardContent>
-                                <Typography variant="h6" gutterBottom noWrap>
-                                  {recipe.title}
-                                </Typography>
-                                {recipe.author && (
-                                  <Box
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}
-                                  >
-                                    <Avatar
-                                      src={recipe.author.avatar}
-                                      sx={{ width: 24, height: 24 }}
-                                    >
-                                      {recipe.author.username.charAt(0).toUpperCase()}
-                                    </Avatar>
-                                    <Typography variant="body2" color="text.secondary">
-                                      {recipe.author.username}
-                                    </Typography>
-                                  </Box>
-                                )}
-                                {recipe.averageRating !== undefined && recipe.averageRating > 0 && (
-                                  <Box
-                                    sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}
-                                  >
-                                    <Rating
-                                      value={recipe.averageRating}
-                                      precision={0.5}
-                                      size="small"
-                                      readOnly
-                                      sx={{ color: 'warning.main' }}
-                                    />
-                                    <Typography
-                                      variant="body2"
-                                      color="text.secondary"
-                                      sx={{ fontSize: '0.8125rem' }}
-                                    >
-                                      ({recipe.totalRatings || 0})
-                                    </Typography>
-                                  </Box>
-                                )}
-                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                  <Chip
-                                    label={difficultyLabel(recipe.difficulty)}
-                                    size="small"
-                                    color={getDifficultyColor(recipe.difficulty)}
-                                    sx={{
-                                      textTransform: 'capitalize',
-                                    }}
-                                  />
-                                </Box>
-                              </CardContent>
-                            </MotionCard>
-                          </div>
-                        </Grow>
+                      <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
+                        <MotionBox
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: Math.min(index, 11) * 0.05 }}
+                          sx={{ width: '100%' }}
+                        >
+                          {/* The same card as the tab above it. Its only real difference
+                              was the author byline, and "an absent field renders nothing"
+                              covers that: the saved payload carries an author and the
+                              owner's own recipes do not, so one component serves both and
+                              the sixty duplicated lines go. */}
+                          <RecipeCard recipe={toCardModel(recipe)} viewer={null} />
+                        </MotionBox>
                       </Grid>
                     ))
                   )}

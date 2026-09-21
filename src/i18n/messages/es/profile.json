@@ -21,7 +21,6 @@
     "recipes": "Recetas",
     "saved": "Guardadas"
   },
-  "difficulty": "{level, select, easy {fácil} medium {media} hard {difícil} other {{fallback}}}",
   "empty": {
     "recipes": "Todavía no hay recetas",
     "recipesOwn": "¡Compartí tu primera receta y arrancá!",

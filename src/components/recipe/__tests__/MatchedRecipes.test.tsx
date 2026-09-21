@@ -280,11 +280,14 @@ describe('MatchedRecipes Component', () => {
       expect(screen.getByText('Test Recipe')).toBeInTheDocument();
     });
 
-    // Click on the recipe card
-    const recipeCard = screen.getByText('Test Recipe').closest('[class*="MuiCard"]');
-    fireEvent.click(recipeCard!);
-
-    expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-123');
+    // A link now, not a click handler on a card. These cards were mouse-only before:
+    // `onClick` on a MotionCard with no role, no tabIndex and no key handler, so the
+    // pantry matches on the home page could not be reached from a keyboard at all.
+    expect(screen.getByRole('link', { name: 'Test Recipe' })).toHaveAttribute(
+      'href',
+      '/recipe/recipe-123'
+    );
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it('should navigate to recipe detail when clicking an almost there recipe card', async () => {
@@ -322,11 +325,11 @@ describe('MatchedRecipes Component', () => {
       expect(screen.getByText('Almost There Recipe')).toBeInTheDocument();
     });
 
-    // Click on the recipe card
-    const recipeCard = screen.getByText('Almost There Recipe').closest('[class*="MuiCard"]');
-    fireEvent.click(recipeCard!);
-
-    expect(mockPush).toHaveBeenCalledWith('/recipe/recipe-456');
+    expect(screen.getByRole('link', { name: 'Almost There Recipe' })).toHaveAttribute(
+      'href',
+      '/recipe/recipe-456'
+    );
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it('should display pantry items count', async () => {

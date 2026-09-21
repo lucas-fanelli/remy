@@ -4,8 +4,6 @@ import {
   Box,
   Card,
   Typography,
-  CardMedia,
-  CardContent,
   Chip,
   Button,
   Grid,
@@ -16,14 +14,13 @@ import {
   Skeleton,
   useTheme,
   useMediaQuery,
-  type Theme,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
-import { MotionCard } from '@/components/motion';
+import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDifficultyColor } from '@/lib/utils/recipe';
+import RecipeCard, { type RecipeCardModel } from './RecipeCard';
 
 interface MatchedRecipe {
   id: string;
@@ -37,10 +34,29 @@ interface MatchedRecipe {
   missingIngredients: string[];
 }
 
+/**
+ * A matched recipe, narrowed to what a card can show.
+ *
+ * `/api/recipes/match` answers with these five fields and no more — no author, no times,
+ * no servings, no ratings, no counts — so these cards come out deliberately sparser than
+ * a feed card. That is the point of every meta field being optional: the alternative is
+ * what the search page used to do, which was invent values to satisfy a type.
+ *
+ * Both call sites also pass `viewer={null}`, and that is a known gap rather than a claim:
+ * the endpoint carries no viewer dimension at all. Nothing on these cards reads it today,
+ * because with no counts and no handlers there is no engagement row to read it — but if
+ * this card ever grows one here, the endpoint has to answer first.
+ */
+const toCardModel = (recipe: MatchedRecipe): RecipeCardModel => ({
+  id: recipe.id,
+  title: recipe.title,
+  description: recipe.description,
+  imageUrl: recipe.imageUrl,
+  difficulty: recipe.difficulty,
+});
+
 export default function MatchedRecipes() {
   const t = useTranslations('feed');
-  // The difficulty label belongs to the recipe itself, so it lives in the recipe namespace
-  const tRecipe = useTranslations('recipe');
   const tCommon = useTranslations('common');
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -81,10 +97,6 @@ export default function MatchedRecipes() {
       loadMatchedRecipes();
     }
   }, [isAuthenticated, loadMatchedRecipes]);
-
-  const handleRecipeClick = (recipeId: string) => {
-    router.push(`/recipe/${recipeId}`);
-  };
 
   const handleGoToPantry = () => {
     router.push('/pantry');
@@ -236,72 +248,27 @@ export default function MatchedRecipes() {
           ) : (
             <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
               {readyToCook.map((recipe, index) => (
-                <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-                  <MotionCard
+                <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
+                  <MotionBox
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    sx={{
-                      backgroundColor: (theme: Theme) => theme.palette.background.paper,
-                      cursor: 'pointer',
-                      height: '100%',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        // No shadow here any more: the theme gives Card its own elevation,
-                        // and the black one this used to draw was invisible in dark mode.
-                        // The lift is the transform.
-                        transform: 'translateY(-4px)',
-                      },
-                    }}
-                    onClick={() => handleRecipeClick(recipe.id)}
+                    sx={{ width: '100%' }}
                   >
-                    <CardMedia
-                      component="img"
-                      sx={{ height: { xs: 160, sm: 180, md: 200 } }}
-                      image={recipe.imageUrl}
-                      alt={recipe.title}
-                    />
-                    <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-                      <Chip
-                        icon={<CheckCircle sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }} />}
-                        label={t('matches.match', { percent: 100 })}
-                        color="success"
-                        size="small"
-                        sx={{
-                          mb: { xs: 0.75, md: 1 },
-                          fontSize: { xs: '0.7rem', md: '0.8125rem' },
-                        }}
-                      />
-                      <Typography
-                        variant="h6"
-                        gutterBottom
-                        sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}
-                      >
-                        {recipe.title}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          mb: { xs: 1.5, md: 2 },
-                          fontSize: { xs: '0.8125rem', md: '0.875rem' },
-                        }}
-                      >
-                        {recipe.description}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
+                    <RecipeCard
+                      recipe={toCardModel(recipe)}
+                      viewer={null}
+                      overlay={
                         <Chip
-                          label={tRecipe('meta.difficulty', { level: recipe.difficulty })}
+                          icon={<CheckCircle sx={{ fontSize: '1rem' }} />}
+                          label={t('matches.match', { percent: recipe.matchPercentage })}
+                          color="success"
                           size="small"
-                          color={getDifficultyColor(recipe.difficulty)}
-                          sx={{
-                            fontSize: { xs: '0.7rem', md: '0.8125rem' },
-                            textTransform: 'capitalize',
-                          }}
+                          sx={{ fontSize: '0.75rem', fontWeight: 600 }}
                         />
-                      </Box>
-                    </CardContent>
-                  </MotionCard>
+                      }
+                    />
+                  </MotionBox>
                 </Grid>
               ))}
             </Grid>
@@ -322,108 +289,59 @@ export default function MatchedRecipes() {
           ) : (
             <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
               {almostThere.map((recipe, index) => (
-                <Grid item xs={12} sm={6} md={4} key={recipe.id}>
-                  <MotionCard
+                <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
+                  <MotionBox
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    sx={{
-                      backgroundColor: (theme: Theme) => theme.palette.background.paper,
-                      cursor: 'pointer',
-                      height: '100%',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        // No shadow here any more: the theme gives Card its own elevation,
-                        // and the black one this used to draw was invisible in dark mode.
-                        // The lift is the transform.
-                        transform: 'translateY(-4px)',
-                      },
-                    }}
-                    onClick={() => handleRecipeClick(recipe.id)}
+                    sx={{ width: '100%' }}
                   >
-                    <CardMedia
-                      component="img"
-                      sx={{ height: { xs: 160, sm: 180, md: 200 } }}
-                      image={recipe.imageUrl}
-                      alt={recipe.title}
-                    />
-                    <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
-                      <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            mb: { xs: 0.75, md: 1 },
-                            gap: 1,
-                          }}
-                        >
-                          <Chip
-                            label={t('matches.match', { percent: recipe.matchPercentage })}
-                            color={recipe.matchPercentage >= 80 ? 'warning' : 'default'}
-                            size="small"
-                            sx={{ fontSize: { xs: '0.7rem', md: '0.8125rem' } }}
-                          />
+                    <RecipeCard
+                      recipe={toCardModel(recipe)}
+                      viewer={null}
+                      overlay={
+                        <Chip
+                          label={t('matches.match', { percent: recipe.matchPercentage })}
+                          color={recipe.matchPercentage >= 80 ? 'warning' : 'default'}
+                          size="small"
+                          sx={{ fontSize: '0.75rem', fontWeight: 600 }}
+                        />
+                      }
+                      // The meter and what is missing stay here rather than becoming card
+                      // props: nothing else in the app shows pantry match, and the 80%
+                      // threshold above belongs beside the thing it thresholds.
+                      footer={
+                        <Box sx={{ mt: 1.5 }}>
                           <Typography
                             variant="caption"
                             color="text.secondary"
-                            sx={{ fontSize: { xs: '0.7rem', md: '0.75rem' } }}
+                            sx={{ display: 'block', mb: 0.5, fontSize: '0.75rem' }}
                           >
                             {t('matches.ingredientsRatio', {
                               matched: recipe.matchedIngredients,
                               total: recipe.totalIngredients,
                             })}
                           </Typography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={recipe.matchPercentage}
+                            sx={{ height: 6, borderRadius: 1, mb: 1 }}
+                          />
+                          <Typography
+                            variant="caption"
+                            color="error"
+                            sx={{ fontWeight: 600, fontSize: '0.75rem' }}
+                          >
+                            {t('matches.missing', {
+                              names: recipe.missingIngredients.join(', '),
+                              // Spanish conjugates the verb; English ignores the count
+                              count: recipe.missingIngredients.length,
+                            })}
+                          </Typography>
                         </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={recipe.matchPercentage}
-                          sx={{ height: { xs: 5, md: 6 }, borderRadius: 1 }}
-                        />
-                      </Box>
-                      <Typography
-                        variant="h6"
-                        gutterBottom
-                        sx={{ fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' } }}
-                      >
-                        {recipe.title}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          mb: { xs: 1.5, md: 2 },
-                          fontSize: { xs: '0.8125rem', md: '0.875rem' },
-                        }}
-                      >
-                        {recipe.description}
-                      </Typography>
-                      <Box sx={{ mb: { xs: 1.5, md: 2 } }}>
-                        <Typography
-                          variant="caption"
-                          color="error"
-                          sx={{ fontWeight: 600, fontSize: { xs: '0.7rem', md: '0.75rem' } }}
-                        >
-                          {t('matches.missing', {
-                            names: recipe.missingIngredients.join(', '),
-                            // Spanish conjugates the verb; English ignores the count
-                            count: recipe.missingIngredients.length,
-                          })}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, flexWrap: 'wrap' }}>
-                        <Chip
-                          label={tRecipe('meta.difficulty', { level: recipe.difficulty })}
-                          size="small"
-                          color={getDifficultyColor(recipe.difficulty)}
-                          sx={{
-                            fontSize: { xs: '0.7rem', md: '0.8125rem' },
-                            textTransform: 'capitalize',
-                          }}
-                        />
-                      </Box>
-                    </CardContent>
-                  </MotionCard>
+                      }
+                    />
+                  </MotionBox>
                 </Grid>
               ))}
             </Grid>
