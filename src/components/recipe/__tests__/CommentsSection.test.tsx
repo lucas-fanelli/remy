@@ -2058,3 +2058,45 @@ describe('CommentsSection Component', () => {
     });
   });
 });
+
+describe('the stars beside a comment', () => {
+  const showThread = async (props = {}) => {
+    const mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ comments: [mockComment] }) });
+    renderWithProviders(<CommentsSection recipeId="recipe1" {...props} />);
+    await waitFor(() => expect(screen.getByText('Great recipe!')).toBeInTheDocument());
+  };
+
+  const starsShown = () =>
+    screen.queryAllByRole('img').filter((el) => el.getAttribute('aria-label')?.includes('Star'))
+      .length;
+
+  it('shows the reader their live score, not the one the thread was fetched with', async () => {
+    // Reported bug: rating a recipe after the thread had loaded left your own comment
+    // showing the old score until a reload. The list is local state; no refetch follows.
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1', username: 'testuser' } });
+
+    await showThread({ myRating: 2 });
+
+    // mockComment was fetched with rating 5; the reader has since moved to 2.
+    const rating = screen.getByRole('img', { name: /2 Stars?/i });
+    expect(rating).toBeInTheDocument();
+  });
+
+  it('drops the stars when the reader clears their score', async () => {
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1', username: 'testuser' } });
+
+    await showThread({ myRating: null });
+
+    expect(starsShown()).toBe(0);
+  });
+
+  it('leaves somebody else’s comment showing what they gave', async () => {
+    // Your score changing says nothing about theirs.
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'someone-else', username: 'other' } });
+
+    await showThread({ myRating: 1 });
+
+    expect(screen.getByRole('img', { name: /5 Stars?/i })).toBeInTheDocument();
+  });
+});

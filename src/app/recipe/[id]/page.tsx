@@ -195,6 +195,7 @@ export default function RecipeDetailPage() {
         ...cached,
         averageRating: data.averageRating,
         totalRatings: data.reviewCount,
+        ratingBreakdown: data.breakdown ?? cached.ratingBreakdown,
         viewer: cached.viewer ? { ...cached.viewer, myRating: data.myRating } : cached.viewer,
       }));
 
@@ -1076,6 +1077,7 @@ export default function RecipeDetailPage() {
                 recipeId={recipeId}
                 recipeAuthorId={recipe.userId}
                 onImageClick={handleImageClick}
+                myRating={myRating}
               />
             </MotionBox>
           </Container>
