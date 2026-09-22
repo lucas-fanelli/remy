@@ -24,6 +24,31 @@ html {
 }
 
 /*
+ * Where a scroll to an element stops: under the fixed header, with 16px of air. The
+ * browser applies it to fragment links and to focus moving onto something off screen —
+ * without it both put their target underneath the header — and ScrollReset reads it for
+ * the fragments it resolves itself.
+ *
+ * The heights are MUI's toolbar (theme.mixins.toolbar), which the header uses unchanged;
+ * __tests__/globals-css.test.ts keeps the two in step.
+ */
+html {
+  scroll-padding-top: 72px;
+}
+
+@media (min-width: 0px) and (orientation: landscape) {
+  html {
+    scroll-padding-top: 64px;
+  }
+}
+
+@media (min-width: 600px) {
+  html {
+    scroll-padding-top: 80px;
+  }
+}
+
+/*
  * Painted before React runs, by the boot script in layout.tsx. These two are the only
  * colours this file is allowed to state, and a test checks them against src/theme/tokens
  * so the copy cannot drift — four hand-kept copies of the palette is what this work is

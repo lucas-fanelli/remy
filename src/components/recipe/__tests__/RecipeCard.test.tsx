@@ -231,14 +231,30 @@ describe('RecipeCard Component', () => {
     expect(handleLike).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onComment when comment button is clicked', () => {
-    const handleComment = jest.fn();
-    renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} onComment={handleComment} />);
+  it("links the comment glyph to the recipe's comments without the surface passing anything", () => {
+    // Only the home feed used to pass a comment handler, so on the profile, in search and
+    // in Guardadas the glyph was a number that did nothing. The card builds the link itself.
+    renderWithTheme(<RecipeCard viewer={null} recipe={{ ...mockRecipe, commentCount: 3 }} />);
 
-    const commentButton = screen.getByRole('button', { name: /comments/i });
-    fireEvent.click(commentButton);
+    expect(screen.getByRole('link', { name: /comments/i })).toHaveAttribute(
+      'href',
+      `/recipe/${mockRecipe.id}#comments`
+    );
+  });
 
-    expect(handleComment).toHaveBeenCalledTimes(1);
+  it('points the comment link at the same place as the card when the surface moves it', () => {
+    renderWithTheme(
+      <RecipeCard
+        viewer={null}
+        recipe={{ ...mockRecipe, commentCount: 3 }}
+        href="/somewhere/else#photo"
+      />
+    );
+
+    expect(screen.getByRole('link', { name: /comments/i })).toHaveAttribute(
+      'href',
+      '/somewhere/else#comments'
+    );
   });
 
   it('should display like count', () => {

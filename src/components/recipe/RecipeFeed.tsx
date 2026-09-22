@@ -22,7 +22,6 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MotionBox } from '@/components/motion';
@@ -57,7 +56,6 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const tCommon = useTranslations('common');
   const apiErrorMessage = useApiErrorMessage();
   const queryClient = useQueryClient();
-  const router = useRouter();
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -432,7 +430,6 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                   // the card opens in a new tab, takes keyboard focus and has an href.
                   onLike={() => likeToggle.toggle(recipe.id)}
                   onSave={() => saveToggle.toggle(recipe.id)}
-                  onComment={() => router.push(`/recipe/${recipe.id}#comments`)}
                   onEdit={() => handleEditClick(recipe)}
                   onDelete={() => handleDeleteClick(recipe)}
                 />

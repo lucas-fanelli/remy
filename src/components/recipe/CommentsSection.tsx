@@ -35,6 +35,7 @@ import { useDateFnsLocale } from '@/i18n/dates';
 import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import { COMMENTS_FRAGMENT } from './commentsLink';
 
 interface Comment {
   id: string;
@@ -347,7 +348,8 @@ export default function CommentsSection({
   };
 
   return (
-    <Box sx={{ pb: { xs: 9, sm: 10, md: 0 } }}>
+    // The target of every card's comment button (see commentsLink).
+    <Box id={COMMENTS_FRAGMENT} sx={{ pb: { xs: 9, sm: 10, md: 0 } }}>
       <Typography
         variant="h5"
         gutterBottom
