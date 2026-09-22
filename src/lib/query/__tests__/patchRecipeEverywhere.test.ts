@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { VIEWER_SPECS, type Engagement } from '@/lib/engagement/specs';
 import { queryKeys } from '../keys';
-import { patchRecipeEverywhere } from '../patchRecipeEverywhere';
+import { patchRecipeEverywhere, readEngagement } from '../patchRecipeEverywhere';
 
 /**
  * Patching every cache a recipe sits in, and being able to put all of them back.
@@ -103,6 +103,76 @@ describe('patchRecipeEverywhere', () => {
 
     expect(queryClient.getQueryData(queryKeys.recipe('a'))).toBeUndefined();
     expect(() => undo()).not.toThrow();
+  });
+});
+
+describe('readEngagement', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  it('finds a recipe that is only in an infinite list', () => {
+    // The bug this is here for: a toggle that read only `['recipe', id]` found nothing for
+    // a recipe sitting in the feed's pages, assumed the flag was false, and therefore sent
+    // `{ liked: true }` for a recipe the reader had ALREADY liked — deleting the like while
+    // filling the heart in. That is the bug PR #7 closed, re-entering by another door, and
+    // the feed's own regression test caught it.
+    queryClient.setQueryData(queryKeys.feed({ difficulty: 'all', time: 'any', sort: 'newest' }), {
+      pages: [{ recipes: [recipe('a', { likeCount: 5 })] }],
+      pageParams: [0],
+    });
+
+    const engagement = readEngagement(queryClient, 'a');
+
+    expect(engagement).not.toBeNull();
+    expect(engagement?.viewer?.liked).toBe(false);
+    expect(engagement?.likeCount).toBe(5);
+  });
+
+  it('reads the liked flag a list already carries', () => {
+    queryClient.setQueryData(queryKeys.feed({ difficulty: 'all', time: 'any', sort: 'newest' }), {
+      pages: [
+        {
+          recipes: [
+            recipe('a', {
+              viewer: {
+                liked: true,
+                saved: false,
+                timesCooked: 0,
+                lastCookedAt: null,
+                myRating: null,
+              },
+            }),
+          ],
+        },
+      ],
+      pageParams: [0],
+    });
+
+    expect(VIEWER_SPECS.like.read(readEngagement(queryClient, 'a')!)).toBe(true);
+  });
+
+  it('finds it in the detail cache too', () => {
+    queryClient.setQueryData(queryKeys.recipe('a'), { recipe: recipe('a', { likeCount: 2 }) });
+
+    expect(readEngagement(queryClient, 'a')?.likeCount).toBe(2);
+  });
+
+  it('writes nothing while reading', () => {
+    const before = { recipe: recipe('a') };
+    queryClient.setQueryData(queryKeys.recipe('a'), before);
+
+    readEngagement(queryClient, 'a');
+
+    // It borrows the adapters' patch callback to capture the value; the mapped result has
+    // to be discarded rather than stored.
+    expect(queryClient.getQueryData(queryKeys.recipe('a'))).toBe(before);
+  });
+
+  it('answers null for a recipe in no cache', () => {
+    expect(readEngagement(queryClient, 'nowhere')).toBeNull();
   });
 });
 

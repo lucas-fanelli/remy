@@ -1,8 +1,10 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, fireEvent, act, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ToastProvider } from '@/contexts/ToastContext';
 import RecipeFeed from '../RecipeFeed';
 
 // Speed up waitFor - needs longer timeout for multiple sequential async operations
@@ -99,10 +101,26 @@ jest.mock('../EditRecipeModal', () => {
 
 const mockTheme = createTheme();
 
+/**
+ * The feed's list is in the React Query cache now, and its like goes through the shared
+ * mutation layer, so it needs both providers. `retry: false` keeps a failure test from
+ * waiting out a retry, and a fresh client per render keeps one test's pages out of the
+ * next test's cache.
+ */
 const renderWithProviders = (component: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+
   let result: any;
   act(() => {
-    result = render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+    result = render(
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={mockTheme}>
+          <ToastProvider>{component}</ToastProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
   });
   return result;
 };
@@ -725,7 +743,11 @@ describe('RecipeFeed Component', () => {
     });
   });
 
-  it('should handle like error gracefully', async () => {
+  it('tells the reader the connection failed, and says it put the like back', async () => {
+    // A THROWN fetch is the network, not the server, and the layer now says so in its own
+    // words. This test asserted the generic "failed to update like" for this case, which
+    // was the only sentence available before — the distinction is new and is the half of
+    // the owner's request that is about being offline.
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
     setupSuccessfulFetch();
@@ -736,11 +758,34 @@ describe('RecipeFeed Component', () => {
       expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
     });
 
-    // Mock like API failure
     mockFetch.mockRejectedValueOnce(new Error('Like failed'));
 
-    const likeButton = screen.getByRole('button', { name: /like/i });
-    fireEvent.click(likeButton);
+    fireEvent.click(screen.getByRole('button', { name: /like/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no connection/i)).toBeInTheDocument();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('uses the generic failure when the SERVER is the one refusing', async () => {
+    // The other half of the split: a 500 is not an offline. Without this pair, classifying
+    // a thrown fetch as offline could silently swallow every server rejection into the
+    // same sentence.
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
+    setupSuccessfulFetch();
+
+    renderWithProviders(<RecipeFeed />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+    });
+
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+
+    fireEvent.click(screen.getByRole('button', { name: /like/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/failed to update like/i)).toBeInTheDocument();
@@ -944,29 +989,62 @@ describe('RecipeFeed Component', () => {
       });
     });
 
-    it('should revert like state when API returns ok: false - lines 320-324', async () => {
+    it('paints the heart at once and puts it back when the server refuses', async () => {
+      // Two changes to this test, and the first is the embarrassing one: it was called
+      // "should revert like state" and only ever asserted the message — it never checked
+      // that anything reverted. It does now, on both sides of the request.
+      //
+      // The second: the server sent `{ error: 'Like failed' }`, and the layer shows the
+      // server's own sentence when there is no error code it recognises, which is the
+      // documented contract. The old handler ignored the body and always printed its own
+      // generic line, so this asserted that generic line.
       mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
-      setupSuccessfulFetch();
+      // A real viewer, not the default `null`: a signed-in reader always has one, and
+      // `null` renders as "signed-out" rather than as an unliked heart.
+      setupSuccessfulFetch([
+        {
+          ...mockRecipe,
+          viewer: {
+            liked: false,
+            saved: false,
+            timesCooked: 0,
+            lastCookedAt: null,
+            myRating: null,
+          },
+        },
+      ]);
 
       renderWithProviders(<RecipeFeed />);
 
       await waitFor(() => {
         expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
       });
+      expect(screen.getByTestId('viewer-liked-1')).toHaveTextContent('false');
 
-      // Mock failed like API response (ok: false, not an exception)
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Like failed' }),
-      });
+      let release: (value: unknown) => void = () => {};
+      mockFetch.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            release = () => resolve({ ok: false, json: async () => ({ error: 'Like failed' }) });
+          })
+      );
 
-      const likeButton = screen.getByRole('button', { name: /like/i });
-      fireEvent.click(likeButton);
+      fireEvent.click(screen.getByRole('button', { name: /like/i }));
 
-      // Should show error message
+      // Painted before the request is anywhere near finished: the whole point of the layer.
       await waitFor(() => {
-        expect(screen.getByText(/failed to update like/i)).toBeInTheDocument();
+        expect(screen.getByTestId('viewer-liked-1')).toHaveTextContent('true');
       });
+
+      await act(async () => {
+        release(null);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('viewer-liked-1')).toHaveTextContent('false');
+      });
+      expect(screen.getByText('Like failed')).toBeInTheDocument();
     });
 
     it('should prevent concurrent loadRecipes calls - line 133', async () => {
@@ -996,10 +1074,14 @@ describe('RecipeFeed Component', () => {
       expect(initialCallCount).toBeGreaterThanOrEqual(1);
     });
 
-    it('should throw error when recipe fetch fails - line 150', async () => {
+    it('says the feed could not be read, rather than that there is nothing in it', async () => {
+      // This asserted `console.error('Error loading recipes:', …)`, which React Query does
+      // not do — and a console line was never what the reader needed anyway. The feed used
+      // to render "no recipes yet" with an invitation to create the first one, which is the
+      // same lie the pantry and the search were telling. I reintroduced it here while
+      // moving the read, and only noticed because this test stopped passing.
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      // Mock fetch to return ok: false
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Server error' }),
@@ -1007,10 +1089,10 @@ describe('RecipeFeed Component', () => {
 
       renderWithProviders(<RecipeFeed />);
 
-      // Wait for error to be logged
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading recipes:', expect.any(Error));
+        expect(screen.getByText(/could not load the recipes/i)).toBeInTheDocument();
       });
+      expect(screen.queryByText(/no recipes yet/i)).not.toBeInTheDocument();
 
       consoleErrorSpy.mockRestore();
     });

@@ -77,7 +77,82 @@ const detailAdapter: RecipeCacheAdapter = {
   },
 };
 
-export const RECIPE_CACHE_ADAPTERS: readonly RecipeCacheAdapter[] = [detailAdapter];
+function isInfinitePages(data: unknown): data is { pages: { recipes: CachedRecipe[] }[] } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    Array.isArray((data as { pages?: unknown }).pages) &&
+    (data as { pages: unknown[] }).pages.every(
+      (page) =>
+        typeof page === 'object' &&
+        page !== null &&
+        Array.isArray((page as { recipes?: unknown }).recipes)
+    )
+  );
+}
+
+/**
+ * The feed and any other `useInfiniteQuery` list: `{ pages: [{ recipes: [...] }], … }`.
+ *
+ * Only the page holding that recipe is rebuilt, and only if the recipe is in it. Rebuilding
+ * every page on every heart would make each like re-render the whole list.
+ */
+const infiniteListAdapter: RecipeCacheAdapter = {
+  matches: (key) => key[0] === 'recipes',
+  map: (data, recipeId, patch) => {
+    if (!isInfinitePages(data)) return data;
+
+    let touched = false;
+    const pages = data.pages.map((page) => {
+      if (!page.recipes.some((recipe) => recipe.id === recipeId)) return page;
+      touched = true;
+      return {
+        ...page,
+        recipes: page.recipes.map((recipe) =>
+          recipe.id === recipeId ? applyTo(recipe, patch) : recipe
+        ),
+      };
+    });
+
+    return touched ? { ...data, pages } : data;
+  },
+};
+
+export const RECIPE_CACHE_ADAPTERS: readonly RecipeCacheAdapter[] = [
+  detailAdapter,
+  infiniteListAdapter,
+];
+
+/**
+ * What the caches currently say about one recipe, from whichever one holds it.
+ *
+ * This exists because of a bug the feed's own regression test caught. A toggle that read
+ * only `['recipe', id]` found nothing for a recipe sitting in the feed's pages, assumed
+ * `liked: false`, and therefore sent `{ liked: true }` for a recipe the reader had already
+ * liked — deleting the like while filling the heart in. That is precisely the bug PR #7
+ * closed, re-entering through a different door.
+ *
+ * It reuses the adapters rather than adding a read method to them: the patch callback is
+ * invoked only for the matching recipe, so passing an identity function that captures its
+ * argument is a read. Nothing is written — the mapped result is discarded.
+ */
+export function readEngagement(queryClient: QueryClient, recipeId: string): Engagement | null {
+  let found: Engagement | null = null;
+
+  for (const entry of queryClient.getQueryCache().findAll()) {
+    const adapter = RECIPE_CACHE_ADAPTERS.find((candidate) => candidate.matches(entry.queryKey));
+    if (!adapter || entry.state.data === undefined) continue;
+
+    adapter.map(entry.state.data, recipeId, (engagement) => {
+      found = engagement;
+      return engagement;
+    });
+
+    if (found) return found;
+  }
+
+  return found;
+}
 
 /**
  * Apply `patch` to every cached copy of one recipe, and hand back the exact way to undo it.

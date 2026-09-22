@@ -21,37 +21,31 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { Recipe, ViewerState } from '@/domain/types/recipe';
+import { Recipe } from '@/domain/types/recipe';
+import {
+  useFeed,
+  FEED_PAGE_SIZE,
+  FEED_MAX_PAGES,
+  type FeedPage,
+  type FeedRecipe,
+} from '@/hooks/useFeed';
+import { useLike } from '@/hooks/useViewerMutation';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import EditRecipeModal from './EditRecipeModal';
 import RecipeCard from './RecipeCard';
 
-interface FeedRecipe extends Recipe {
-  likeCount: number;
-  commentCount: number;
-  viewer: ViewerState | null;
-}
-
 /**
- * Only reached if a signed-in reader somehow holds a card whose `viewer` is null, which
- * the API does not produce. It keeps the optimistic update from having to invent the other
- * three fields — and, unlike the old default, it is never what gets rendered.
+ * The page size, the page ceiling, the row type and the null-viewer fallback all moved:
+ * the first three to `hooks/useFeed`, which owns the read, and the fallback to
+ * `lib/engagement/specs`, which owns what an optimistic patch does when a card arrives
+ * without a viewer. Keeping second copies here is how the two would drift.
  */
-const UNTOUCHED_VIEWER: ViewerState = {
-  liked: false,
-  saved: false,
-  timesCooked: 0,
-  lastCookedAt: null,
-  myRating: null,
-};
-
-const PAGE_SIZE = 12;
-const MAX_PAGES = 25;
 
 interface RecipeFeedProps {
   onCreateRecipe?: () => void;
@@ -61,23 +55,43 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const t = useTranslations('feed');
   const tCommon = useTranslations('common');
   const apiErrorMessage = useApiErrorMessage();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [recipes, setRecipes] = useState<FeedRecipe[]>([]);
-  const [loading, setLoading] = useState(false);
-  const loadingRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const requestIdRef = useRef(0);
-  const [hasMore, setHasMore] = useState(true);
-  const pageRef = useRef(0);
-  const recipesLengthRef = useRef(0);
-
-  // Filters
+  // Filters come first now: they are part of the cache key, so they have to exist before
+  // the read that uses them.
   const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
   const [timeFilter, setTimeFilter] = useState<string>('any'); // 'any', 'under30', 'under60', 'over60'
   const [sortOrder, setSortOrder] = useState<string>('newest');
+
+  const filters = useMemo(
+    () => ({ difficulty: difficultyFilter, time: timeFilter, sort: sortOrder }),
+    [difficultyFilter, timeFilter, sortOrder]
+  );
+
+  /**
+   * The list lives in the cache now rather than here.
+   *
+   * What went with the old local state is the interesting part: an AbortController, a
+   * monotonic request id and two length refs, described in their own comment as a
+   * "double-guard against filter change races". They existed because the filters and the
+   * list were separate pieces of state that had to be kept in agreement by hand.
+   *
+   * With the filters IN the key, a filter change is a different query. React Query cancels
+   * the old one through the signal it passes the fetcher, and a late answer lands in the
+   * cache entry it belongs to instead of overwriting the current one. The `existingIds`
+   * de-duplication goes too: pages are separate entries here, so a recipe cannot be
+   * appended to a list that already holds it.
+   */
+  const feed = useFeed(filters);
+  const recipes = useMemo(
+    () => feed.data?.pages.flatMap((page) => page.recipes) ?? [],
+    [feed.data]
+  );
+  const loading = feed.isPending || feed.isFetchingNextPage;
+  const hasMore = feed.hasNextPage;
 
   // There is no separate engagement state. There used to be two maps kept alongside the
   // recipes — one for likes, one for comment counts — seeded with `liked: false` for every
@@ -105,98 +119,6 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     severity: 'info',
   });
 
-  const loadRecipes = useCallback(
-    async (reset = false) => {
-      if (loadingRef.current && !reset) return;
-      abortControllerRef.current?.abort();
-
-      loadingRef.current = true;
-      if (reset) {
-        pageRef.current = 0;
-      }
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-      // Double-guard against filter change races:
-      // 1. AbortController cancels in-flight HTTP requests
-      // 2. requestIdRef detects stale responses that arrived before abort took effect
-      // Together they ensure only the latest filter combination's response updates state.
-      // Three layers of dedup protection:
-      // 1. existingIds Set — filters out recipes already rendered (prevents duplicate React keys)
-      // 2. requestIdRef — discards stale responses from superseded filter changes
-      // 3. AbortController — cancels in-flight HTTP requests on filter change or unmount
-      requestIdRef.current++;
-      const thisRequestId = requestIdRef.current;
-      setLoading(true);
-      try {
-        const offset = reset ? 0 : recipesLengthRef.current;
-        const queryParams = new URLSearchParams({
-          limit: String(PAGE_SIZE),
-          offset: String(offset),
-        });
-
-        if (difficultyFilter !== 'all') {
-          queryParams.append('difficulty', difficultyFilter);
-        }
-        // Handle time filter - can be maxTime or minTime
-        if (timeFilter === 'under30') {
-          queryParams.append('maxTime', '30');
-        } else if (timeFilter === 'under60') {
-          queryParams.append('maxTime', '60');
-        } else if (timeFilter === 'over60') {
-          queryParams.append('minTime', '60');
-        }
-        if (sortOrder !== 'newest') {
-          queryParams.append('sort', sortOrder);
-        }
-
-        const response = await fetch(`/api/recipes?${queryParams}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error('Failed to load recipes');
-
-        const data = await response.json();
-
-        // Discard stale response if a newer request has been issued.
-        // Check before ALL state updates to avoid partial state from outdated responses.
-        if (thisRequestId !== requestIdRef.current) return;
-
-        if (reset) {
-          pageRef.current = 1;
-          recipesLengthRef.current = data.recipes.length;
-          setRecipes(data.recipes);
-        } else {
-          // Increment page inside the requestId guard to prevent stale responses from advancing the page
-          pageRef.current += 1;
-          setRecipes((prev) => {
-            // Prevent duplicate keys by filtering out recipes that already exist
-            const existingIds = new Set(prev.map((r) => r.id));
-            const newRecipes = data.recipes.filter((r: FeedRecipe) => !existingIds.has(r.id));
-            const updated = [...prev, ...newRecipes];
-            recipesLengthRef.current = updated.length;
-            return updated;
-          });
-        }
-
-        setHasMore(data.hasMore ?? data.recipes.length === PAGE_SIZE);
-      } catch (error) {
-        // If the request was aborted (e.g., filter changed), return early without updating state
-        if (error instanceof DOMException && error.name === 'AbortError') return;
-        console.error('Error loading recipes:', error);
-      } finally {
-        loadingRef.current = false;
-        setLoading(false);
-      }
-    },
-    [difficultyFilter, timeFilter, sortOrder]
-  );
-
-  useEffect(() => {
-    loadRecipes(true);
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, [difficultyFilter, timeFilter, sortOrder, loadRecipes]);
-
   // Infinite scroll via IntersectionObserver on a sentinel element
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const lastLoadTimeRef = useRef(0);
@@ -208,12 +130,14 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (!entries[0].isIntersecting || !hasMore || loadingRef.current) return;
-        if (pageRef.current >= MAX_PAGES) {
-          setHasMore(false);
-          return;
-        }
-        // Guard against the observer firing twice in the same frame
+        // `isFetchingNextPage` replaces the old `loadingRef`, and the page ceiling moved
+        // into `getNextPageParam` — once 25 pages are in, `hasNextPage` is false and this
+        // stops asking, so the observer no longer needs to know the count.
+        if (!entries[0].isIntersecting || !hasMore || feed.isFetchingNextPage) return;
+
+        // These two guards do NOT come for free and are kept by hand: the observer can
+        // fire twice inside one frame, and a fast scroll through the sentinel can ask
+        // again before the first answer is anywhere near.
         if (rafPendingRef.current) return;
         rafPendingRef.current = true;
         requestAnimationFrame(() => {
@@ -221,7 +145,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
           const now = Date.now();
           if (now - lastLoadTimeRef.current > 500) {
             lastLoadTimeRef.current = now;
-            loadRecipes();
+            feed.fetchNextPage();
           }
         });
       },
@@ -230,7 +154,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, loadRecipes]);
+  }, [hasMore, feed]);
 
   // Note: Removed visibilitychange handler that was resetting recipes on tab switch.
   // This caused loss of scroll position and loaded recipes. Rating updates are
@@ -265,12 +189,9 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
         throw new Error(apiErrorMessage(error, t('toasts.deleteFailed')));
       }
 
-      // Remove recipe from list
-      setRecipes((prev) => {
-        const updated = prev.filter((r) => r.id !== recipeToDelete.id);
-        recipesLengthRef.current = updated.length;
-        return updated;
-      });
+      // Out of every cached filter set, not just the one on screen: a recipe that no
+      // longer exists must not be sitting in the cache behind a filter you switch back to.
+      patchFeedCache((list) => list.filter((r) => r.id !== recipeToDelete.id));
 
       setSnackbar({
         open: true,
@@ -304,8 +225,8 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const handleEditSuccess = (updatedRecipe: Recipe) => {
     // The edit response carries the recipe, not the reader's relationship to it, so keep
     // the card's existing engagement rather than letting an edit blank out its heart.
-    setRecipes((prev) =>
-      prev.map((r) => (r.id === updatedRecipe.id ? { ...r, ...updatedRecipe } : r))
+    patchFeedCache((list) =>
+      list.map((r) => (r.id === updatedRecipe.id ? { ...r, ...updatedRecipe } : r))
     );
 
     setSnackbar({
@@ -319,73 +240,43 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
-  /** Replace one recipe in the feed, leaving the rest of the list untouched. */
-  const patchRecipe = useCallback((recipeId: string, patch: Partial<FeedRecipe>) => {
-    setRecipes((prev) => prev.map((r) => (r.id === recipeId ? { ...r, ...patch } : r)));
-  }, []);
+  /**
+   * Apply a change to every cached feed page, across every filter set.
+   *
+   * Deleting and editing are still the feed’s own business — they are not viewer state —
+   * but they now have to reach the cache rather than a local array. Across filter sets on
+   * purpose: a recipe you just deleted must not still be sitting behind a filter you
+   * switch back to.
+   */
+  const patchFeedCache = useCallback(
+    (update: (recipes: FeedRecipe[]) => FeedRecipe[]) => {
+      queryClient.setQueriesData<InfiniteData<FeedPage>>(
+        { queryKey: ['recipes', 'feed'] },
+        (data) =>
+          data && {
+            ...data,
+            pages: data.pages.map((page) => ({ ...page, recipes: update(page.recipes) })),
+          }
+      );
+    },
+    [queryClient]
+  );
 
-  const handleLike = async (recipeId: string) => {
-    if (!user) {
-      setSnackbar({
-        open: true,
-        message: t('toasts.loginToLike'),
-        severity: 'info',
-      });
-      return;
-    }
-
-    const current = recipes.find((r) => r.id === recipeId);
-    if (!current) return;
-
-    // The card shows what `viewer.liked` says, so "the opposite of what is on screen" is
-    // now the same thing as "the opposite of the truth" — which is what makes this safe.
-    const previous = { viewer: current.viewer, likeCount: current.likeCount };
-    const nextLiked = !(current.viewer?.liked ?? false);
-    const nextCount = nextLiked ? current.likeCount + 1 : Math.max(0, current.likeCount - 1);
-
-    patchRecipe(recipeId, {
-      viewer: { ...(current.viewer ?? UNTOUCHED_VIEWER), liked: nextLiked },
-      likeCount: nextCount,
-    });
-
-    try {
-      const response = await fetch(`/api/recipes/${recipeId}/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-        // State the intent rather than asking for a flip: if this is retried, or if it
-        // races another tab, it still lands on what the reader asked for.
-        body: JSON.stringify({ liked: nextLiked }),
-      });
-
-      if (response.ok) {
-        try {
-          const data = await response.json();
-          patchRecipe(recipeId, {
-            viewer: { ...(current.viewer ?? UNTOUCHED_VIEWER), liked: data.liked },
-            likeCount: data.likeCount,
-          });
-        } catch (parseError) {
-          console.warn('Like response parse failed, keeping optimistic state:', parseError);
-          // Server returned 200 — the like was processed. Keep optimistic state.
-        }
-      } else {
-        patchRecipe(recipeId, previous);
-        setSnackbar({
-          open: true,
-          message: t('toasts.likeFailed'),
-          severity: 'error',
-        });
-      }
-    } catch (error) {
-      console.error('Error setting like:', error);
-      patchRecipe(recipeId, previous);
-      setSnackbar({
-        open: true,
-        message: t('toasts.likeFailed'),
-        severity: 'error',
-      });
-    }
-  };
+  /**
+   * The like is the shared layer now.
+   *
+   * Sixty lines went: an optimistic patch, a snapshot to roll back to, the fetch, the
+   * reconcile, two revert paths and four snackbars. That handler was the ONE correct
+   * implementation in the app and it is the model the layer was built from — which is
+   * exactly why it should not survive as a second copy of the same policy.
+   *
+   * Two behaviours it had are now the layer’s, and both are worth checking in review:
+   * the signed-out nudge (which was severity `info`, not `error` — not being logged in is
+   * not a failure), and keeping the optimistic state when a 200 arrives with a body that
+   * will not parse. The layer treats an unparseable 200 as success and settles with
+   * `undefined`, which the specs fall back through rather than blanking the flag.
+   */
+  const likeToggle = useLike();
 
   return (
     <Box>
@@ -523,7 +414,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
               <MotionBox
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (index % PAGE_SIZE) * 0.05 }}
+                transition={{ delay: (index % FEED_PAGE_SIZE) * 0.05 }}
                 // The card asks for `height: '100%'` so a row of cards lines up. It was
                 // resolving against this box, which had no height of its own, so it
                 // collapsed to content and the cards never equalised.
@@ -535,7 +426,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                   viewer={recipe.viewer}
                   // No `onClick`: the title is a real anchor to this same place now, so
                   // the card opens in a new tab, takes keyboard focus and has an href.
-                  onLike={() => handleLike(recipe.id)}
+                  onLike={() => likeToggle.toggle(recipe.id)}
                   onComment={() => router.push(`/recipe/${recipe.id}#comments`)}
                   onEdit={() => handleEditClick(recipe)}
                   onDelete={() => handleDeleteClick(recipe)}
@@ -544,6 +435,23 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             </Grid>
           ))}
         </Grid>
+      ) : feed.isError ? (
+        /* A feed that could not be read is not a feed with no recipes in it. Without this
+           branch a 500 rendered "no recipes yet" and invited you to create the first one —
+           the same lie the pantry, the search and the comment thread were telling, and one
+           I reintroduced here while moving the read before a test caught it. */
+        <Box sx={{ py: { xs: 3, md: 4 } }}>
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={() => feed.refetch()}>
+                {tCommon('actions.retry')}
+              </Button>
+            }
+          >
+            {t('states.loadFailed')}
+          </Alert>
+        </Box>
       ) : (
         !loading && (
           <Box sx={{ textAlign: 'center', py: { xs: 6, md: 8 } }}>
@@ -590,8 +498,8 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
             color="text.secondary"
             sx={{ fontSize: { xs: '0.875rem', md: '1rem' } }}
           >
-            {pageRef.current >= MAX_PAGES
-              ? t('end.capped', { count: MAX_PAGES * PAGE_SIZE })
+            {(feed.data?.pages.length ?? 0) >= FEED_MAX_PAGES
+              ? t('end.capped', { count: FEED_MAX_PAGES * FEED_PAGE_SIZE })
               : t('end.reached')}
           </Typography>
         </Box>

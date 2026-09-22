@@ -7,8 +7,7 @@ import { useTextDescriptor } from '@/i18n/text';
 import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { VIEWER_SPECS, type Engagement, type ViewerSpec } from '@/lib/engagement/specs';
-import { queryKeys } from '@/lib/query/keys';
-import { patchRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
+import { patchRecipeEverywhere, readEngagement } from '@/lib/query/patchRecipeEverywhere';
 
 /**
  * One implementation of "toggle a viewer flag and tell the truth about it".
@@ -120,13 +119,13 @@ function useViewerMutation<T>(spec: ViewerSpec<T>): ViewerToggle {
 
   const toggle = useCallback(
     (recipeId: string, next?: boolean) => {
-      const cached = queryClient.getQueryData<{ recipe?: Engagement }>(queryKeys.recipe(recipeId));
-      const current = cached?.recipe
-        ? spec.read({
-            viewer: cached.recipe.viewer ?? null,
-            likeCount: cached.recipe.likeCount ?? 0,
-          })
-        : false;
+      // From WHICHEVER cache holds it, not just the detail page's. Reading only
+      // `['recipe', id]` found nothing for a recipe in the feed's pages, assumed the flag
+      // was false and therefore sent `{ liked: true }` for a recipe the reader had already
+      // liked — deleting the like while filling the heart in. The feed's own regression
+      // test, written for exactly that bug in PR #7, caught it here.
+      const engagement = readEngagement(queryClient, recipeId);
+      const current = engagement ? spec.read(engagement) : false;
 
       mutation.mutate({ recipeId, next: next ?? !current });
     },
