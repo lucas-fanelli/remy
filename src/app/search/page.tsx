@@ -24,7 +24,7 @@ import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useSearch } from '@/hooks/useSearch';
-import { useLike } from '@/hooks/useViewerMutation';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 // Fallback loading component for Suspense (useSearchParams requires a Suspense boundary)
@@ -68,6 +68,7 @@ function SearchPageContent() {
   // so it passed counts and no handler rather than render a heart that did nothing. The
   // list is in the cache now, so the shared layer can paint it.
   const likeToggle = useLike();
+  const saveToggle = useSave();
 
   useEffect(() => {
     if (!query) router.push('/');
@@ -182,6 +183,7 @@ function SearchPageContent() {
                         // reverts is worse than one that plainly reports the count. The
                         // list is in the cache now, so the shared layer can paint it.
                         onLike={() => likeToggle.toggle(recipe.id)}
+                        onSave={() => saveToggle.toggle(recipe.id)}
                       />
                     </Grid>
                   ))}

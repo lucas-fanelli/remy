@@ -66,8 +66,11 @@
     "unliked": "Sacaste tu me gusta",
     "unsaved": "Receta quitada de guardadas",
     "updated": "¡Receta actualizada!",
-    "likeOffline": "Sin conexión — te devolvimos el me gusta",
-    "saveOffline": "Sin conexión — no se guardó"
+    "likeOffline": "Sin conexión — el me gusta no se marcó",
+    "saveOffline": "Sin conexión — no se guardó",
+    "unlikeOffline": "Sin conexión — el me gusta sigue puesto",
+    "unsaveOffline": "Sin conexión — sigue en tus guardadas",
+    "unsaveFailed": "No pudimos quitarla de guardadas"
   },
   "card": {
     "comments": "Comentarios",
@@ -77,7 +80,9 @@
     "edit": "Editar receta",
     "like": "Me gusta",
     "options": "opciones de la receta",
-    "unlike": "Ya no me gusta"
+    "save": "Guardar",
+    "unlike": "Ya no me gusta",
+    "unsave": "Quitar de guardadas"
   },
   "cookDialog": {
     "cancel": "Cancelar",

@@ -1,4 +1,5 @@
 import { text, type TextDescriptor } from '@/i18n/text';
+import { queryKeys } from '@/lib/query/keys';
 import type { ViewerState } from '@/domain/types/recipe';
 
 /**
@@ -26,6 +27,12 @@ export interface Engagement {
   likeCount: number;
 }
 
+/** A sentence for turning the flag on, and one for turning it off. */
+export interface Directional {
+  on: TextDescriptor;
+  off: TextDescriptor;
+}
+
 export interface ViewerSpec<TResponse> {
   readonly key: 'like' | 'save';
 
@@ -37,6 +44,13 @@ export interface ViewerSpec<TResponse> {
    */
   url: (recipeId: string) => string;
   body: (next: boolean) => object;
+
+  /**
+   * The code the route answers with when anything unexpected breaks. It is the same in
+   * both directions — "recipe.saveFailed" for a failed UNsave too — so when it comes back,
+   * the directional sentence below says it better than the server can.
+   */
+  serverFailureCode: string;
 
   /** What the screen currently claims, read from the cache rather than from a component. */
   read: (engagement: Engagement) => boolean;
@@ -50,11 +64,27 @@ export interface ViewerSpec<TResponse> {
   text: {
     on: TextDescriptor;
     off: TextDescriptor;
-    failed: TextDescriptor;
+    /**
+     * By direction — what the reader was trying to do — because a failure leaves the state
+     * where it WAS, and that is the opposite of what they asked for. One sentence for both
+     * got it backwards half the time: a failed unsave said "it was not saved" about a recipe
+     * that still was, and a failed like said "we put your like back" while emptying it.
+     */
+    failed: Directional;
     /** Distinct from `failed`: the reader is owed "and I put it back", not "it broke". */
-    offline: TextDescriptor;
+    offline: Directional;
     signedOut: TextDescriptor;
   };
+
+  /**
+   * Lists whose MEMBERSHIP this write changes, not just a flag on a recipe already in them.
+   *
+   * Saving from the feed puts a recipe into your profile's Saved tab, which no patch can
+   * do — the tab does not hold that recipe yet. These are marked stale once the server has
+   * answered, so the next visit refetches; never refetched on the spot, for the reason the
+   * mutation hook records at its missing `onSettled`.
+   */
+  membership?: (reader: { username: string }) => ReadonlyArray<readonly unknown[]>;
 }
 
 /**
@@ -86,6 +116,7 @@ const likeSpec: ViewerSpec<LikeResponse> = {
   key: 'like',
   url: (recipeId) => `/api/recipes/${recipeId}/like`,
   body: (next) => ({ liked: next }),
+  serverFailureCode: 'recipe.likeFailed',
   read: (engagement) => engagement.viewer?.liked ?? false,
   optimistic: (engagement, next) => ({
     viewer: { ...(engagement.viewer ?? UNTOUCHED), liked: next },
@@ -101,8 +132,9 @@ const likeSpec: ViewerSpec<LikeResponse> = {
   text: {
     on: text('recipe.toasts.liked'),
     off: text('recipe.toasts.unliked'),
-    failed: text('recipe.toasts.likeFailed'),
-    offline: text('recipe.toasts.likeOffline'),
+    // "Couldn't update your like" is true either way; being offline is not.
+    failed: { on: text('recipe.toasts.likeFailed'), off: text('recipe.toasts.likeFailed') },
+    offline: { on: text('recipe.toasts.likeOffline'), off: text('recipe.toasts.unlikeOffline') },
     signedOut: text('recipe.toasts.loginToLike'),
   },
 };
@@ -111,6 +143,7 @@ const saveSpec: ViewerSpec<SaveResponse> = {
   key: 'save',
   url: (recipeId) => `/api/recipes/${recipeId}/save`,
   body: (next) => ({ saved: next }),
+  serverFailureCode: 'recipe.saveFailed',
   read: (engagement) => engagement.viewer?.saved ?? false,
   optimistic: (engagement, next) => ({
     ...engagement,
@@ -123,10 +156,13 @@ const saveSpec: ViewerSpec<SaveResponse> = {
   text: {
     on: text('recipe.toasts.saved'),
     off: text('recipe.toasts.unsaved'),
-    failed: text('recipe.toasts.saveFailed'),
-    offline: text('recipe.toasts.saveOffline'),
+    failed: { on: text('recipe.toasts.saveFailed'), off: text('recipe.toasts.unsaveFailed') },
+    offline: { on: text('recipe.toasts.saveOffline'), off: text('recipe.toasts.unsaveOffline') },
     signedOut: text('recipe.toasts.loginToSave'),
   },
+  // Your Saved tab. Unsaving from INSIDE it needs nothing here — the tab hides a recipe the
+  // moment its bookmark empties — but saving anywhere else adds a recipe it does not hold.
+  membership: (reader) => [queryKeys.profile(reader.username)],
 };
 
 /** The registry a test iterates, so a third spec cannot ship without being exercised. */

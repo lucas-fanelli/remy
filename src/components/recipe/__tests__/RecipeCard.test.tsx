@@ -111,6 +111,56 @@ const mockRecipeWithAuthor: Recipe = {
   },
 };
 
+describe('the bookmark', () => {
+  // Saving existed on one surface — inside a recipe — while four endpoints served
+  // `viewer.saved` to cards that never showed it. A broken save had nothing to disagree with.
+  const SAVED: ViewerState = { ...NOT_LIKED_BY_ME, saved: true };
+
+  it('shows what the reader saved, filled', () => {
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={SAVED} onSave={jest.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Remove from saved' })).toBeInTheDocument();
+    expect(screen.getByTestId('BookmarkIcon')).toBeInTheDocument();
+  });
+
+  it('shows what the reader has not saved, empty', () => {
+    renderWithTheme(
+      <RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />
+    );
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByTestId('BookmarkBorderIcon')).toBeInTheDocument();
+  });
+
+  it('hands the tap to the screen', () => {
+    const onSave = jest.fn();
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={onSave} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not drawn at all without a handler — a bookmark nobody can press is noise', () => {
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={SAVED} />);
+
+    expect(screen.queryByTestId('BookmarkIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('BookmarkBorderIcon')).not.toBeInTheDocument();
+  });
+
+  it('sits in the same row as the heart, even when the card has nothing else to count', () => {
+    renderWithTheme(
+      <RecipeCard
+        recipe={{ id: 'r', title: 'Bare' }}
+        viewer={NOT_LIKED_BY_ME}
+        onSave={jest.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+});
+
 describe('RecipeCard Component', () => {
   it('should render recipe card with basic information', () => {
     renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} />);

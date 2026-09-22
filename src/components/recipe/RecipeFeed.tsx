@@ -35,7 +35,7 @@ import {
   type FeedPage,
   type FeedRecipe,
 } from '@/hooks/useFeed';
-import { useLike } from '@/hooks/useViewerMutation';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { removeRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
 import EditRecipeModal from './EditRecipeModal';
@@ -280,6 +280,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
    * `undefined`, which the specs fall back through rather than blanking the flag.
    */
   const likeToggle = useLike();
+  const saveToggle = useSave();
 
   return (
     <Box>
@@ -430,6 +431,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                   // No `onClick`: the title is a real anchor to this same place now, so
                   // the card opens in a new tab, takes keyboard focus and has an href.
                   onLike={() => likeToggle.toggle(recipe.id)}
+                  onSave={() => saveToggle.toggle(recipe.id)}
                   onComment={() => router.push(`/recipe/${recipe.id}#comments`)}
                   onEdit={() => handleEditClick(recipe)}
                   onDelete={() => handleDeleteClick(recipe)}

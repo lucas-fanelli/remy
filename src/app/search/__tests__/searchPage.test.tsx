@@ -1,6 +1,6 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { ToastProvider } from '@/contexts/ToastContext';
 import SearchPage from '../page';
@@ -17,13 +17,28 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => ({ get: (key: string) => (key === 'q' ? mockQuery : null) }),
 }));
 
+let mockSearchReader: { id: string; username: string } | null = null;
 jest.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: null }),
+  useAuth: () => ({ user: mockSearchReader }),
 }));
 
 jest.mock('@/components/recipe/RecipeCard', () => {
-  return function MockRecipeCard({ recipe }: { recipe: { title: string } }) {
-    return <div data-testid="result">{recipe.title}</div>;
+  return function MockRecipeCard({
+    recipe,
+    onLike,
+    onSave,
+  }: {
+    recipe: { title: string };
+    onLike?: () => void;
+    onSave?: () => void;
+  }) {
+    return (
+      <div data-testid="result">
+        <span>{recipe.title}</span>
+        {onLike && <button onClick={onLike}>Like</button>}
+        {onSave && <button onClick={onSave}>Save</button>}
+      </div>
+    );
   };
 });
 
@@ -138,5 +153,30 @@ describe('the search page', () => {
 
     await waitFor(() => expect(screen.getByText(/could not run the search/i)).toBeInTheDocument());
     expect(screen.queryByText(/no recipes/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('a search result card', () => {
+  it('can be saved from the results, like every card', async () => {
+    mockSearchReader = { id: 'u1', username: 'reader' };
+    const mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockReset();
+    mockQuery = 'tostadas';
+    mockFetch.mockImplementation((url: string) =>
+      url.includes('/save')
+        ? Promise.resolve({ ok: true, json: async () => ({ saved: true }) })
+        : Promise.resolve(respond([recipe('t', 'Tostadas')]))
+    );
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/recipes/t/save',
+        expect.objectContaining({ body: JSON.stringify({ saved: true }) })
+      )
+    );
+    mockSearchReader = null;
   });
 });

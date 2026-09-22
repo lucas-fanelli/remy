@@ -66,8 +66,11 @@
     "unliked": "Recipe unliked",
     "unsaved": "Recipe removed from saved",
     "updated": "Recipe updated successfully!",
-    "likeOffline": "No connection — we put your like back",
-    "saveOffline": "No connection — it was not saved"
+    "likeOffline": "No connection — the like didn't go through",
+    "saveOffline": "No connection — it was not saved",
+    "unlikeOffline": "No connection — your like is still there",
+    "unsaveOffline": "No connection — it's still in your saved recipes",
+    "unsaveFailed": "We couldn't remove it from your saved recipes"
   },
   "card": {
     "comments": "Comments",
@@ -77,7 +80,9 @@
     "edit": "Edit Recipe",
     "like": "Like",
     "options": "recipe options",
-    "unlike": "Unlike"
+    "save": "Save",
+    "unlike": "Unlike",
+    "unsave": "Remove from saved"
   },
   "cookDialog": {
     "cancel": "Cancel",

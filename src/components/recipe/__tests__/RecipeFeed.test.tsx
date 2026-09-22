@@ -61,6 +61,7 @@ jest.mock('../RecipeCard', () => {
     viewer,
     href,
     onLike,
+    onSave,
     onComment,
     onEdit,
     onDelete,
@@ -78,6 +79,7 @@ jest.mock('../RecipeCard', () => {
         <div data-testid={`like-count-${recipe.id}`}>{String(recipe.likeCount)}</div>
         <div data-testid={`comment-count-${recipe.id}`}>{String(recipe.commentCount)}</div>
         <button onClick={onLike}>Like</button>
+        {onSave && <button onClick={onSave}>Bookmark</button>}
         <button onClick={onComment}>Comment</button>
         {onEdit && <button onClick={onEdit}>Edit</button>}
         {onDelete && <button onClick={onDelete}>Delete</button>}
@@ -805,6 +807,28 @@ describe('RecipeFeed Component', () => {
     });
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('saves from the card, not only from inside the recipe', async () => {
+    // Every card carries the bookmark now. Saving used to exist on one surface, so a broken
+    // save had nothing to disagree with it.
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1', username: 'reader' } });
+    setupSuccessfulFetch();
+
+    renderWithProviders(<RecipeFeed />);
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+    });
+
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ saved: true }) });
+    fireEvent.click(screen.getByRole('button', { name: 'Bookmark' }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/recipes/1/save',
+        expect.objectContaining({ method: 'POST', body: JSON.stringify({ saved: true }) })
+      );
+    });
   });
 
   it('uses the generic failure when the SERVER is the one refusing', async () => {
