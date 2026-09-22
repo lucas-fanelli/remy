@@ -1,8 +1,10 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useFormatter, useTranslations } from 'next-intl';
 import React from 'react';
 import '@testing-library/jest-dom';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { Recipe } from '@/domain/types/recipe';
 import { RecipeFetchError } from '@/hooks/useRecipe';
 import { renderWithLocale } from '@/i18n/testing';
@@ -59,9 +61,27 @@ jest.mock('@/contexts/AuthContext', () => ({
 
 const theme = createTheme();
 
+/**
+ * The pantry matches and the feed read through React Query now, and their hearts go through
+ * the shared mutation layer, which reports through the toast. A fresh client per render so
+ * one test's cache does not answer the next test's query.
+ */
 const renderInSpanish = (ui: React.ReactElement) =>
   renderWithLocale(
-    (element) => render(<ThemeProvider theme={theme}>{element}</ThemeProvider>),
+    (element) =>
+      render(
+        <QueryClientProvider
+          client={
+            new QueryClient({
+              defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+            })
+          }
+        >
+          <ThemeProvider theme={theme}>
+            <ToastProvider>{element}</ToastProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      ),
     'es',
     ui
   );

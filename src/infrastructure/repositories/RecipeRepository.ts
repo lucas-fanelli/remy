@@ -13,6 +13,7 @@ import {
   Instruction,
   DifficultyLevel,
 } from '@/domain/types/recipe';
+import { visiblePostsWhere } from '@/lib/privacy/visibility';
 
 /**
  * Concrete implementation of IRecipeRepository using Prisma
@@ -125,7 +126,7 @@ export class RecipeRepository implements IRecipeRepository {
     return posts.map((p) => this.mapToRecipe(p as unknown as Post));
   }
 
-  async search(options: RecipeSearchOptions): Promise<Recipe[]> {
+  async search(options: RecipeSearchOptions, viewerId: string | null = null): Promise<Recipe[]> {
     const {
       query,
       filters,
@@ -135,7 +136,9 @@ export class RecipeRepository implements IRecipeRepository {
       sortOrder = 'desc',
     } = options;
 
-    const where: Prisma.PostWhereInput = {};
+    // Under AND, because the text search below is an OR: set beside it, one OR would
+    // silently replace the other.
+    const where: Prisma.PostWhereInput = { AND: [visiblePostsWhere(viewerId)] };
 
     // Apply text search
     if (query) {

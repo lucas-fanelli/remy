@@ -17,42 +17,38 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMatches, type MatchedRecipe } from '@/hooks/useMatches';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import RecipeCard, { type RecipeCardModel } from './RecipeCard';
-
-interface MatchedRecipe {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  difficulty: string;
-  matchPercentage: number;
-  matchedIngredients: number;
-  totalIngredients: number;
-  missingIngredients: string[];
-}
 
 /**
  * A matched recipe, narrowed to what a card can show.
  *
- * `/api/recipes/match` answers with these five fields and no more — no author, no times,
- * no servings, no ratings, no counts — so these cards come out deliberately sparser than
- * a feed card. That is the point of every meta field being optional: the alternative is
- * what the search page used to do, which was invent values to satisfy a type.
+ * An earlier version of this comment claimed the route answered with five fields and no
+ * viewer, and the mapper beneath it passed exactly five. Both halves were wrong the same
+ * way: written from the client's own nine-field interface rather than from what the route
+ * sends. The cards were sparse because the data was discarded here, and every heart on
+ * the home page rendered as signed-out while the real answer was in the response.
  *
- * Both call sites also pass `viewer={null}`, and that is a known gap rather than a claim:
- * the endpoint carries no viewer dimension at all. Nothing on these cards reads it today,
- * because with no counts and no handlers there is no engagement row to read it — but if
- * this card ever grows one here, the endpoint has to answer first.
+ * Everything the card can use now comes across. `user` becomes `author`, because this
+ * route is the only one that calls it `user`, and a `null` stays absent on the card rather
+ * than being invented.
  */
 const toCardModel = (recipe: MatchedRecipe): RecipeCardModel => ({
   id: recipe.id,
   title: recipe.title,
-  description: recipe.description,
+  description: recipe.description ?? undefined,
   imageUrl: recipe.imageUrl,
-  difficulty: recipe.difficulty,
+  difficulty: recipe.difficulty ?? undefined,
+  prepTime: recipe.prepTime ?? undefined,
+  cookingTime: recipe.cookingTime ?? undefined,
+  servings: recipe.servings,
+  likeCount: recipe.likeCount,
+  commentCount: recipe.commentCount,
+  author: recipe.user ? { username: recipe.user.username, avatar: recipe.user.avatar } : undefined,
 });
 
 export default function MatchedRecipes() {
@@ -62,41 +58,23 @@ export default function MatchedRecipes() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
-  const [readyToCook, setReadyToCook] = useState<MatchedRecipe[]>([]);
-  const [almostThere, setAlmostThere] = useState<MatchedRecipe[]>([]);
-  const [pantryItemsCount, setPantryItemsCount] = useState(0);
-  const [loadFailed, setLoadFailed] = useState(false);
 
-  const loadMatchedRecipes = useCallback(async () => {
-    try {
-      setLoading(true);
-      setLoadFailed(false);
-      const response = await fetch('/api/recipes/match');
-
-      if (response.ok) {
-        const data = await response.json();
-        setReadyToCook(data.readyToCook);
-        setAlmostThere(data.almostThere);
-        setPantryItemsCount(data.pantryItemsCount);
-      } else {
-        // Don't fall through to the "pantry is empty" state — that hides server errors
-        setLoadFailed(true);
-      }
-    } catch (error) {
-      console.error('Error loading matched recipes:', error);
-      setLoadFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadMatchedRecipes();
-    }
-  }, [isAuthenticated, loadMatchedRecipes]);
+  /**
+   * The matches, from the cache rather than from `useState`.
+   *
+   * Moving them is what lets a heart here be tapped: the shared mutation layer paints
+   * whatever is in the cache, and a list held in local state is invisible to it.
+   */
+  const matches = useMatches(isAuthenticated);
+  const loading = matches.isPending;
+  const loadFailed = matches.isError;
+  const readyToCook = matches.data?.readyToCook ?? [];
+  const almostThere = matches.data?.almostThere ?? [];
+  const pantryItemsCount = matches.data?.pantryItemsCount ?? 0;
+  const loadMatchedRecipes = () => matches.refetch();
+  const likeToggle = useLike();
+  const saveToggle = useSave();
 
   const handleGoToPantry = () => {
     router.push('/pantry');
@@ -257,7 +235,9 @@ export default function MatchedRecipes() {
                   >
                     <RecipeCard
                       recipe={toCardModel(recipe)}
-                      viewer={null}
+                      viewer={recipe.viewer}
+                      onLike={() => likeToggle.toggle(recipe.id)}
+                      onSave={() => saveToggle.toggle(recipe.id)}
                       overlay={
                         <Chip
                           icon={<CheckCircle sx={{ fontSize: '1rem' }} />}
@@ -298,7 +278,9 @@ export default function MatchedRecipes() {
                   >
                     <RecipeCard
                       recipe={toCardModel(recipe)}
-                      viewer={null}
+                      viewer={recipe.viewer}
+                      onLike={() => likeToggle.toggle(recipe.id)}
+                      onSave={() => saveToggle.toggle(recipe.id)}
                       overlay={
                         <Chip
                           label={t('matches.match', { percent: recipe.matchPercentage })}

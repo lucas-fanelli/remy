@@ -4,6 +4,7 @@ import striptags from 'striptags';
 import { z, ZodError } from 'zod';
 import { ValidationError } from '@/domain/errors';
 import { getCurrentUser, requireAuth } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import {
   MAX_SEARCH_QUERY_LENGTH,
@@ -13,6 +14,7 @@ import {
 } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { visiblePostsWhere } from '@/lib/privacy/visibility';
 import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
 import { logServerError } from '@/lib/utils/logger';
 import { safeRating } from '@/lib/utils/recipe';
@@ -99,9 +101,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Build Prisma where clause — exclude recipes from private users by default
+    // Who is asking, resolved BEFORE the query: it decides which recipes the list may hold,
+    // not just the `viewer` on each card. A private author's own recipes are in their feed;
+    // a stranger and a guest (null) get public authors only. Optional auth, as ever — the
+    // feed is open to guests.
+    const requester = await getCurrentUser(request);
+
+    // The privacy rule sits under AND because `where.OR` below holds the text query, and for
+    // a signed-in viewer the rule is itself an OR: side by side in one object, one would
+    // silently replace the other.
     const where: Prisma.PostWhereInput = {
-      user: { isPrivate: false },
+      AND: [visiblePostsWhere(requester?.id ?? null)],
     };
 
     if (query && query.length > MAX_SEARCH_QUERY_LENGTH) {
@@ -201,10 +211,8 @@ export async function GET(request: NextRequest) {
       prisma.post.count({ where }),
     ]);
 
-    // Who is asking, and what have they already done to these recipes? Optional auth: a
-    // guest gets `viewer: null` on every card rather than a card that claims they liked
-    // nothing.
-    const requester = await getCurrentUser(request);
+    // What has the requester already done to these recipes? A guest gets `viewer: null` on
+    // every card rather than a card that claims they liked nothing.
     const viewerState = await loadViewerState(
       requester?.id,
       recipes.map((r) => r.id)
@@ -219,7 +227,9 @@ export async function GET(request: NextRequest) {
       userId: recipe.userId,
       cookingTime: recipe.cookingTime || 0,
       prepTime: recipe.prepTime || 0,
-      servings: recipe.servings || 1,
+      // The real value. It was `|| 1` here and `|| 4` in search, so one recipe with no
+      // servings recorded read "1 porción" in the feed and "4 porciones" in search.
+      servings: recipe.servings,
       difficulty: recipe.difficulty || 'easy',
       ingredients: recipe.ingredients || [],
       instructions: recipe.instructions || [],
@@ -235,8 +245,7 @@ export async function GET(request: NextRequest) {
         : undefined,
       averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount,
-      likeCount: recipe._count.likes,
-      commentCount: recipe._count.comments,
+      ...engagementCounts(recipe._count),
       viewer: viewerState(recipe.id),
     }));
 
