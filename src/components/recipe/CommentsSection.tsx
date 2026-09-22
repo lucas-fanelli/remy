@@ -32,6 +32,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDateFnsLocale } from '@/i18n/dates';
+import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 
@@ -115,16 +116,25 @@ export default function CommentsSection({
       setLoading(true);
       const response = await fetch(`/api/recipes/${recipeId}/comments`);
 
-      if (response.ok) {
-        const data = await response.json();
-        setComments(data.comments);
+      if (!response.ok) {
+        // The only silent path in this file. Posting, editing and deleting a comment all
+        // report properly — the inventory claimed deleting was silent too and the code
+        // says otherwise — but READING the thread fell through, so an unreachable thread
+        // rendered as "no comments yet" under someone's recipe.
+        setError(apiErrorMessage(await readBody(response), t('errors.loadFailed')));
+        return;
       }
+
+      const data = await response.json();
+      setComments(data.comments);
     } catch (error) {
       console.error('Error loading comments:', error);
+      setError(t('errors.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [recipeId]);
+    // Stable identities, and it matters: the mount effect depends on this callback.
+  }, [recipeId, t, apiErrorMessage]);
 
   useEffect(() => {
     loadComments();

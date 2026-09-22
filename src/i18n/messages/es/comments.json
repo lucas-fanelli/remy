@@ -24,6 +24,7 @@
     "updateFailed": "No pudimos actualizar el comentario",
     "deleteFailed": "No pudimos eliminar el comentario",
     "invalidType": "Tipo de archivo inválido. Solo se permiten JPEG, PNG, WebP y GIF.",
-    "tooLarge": "La imagen es muy grande. El máximo es 5 MB."
+    "tooLarge": "La imagen es muy grande. El máximo es 5 MB.",
+    "loadFailed": "No pudimos cargar los comentarios"
   }
 }

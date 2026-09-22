@@ -22,6 +22,7 @@
     },
     "noRecipes": "No recipes found",
     "noUsers": "No users found",
-    "tryDifferent": "Try searching with different keywords"
+    "tryDifferent": "Try searching with different keywords",
+    "loadFailed": "We could not run the search"
   }
 }

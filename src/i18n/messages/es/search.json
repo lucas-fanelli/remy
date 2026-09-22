@@ -22,6 +22,7 @@
     },
     "noRecipes": "No encontramos recetas",
     "noUsers": "No encontramos usuarios",
-    "tryDifferent": "Probá con otras palabras"
+    "tryDifferent": "Probá con otras palabras",
+    "loadFailed": "No pudimos hacer la búsqueda"
   }
 }

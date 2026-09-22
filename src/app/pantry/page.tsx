@@ -36,6 +36,7 @@ import PageFrame from '@/components/layout/PageFrame';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnitLabels } from '@/i18n/units';
+import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { UNIT_TO_TASTE } from '@/lib/constants';
 
@@ -73,6 +74,8 @@ export default function PantryPage() {
   const router = useRouter();
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  /** A pantry that cannot be read is not an empty pantry, and the page must say which. */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -140,17 +143,33 @@ export default function PantryPage() {
       setLoading(true);
       const response = await fetch('/api/pantry');
 
-      if (response.ok) {
-        const data = await response.json();
-        setItems(data.pantry.items);
+      if (!response.ok) {
+        // Was silent, and the empty state it fell into is unusually costly here: an
+        // unreadable pantry renders as "your pantry is empty", which is also what the home
+        // page's whole matching block keys off. A 500 told you to go and add ingredients
+        // you had already added.
+        setLoadFailed(true);
+        setSnackbar({
+          open: true,
+          message: apiErrorMessage(await readBody(response), t('feedback.loadFailed')),
+          severity: 'error',
+        });
+        return;
       }
+
+      setLoadFailed(false);
+      const data = await response.json();
+      setItems(data.pantry.items);
     } catch (error) {
       console.error('Error loading pantry:', error);
+      setLoadFailed(true);
       setSnackbar({ open: true, message: t('feedback.loadFailed'), severity: 'error' });
     } finally {
       setLoading(false);
     }
-  }, [t]);
+    // Both stable: next-intl memoises `t` per locale and `apiErrorMessage` depends only
+    // on it, which matters because the mount effect below depends on this callback.
+  }, [t, apiErrorMessage]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -446,8 +465,22 @@ export default function PantryPage() {
           </Box>
         </Card>
 
-        {/* Items by Category */}
-        {filteredItems.length === 0 ? (
+        {/* Items by Category.
+            The failure branch comes first and deliberately does NOT invite you to add
+            your first ingredient: that is the single most misleading thing this page can
+            say to someone whose pantry is full and unreadable. */}
+        {loadFailed && items.length === 0 ? (
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={loadPantry}>
+                {tCommon('actions.retry')}
+              </Button>
+            }
+          >
+            {t('feedback.loadFailed')}
+          </Alert>
+        ) : filteredItems.length === 0 ? (
           <Card sx={{ p: 6, textAlign: 'center' }}>
             <Kitchen sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
             <Typography variant="h6" color="text.secondary" gutterBottom>

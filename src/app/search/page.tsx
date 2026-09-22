@@ -10,6 +10,8 @@ import {
   Avatar,
   Paper,
   CircularProgress,
+  Alert,
+  Button,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -62,6 +64,7 @@ function SearchPageFallback() {
 // Main search page content that uses useSearchParams
 function SearchPageContent() {
   const t = useTranslations('search');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -72,6 +75,8 @@ function SearchPageContent() {
   const [users, setUsers] = useState<User[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  /** A search that failed is not a search that found nothing. */
+  const [searchFailed, setSearchFailed] = useState(false);
 
   useEffect(() => {
     if (!query) {
@@ -83,13 +88,21 @@ function SearchPageContent() {
       setLoading(true);
       try {
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        if (response.ok) {
-          const data = await response.json();
-          setUsers(data.users || []);
-          setRecipes(data.recipes || []);
+
+        if (!response.ok) {
+          // Was silent, and the empty state is a confident claim: "we found no recipes
+          // matching". A 500 said the thing you searched for does not exist.
+          setSearchFailed(true);
+          return;
         }
+
+        setSearchFailed(false);
+        const data = await response.json();
+        setUsers(data.users || []);
+        setRecipes(data.recipes || []);
       } catch (error) {
         console.error('Error fetching search results:', error);
+        setSearchFailed(true);
       } finally {
         setLoading(false);
       }
@@ -134,7 +147,21 @@ function SearchPageContent() {
         />
       </Paper>
 
-      {loading ? null : (
+      {/* One banner above both tabs rather than the same branch inside each: the search
+          either ran or it did not, and "no recipes" / "no users" are two claims this page
+          has no business making when it never got an answer. */}
+      {searchFailed ? (
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={() => router.refresh()}>
+              {tCommon('actions.retry')}
+            </Button>
+          }
+        >
+          {t('page.loadFailed')}
+        </Alert>
+      ) : loading ? null : (
         <TabPanelTransition activeKey={tabValue}>
           {/* Recipes Tab */}
           {tabValue === 0 && (
