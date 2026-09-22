@@ -298,7 +298,8 @@ describe('IngredientMatchService', () => {
       expect(mockRecipeRepository.search).toHaveBeenCalledWith(
         expect.objectContaining({
           filters: expect.objectContaining({ difficulty: 'easy' }),
-        })
+        }),
+        null
       );
     });
 
@@ -313,8 +314,28 @@ describe('IngredientMatchService', () => {
       expect(mockRecipeRepository.search).toHaveBeenCalledWith(
         expect.objectContaining({
           filters: expect.objectContaining({ maxCookingTime: 30 }),
-        })
+        }),
+        null
       );
+    });
+
+    // The suggestions used to be scored from every recipe in the database, private
+    // accounts' included. The repository applies the privacy rule; the service's part is
+    // to say who is asking.
+    it('asks the repository only for the recipes the viewer may see', async () => {
+      mockRecipeRepository.search.mockResolvedValue([mockRecipe]);
+
+      await service.findRecipesByIngredients(['chicken'], undefined, 'viewer-1');
+
+      expect(mockRecipeRepository.search).toHaveBeenCalledWith(expect.any(Object), 'viewer-1');
+    });
+
+    it('asks as a signed-out viewer when it is not told who is asking', async () => {
+      mockRecipeRepository.search.mockResolvedValue([mockRecipe]);
+
+      await service.findRecipesByIngredients(['chicken']);
+
+      expect(mockRecipeRepository.search).toHaveBeenCalledWith(expect.any(Object), null);
     });
 
     it('should include matched and missing ingredients in results', async () => {
@@ -441,4 +462,3 @@ describe('IngredientMatchService', () => {
     });
   });
 });
-

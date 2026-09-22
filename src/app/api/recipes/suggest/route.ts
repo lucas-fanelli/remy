@@ -80,11 +80,14 @@ export async function POST(request: NextRequest) {
       minMatchPercentage: filters?.minMatchPercentage || 50, // Default 50% minimum match
     };
 
-    // Find matching recipes
+    // Find matching recipes among those this user may see: public authors' and their own.
+    // The search behind this used to have no privacy filter at all, and suggested private
+    // accounts' recipes, in full, to anyone signed in.
     const ingredientMatchService = container.getIngredientMatchService();
     const matches = await ingredientMatchService.findRecipesByIngredients(
       userIngredients,
-      matchFilters
+      matchFilters,
+      user.id
     );
 
     // Group matches by category

@@ -6,11 +6,13 @@ import { RecipeMatch, IngredientMatchFilters } from '../types/pantry';
  */
 export interface IIngredientMatchService {
   /**
-   * Find recipes that match the given ingredients
+   * Find recipes that match the given ingredients, among the recipes `viewerId` may see.
+   * Left out, the viewer counts as signed out: public authors' recipes only.
    */
   findRecipesByIngredients(
     ingredients: string[],
-    filters?: IngredientMatchFilters
+    filters?: IngredientMatchFilters,
+    viewerId?: string | null
   ): Promise<RecipeMatch[]>;
 
   /**

@@ -57,6 +57,15 @@ const BLOCKING_SESSION_RETRIES = 2;
 // after this long, so the server's sliding session renewal reaches it too.
 const SESSION_RECHECK_AFTER_MS = 60 * 60 * 1000;
 
+function clearQueryCache() {
+  try {
+    getQueryClient()?.clear();
+  } catch {
+    // On the server, getQueryClient() creates a new empty client so clear() is a no-op.
+    // In tests without QueryClientProvider, getQueryClient() may throw.
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const t = useTranslations('auth');
   // These throws are rendered straight into LoginForm / RegisterForm, so they are that
@@ -75,6 +84,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     answeredAt: 0,
     retryTimer: null as ReturnType<typeof setTimeout> | null,
   });
+  // Whose data the React Query cache holds: an account id, null for nobody, undefined until
+  // someone is known. Feeds, profiles and recipes are fetched as whoever the session cookie
+  // names, and cached under keys that do not say who that was — so when it changes, to
+  // another account or to nobody, the cache is emptied. Only logout used to do that: a
+  // login, a registration or a session found expired kept the previous account's entries,
+  // and the next person was served them, private recipes included, until they went stale.
+  const cacheOwnerRef = React.useRef<string | null | undefined>(undefined);
+
+  /** Every change of who is signed in goes through here. */
+  const adoptUser = useCallback((nextUser: User | null) => {
+    const nextId = nextUser?.id ?? null;
+    if (cacheOwnerRef.current !== nextId) clearQueryCache();
+    cacheOwnerRef.current = nextId;
+    setUser(nextUser);
+  }, []);
 
   // Check auth status on mount via httpOnly cookie (sent automatically)
   useEffect(() => {
@@ -105,7 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session !== undefined) {
         check.inProgress = false;
         check.answeredAt = Date.now();
-        setUser(session);
+        // The first answer names whoever the page has been fetching as all along, with the
+        // same cookie, so what is cached is already theirs. Emptying it here would only
+        // throw away the first screen's data and fetch it again.
+        if (cacheOwnerRef.current === undefined) cacheOwnerRef.current = session?.id ?? null;
+        adoptUser(session);
         setIsLoading(false);
         return;
       }
@@ -140,18 +168,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       check.epoch++;
       if (check.retryTimer) clearTimeout(check.retryTimer);
     };
-  }, []);
+  }, [adoptUser]);
 
   /** login, register and logout settle the session themselves: drop any pending check */
-  const settleSession = useCallback((nextUser: User | null) => {
-    const check = sessionCheckRef.current;
-    check.epoch++;
-    check.inProgress = false;
-    check.answeredAt = Date.now();
-    if (check.retryTimer) clearTimeout(check.retryTimer);
-    setUser(nextUser);
-    setIsLoading(false);
-  }, []);
+  const settleSession = useCallback(
+    (nextUser: User | null) => {
+      const check = sessionCheckRef.current;
+      check.epoch++;
+      check.inProgress = false;
+      check.answeredAt = Date.now();
+      if (check.retryTimer) clearTimeout(check.retryTimer);
+      adoptUser(nextUser);
+      setIsLoading(false);
+    },
+    [adoptUser]
+  );
 
   const login = useCallback(
     async (emailOrUsername: string, password: string) => {
@@ -194,14 +225,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   // Optimistic logout: UI clears immediately, cookie may persist on network failure.
+  // Signing nobody in empties the query cache, as any change of account does (adoptUser).
   const logout = useCallback(async () => {
     settleSession(null);
-    try {
-      getQueryClient()?.clear();
-    } catch {
-      // On the server, getQueryClient() creates a new empty client so clear() is a no-op.
-      // In tests without QueryClientProvider, getQueryClient() may throw.
-    }
 
     // Clearing the in-memory query cache is not enough: the service worker used to keep a
     // disk cache named 'apis' that outlived the session entirely, so the next person to

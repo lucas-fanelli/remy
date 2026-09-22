@@ -1,9 +1,11 @@
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/api/auth';
 import { engagementCounts } from '@/lib/api/engagementCounts';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { visiblePostsWhere } from '@/lib/privacy/visibility';
 import { extractAuthToken } from '@/lib/utils/auth';
 import { logServerError } from '@/lib/utils/logger';
 import { safeRating } from '@/lib/utils/recipe';
@@ -53,10 +55,19 @@ export async function GET(
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50));
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0);
 
+    // Only the saves whose recipe the owner may still see. A save outlives access: when the
+    // author of a saved recipe goes private, the row stays, hidden from here, and the recipe
+    // comes back if access does. The count reads the same filter, or the total would promise
+    // rows the list never sends.
+    const where: Prisma.SavedRecipeWhereInput = {
+      userId: user.id,
+      post: { AND: [visiblePostsWhere(user.id)] },
+    };
+
     // Get saved recipes + total in parallel
     const [savedRecipes, total] = await Promise.all([
       prisma.savedRecipe.findMany({
-        where: { userId: user.id },
+        where,
         include: {
           post: {
             select: {
@@ -80,7 +91,7 @@ export async function GET(
         take: limit,
         skip: offset,
       }),
-      prisma.savedRecipe.count({ where: { userId: user.id } }),
+      prisma.savedRecipe.count({ where }),
     ]);
 
     // Format recipes

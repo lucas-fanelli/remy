@@ -12,6 +12,7 @@ import {
   RecipeSearchOptions,
 } from '@/domain/types/recipe';
 import { UNIT_TO_TASTE } from '@/lib/constants';
+import { canViewContent } from '@/lib/privacy/visibility';
 
 /**
  * Recipe Service - handles business logic for recipes
@@ -66,7 +67,9 @@ export class RecipeService implements IRecipeService {
     const found = await this.recipeRepository.findByIdWithAuthor(id);
     if (!found) return { status: 'notFound' };
 
-    if (found.author.isPrivate && found.author.id !== viewerId) {
+    // The rule from src/lib/privacy/visibility.ts, the one every list and every route
+    // reached through a recipe id applies, so the direct link cannot answer differently.
+    if (!canViewContent(viewerId, found.author)) {
       return { status: 'private' };
     }
 

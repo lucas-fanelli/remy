@@ -13,24 +13,29 @@ export class IngredientMatchService implements IIngredientMatchService {
 
   async findRecipesByIngredients(
     ingredients: string[],
-    filters?: IngredientMatchFilters
+    filters?: IngredientMatchFilters,
+    viewerId: string | null = null
   ): Promise<RecipeMatch[]> {
     if (!ingredients || ingredients.length === 0) {
       return [];
     }
 
-    // Fetch all recipes (with filters if provided)
-    const recipes = await this.recipeRepository.search({
-      filters: filters
-        ? {
-            difficulty: filters.difficulty as any,
-            maxCookingTime: filters.maxCookingTime,
-          }
-        : undefined,
-      limit: 100, // Get more recipes for better matching
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
-    });
+    // Fetch the recipes this viewer may see (with filters if provided). The repository
+    // applies the privacy rule; matching only ever scores what it hands back.
+    const recipes = await this.recipeRepository.search(
+      {
+        filters: filters
+          ? {
+              difficulty: filters.difficulty as any,
+              maxCookingTime: filters.maxCookingTime,
+            }
+          : undefined,
+        limit: 100, // Get more recipes for better matching
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      },
+      viewerId
+    );
 
     // Calculate match for each recipe
     const matches: RecipeMatch[] = recipes

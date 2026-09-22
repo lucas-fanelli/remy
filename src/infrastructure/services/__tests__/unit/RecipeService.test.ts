@@ -17,6 +17,13 @@ jest.mock('@prisma/client', () => {
   };
 });
 
+// The real rule, wrapped so a test can check getRecipeForViewer asks it rather than keeping
+// a copy of its own.
+jest.mock('@/lib/privacy/visibility', () => {
+  const actual = jest.requireActual('@/lib/privacy/visibility');
+  return { ...actual, canViewContent: jest.fn(actual.canViewContent) };
+});
+
 import { Prisma } from '@prisma/client';
 import { mockDeep } from 'jest-mock-extended';
 import { IRecipeRepository } from '@/domain/repositories/IRecipeRepository';
@@ -26,6 +33,7 @@ import {
   UpdateRecipeDTO,
   RecipeSearchOptions,
 } from '@/domain/types/recipe';
+import { canViewContent } from '@/lib/privacy/visibility';
 import { RecipeService } from '../../RecipeService';
 
 describe('RecipeService - Unit Tests', () => {
@@ -365,6 +373,21 @@ describe('RecipeService - Unit Tests', () => {
       const result = await recipeService.getRecipeForViewer('non-existent', 'author-1');
 
       expect(result).toEqual({ status: 'notFound' });
+    });
+
+    it('should decide through the shared rule, so the direct link answers as the lists do', async () => {
+      // The rule letting 'someone-else' in stands in for S3, where it also admits an
+      // accepted follower: that change is made in visibility.ts alone, and the detail
+      // page has to follow it rather than keep a copy that says no.
+      mockRecipeRepository.findByIdWithAuthor = jest
+        .fn()
+        .mockResolvedValue({ recipe: mockRecipe, author: privateAuthor, counts });
+      (canViewContent as jest.Mock).mockReturnValueOnce(true);
+
+      const result = await recipeService.getRecipeForViewer('recipe-123', 'someone-else');
+
+      expect(canViewContent).toHaveBeenLastCalledWith('someone-else', privateAuthor);
+      expect(result).toEqual({ status: 'ok', recipe: mockRecipe, counts });
     });
   });
 
