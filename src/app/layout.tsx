@@ -5,7 +5,6 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import AppAnalytics from '@/components/analytics/AppAnalytics';
 import LayoutWrapper from '@/components/LayoutWrapper';
-import InstallPrompt from '@/components/pwa/InstallPrompt';
 import { BRANDING } from '@/config/branding';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CreateRecipeProvider } from '@/contexts/CreateRecipeContext';
@@ -174,7 +173,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       <MotionProvider>
                         <CreateRecipeProvider>
                           <LayoutWrapper>{children}</LayoutWrapper>
-                          <InstallPrompt />
                         </CreateRecipeProvider>
                       </MotionProvider>
                     </PwaProvider>
