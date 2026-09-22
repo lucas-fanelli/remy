@@ -58,7 +58,7 @@ import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
 import { useTextDescriptor } from '@/i18n/text';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
-import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
 import type { PantryPlan } from '@/lib/cooking/pantryPlan';
 
@@ -585,7 +585,9 @@ export default function RecipeDetailPage() {
             >
               <Box
                 component="img"
-                src={recipe.imageUrl}
+                // The cover, bounded rather than cropped. The full-size original is still
+                // what the zoom viewer opens, which is the one place it is warranted.
+                src={cloudinaryImage(recipe.imageUrl, 'hero')}
                 alt={recipe.title}
                 sx={{
                   width: '100%',
@@ -759,7 +761,7 @@ export default function RecipeDetailPage() {
                   onClick={() => router.push(`/profile/${recipe.author?.username}`)}
                 >
                   <Avatar
-                    src={recipe.author.avatar}
+                    src={cloudinaryImage(recipe.author.avatar, 'avatar')}
                     alt={recipe.author.username}
                     sx={{ width: { xs: 40, md: 48 }, height: { xs: 40, md: 48 } }}
                   >

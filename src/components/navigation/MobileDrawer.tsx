@@ -25,6 +25,7 @@ import {
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { BRANDING } from '@/config/branding';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 
 /**
@@ -93,7 +94,7 @@ export default function MobileDrawer({
             >
               <ListItemIcon>
                 <Avatar
-                  src={user?.avatar || undefined}
+                  src={cloudinaryImage(user?.avatar, 'avatar') || undefined}
                   sx={{ width: { xs: 40, sm: 48 }, height: { xs: 40, sm: 48 } }}
                 >
                   {user ? user.username?.charAt(0).toUpperCase() : '?'}

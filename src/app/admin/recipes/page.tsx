@@ -31,6 +31,7 @@ import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 /** Which request failed, not what to say about it - the sentence is looked up at render time. */
 type RecipesFailure = 'load' | 'delete';
@@ -220,7 +221,7 @@ export default function AdminRecipesPage() {
                   <TableRow key={recipe.id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar src={recipe.imageUrl} variant="rounded">
+                        <Avatar src={cloudinaryImage(recipe.imageUrl, 'avatar')} variant="rounded">
                           <Restaurant />
                         </Avatar>
                         <Box>

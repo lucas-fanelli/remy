@@ -20,6 +20,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 import type { ViewerState } from '@/domain/types/recipe';
 
 interface User {
@@ -218,7 +219,10 @@ function SearchPageContent() {
                         >
                           <CardContent>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <Avatar src={user.avatar} sx={{ width: 56, height: 56 }}>
+                              <Avatar
+                                src={cloudinaryImage(user.avatar, 'avatar')}
+                                sx={{ width: 56, height: 56 }}
+                              >
                                 <Person />
                               </Avatar>
                               <Box sx={{ flexGrow: 1, minWidth: 0 }}>

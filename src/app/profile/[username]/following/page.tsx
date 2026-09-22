@@ -21,6 +21,7 @@ import { useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
 import { MotionPaper } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface UserListItem {
   id: string;
@@ -171,7 +172,7 @@ export default function FollowingPage() {
                 >
                   <ListItemAvatar>
                     <Avatar
-                      src={user.avatar || undefined}
+                      src={cloudinaryImage(user.avatar, 'avatar') || undefined}
                       sx={{
                         width: 48,
                         height: 48,

@@ -19,6 +19,7 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDateFnsLocale } from '@/i18n/dates';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface Notification {
   id: string;
@@ -215,7 +216,7 @@ export default function NotificationsPage() {
                 >
                   <ListItemAvatar>
                     <Avatar
-                      src={notification.sender.avatar || undefined}
+                      src={cloudinaryImage(notification.sender.avatar, 'avatar') || undefined}
                       alt={notification.sender.username}
                     >
                       {notification.sender.username.charAt(0).toUpperCase()}

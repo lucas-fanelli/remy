@@ -33,7 +33,7 @@ import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDateFnsLocale } from '@/i18n/dates';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
-import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 
 interface Comment {
   id: string;
@@ -364,7 +364,7 @@ export default function CommentsSection({
               }}
             >
               <Avatar
-                src={user.avatar || undefined}
+                src={cloudinaryImage(user.avatar, 'avatar') || undefined}
                 sx={{
                   width: { xs: 36, md: 40 },
                   height: { xs: 36, md: 40 },
@@ -534,7 +534,7 @@ export default function CommentsSection({
                 <CardContent sx={{ p: { xs: 1.5, md: 2 } }}>
                   <Box sx={{ display: 'flex', gap: { xs: 1, md: 2 } }}>
                     <Avatar
-                      src={comment.user.avatar}
+                      src={cloudinaryImage(comment.user.avatar, 'avatar')}
                       sx={{
                         width: { xs: 32, md: 40 },
                         height: { xs: 32, md: 40 },

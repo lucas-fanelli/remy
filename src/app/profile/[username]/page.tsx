@@ -20,6 +20,7 @@ import RecipeCard, { type RecipeCardModel } from '@/components/recipe/RecipeCard
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface User {
   id: string;
@@ -243,7 +244,7 @@ export default function ProfilePage() {
               {/* Avatar */}
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                 <Avatar
-                  src={profile.avatar}
+                  src={cloudinaryImage(profile.avatar, 'avatarLarge')}
                   sx={{
                     width: { xs: 100, sm: 150 },
                     height: { xs: 100, sm: 150 },
