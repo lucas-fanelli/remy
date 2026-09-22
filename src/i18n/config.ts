@@ -10,7 +10,7 @@ export const LOCALES = ['es', 'en'] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
-/** Used when there is neither a cookie nor an Accept-Language header (the audience is Argentine) */
+/** Used when there is neither a cookie nor an Accept-Language header (most readers are in Spain) */
 export const DEFAULT_LOCALE: Locale = 'es';
 
 /** Readable by client code on purpose (not httpOnly): the language switcher writes it */
@@ -25,7 +25,10 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   en: 'English',
 };
 
-/** OpenGraph wants a territory; rioplatense Spanish and US English are what the copy is written in */
+/**
+ * OpenGraph wants a territory. It names the Spanish the copy is WRITTEN in (rioplatense), not
+ * where the readers are: most of them are in Spain, which is what TIME_ZONE follows.
+ */
 export const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
   es: 'es_AR',
   en: 'en_US',
@@ -34,8 +37,12 @@ export const OPEN_GRAPH_LOCALES: Record<Locale, string> = {
 /**
  * Dates are formatted in one fixed zone so the server render and the hydrated client agree
  * (a mismatch would re-render the text, which is the flicker this module exists to remove).
+ *
+ * Madrid, because that is where most readers are. It was Buenos Aires, four to five hours
+ * behind: anything done in Spain between midnight and the early morning was dated the day
+ * before.
  */
-export const TIME_ZONE = 'America/Argentina/Buenos_Aires';
+export const TIME_ZONE = 'Europe/Madrid';
 
 export function isLocale(value: unknown): value is Locale {
   return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
