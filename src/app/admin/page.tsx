@@ -19,7 +19,6 @@ import {
 } from '@mui/icons-material';
 import {
   Box,
-  Container,
   Typography,
   Paper,
   Grid,
@@ -32,6 +31,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useCallback, useEffect, useState } from 'react';
+import PageFrame from '@/components/layout/PageFrame';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
 
@@ -151,7 +151,7 @@ export default function AdminDashboard() {
         backgroundColor: theme.palette.background.default,
       }}
     >
-      <Container maxWidth="lg">
+      <PageFrame>
         <Box sx={{ mb: 4 }}>
           <Typography variant="h4" fontWeight={700} color="text.primary" gutterBottom>
             {t('dashboard.title')}
@@ -230,7 +230,7 @@ export default function AdminDashboard() {
             </Grid>
           ))}
         </Grid>
-      </Container>
+      </PageFrame>
     </Box>
   );
 }

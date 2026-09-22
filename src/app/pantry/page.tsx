@@ -2,7 +2,6 @@
 
 import { Add, Edit, Delete, Kitchen, FilterList, Search } from '@mui/icons-material';
 import {
-  Container,
   Box,
   Typography,
   Button,
@@ -33,6 +32,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
+import PageFrame from '@/components/layout/PageFrame';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUnitLabels } from '@/i18n/units';
@@ -357,28 +357,26 @@ export default function PantryPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
-        <Box sx={{ pb: 8, bgcolor: 'background.default' }}>
-          <Container maxWidth="lg" sx={{ pt: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-              <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
-              <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                {t('title')}
-              </Typography>
-            </Box>
-            <Card sx={{ p: 4, textAlign: 'center' }}>
-              <Kitchen sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h5" fontWeight={600} gutterBottom>
-                {t('guest.title')}
-              </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                {t('guest.description')}
-              </Typography>
-              <Button variant="contained" size="large" onClick={() => router.push('/auth')}>
-                {t('guest.action')}
-              </Button>
-            </Card>
-          </Container>
-        </Box>
+        <PageFrame>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
+            <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
+            <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              {t('title')}
+            </Typography>
+          </Box>
+          <Card sx={{ p: 4, textAlign: 'center' }}>
+            <Kitchen sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h5" fontWeight={600} gutterBottom>
+              {t('guest.title')}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              {t('guest.description')}
+            </Typography>
+            <Button variant="contained" size="large" onClick={() => router.push('/auth')}>
+              {t('guest.action')}
+            </Button>
+          </Card>
+        </PageFrame>
       </motion.div>
     );
   }
@@ -389,293 +387,289 @@ export default function PantryPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <Box sx={{ pb: 8, bgcolor: 'background.default' }}>
-        <Container maxWidth="lg" sx={{ pt: 2 }}>
-          {/* Note: Back button is now in the Navigation component */}
+      <PageFrame>
+        {/* Note: Back button is now in the Navigation component */}
 
-          <Box
-            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
-              <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                {t('title')}
-              </Typography>
-            </Box>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => handleOpenDialog()}
-              size="large"
-            >
-              {t('actions.add')}
-            </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Kitchen sx={{ fontSize: 40, color: 'primary.main' }} />
+            <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
+              {t('title')}
+            </Typography>
           </Box>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+            size="large"
+          >
+            {t('actions.add')}
+          </Button>
+        </Box>
 
-          {/* Search and Filter */}
-          <Card sx={{ mb: 3, p: 2 }}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+        {/* Search and Filter */}
+        <Card sx={{ mb: 3, p: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+            <TextField
+              placeholder={t('filters.search')}
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoComplete="off"
+              InputProps={{
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+              }}
+              sx={{ flex: 1 }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FilterList />
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>{t('filters.category')}</InputLabel>
+                <Select
+                  value={categoryFilter}
+                  label={t('filters.category')}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <MenuItem value="all">{t('filters.allCategories')}</MenuItem>
+                  {allCategories.map(
+                    (cat) =>
+                      cat && (
+                        <MenuItem key={cat} value={cat}>
+                          {categoryLabel(cat)}
+                        </MenuItem>
+                      )
+                  )}
+                </Select>
+              </FormControl>
+              <Chip label={t('filters.count', { count: filteredItems.length })} color="primary" />
+            </Box>
+          </Box>
+        </Card>
+
+        {/* Items by Category */}
+        {filteredItems.length === 0 ? (
+          <Card sx={{ p: 6, textAlign: 'center' }}>
+            <Kitchen sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              {t('empty.title')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              {t('empty.description')}
+            </Typography>
+            <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
+              {t('actions.addFirst')}
+            </Button>
+          </Card>
+        ) : (
+          <Grid container spacing={2}>
+            {Object.entries(groupedItems).map(([category, categoryItems]) => (
+              <Grid item xs={12} md={6} key={category}>
+                <MotionCard
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <CardContent>
+                    <Typography
+                      variant="h6"
+                      sx={{ mb: 2, textTransform: 'capitalize', fontWeight: 600 }}
+                    >
+                      {categoryLabel(category)}
+                    </Typography>
+                    <List dense>
+                      <AnimatePresence>
+                        {categoryItems.map((item, index) => (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ delay: index * 0.05 }}
+                          >
+                            <ListItem>
+                              <ListItemText
+                                primary={item.name}
+                                secondary={`${describeAmount(item.quantity, item.unit)}${item.notes ? ` • ${item.notes}` : ''}`}
+                              />
+                              <ListItemSecondaryAction>
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  onClick={() => handleOpenDialog(item)}
+                                  sx={{ mr: 1 }}
+                                >
+                                  <Edit fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  edge="end"
+                                  size="small"
+                                  onClick={() => handleDeleteClick(item.id)}
+                                  color="error"
+                                >
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </ListItemSecondaryAction>
+                            </ListItem>
+                            {index < categoryItems.length - 1 && <Divider />}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </List>
+                  </CardContent>
+                </MotionCard>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+
+        {/* Add/Edit Dialog */}
+        <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>{editingItem ? t('dialog.editTitle') : t('dialog.addTitle')}</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
               <TextField
-                placeholder={t('filters.search')}
-                size="small"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                label={t('dialog.name')}
+                fullWidth
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 autoComplete="off"
-                InputProps={{
-                  startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
-                }}
-                sx={{ flex: 1 }}
               />
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <FilterList />
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>{t('filters.category')}</InputLabel>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField
+                  label={t('dialog.quantity')}
+                  type="number"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  helperText={t('dialog.quantityHelper')}
+                  sx={{ flex: 1 }}
+                  autoComplete="off"
+                />
+                <FormControl sx={{ flex: 1 }}>
+                  <InputLabel>{t('dialog.unit')}</InputLabel>
                   <Select
-                    value={categoryFilter}
-                    label={t('filters.category')}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    value={formData.unit}
+                    label={t('dialog.unit')}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   >
-                    <MenuItem value="all">{t('filters.allCategories')}</MenuItem>
-                    {allCategories.map(
-                      (cat) =>
-                        cat && (
-                          <MenuItem key={cat} value={cat}>
-                            {categoryLabel(cat)}
-                          </MenuItem>
-                        )
-                    )}
+                    {units.map((unit) => (
+                      // The stored code is the value; the plural label is only what is read
+                      <MenuItem key={unit} value={unit}>
+                        {unitLabels.label(unit, 2)}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
-                <Chip label={t('filters.count', { count: filteredItems.length })} color="primary" />
               </Box>
-            </Box>
-          </Card>
-
-          {/* Items by Category */}
-          {filteredItems.length === 0 ? (
-            <Card sx={{ p: 6, textAlign: 'center' }}>
-              <Kitchen sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                {t('empty.title')}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {t('empty.description')}
-              </Typography>
-              <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
-                {t('actions.addFirst')}
-              </Button>
-            </Card>
-          ) : (
-            <Grid container spacing={2}>
-              {Object.entries(groupedItems).map(([category, categoryItems]) => (
-                <Grid item xs={12} md={6} key={category}>
-                  <MotionCard
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        sx={{ mb: 2, textTransform: 'capitalize', fontWeight: 600 }}
-                      >
-                        {categoryLabel(category)}
-                      </Typography>
-                      <List dense>
-                        <AnimatePresence>
-                          {categoryItems.map((item, index) => (
-                            <motion.div
-                              key={item.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 20 }}
-                              transition={{ delay: index * 0.05 }}
-                            >
-                              <ListItem>
-                                <ListItemText
-                                  primary={item.name}
-                                  secondary={`${describeAmount(item.quantity, item.unit)}${item.notes ? ` • ${item.notes}` : ''}`}
-                                />
-                                <ListItemSecondaryAction>
-                                  <IconButton
-                                    edge="end"
-                                    size="small"
-                                    onClick={() => handleOpenDialog(item)}
-                                    sx={{ mr: 1 }}
-                                  >
-                                    <Edit fontSize="small" />
-                                  </IconButton>
-                                  <IconButton
-                                    edge="end"
-                                    size="small"
-                                    onClick={() => handleDeleteClick(item.id)}
-                                    color="error"
-                                  >
-                                    <Delete fontSize="small" />
-                                  </IconButton>
-                                </ListItemSecondaryAction>
-                              </ListItem>
-                              {index < categoryItems.length - 1 && <Divider />}
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </List>
-                    </CardContent>
-                  </MotionCard>
-                </Grid>
-              ))}
-            </Grid>
-          )}
-
-          {/* Add/Edit Dialog */}
-          <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-            <DialogTitle>{editingItem ? t('dialog.editTitle') : t('dialog.addTitle')}</DialogTitle>
-            <DialogContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-                <TextField
-                  label={t('dialog.name')}
-                  fullWidth
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  autoComplete="off"
-                />
-                <Box sx={{ display: 'flex', gap: 2 }}>
+              <Autocomplete
+                freeSolo
+                options={allCategories}
+                value={formData.category}
+                onChange={(event, newValue) => {
+                  // Allow null/empty values
+                  const value = newValue ? storedCategory(newValue) : '';
+                  setFormData({ ...formData, category: value });
+                }}
+                onInputChange={(event, newInputValue, reason) => {
+                  // When user types, pastes, or clears, update the category
+                  if (reason === 'input' || reason === 'clear') {
+                    setFormData({ ...formData, category: storedCategory(newInputValue) });
+                  }
+                }}
+                getOptionLabel={(option) => (option ? categoryLabel(option) : '')}
+                renderInput={(params) => (
                   <TextField
-                    label={t('dialog.quantity')}
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                    helperText={t('dialog.quantityHelper')}
-                    sx={{ flex: 1 }}
-                    autoComplete="off"
-                  />
-                  <FormControl sx={{ flex: 1 }}>
-                    <InputLabel>{t('dialog.unit')}</InputLabel>
-                    <Select
-                      value={formData.unit}
-                      label={t('dialog.unit')}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    >
-                      {units.map((unit) => (
-                        // The stored code is the value; the plural label is only what is read
-                        <MenuItem key={unit} value={unit}>
-                          {unitLabels.label(unit, 2)}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-                <Autocomplete
-                  freeSolo
-                  options={allCategories}
-                  value={formData.category}
-                  onChange={(event, newValue) => {
-                    // Allow null/empty values
-                    const value = newValue ? storedCategory(newValue) : '';
-                    setFormData({ ...formData, category: value });
-                  }}
-                  onInputChange={(event, newInputValue, reason) => {
-                    // When user types, pastes, or clears, update the category
-                    if (reason === 'input' || reason === 'clear') {
-                      setFormData({ ...formData, category: storedCategory(newInputValue) });
+                    {...params}
+                    label={t('dialog.category')}
+                    placeholder={t('dialog.categoryPlaceholder')}
+                    fullWidth
+                    // What the free text resolves to, as a LABEL - so English keeps its old
+                    // "Will be saved as: Vegetable" (the stored value capitalised, which is
+                    // what it always said) and Spanish only names the category, because
+                    // 'vegetable' is what actually travels to the API.
+                    helperText={
+                      formData.category
+                        ? t('dialog.categoryHelper', {
+                            category: categoryLabel(formData.category),
+                          })
+                        : ''
                     }
-                  }}
-                  getOptionLabel={(option) => (option ? categoryLabel(option) : '')}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label={t('dialog.category')}
-                      placeholder={t('dialog.categoryPlaceholder')}
-                      fullWidth
-                      // What the free text resolves to, as a LABEL - so English keeps its old
-                      // "Will be saved as: Vegetable" (the stored value capitalised, which is
-                      // what it always said) and Spanish only names the category, because
-                      // 'vegetable' is what actually travels to the API.
-                      helperText={
-                        formData.category
-                          ? t('dialog.categoryHelper', {
-                              category: categoryLabel(formData.category),
-                            })
-                          : ''
-                      }
-                    />
-                  )}
-                />
-                <TextField
-                  label={t('dialog.notes')}
-                  fullWidth
-                  multiline
-                  rows={2}
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  autoComplete="off"
-                />
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseDialog}>{tCommon('actions.cancel')}</Button>
-              <Button onClick={handleSubmit} variant="contained">
-                {editingItem ? tCommon('actions.update') : tCommon('actions.add')}
-              </Button>
-            </DialogActions>
-          </Dialog>
+                  />
+                )}
+              />
+              <TextField
+                label={t('dialog.notes')}
+                fullWidth
+                multiline
+                rows={2}
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                autoComplete="off"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>{tCommon('actions.cancel')}</Button>
+            <Button onClick={handleSubmit} variant="contained">
+              {editingItem ? tCommon('actions.update') : tCommon('actions.add')}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-          {/* Delete Confirmation Dialog */}
-          <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="xs" fullWidth>
-            <DialogTitle>{t('delete.title')}</DialogTitle>
-            <DialogContent>
-              <Typography>{t('delete.message')}</Typography>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleDeleteCancel} color="inherit">
-                {tCommon('actions.cancel')}
-              </Button>
-              <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-                {tCommon('actions.delete')}
-              </Button>
-            </DialogActions>
-          </Dialog>
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="xs" fullWidth>
+          <DialogTitle>{t('delete.title')}</DialogTitle>
+          <DialogContent>
+            <Typography>{t('delete.message')}</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDeleteCancel} color="inherit">
+              {tCommon('actions.cancel')}
+            </Button>
+            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+              {tCommon('actions.delete')}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-          {/* Modify Existing Ingredient Dialog */}
-          <Dialog open={modifyDialogOpen} onClose={handleCancelModify} maxWidth="xs" fullWidth>
-            <DialogTitle>{t('duplicate.title')}</DialogTitle>
-            <DialogContent>
-              <Typography>
-                {t('duplicate.message', {
-                  name: existingItem?.name ?? '',
-                  amount: describeAmount(existingItem?.quantity ?? 0, existingItem?.unit ?? ''),
-                })}
-              </Typography>
-              <Typography sx={{ mt: 2 }}>{t('duplicate.question')}</Typography>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCancelModify} color="inherit">
-                {tCommon('actions.cancel')}
-              </Button>
-              <Button onClick={handleModifyExisting} color="primary" variant="contained">
-                {t('duplicate.action')}
-              </Button>
-            </DialogActions>
-          </Dialog>
+        {/* Modify Existing Ingredient Dialog */}
+        <Dialog open={modifyDialogOpen} onClose={handleCancelModify} maxWidth="xs" fullWidth>
+          <DialogTitle>{t('duplicate.title')}</DialogTitle>
+          <DialogContent>
+            <Typography>
+              {t('duplicate.message', {
+                name: existingItem?.name ?? '',
+                amount: describeAmount(existingItem?.quantity ?? 0, existingItem?.unit ?? ''),
+              })}
+            </Typography>
+            <Typography sx={{ mt: 2 }}>{t('duplicate.question')}</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCancelModify} color="inherit">
+              {tCommon('actions.cancel')}
+            </Button>
+            <Button onClick={handleModifyExisting} color="primary" variant="contained">
+              {t('duplicate.action')}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-          {/* Snackbar */}
-          <Snackbar
-            open={snackbar.open}
-            autoHideDuration={4000}
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
             onClose={() => setSnackbar({ ...snackbar, open: false })}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            severity={snackbar.severity}
+            variant="filled"
           >
-            <Alert
-              onClose={() => setSnackbar({ ...snackbar, open: false })}
-              severity={snackbar.severity}
-              variant="filled"
-            >
-              {snackbar.message}
-            </Alert>
-          </Snackbar>
-        </Container>
-      </Box>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </PageFrame>
     </motion.div>
   );
 }

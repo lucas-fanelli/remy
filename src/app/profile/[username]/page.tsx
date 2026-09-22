@@ -8,11 +8,12 @@ import {
   Edit as EditIcon,
   Link as LinkIcon,
 } from '@mui/icons-material';
-import { Container, Box, Typography, Avatar, Button, Grid, IconButton, Alert } from '@mui/material';
+import { Box, Typography, Avatar, Button, Grid, IconButton, Alert } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
+import PageFrame from '@/components/layout/PageFrame';
 import { MotionBox } from '@/components/motion';
 import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
@@ -214,12 +215,12 @@ export default function ProfilePage() {
 
   if (error || !profile) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <PageFrame width="reading">
         <Alert severity="error" sx={{ mb: 2 }}>
           {error ? t(`errors.${error}`) : t('errors.notFound')}
         </Alert>
         <Button onClick={() => router.push('/')}>{t('goHome')}</Button>
-      </Container>
+      </PageFrame>
     );
   }
 
@@ -229,8 +230,8 @@ export default function ProfilePage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <Box sx={{ pb: 8, backgroundColor: 'background.default' }}>
-        <Container maxWidth="lg" sx={{ pt: 2 }}>
+      <>
+        <PageFrame>
           {/* Profile Header */}
           <MotionBox
             initial={{ opacity: 0, y: 20 }}
@@ -479,7 +480,7 @@ export default function ProfilePage() {
               {activeTab === 2 && isOwnProfile && <CookingLog />}
             </TabPanelTransition>
           </Box>
-        </Container>
+        </PageFrame>
 
         {/* Edit Profile Modal */}
         <EditProfileModal
@@ -489,7 +490,7 @@ export default function ProfilePage() {
             loadProfile(); // Reload profile after editing
           }}
         />
-      </Box>
+      </>
     </motion.div>
   );
 }
