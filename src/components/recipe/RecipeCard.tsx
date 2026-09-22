@@ -507,6 +507,11 @@ export default function RecipeCard({
           fetched viewer state and counts and then threw them away. */}
       {showEngagement && (
         <CardActions
+          // MUI's own spacing gives every child after the first `margin-left: 8px` through a
+          // selector more specific than `sx`, so the `ml: 'auto'` below computed to 8px: the
+          // cooked badge never reached the right edge, and the bookmark sat beside the
+          // counts. The margins are stated here instead.
+          disableSpacing
           sx={{
             px: 2,
             pb: 2,
@@ -546,7 +551,9 @@ export default function RecipeCard({
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 2 }}>
+          {/* 8px: what it has always rendered at. The `ml: 2` written here never applied
+              under MUI's spacing rule, and nobody has seen 16px. */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
             {onComment ? (
               <Tooltip title={t('card.comments')}>
                 <IconButton onClick={onComment} size="small" sx={{ p: 0.5 }}>

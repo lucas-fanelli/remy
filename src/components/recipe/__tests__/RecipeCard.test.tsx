@@ -146,6 +146,19 @@ describe('the bookmark', () => {
     expect(screen.queryByTestId('BookmarkBorderIcon')).not.toBeInTheDocument();
   });
 
+  it("leaves the row's margins to the card, so the bookmark can reach the right edge", () => {
+    // MUI's CardActions spacing sets `margin-left: 8px` on every child after the first with
+    // a selector that beats `sx`, so `ml: 'auto'` computed to 8px and the bookmark sat
+    // beside the counts in the browser. jsdom does not lay out, so the cause is pinned.
+    const { container } = renderWithTheme(
+      <RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />
+    );
+
+    const row = container.querySelector('.MuiCardActions-root');
+    expect(row).not.toBeNull();
+    expect(row).not.toHaveClass('MuiCardActions-spacing');
+  });
+
   it('sits in the same row as the heart, even when the card has nothing else to count', () => {
     renderWithTheme(
       <RecipeCard recipe={{ id: 'r', title: 'Bare' }} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />
