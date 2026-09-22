@@ -28,7 +28,11 @@ const count = (source: string, prop: string) =>
 describe('every card that can be liked can be saved', () => {
   it('passes onSave wherever it passes onLike', () => {
     const mismatched = screensWithCards()
-      .map(({ file, source }) => ({ file, onLike: count(source, 'onLike'), onSave: count(source, 'onSave') }))
+      .map(({ file, source }) => ({
+        file,
+        onLike: count(source, 'onLike'),
+        onSave: count(source, 'onSave'),
+      }))
       .filter(({ onLike, onSave }) => onLike !== onSave);
 
     expect(mismatched).toEqual([]);

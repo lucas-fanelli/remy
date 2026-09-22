@@ -124,9 +124,7 @@ describe('the bookmark', () => {
   });
 
   it('shows what the reader has not saved, empty', () => {
-    renderWithTheme(
-      <RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />
-    );
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
     expect(screen.getByTestId('BookmarkBorderIcon')).toBeInTheDocument();
@@ -150,11 +148,7 @@ describe('the bookmark', () => {
 
   it('sits in the same row as the heart, even when the card has nothing else to count', () => {
     renderWithTheme(
-      <RecipeCard
-        recipe={{ id: 'r', title: 'Bare' }}
-        viewer={NOT_LIKED_BY_ME}
-        onSave={jest.fn()}
-      />
+      <RecipeCard recipe={{ id: 'r', title: 'Bare' }} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />
     );
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();

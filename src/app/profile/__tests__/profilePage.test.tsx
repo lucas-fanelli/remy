@@ -155,7 +155,9 @@ describe('the profile page', () => {
       renderPage();
       fireEvent.click(await screen.findByRole('button', { name: 'Like' }));
 
-      expect(await screen.findByText("No connection — the like didn't go through")).toBeInTheDocument();
+      expect(
+        await screen.findByText("No connection — the like didn't go through")
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Like' })).toBeInTheDocument();
       expect(screen.getByText('3')).toBeInTheDocument();
     });
