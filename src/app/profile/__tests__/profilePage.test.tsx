@@ -1,6 +1,6 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { ToastProvider } from '@/contexts/ToastContext';
 import ProfilePage from '../[username]/page';
@@ -12,8 +12,9 @@ import '@testing-library/jest-dom';
  */
 
 const mockPush = jest.fn();
+let mockUsername = 'ana';
 jest.mock('next/navigation', () => ({
-  useParams: () => ({ username: 'ana' }),
+  useParams: () => ({ username: mockUsername }),
   useRouter: () => ({ push: mockPush, back: jest.fn() }),
 }));
 
@@ -76,7 +77,7 @@ function renderPage() {
     // default cannot switch off. This keeps the one retry it allows instant.
     defaultOptions: { queries: { retry: false, retryDelay: 0 }, mutations: { retry: false } },
   });
-  render(
+  const tree = () => (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={createTheme()}>
         <ToastProvider>
@@ -85,7 +86,9 @@ function renderPage() {
       </ThemeProvider>
     </QueryClientProvider>
   );
-  return queryClient;
+  const view = render(tree());
+  // The same page instance with new params: what following a link to another profile does.
+  return { queryClient, rerender: () => view.rerender(tree()) };
 }
 
 describe('the profile page', () => {
@@ -96,6 +99,52 @@ describe('the profile page', () => {
     mockFetch.mockReset();
     mockPush.mockReset();
     mockViewer = { username: 'someone-else' };
+    mockUsername = 'ana';
+  });
+
+  it("shows the reader's own hearts as they are, filled where they already liked", async () => {
+    // The page once hardcoded `viewer={null}` on both tabs while the route sent the real
+    // state, so on your own profile your own liked recipes showed empty hearts.
+    mockFetch.mockResolvedValue(ok(publicProfile({ recipes: [recipe('r1', true)] })));
+
+    renderPage();
+
+    expect(await screen.findByRole('button', { name: 'Unlike' })).toBeInTheDocument();
+  });
+
+  it('shows the profile that was asked for last, even when an earlier one answers after it', async () => {
+    // Two profiles, two cache entries: the slow answer for the first lands in its own entry
+    // and the page is reading the second. The old read had no abort and no stale check.
+    let answerAna: (value: unknown) => void = () => {};
+    mockFetch.mockImplementation((url: string) =>
+      url.includes('/users/ana/')
+        ? new Promise((resolve) => {
+            answerAna = resolve;
+          })
+        : Promise.resolve(
+            ok(
+              publicProfile({
+                user: { id: 'u2', username: 'bea', fullName: 'Bea' },
+                recipes: [recipe('b1')],
+              })
+            )
+          )
+    );
+
+    const { rerender } = renderPage();
+    mockUsername = 'bea';
+    rerender();
+    expect(await screen.findByRole('heading', { name: 'bea' })).toBeInTheDocument();
+
+    // Long enough for the late answer to be parsed and reach state, if anything lets it.
+    await act(async () => {
+      answerAna(ok(publicProfile()));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(screen.getByRole('heading', { name: 'bea' })).toBeInTheDocument();
+    expect(screen.getByText('Receta b1')).toBeInTheDocument();
+    expect(screen.queryByText('Receta r1')).not.toBeInTheDocument();
   });
 
   describe('a private profile seen by someone else', () => {
