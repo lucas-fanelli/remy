@@ -141,14 +141,23 @@ export default function PersistentSearchBar({
         const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}&limit=5`, {
           signal: controller.signal,
         });
-        if (response.ok) {
-          const data = await response.json();
+        if (!response.ok) {
+          // Doing nothing here left the PREVIOUS query's suggestions on screen while the
+          // reader typed a new one — worse than showing nothing, and inconsistent with the
+          // `catch` below, which does clear them. Deliberately quiet beyond that: this
+          // fires on a keystroke, and a toast per character would be its own bug. Pressing
+          // Enter reaches the search page, which reports the failure properly.
           if (!isMountedRef.current) return;
-          setLiveResults({
-            users: data.users || [],
-            recipes: data.recipes || [],
-          });
+          setLiveResults({ users: [], recipes: [] });
+          return;
         }
+
+        const data = await response.json();
+        if (!isMountedRef.current) return;
+        setLiveResults({
+          users: data.users || [],
+          recipes: data.recipes || [],
+        });
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
         console.error('Search error:', error);

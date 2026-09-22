@@ -1,5 +1,7 @@
+import { callHook, testQueryClient } from '@/__tests__/helpers/queryClient';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { RecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
+import { queryKeys } from '@/lib/query/keys';
 import { useUpdateRecipe } from '../useUpdateRecipe';
 
 const RECIPE_ID = '123e4567-e89b-12d3-a456-426614174000';
@@ -35,7 +37,7 @@ describe('useUpdateRecipe', () => {
   });
 
   it('should PUT to the recipe with the headers required by the CSRF middleware', async () => {
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await updateRecipe(RECIPE_ID, createUpdateData());
 
@@ -48,8 +50,44 @@ describe('useUpdateRecipe', () => {
     );
   });
 
+  describe('the screens that show the old version', () => {
+    // Only the recipe's own page used to hear about an edit, and only because that page
+    // invalidated itself. The feed, a profile, a search kept the old title and photo.
+    const feedKey = queryKeys.feed({ difficulty: 'all', time: 'any', sort: 'newest' });
+
+    const seeded = () => {
+      const client = testQueryClient();
+      client.setQueryData(queryKeys.recipe(RECIPE_ID), { recipe: { id: RECIPE_ID } });
+      client.setQueryData(feedKey, { pages: [{ recipes: [] }], pageParams: [0] });
+      client.setQueryData(queryKeys.search('choco'), { users: [], recipes: [] });
+      return client;
+    };
+
+    it('marks the recipe and every list out of date, from the hook itself', async () => {
+      const client = seeded();
+      const updateRecipe = callHook(() => useUpdateRecipe(), client);
+
+      await updateRecipe(RECIPE_ID, createUpdateData());
+
+      expect(client.getQueryState(queryKeys.recipe(RECIPE_ID))?.isInvalidated).toBe(true);
+      expect(client.getQueryState(feedKey)?.isInvalidated).toBe(true);
+      expect(client.getQueryState(queryKeys.search('choco'))?.isInvalidated).toBe(true);
+    });
+
+    it('leaves them alone when the edit was refused', async () => {
+      mockFetch.mockResolvedValue({ ok: false, json: async () => ({ error: 'Nope' }) });
+      const client = seeded();
+      const updateRecipe = callHook(() => useUpdateRecipe(), client);
+
+      await expect(updateRecipe(RECIPE_ID, createUpdateData())).rejects.toThrow();
+
+      expect(client.getQueryState(queryKeys.recipe(RECIPE_ID))?.isInvalidated).toBe(false);
+      expect(client.getQueryState(feedKey)?.isInvalidated).toBe(false);
+    });
+  });
+
   it('should send the update as the body', async () => {
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await updateRecipe(RECIPE_ID, createUpdateData());
 
@@ -57,7 +95,7 @@ describe('useUpdateRecipe', () => {
   });
 
   it('should send a cleared closing note as null', async () => {
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await updateRecipe(RECIPE_ID, createUpdateData({ caption: null }));
 
@@ -72,7 +110,7 @@ describe('useUpdateRecipe', () => {
       ingredients: [{ id: 'row-1', name: 'Chocolinas', amount: '500', unit: 'g' }],
       instructions: [{ id: 'row-2', step: 1, description: 'Armar las capas', uploading: true }],
     } as unknown as UpdateRecipeDTO;
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await updateRecipe(RECIPE_ID, leaky);
 
@@ -80,7 +118,7 @@ describe('useUpdateRecipe', () => {
   });
 
   it('should omit the image of steps that have no photo', async () => {
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await updateRecipe(
       RECIPE_ID,
@@ -92,7 +130,7 @@ describe('useUpdateRecipe', () => {
 
   it('should keep the image of steps that have a photo', async () => {
     const instructions = [{ step: 1, description: 'Armar las capas', image: STEP_IMAGE }];
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await updateRecipe(RECIPE_ID, createUpdateData({ instructions }));
 
@@ -100,7 +138,7 @@ describe('useUpdateRecipe', () => {
   });
 
   it('should send only the fields of a partial update', async () => {
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await updateRecipe(RECIPE_ID, { title: 'Only the title' });
 
@@ -109,7 +147,7 @@ describe('useUpdateRecipe', () => {
 
   it('should call onSuccess with the updated recipe and return the response', async () => {
     const onSuccess = jest.fn();
-    const updateRecipe = useUpdateRecipe(onSuccess);
+    const updateRecipe = callHook(() => useUpdateRecipe(onSuccess));
 
     const result = await updateRecipe(RECIPE_ID, createUpdateData());
 
@@ -124,7 +162,7 @@ describe('useUpdateRecipe', () => {
       json: async () => ({ error: 'Recipe validation failed: Title is required' }),
     });
     const onSuccess = jest.fn();
-    const updateRecipe = useUpdateRecipe(onSuccess);
+    const updateRecipe = callHook(() => useUpdateRecipe(onSuccess));
 
     await expect(updateRecipe(RECIPE_ID, createUpdateData())).rejects.toThrow(
       'Recipe validation failed: Title is required'
@@ -140,7 +178,7 @@ describe('useUpdateRecipe', () => {
     [500, 'Failed to update recipe', 'server'],
   ])('should map a %i (%s) with the same mapper as create: %s', async (status, error, code) => {
     mockFetch.mockResolvedValue({ ok: false, status, json: async () => ({ error }) });
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     const rejection = await updateRecipe(RECIPE_ID, createUpdateData()).catch((e) => e);
 
@@ -156,7 +194,7 @@ describe('useUpdateRecipe', () => {
         throw new SyntaxError('Unexpected token <');
       },
     });
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     await expect(updateRecipe(RECIPE_ID, createUpdateData())).rejects.toThrow(
       'Failed to update recipe'
@@ -165,7 +203,7 @@ describe('useUpdateRecipe', () => {
 
   it('should flag a request that never got a response', async () => {
     mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
-    const updateRecipe = useUpdateRecipe();
+    const updateRecipe = callHook(() => useUpdateRecipe());
 
     const rejection = await updateRecipe(RECIPE_ID, createUpdateData()).catch((e) => e);
 

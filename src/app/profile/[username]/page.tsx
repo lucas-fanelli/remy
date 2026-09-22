@@ -7,76 +7,49 @@ import {
   Restaurant,
   Edit as EditIcon,
   Link as LinkIcon,
+  LockOutlined,
 } from '@mui/icons-material';
-import { Box, Typography, Avatar, Button, Grid, IconButton, Alert } from '@mui/material';
+import { Box, Typography, Avatar, Button, Grid, IconButton, Alert, Skeleton } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { MotionBox } from '@/components/motion';
 import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import RecipeCard, { type RecipeCardModel } from '@/components/recipe/RecipeCard';
+import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFollowProfile } from '@/hooks/useFollowProfile';
+import { useProfile, ProfileFetchError, type ProfileRecipe } from '@/hooks/useProfile';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
-
-interface User {
-  id: string;
-  username: string;
-  fullName?: string;
-  bio?: string;
-  avatar?: string;
-  website?: string;
-  createdAt: string;
-}
-
-interface Recipe {
-  id: string;
-  title: string;
-  imageUrl: string;
-  difficulty: string;
-  likesCount: number;
-  commentsCount: number;
-  averageRating?: number;
-  totalRatings?: number;
-  author?: {
-    username: string;
-    avatar?: string;
-  };
-}
 
 /**
  * A profile recipe, narrowed to what a card shows.
  *
- * Note the rename: the profile API says `likesCount` and `commentsCount` while the feed,
- * search and detail endpoints all say `likeCount` and `commentCount`. Both were required
- * on the interface above, returned by the server and rendered by nothing at all — this is
- * the first time either appears on a profile. The counts are the app's, so the card takes
- * the app's spelling; making the two endpoints agree belongs to the data-layer pass.
+ * A pass-through now. `description`, the times and `servings` come across as they are,
+ * and a `null` from the server stays absent on the card rather than being invented — the
+ * card omits any slot it is not given, which is the whole convergence mechanism.
  */
-const toCardModel = (recipe: Recipe): RecipeCardModel => ({
+const toCardModel = (recipe: ProfileRecipe): RecipeCardModel => ({
   id: recipe.id,
   title: recipe.title,
+  description: recipe.description ?? undefined,
   imageUrl: recipe.imageUrl,
   difficulty: recipe.difficulty,
+  prepTime: recipe.prepTime ?? undefined,
+  cookingTime: recipe.cookingTime ?? undefined,
+  servings: recipe.servings,
   author: recipe.author,
   averageRating: recipe.averageRating,
   totalRatings: recipe.totalRatings,
-  likeCount: recipe.likesCount,
-  commentCount: recipe.commentsCount,
+  likeCount: recipe.likeCount,
+  commentCount: recipe.commentCount,
 });
-
-interface ProfileStats {
-  recipesCount: number;
-  followersCount: number;
-  followingCount: number;
-}
-
-/** Which message the error banner shows - a closed set, so the key can be built from it. */
-type ProfileError = 'userNotFound' | 'loadFailed';
 
 /** The big bold number inside a stat sentence; the message decides where it sits. */
 const statCount = (chunks: React.ReactNode) => (
@@ -84,6 +57,36 @@ const statCount = (chunks: React.ReactNode) => (
     {chunks}
   </Typography>
 );
+
+/**
+ * The first visit to a profile, sized like the page it becomes.
+ *
+ * It used to render nothing at all while loading, leaving a blank page under the header
+ * and letting everything below jump when the profile arrived. A second visit does not get
+ * here: the profile is in the cache and paints at once.
+ */
+function ProfileSkeleton({ label }: { label: string }) {
+  return (
+    <PageFrame>
+      <Box role="status" aria-label={label}>
+        <Box sx={{ display: 'flex', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Skeleton
+              variant="circular"
+              sx={{ width: { xs: 100, sm: 150 }, height: { xs: 100, sm: 150 } }}
+            />
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width={180} sx={{ fontSize: '2.125rem', mb: 2 }} />
+            <Skeleton variant="text" width={280} sx={{ mb: 2 }} />
+            <Skeleton variant="text" width="60%" />
+          </Box>
+        </Box>
+        <RecipeGridSkeleton />
+      </Box>
+    </PageFrame>
+  );
+}
 
 export default function ProfilePage() {
   const t = useTranslations('profile');
@@ -93,19 +96,12 @@ export default function ProfilePage() {
   const { user: currentUser, isAuthenticated } = useAuth();
   const username = params.username as string;
 
-  const [profile, setProfile] = useState<User | null>(null);
-  const [stats, setStats] = useState<ProfileStats>({
-    recipesCount: 0,
-    followersCount: 0,
-    followingCount: 0,
-  });
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ProfileError | null>(null);
+  const profileQuery = useProfile(username);
+  const likeToggle = useLike();
+  const saveToggle = useSave();
+  const follow = useFollowProfile(username);
+
   const [activeTab, setActiveTab] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [bioExpanded, setBioExpanded] = useState(false);
 
@@ -118,112 +114,58 @@ export default function ProfilePage() {
   // recipe page showing the same recipe. One key now: `recipe.meta.difficulty`, inside
   // DifficultyChip.
 
-  const loadProfile = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Single API call to get ALL profile data
-      const response = await fetch(`/api/users/${username}/profile`);
-
-      if (!response.ok) {
-        // The banner picks its own sentence: the failure is a state, not a string
-        setError(response.status === 404 ? 'userNotFound' : 'loadFailed');
-        return;
-      }
-
-      const data = await response.json();
-
-      // Set all state from single response
-      setProfile(data.user);
-      setStats(data.stats);
-      setRecipes(data.recipes || []);
-
-      if (data.isFollowing !== undefined) {
-        setIsFollowing(data.isFollowing);
-      }
-
-      if (data.savedRecipes) {
-        setSavedRecipes(data.savedRecipes);
-      }
-    } catch (err) {
-      console.error('Error loading profile:', err);
-      setError('loadFailed');
-    } finally {
-      setLoading(false);
-    }
-  }, [username]);
-
-  useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
-
-  const handleFollow = async () => {
-    if (isOwnProfile) return;
-
-    // Redirect guests to auth page
-    if (!isAuthenticated) {
-      router.push('/auth');
-      return;
+  // Only without data. A background refetch that fails keeps the profile it already had
+  // on screen rather than swapping a good page for an error.
+  if (!profileQuery.data) {
+    if (!profileQuery.isError) {
+      return <ProfileSkeleton label={tCommon('status.loading')} />;
     }
 
-    // Store the current state before the API call
-    const previousFollowState = isFollowing;
-    const previousFollowersCount = stats.followersCount;
-
-    try {
-      setFollowLoading(true);
-
-      // Optimistically update UI
-      setIsFollowing(!previousFollowState);
-      setStats((prev) => ({
-        ...prev,
-        followersCount: previousFollowState ? prev.followersCount - 1 : prev.followersCount + 1,
-      }));
-
-      const endpoint = previousFollowState ? 'unfollow' : 'follow';
-      const response = await fetch(`/api/users/${username}/${endpoint}`, {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'fetch' },
-      });
-
-      if (!response.ok) {
-        // Revert on error
-        setIsFollowing(previousFollowState);
-        setStats((prev) => ({
-          ...prev,
-          followersCount: previousFollowersCount,
-        }));
-        console.error('Follow/unfollow failed');
-      }
-    } catch (error) {
-      // Revert on error
-      setIsFollowing(previousFollowState);
-      setStats((prev) => ({
-        ...prev,
-        followersCount: previousFollowersCount,
-      }));
-      console.error('Error toggling follow:', error);
-    } finally {
-      setFollowLoading(false);
-    }
-  };
-
-  // Return null during loading - the global LoadingBar shows progress
-  if (loading) {
-    return null;
-  }
-
-  if (error || !profile) {
+    const reason =
+      profileQuery.error instanceof ProfileFetchError ? profileQuery.error.reason : 'loadFailed';
     return (
       <PageFrame width="reading">
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error ? t(`errors.${error}`) : t('errors.notFound')}
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            // Asking again cannot make a missing person exist, so only a failed load offers
+            // to.
+            reason === 'loadFailed' ? (
+              <Button color="inherit" size="small" onClick={() => profileQuery.refetch()}>
+                {tCommon('actions.retry')}
+              </Button>
+            ) : undefined
+          }
+        >
+          {t(`errors.${reason}`)}
         </Alert>
         <Button onClick={() => router.push('/')}>{t('goHome')}</Button>
       </PageFrame>
     );
   }
+
+  const profile = profileQuery.data;
+  const { user } = profile;
+  // A private profile seen by someone else carries the person and nothing else: no
+  // counts, no recipes, no follow state. Everything below that needs them is behind this.
+  const details = profile.visibility === 'public' ? profile : null;
+  const isFollowing = details?.isFollowing === true;
+  // The Saved tab is what you have saved NOW, read off each recipe's own bookmark rather
+  // than off the list the server sent. Unsaving here empties that bookmark optimistically,
+  // so the recipe leaves the tab the moment you tap — and a failed unsave puts the bookmark
+  // back, which brings the recipe back with it. No second mutation to keep in step.
+  const savedNow = (details?.savedRecipes ?? []).filter((recipe) => recipe.viewer?.saved !== false);
+
+  const handleFollow = () => {
+    if (!isAuthenticated) {
+      router.push('/auth');
+      return;
+    }
+    follow.toggle(!isFollowing);
+  };
+
+  const likeRecipe = (recipeId: string) => likeToggle.toggle(recipeId);
 
   return (
     <motion.div
@@ -245,7 +187,7 @@ export default function ProfilePage() {
               {/* Avatar */}
               <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                 <Avatar
-                  src={cloudinaryImage(profile.avatar, 'avatarLarge')}
+                  src={cloudinaryImage(user.avatar ?? undefined, 'avatarLarge')}
                   sx={{
                     width: { xs: 100, sm: 150 },
                     height: { xs: 100, sm: 150 },
@@ -253,7 +195,7 @@ export default function ProfilePage() {
                     borderColor: 'primary.main',
                   }}
                 >
-                  {profile.username.charAt(0).toUpperCase()}
+                  {user.username.charAt(0).toUpperCase()}
                 </Avatar>
               </Box>
 
@@ -263,7 +205,7 @@ export default function ProfilePage() {
                   sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}
                 >
                   <Typography variant="h4" component="h1" sx={{ color: 'text.primary' }}>
-                    {profile.username}
+                    {user.username}
                   </Typography>
                   {isOwnProfile ? (
                     <>
@@ -280,64 +222,75 @@ export default function ProfilePage() {
                       </IconButton>
                     </>
                   ) : (
-                    <Button
-                      key={`follow-btn-${isFollowing}`}
-                      variant={isFollowing ? 'outlined' : 'contained'}
-                      onClick={handleFollow}
-                      disabled={followLoading}
-                      size="small"
-                      sx={{
-                        minWidth: 100,
-                        transition: 'all 0.2s ease-in-out',
-                      }}
-                    >
-                      {followLoading
-                        ? tCommon('status.loading')
-                        : isFollowing
-                          ? t('actions.following')
-                          : t('actions.follow')}
-                    </Button>
+                    // Not on a private profile: the route does not say whether you follow
+                    // it, so the button could only guess, and following unlocks nothing
+                    // there — the recipes stay hidden from everyone but the owner.
+                    details && (
+                      <Button
+                        key={`follow-btn-${isFollowing}`}
+                        variant={isFollowing ? 'outlined' : 'contained'}
+                        onClick={handleFollow}
+                        size="small"
+                        sx={{
+                          minWidth: 100,
+                          transition: 'all 0.2s ease-in-out',
+                        }}
+                      >
+                        {isFollowing ? t('actions.following') : t('actions.follow')}
+                      </Button>
+                    )
                   )}
                 </Box>
 
                 {/* Stats - one message each, so the count and its noun agree in both languages */}
-                <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
-                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                    {t.rich('stats.recipes', { count: stats.recipesCount, value: statCount })}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: 'text.primary',
-                      cursor: 'pointer',
-                      '&:hover': { opacity: 0.7 },
-                      transition: 'opacity 0.2s',
-                    }}
-                    onClick={() => router.push(`/profile/${username}/followers`)}
-                  >
-                    {t.rich('stats.followers', { count: stats.followersCount, value: statCount })}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: 'text.primary',
-                      cursor: 'pointer',
-                      '&:hover': { opacity: 0.7 },
-                      transition: 'opacity 0.2s',
-                    }}
-                    onClick={() => router.push(`/profile/${username}/following`)}
-                  >
-                    {t.rich('stats.following', { count: stats.followingCount, value: statCount })}
-                  </Typography>
-                </Box>
+                {details && (
+                  <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
+                    <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                      {t.rich('stats.recipes', {
+                        count: details.stats.recipesCount,
+                        value: statCount,
+                      })}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'text.primary',
+                        cursor: 'pointer',
+                        '&:hover': { opacity: 0.7 },
+                        transition: 'opacity 0.2s',
+                      }}
+                      onClick={() => router.push(`/profile/${username}/followers`)}
+                    >
+                      {t.rich('stats.followers', {
+                        count: details.stats.followersCount,
+                        value: statCount,
+                      })}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'text.primary',
+                        cursor: 'pointer',
+                        '&:hover': { opacity: 0.7 },
+                        transition: 'opacity 0.2s',
+                      }}
+                      onClick={() => router.push(`/profile/${username}/following`)}
+                    >
+                      {t.rich('stats.following', {
+                        count: details.stats.followingCount,
+                        value: statCount,
+                      })}
+                    </Typography>
+                  </Box>
+                )}
 
                 {/* Bio */}
-                {profile.fullName && (
+                {user.fullName && (
                   <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                    {profile.fullName}
+                    {user.fullName}
                   </Typography>
                 )}
-                {profile.bio && (
+                {user.bio && (
                   <Box>
                     <Typography
                       variant="body2"
@@ -347,11 +300,11 @@ export default function ProfilePage() {
                         color: 'text.primary',
                       }}
                     >
-                      {bioExpanded || profile.bio.length <= bioPreviewLength
-                        ? profile.bio
-                        : `${profile.bio.substring(0, bioPreviewLength)}...`}
+                      {bioExpanded || user.bio.length <= bioPreviewLength
+                        ? user.bio
+                        : `${user.bio.substring(0, bioPreviewLength)}...`}
                     </Typography>
-                    {profile.bio.length > bioPreviewLength && (
+                    {user.bio.length > bioPreviewLength && (
                       <Typography
                         variant="caption"
                         color="primary"
@@ -363,13 +316,13 @@ export default function ProfilePage() {
                     )}
                   </Box>
                 )}
-                {profile.website && (
+                {user.website && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                     <LinkIcon fontSize="small" color="action" />
                     <Typography
                       variant="body2"
                       component="a"
-                      href={profile.website}
+                      href={user.website}
                       target="_blank"
                       rel="noopener noreferrer"
                       sx={{
@@ -378,7 +331,7 @@ export default function ProfilePage() {
                         '&:hover': { textDecoration: 'underline' },
                       }}
                     >
-                      {profile.website}
+                      {user.website}
                     </Typography>
                   </Box>
                 )}
@@ -386,101 +339,125 @@ export default function ProfilePage() {
             </Box>
           </MotionBox>
 
-          {/* Tabs with Sliding Indicator */}
-          <AnimatedTabs
-            tabs={[
-              { key: 0, label: t('tabs.recipes'), icon: <GridOn /> },
-              // Both are about you, not about the profile being viewed, so neither shows
-              // on someone else's.
-              ...(isOwnProfile
-                ? [
-                    { key: 1, label: t('tabs.saved'), icon: <BookmarkBorder /> },
-                    { key: 2, label: t('tabs.cooked'), icon: <Restaurant /> },
-                  ]
-                : []),
-            ]}
-            activeKey={activeTab}
-            onChange={(key) => setActiveTab(key as number)}
-          />
-          {/* Tab Content with X-Axis Transition */}
-          <Box sx={{ mt: 3 }}>
-            <TabPanelTransition activeKey={activeTab}>
-              {/* Recipe Grid */}
-              {activeTab === 0 && (
-                <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-                  {recipes.length === 0 ? (
-                    <Grid item xs={12}>
-                      <Box sx={{ textAlign: 'center', py: 8 }}>
-                        <Restaurant sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                        <Typography variant="h6" color="text.secondary">
-                          {t('empty.recipes')}
-                        </Typography>
-                        {isOwnProfile && (
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            {t('empty.recipesOwn')}
-                          </Typography>
-                        )}
-                      </Box>
+          {!details ? (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <LockOutlined sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">
+                {t('private.title')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {t('private.body')}
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              {/* Tabs with Sliding Indicator */}
+              <AnimatedTabs
+                tabs={[
+                  { key: 0, label: t('tabs.recipes'), icon: <GridOn /> },
+                  // Both are about you, not about the profile being viewed, so neither shows
+                  // on someone else's.
+                  ...(isOwnProfile
+                    ? [
+                        { key: 1, label: t('tabs.saved'), icon: <BookmarkBorder /> },
+                        { key: 2, label: t('tabs.cooked'), icon: <Restaurant /> },
+                      ]
+                    : []),
+                ]}
+                activeKey={activeTab}
+                onChange={(key) => setActiveTab(key as number)}
+              />
+              {/* Tab Content with X-Axis Transition */}
+              <Box sx={{ mt: 3 }}>
+                <TabPanelTransition activeKey={activeTab}>
+                  {/* Recipe Grid */}
+                  {activeTab === 0 && (
+                    <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
+                      {details.recipes.length === 0 ? (
+                        <Grid item xs={12}>
+                          <Box sx={{ textAlign: 'center', py: 8 }}>
+                            <Restaurant sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                            <Typography variant="h6" color="text.secondary">
+                              {t('empty.recipes')}
+                            </Typography>
+                            {isOwnProfile && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                {t('empty.recipesOwn')}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Grid>
+                      ) : (
+                        details.recipes.map((recipe, index) => (
+                          <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
+                            <MotionBox
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              // Bounded, unlike the `Grow timeout={(index + 1) * 200}` it
+                              // replaces — that made the twentieth card wait four seconds.
+                              transition={{ delay: Math.min(index, 11) * 0.05 }}
+                              sx={{ width: '100%' }}
+                            >
+                              <RecipeCard
+                                recipe={toCardModel(recipe)}
+                                viewer={recipe.viewer}
+                                onLike={() => likeRecipe(recipe.id)}
+                                onSave={() => saveToggle.toggle(recipe.id)}
+                              />
+                            </MotionBox>
+                          </Grid>
+                        ))
+                      )}
                     </Grid>
-                  ) : (
-                    recipes.map((recipe, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
-                        <MotionBox
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          // Bounded, unlike the `Grow timeout={(index + 1) * 200}` it
-                          // replaces — that made the twentieth card wait four seconds.
-                          transition={{ delay: Math.min(index, 11) * 0.05 }}
-                          sx={{ width: '100%' }}
-                        >
-                          <RecipeCard recipe={toCardModel(recipe)} viewer={null} />
-                        </MotionBox>
-                      </Grid>
-                    ))
                   )}
-                </Grid>
-              )}
 
-              {/* Saved Recipes Tab */}
-              {activeTab === 1 && isOwnProfile && (
-                <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-                  {savedRecipes.length === 0 ? (
-                    <Grid item xs={12}>
-                      <Box sx={{ textAlign: 'center', py: 8 }}>
-                        <BookmarkBorder sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                        <Typography variant="h6" color="text.secondary">
-                          {t('empty.saved')}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                          {t('empty.savedDescription')}
-                        </Typography>
-                      </Box>
+                  {/* Saved Recipes Tab */}
+                  {activeTab === 1 && isOwnProfile && (
+                    <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
+                      {savedNow.length === 0 ? (
+                        <Grid item xs={12}>
+                          <Box sx={{ textAlign: 'center', py: 8 }}>
+                            <BookmarkBorder sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
+                            <Typography variant="h6" color="text.secondary">
+                              {t('empty.saved')}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                              {t('empty.savedDescription')}
+                            </Typography>
+                          </Box>
+                        </Grid>
+                      ) : (
+                        savedNow.map((recipe, index) => (
+                          <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
+                            <MotionBox
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: Math.min(index, 11) * 0.05 }}
+                              sx={{ width: '100%' }}
+                            >
+                              {/* The same card as the tab above it. Its only real difference
+                                  was the author byline, and "an absent field renders nothing"
+                                  covers that: the saved payload carries an author and the
+                                  owner's own recipes do not, so one component serves both and
+                                  the sixty duplicated lines go. */}
+                              <RecipeCard
+                                recipe={toCardModel(recipe)}
+                                viewer={recipe.viewer}
+                                onLike={() => likeRecipe(recipe.id)}
+                                onSave={() => saveToggle.toggle(recipe.id)}
+                              />
+                            </MotionBox>
+                          </Grid>
+                        ))
+                      )}
                     </Grid>
-                  ) : (
-                    savedRecipes.map((recipe, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
-                        <MotionBox
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: Math.min(index, 11) * 0.05 }}
-                          sx={{ width: '100%' }}
-                        >
-                          {/* The same card as the tab above it. Its only real difference
-                              was the author byline, and "an absent field renders nothing"
-                              covers that: the saved payload carries an author and the
-                              owner's own recipes do not, so one component serves both and
-                              the sixty duplicated lines go. */}
-                          <RecipeCard recipe={toCardModel(recipe)} viewer={null} />
-                        </MotionBox>
-                      </Grid>
-                    ))
                   )}
-                </Grid>
-              )}
 
-              {activeTab === 2 && isOwnProfile && <CookingLog />}
-            </TabPanelTransition>
-          </Box>
+                  {activeTab === 2 && isOwnProfile && <CookingLog />}
+                </TabPanelTransition>
+              </Box>
+            </>
+          )}
         </PageFrame>
 
         {/* Edit Profile Modal */}
@@ -488,7 +465,7 @@ export default function ProfilePage() {
           open={editModalOpen}
           onClose={() => setEditModalOpen(false)}
           onSuccess={() => {
-            loadProfile(); // Reload profile after editing
+            profileQuery.refetch(); // Reload profile after editing
           }}
         />
       </>

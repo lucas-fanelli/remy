@@ -38,6 +38,7 @@ import {
 } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import NextLink from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useCallback } from 'react';
@@ -56,8 +57,10 @@ import RatingBreakdown from '@/components/recipe/RatingBreakdown';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { useTextDescriptor } from '@/i18n/text';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
+import { removeRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
 import type { PantryPlan } from '@/lib/cooking/pantryPlan';
@@ -125,6 +128,7 @@ export default function RecipeDetailPage() {
       ? renderText(queryError.descriptor)
       : queryError.message
     : null;
+  const privateAuthor = queryError instanceof RecipeFetchError ? queryError.privateAuthor : null;
 
   // The heart, the count and the bookmark come with the recipe, so they are right on the
   // first paint. They used to be three pieces of local state seeded to false/0 and then
@@ -143,8 +147,6 @@ export default function RecipeDetailPage() {
     message: '',
     severity: 'success' as 'success' | 'error' | 'warning',
   });
-  const [likeLoading, setLikeLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
   const [cookedLoading, setCookedLoading] = useState(false);
   const [cookDialogOpen, setCookDialogOpen] = useState(false);
   const [cookPlan, setCookPlan] = useState<PantryPlan | null>(null);
@@ -222,8 +224,8 @@ export default function RecipeDetailPage() {
   };
 
   const handleEditSuccess = (_updatedRecipe: DomainRecipe) => {
-    // Invalidate the cache to refetch with updated data
-    queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+    // No invalidation here: useUpdateRecipe refreshes this page and marks every list stale
+    // itself, so no screen that edits a recipe can forget to.
     setSnackbar({ open: true, message: t('toasts.updated'), severity: 'success' });
   };
 
@@ -246,6 +248,10 @@ export default function RecipeDetailPage() {
         throw new Error(apiErrorMessage(errorData, t('toasts.deleteFailed')));
       }
 
+      // Out of the feed, the profiles, search and the matches before the reader lands on
+      // any of them. It went nowhere before: the feed you arrived at still had it.
+      removeRecipeEverywhere(queryClient, recipeId);
+
       setSnackbar({ open: true, message: t('toasts.deleted'), severity: 'success' });
 
       // Navigate back to feed after a short delay
@@ -263,78 +269,14 @@ export default function RecipeDetailPage() {
     }
   };
 
-  const handleLike = async () => {
-    if (!user) {
-      setSnackbar({ open: true, message: t('toasts.loginToLike'), severity: 'error' });
-      return;
-    }
-
-    try {
-      setLikeLoading(true);
-      const response = await fetch(`/api/recipes/${recipeId}/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-        body: JSON.stringify({ liked: !liked }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // The recipe query owns this state now, so the cached copy is what has to change.
-        // Writing the server's answer straight in beats invalidating: no second round trip,
-        // and no window where a refetch hands back the pre-click answer — which is what
-        // made the heart appear to undo itself.
-        patchCachedRecipe((cached) => ({
-          ...cached,
-          likeCount: data.likeCount,
-          viewer: cached.viewer ? { ...cached.viewer, liked: data.liked } : cached.viewer,
-        }));
-        setSnackbar({
-          open: true,
-          message: data.liked ? t('toasts.liked') : t('toasts.unliked'),
-          severity: 'success',
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      setSnackbar({ open: true, message: t('toasts.likeFailed'), severity: 'error' });
-    } finally {
-      setLikeLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!user) {
-      setSnackbar({ open: true, message: t('toasts.loginToSave'), severity: 'error' });
-      return;
-    }
-
-    try {
-      setSaveLoading(true);
-      const response = await fetch(`/api/recipes/${recipeId}/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-        body: JSON.stringify({ saved: !saved }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        patchCachedRecipe((cached) => ({
-          ...cached,
-          viewer: cached.viewer ? { ...cached.viewer, saved: data.saved } : cached.viewer,
-        }));
-        setSnackbar({
-          open: true,
-          message: data.saved ? t('toasts.saved') : t('toasts.unsaved'),
-          severity: 'success',
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling save:', error);
-      setSnackbar({ open: true, message: t('toasts.saveFailed'), severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
-  };
+  // Liking and saving go through the one mutation layer now. What used to be here was
+  // ninety lines: two handlers that waited for the server before moving anything, each
+  // with an `if (response.ok)` and no else, so an expired session or a rate limit changed
+  // nothing and said nothing. The policy that replaced them lives in
+  // `lib/engagement/specs.ts`, and it is the same policy the feed will get — which is the
+  // point. There is no second copy left to drift.
+  const likeToggle = useLike();
+  const saveToggle = useSave();
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -542,8 +484,26 @@ export default function RecipeDetailPage() {
           </Box>
         )}
 
+        {/* A private account's recipe: not an error, so not red, and it says where to go —
+            the author's profile, where following them is (or will be) the way in. */}
+        {privateAuthor && (
+          <PageFrame width="reading">
+            <Alert severity="info" sx={{ mb: { xs: 1.5, md: 2 } }}>
+              {error}
+            </Alert>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button component={NextLink} href={`/profile/${privateAuthor}`} variant="contained">
+                {t('states.viewAuthor')}
+              </Button>
+              <Button onClick={handleBack} startIcon={<ArrowBack />}>
+                {tCommon('actions.goBack')}
+              </Button>
+            </Box>
+          </PageFrame>
+        )}
+
         {/* Error state */}
-        {(error || (!loading && !recipe)) && (
+        {!privateAuthor && (error || (!loading && !recipe)) && (
           <PageFrame width="reading">
             <Alert
               severity="error"
@@ -810,11 +770,15 @@ export default function RecipeDetailPage() {
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  {/* No `disabled` while the request is in flight, and that is the change
+                      rather than an omission: the heart has already moved, so greying it
+                      out would be telling the reader to wait for something that already
+                      happened. A second tap simply sends the state they now want — the
+                      route takes an intent, not a flip, so it cannot oscillate. */}
                   <IconButton
-                    onClick={handleLike}
+                    onClick={() => likeToggle.toggle(recipeId)}
                     color={liked ? 'error' : 'default'}
                     size={isMobile ? 'medium' : 'large'}
-                    disabled={likeLoading}
                   >
                     {liked ? <Favorite /> : <FavoriteBorder />}
                   </IconButton>
@@ -829,10 +793,9 @@ export default function RecipeDetailPage() {
                   )}
                 </Box>
                 <IconButton
-                  onClick={handleSave}
+                  onClick={() => saveToggle.toggle(recipeId)}
                   color={saved ? 'primary' : 'default'}
                   size={isMobile ? 'medium' : 'large'}
-                  disabled={saveLoading}
                 >
                   {saved ? <Bookmark /> : <BookmarkBorder />}
                 </IconButton>

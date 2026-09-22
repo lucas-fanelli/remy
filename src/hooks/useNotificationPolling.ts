@@ -1,5 +1,6 @@
 'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { readBody } from '@/lib/api/readBody';
 
 interface Notification {
   id: string;
@@ -21,6 +22,15 @@ interface UseNotificationPollingOptions {
   user: { id: string } | null;
   /** Called when the polling detects a confirmed 401 */
   onAuthInvalid: () => void;
+  /**
+   * Called when "mark all as read" is rejected, with the parsed response body.
+   *
+   * A callback rather than a toast raised from in here: this hook decides when to poll and
+   * what the counts are, and it should not also decide how the app speaks. `onAuthInvalid`
+   * above already established that split. Until this existed the rejection was swallowed —
+   * every dot stayed where it was and nothing was said.
+   */
+  onMarkAllFailed?: (body: unknown) => void;
 }
 
 interface UseNotificationPollingReturn {
@@ -38,6 +48,7 @@ interface UseNotificationPollingReturn {
 export function useNotificationPolling({
   user,
   onAuthInvalid,
+  onMarkAllFailed,
 }: UseNotificationPollingOptions): UseNotificationPollingReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -296,17 +307,21 @@ export function useNotificationPolling({
         headers: { 'X-Requested-With': 'fetch' },
       });
 
-      if (response.ok) {
-        setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
-        setUnreadCount(0);
+      if (!response.ok) {
+        onMarkAllFailed?.(await readBody(response));
+        return;
       }
+
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
+      setUnreadCount(0);
     } catch (error) {
       console.error('Error marking notifications as read:', error);
+      onMarkAllFailed?.(null);
     } finally {
       markingAsReadRef.current = false;
       setMarkingAsRead(false);
     }
-  }, [user]);
+  }, [user, onMarkAllFailed]);
 
   const retryNow = useCallback(() => {
     pollingStoppedRef.current = false;

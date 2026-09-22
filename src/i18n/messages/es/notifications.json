@@ -9,5 +9,7 @@
   },
   "text": "{type, select, follow {{name} empezó a seguirte} like {A {name} le gustó tu receta} comment {{name} comentó tu receta} rating {{name} puntuó tu receta} other {Tenés una notificación nueva}}",
   "loadMore": "Cargar más",
-  "viewAll": "Ver todas las notificaciones"
+  "viewAll": "Ver todas las notificaciones",
+  "loadFailed": "No pudimos cargar tus notificaciones",
+  "markAllFailed": "No pudimos marcarlas como leídas"
 }

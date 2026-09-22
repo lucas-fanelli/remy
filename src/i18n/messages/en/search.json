@@ -17,11 +17,12 @@
     "title": "Search Results",
     "resultsFor": "Results for “{query}”",
     "tabs": {
-      "recipes": "Recipes ({count, number})",
-      "users": "Users ({count, number})"
+      "recipes": "{known, select, yes {Recipes ({count, number})} other {Recipes}}",
+      "users": "{known, select, yes {Users ({count, number})} other {Users}}"
     },
     "noRecipes": "No recipes found",
     "noUsers": "No users found",
-    "tryDifferent": "Try searching with different keywords"
+    "tryDifferent": "Try searching with different keywords",
+    "loadFailed": "We could not run the search"
   }
 }
