@@ -26,16 +26,18 @@ import FollowButton from '@/components/profile/FollowButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { readBody } from '@/lib/api/readBody';
-import { useApiErrorMessage } from '@/lib/api/translateApiError';
+import { apiErrorCodeOf, useApiErrorMessage } from '@/lib/api/translateApiError';
 import {
   FOLLOW_FAILURE_CODES,
   FollowActionError,
+  accessChangeOf,
   afterFollowChange,
   followScope,
   guessFollowState,
   isFollowState,
   sendFollowAction,
   type FollowAction,
+  type FollowChange,
   type FollowResult,
 } from '@/lib/follows/client/followAction';
 import { queryKeys } from '@/lib/query/keys';
@@ -125,24 +127,37 @@ async function loadFollowers(username: string): Promise<PeopleList> {
   return { status: 'ready', people: (rows as RawPerson[]).map(toPerson) };
 }
 
+/** The remove-follower route's catch-all: it says "it failed" and nothing about which way. */
+const REMOVE_FAILURE_CODE = 'user.removeFollowerFailed';
+
 /**
  * POST the removal. Resolves when the person is no longer a follower, throws otherwise.
+ *
+ * It throws what a follow throws, FollowActionError: `offline` when fetch itself threw, or
+ * refused with the server's body. Removing a follower is the same relation taken apart
+ * from the other end, and it fails the same two ways — which the toast has to tell apart:
+ * a removal that never left kept the follower, a refused one may say why.
  *
  * A 404 user.notFound resolves too: the follower's account is gone, and its follow went
  * with it, so the row leaving the list is already the truth. Putting it back would show a
  * follower who no longer exists.
  */
 async function removeFollowerRequest(username: string): Promise<void> {
-  const response = await fetch(`/api/users/${encodeURIComponent(username)}/remove-follower`, {
-    method: 'POST',
-    // The middleware refuses a write without it (CSRF).
-    headers: { 'X-Requested-With': 'fetch' },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`/api/users/${encodeURIComponent(username)}/remove-follower`, {
+      method: 'POST',
+      // The middleware refuses a write without it (CSRF).
+      headers: { 'X-Requested-With': 'fetch' },
+    });
+  } catch {
+    throw new FollowActionError(null, true);
+  }
   if (response.ok) return;
 
   const body = await readBody(response);
   if (response.status === 404 && codeOf(body) === 'user.notFound') return;
-  throw new Error('Remove follower rejected');
+  throw new FollowActionError(body, false);
 }
 
 /**
@@ -152,6 +167,9 @@ async function removeFollowerRequest(username: string): Promise<void> {
  * afterFollowChange marks that profile stale only when the relation moved. A request or a
  * cancel moves nothing, so without this the profile opened next from this row would still
  * say "Seguir" for a request just sent from here.
+ *
+ * Only for a change that left access where it was. One that moved it drops the profile
+ * instead (see useRowFollow's onSuccess): two fields cannot turn a full view into a lock.
  */
 function settleCachedProfile(queryClient: QueryClient, username: string, result: FollowResult) {
   queryClient.setQueryData<Profile>(
@@ -212,7 +230,7 @@ function useRowFollow(
   const { username } = person;
 
   const { mutate } = useMutation({
-    mutationKey: ['follow', username],
+    mutationKey: queryKeys.followMutation(username),
     // The profile header's queue too: a tap here and one there reach the server in order.
     scope: followScope(username),
 
@@ -234,16 +252,29 @@ function useRowFollow(
     },
 
     onSuccess: (result, _action, { burst }) => {
-      // Before afterFollowChange: writing data marks an entry fresh again, and the stale
-      // mark afterFollowChange may put on it has to be the one that stays.
-      settleCachedProfile(queryClient, username, result);
-      afterFollowChange(queryClient, {
+      const change: FollowChange = {
         username,
         isPrivate: burst.isPrivate,
         before: burst.settled,
         result,
         viewer,
-      });
+      };
+
+      // What afterFollowChange is about to report, asked first, because the settle has to
+      // come before it.
+      if (accessChangeOf(change) === null) {
+        // Before afterFollowChange: writing data marks an entry fresh again, and the stale
+        // mark afterFollowChange may put on it has to be the one that stays.
+        settleCachedProfile(queryClient, username, result);
+      } else {
+        // Access moved, so the cached profile is the wrong view, not just an old count: the
+        // full one, recipes and all, of an account just unfollowed, or the lock of one just
+        // let in. Settled, the next visit would paint it under the new button until its
+        // refetch put it right. Dropped, it opens on the skeleton, then the truth — what
+        // afterRequestAccepted does for the same flash.
+        void queryClient.resetQueries({ queryKey: queryKeys.profile(username) });
+      }
+      afterFollowChange(queryClient, change);
 
       burst.settled = result.state;
       if (result.state === 'requested') burst.isPrivate = true;
@@ -462,13 +493,13 @@ function PeopleSkeleton({ label }: { label: string }) {
 export default function FollowersPage() {
   const t = useTranslations('profile');
   const tCommon = useTranslations('common');
-  const tRecipe = useTranslations('recipe');
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
   const { isAuthenticated, isLoading: authLoading, user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   const { showError } = useToast();
+  const apiErrorMessage = useApiErrorMessage();
 
   // Which load the list on screen answers. A new username, or a retry, starts a new one,
   // and until it answers the page shows skeletons rather than the previous answer.
@@ -541,14 +572,29 @@ export default function FollowersPage() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.profile(person.username) });
     },
 
-    onError: (_error, person, context) => {
+    onError: (error, person, context) => {
       const at = Math.max(0, context?.index ?? 0);
       updatePeople((current) =>
         current.some((p) => p.id === person.id)
           ? current
           : [...current.slice(0, at), person, ...current.slice(at)]
       );
-      showError(t('removeFollower.failed'));
+
+      const failed = t('removeFollower.failed');
+      const body = error instanceof FollowActionError ? error.body : null;
+      const code = apiErrorCodeOf(body);
+
+      showError(
+        error instanceof FollowActionError && error.offline
+          ? t('removeFollower.offline')
+          : // A specific code — an expired session, the rate limit — speaks for itself. The
+            // catch-all says no more than the page's own sentence, and a body without a code
+            // this build knows (the middleware's 429 has none) would put the server's
+            // English in front of a Spanish reader.
+            code !== null && code !== REMOVE_FAILURE_CODE
+            ? apiErrorMessage(body, failed)
+            : failed
+      );
     },
   });
 
@@ -641,7 +687,7 @@ export default function FollowersPage() {
             variant="contained"
             sx={{ mt: 3 }}
           >
-            {tRecipe('states.viewAuthor')}
+            {t('private.viewProfile')}
           </Button>
         </Box>
       </PageFrame>

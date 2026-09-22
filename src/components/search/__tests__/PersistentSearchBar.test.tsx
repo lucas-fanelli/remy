@@ -2,6 +2,7 @@ import { ThemeProvider, createTheme } from '@mui/material';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { setTestLocale } from '@/i18n/testing';
 import PersistentSearchBar from '../PersistentSearchBar';
 
 // Mock next/navigation
@@ -538,6 +539,94 @@ describe('PersistentSearchBar', () => {
         // No @username secondary text should appear
         expect(screen.queryByText('@solo_username')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  // ==================== PRIVATE ACCOUNTS ====================
+  // Private accounts are found too: one nobody can find is one nobody can ask to follow.
+  // These go through fetch, as the header's search box does — nothing in the app passes
+  // `results` — and answer with what /api/search really sends: no id, and the flag.
+  describe('A private account in the live results', () => {
+    const originalFetch = global.fetch;
+
+    beforeEach(() => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          users: [
+            { username: 'ana_cocina', fullName: 'Ana', avatar: null, bio: null, isPrivate: true },
+            { username: 'beto', fullName: null, avatar: null, bio: null, isPrivate: false },
+          ],
+          recipes: [],
+        }),
+      });
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      global.fetch = originalFetch;
+    });
+
+    async function searchAccounts() {
+      renderWithTheme(<PersistentSearchBar showSuggestions={true} />);
+      const input = screen.getByRole('textbox');
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: 'co' } });
+      await act(async () => {
+        jest.advanceTimersByTime(350);
+      });
+      await screen.findByText('beto');
+    }
+
+    const rowOf = (name: RegExp) => screen.getByRole('button', { name });
+
+    it('marks the private account with a lock that is read as well as seen', async () => {
+      await searchAccounts();
+
+      const lock = screen.getByRole('img', { name: 'Private Account' });
+      expect(rowOf(/ana_cocina/)).toContainElement(lock);
+      // The row's name carries it too, so a reader hears "private" before choosing.
+      expect(rowOf(/ana_cocina/)).toHaveAccessibleName(/Ana.*Private Account/);
+    });
+
+    it('draws no lock on the public account', async () => {
+      await searchAccounts();
+
+      expect(screen.getAllByRole('img', { name: 'Private Account' })).toHaveLength(1);
+      expect(rowOf(/beto/)).not.toContainElement(
+        screen.getByRole('img', { name: 'Private Account' })
+      );
+    });
+
+    it('opens the private account’s profile when it is tapped, with no follow button on it', async () => {
+      // The request is made from the profile, where the reader can see who they are asking.
+      await searchAccounts();
+
+      expect(screen.queryByRole('button', { name: /follow|request/i })).not.toBeInTheDocument();
+      fireEvent.click(rowOf(/ana_cocina/));
+      expect(mockPush).toHaveBeenCalledWith('/profile/ana_cocina');
+    });
+
+    it('keys each account by its username, since the route sends no id', async () => {
+      // Keyed by `user.id`, every row was 'user-undefined': React warned, and could reuse
+      // one account's row for another as the results changed under the reader's typing.
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await searchAccounts();
+
+      // React formats the warning from its arguments, so read them joined.
+      const logged = consoleErrorSpy.mock.calls.map((args) => args.map(String).join(' '));
+      consoleErrorSpy.mockRestore();
+      expect(logged.filter((line) => line.includes('same key'))).toEqual([]);
+    });
+
+    it('names the lock in Spanish for a Spanish reader', async () => {
+      setTestLocale('es');
+
+      await searchAccounts();
+
+      expect(screen.getByRole('img', { name: 'Cuenta privada' })).toBeInTheDocument();
     });
   });
 

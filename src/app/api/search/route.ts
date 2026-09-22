@@ -37,11 +37,15 @@ export async function GET(request: NextRequest) {
     // Search users by username - strip email from public results.
     // Defense-in-depth: UserRepository.search already excludes email at query level,
     // but we strip it here too in case the repository implementation changes.
+    // isPrivate is part of the header a locked profile shows anyone (/api/users/search
+    // sends it too). Without it every account found here looked public, and the lock the
+    // search bar and the search page draw on a private one could never appear.
     const users = (await userService.searchUsers(query.trim(), limit, offset)).map((u) => ({
       username: u.username,
       fullName: u.fullName,
       avatar: u.avatar,
       bio: u.bio,
+      isPrivate: u.isPrivate,
     }));
 
     // Optional auth — search is open to guests. Who is reading is resolved BEFORE the recipe

@@ -1,5 +1,5 @@
 'use client';
-import { LockOutlined, Person, Restaurant, Search } from '@mui/icons-material';
+import { Person, Restaurant, Search } from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -23,12 +23,6 @@ interface User {
   id: string;
   username: string;
   avatar?: string;
-  /**
-   * Private accounts are found too, so they can be asked to follow. Optional because it
-   * only draws the lock: a row without it reads as public, and the profile it opens still
-   * decides what the reader may see.
-   */
-  isPrivate?: boolean;
 }
 
 interface Recipe {
@@ -61,9 +55,6 @@ export default function SearchResults({
   onClose,
 }: SearchResultsProps) {
   const t = useTranslations('search');
-  // For the lock's name, 'Cuenta privada': the words on the switch that makes an account
-  // private, so the owner and the people who find them call it the same thing.
-  const tProfile = useTranslations('profile');
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -180,26 +171,7 @@ export default function SearchResults({
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    // The whole row is already the way to the profile, so a private account
-                    // gets a lock and no follow button (as on Instagram): the request is
-                    // made from the profile. A button here would also nest inside this
-                    // ListItemButton, and its click would open the profile as well.
-                    primary={
-                      <Box
-                        component="span"
-                        sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
-                      >
-                        {user.username}
-                        {user.isPrivate && (
-                          <LockOutlined
-                            // titleAccess gives the icon role="img" and this name, so the
-                            // lock is read as well as seen.
-                            titleAccess={tProfile('edit.private')}
-                            sx={{ fontSize: '1em', color: 'text.secondary', flexShrink: 0 }}
-                          />
-                        )}
-                      </Box>
-                    }
+                    primary={user.username}
                     secondary={isMobile ? null : `@${user.username}`}
                     primaryTypographyProps={{
                       fontWeight: 600,

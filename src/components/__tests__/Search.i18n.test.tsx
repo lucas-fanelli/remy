@@ -70,20 +70,6 @@ describe('SearchResults in Spanish', () => {
 
     expect(screen.getByText('No encontramos resultados para “pasta”')).toBeInTheDocument();
   });
-
-  it('should name the lock on a private account in Spanish', () => {
-    renderInSpanish(
-      <SearchResults
-        query="ana"
-        users={[{ id: '1', username: 'ana_cocina', isPrivate: true }]}
-        recipes={[]}
-        loading={false}
-        onClose={jest.fn()}
-      />
-    );
-
-    expect(screen.getByRole('img', { name: 'Cuenta privada' })).toBeInTheDocument();
-  });
 });
 
 describe('PersistentSearchBar in Spanish', () => {

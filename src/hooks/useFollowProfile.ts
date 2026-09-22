@@ -41,6 +41,15 @@ interface FollowBurst {
   settled: FollowFields;
   /** What the burst has done to access so far, so the profile refetches once, at the end. */
   access: AccessChange;
+  /**
+   * A tap of the burst cancelled a read of the profile that was already on its way, and the
+   * burst sends it again when it settles. That read is most often the previous burst's
+   * relock or unlock, and this burst's own `access` cannot stand in for it: "Seguir" tapped
+   * on a private account just unfollowed is answered 'requested', which changes nothing
+   * from where the server had the viewer, yet the page still shows the recipes the unfollow
+   * took away — and the paint marks that entry fresh, so no later read would come for it.
+   */
+  refetchOwed: boolean;
   /** Taps in the burst still waiting on the server. The last one out paints the result. */
   inFlight: number;
 }
@@ -65,7 +74,7 @@ function joinBurst(queryClient: QueryClient, username: string, current: FollowFi
 
   let burst = byAccount.get(username);
   if (!burst) {
-    burst = { settled: current, access: null, inFlight: 0 };
+    burst = { settled: current, access: null, refetchOwed: false, inFlight: 0 };
     byAccount.set(username, burst);
   }
 
@@ -140,22 +149,30 @@ export function useFollowProfile(username: string) {
     paint(burst.settled);
     // Only now, with nothing queued behind: a refetch while a later tap still waited could
     // answer before that tap reached the server and paint over its guess with the old state.
-    if (burst.access !== null) void queryClient.invalidateQueries({ queryKey: key });
+    if (burst.access !== null || burst.refetchOwed) {
+      void queryClient.invalidateQueries({ queryKey: key });
+    }
   };
 
   const { mutate } = useMutation({
-    mutationKey: ['follow', username],
+    mutationKey: queryKeys.followMutation(username),
     scope: followScope(username),
 
     mutationFn: (action: FollowAction) => sendFollowAction(username, action),
 
     onMutate: async (action): Promise<FollowContext> => {
       // A refetch already on its way would land on top of the paint below, with the answer
-      // from before the tap.
+      // from before the tap. Cancelled, it is owed rather than dropped: see refetchOwed.
+      // Paused waiting for the network counts too — cancelQueries takes those as well.
+      const cutShort = queryClient
+        .getQueryCache()
+        .findAll({ queryKey: key })
+        .some((query) => query.state.fetchStatus !== 'idle');
       await queryClient.cancelQueries({ queryKey: key });
 
       const current = fieldsOf(queryClient.getQueryData<Profile>(key));
       const burst = joinBurst(queryClient, username, current);
+      if (cutShort) burst.refetchOwed = true;
 
       // Paint first — the whole point, and why the button has no loading state.
       const guess = guessFollowState(action);

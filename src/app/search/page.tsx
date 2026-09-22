@@ -23,19 +23,9 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
-import { useSearch, type SearchUser } from '@/hooks/useSearch';
+import { useSearch } from '@/hooks/useSearch';
 import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
-
-/**
- * A found account, and whether it is private.
- *
- * Private accounts are found too: one nobody can find is one nobody can ask to follow,
- * which is the only way in. The flag is optional because it only draws the lock — an
- * answer without it reads as public, and that costs nothing, since the profile the row
- * opens decides for itself what this reader may see.
- */
-type FoundUser = SearchUser & { isPrivate?: boolean };
 
 // Fallback loading component for Suspense (useSearchParams requires a Suspense boundary)
 function SearchPageFallback() {
@@ -70,7 +60,7 @@ function SearchPageContent() {
    * the two are separate cache entries and the page only ever reads the one it asked for.
    */
   const search = useSearch(query);
-  const users: FoundUser[] = search.data?.users ?? [];
+  const users = search.data?.users ?? [];
   const recipes = search.data?.recipes ?? [];
   const loading = search.isPending;
   /** A search that failed is not a search that found nothing. */

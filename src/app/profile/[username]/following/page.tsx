@@ -29,12 +29,14 @@ import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import {
   FOLLOW_FAILURE_CODES,
   FollowActionError,
+  accessChangeOf,
   afterFollowChange,
   followScope,
   guessFollowState,
   isFollowState,
   sendFollowAction,
   type FollowAction,
+  type FollowChange,
   type FollowResult,
 } from '@/lib/follows/client/followAction';
 import { queryKeys } from '@/lib/query/keys';
@@ -131,6 +133,9 @@ async function loadFollowing(username: string): Promise<PeopleList> {
  * afterFollowChange marks that profile stale only when the relation moved. A request or a
  * cancel moves nothing, so without this the profile opened next from this row would still
  * say "Seguir" for a request just sent from here.
+ *
+ * Only for a change that left access where it was. One that moved it drops the profile
+ * instead (see useRowFollow's onSuccess): two fields cannot turn a full view into a lock.
  */
 function settleCachedProfile(queryClient: QueryClient, username: string, result: FollowResult) {
   queryClient.setQueryData<Profile>(
@@ -191,7 +196,7 @@ function useRowFollow(
   const { username } = person;
 
   const { mutate } = useMutation({
-    mutationKey: ['follow', username],
+    mutationKey: queryKeys.followMutation(username),
     // The profile header's queue too: a tap here and one there reach the server in order.
     scope: followScope(username),
 
@@ -213,16 +218,29 @@ function useRowFollow(
     },
 
     onSuccess: (result, _action, { burst }) => {
-      // Before afterFollowChange: writing data marks an entry fresh again, and the stale
-      // mark afterFollowChange may put on it has to be the one that stays.
-      settleCachedProfile(queryClient, username, result);
-      afterFollowChange(queryClient, {
+      const change: FollowChange = {
         username,
         isPrivate: burst.isPrivate,
         before: burst.settled,
         result,
         viewer,
-      });
+      };
+
+      // What afterFollowChange is about to report, asked first, because the settle has to
+      // come before it.
+      if (accessChangeOf(change) === null) {
+        // Before afterFollowChange: writing data marks an entry fresh again, and the stale
+        // mark afterFollowChange may put on it has to be the one that stays.
+        settleCachedProfile(queryClient, username, result);
+      } else {
+        // Access moved, so the cached profile is the wrong view, not just an old count: the
+        // full one, recipes and all, of an account just unfollowed, or the lock of one just
+        // let in. Settled, the next visit would paint it under the new button until its
+        // refetch put it right. Dropped, it opens on the skeleton, then the truth — what
+        // afterRequestAccepted does for the same flash.
+        void queryClient.resetQueries({ queryKey: queryKeys.profile(username) });
+      }
+      afterFollowChange(queryClient, change);
 
       burst.settled = result.state;
       if (result.state === 'requested') burst.isPrivate = true;
@@ -412,7 +430,6 @@ function PeopleSkeleton({ label }: { label: string }) {
 export default function FollowingPage() {
   const t = useTranslations('profile');
   const tCommon = useTranslations('common');
-  const tRecipe = useTranslations('recipe');
   const router = useRouter();
   const params = useParams();
   const username = params.username as string;
@@ -543,7 +560,7 @@ export default function FollowingPage() {
             variant="contained"
             sx={{ mt: 3 }}
           >
-            {tRecipe('states.viewAuthor')}
+            {t('private.viewProfile')}
           </Button>
         </Box>
       </PageFrame>

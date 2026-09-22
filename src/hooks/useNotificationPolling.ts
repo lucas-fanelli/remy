@@ -11,9 +11,8 @@ import type { NotificationType } from '@/domain/types/notification';
  * every request at once. Without it the badge and the pinned "Solicitudes de seguimiento"
  * count went on showing the old number for up to a minute. An event rather than a shared
  * store, because the poller lives in the navigation and the screens that change the count
- * sit under an unrelated branch of the tree.
- *
- * EditProfileModal spells this string itself; the two must stay equal.
+ * sit under an unrelated branch of the tree. Dispatch it through requestNotificationsRefresh,
+ * so the name is spelled once.
  */
 export const NOTIFICATIONS_REFRESH_EVENT = 'remy:notifications-refresh';
 

@@ -300,10 +300,15 @@ describe('/notifications/requests', () => {
       };
       renderPage();
       await screen.findByRole('link', { name: /bruno/ });
+      // The re-read after the answer never lands: what shows is the cache's own word.
+      readWith = () => new Promise<Answer>(() => {});
 
       fireEvent.click(button('Decline', 'bruno'));
 
       expect(await screen.findByText('This request is no longer there')).toBeInTheDocument();
+      expect(screen.queryByText('We could not decline the request')).not.toBeInTheDocument();
+      // No longer pending, so no longer hidden: bruno stays gone only if the cache forgot him.
+      await waitFor(() => expect(client.isMutating()).toBe(0));
       expect(rowsShown()).toEqual(['ana', 'carla']);
     });
 
@@ -464,6 +469,40 @@ describe('/notifications/requests', () => {
       await act(async () => pending.answer(answered('user03')));
       await waitFor(() => expect(refreshes).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(rowsShown()).toEqual(everyoneLeft()));
+    });
+
+    it('an answer confirmed while "Load More" is on its way does not lose the page', async () => {
+      server = many(23);
+      const pending = later();
+      answerWith = () => pending.promise;
+      renderPage();
+      await screen.findByRole('link', { name: /user00/ });
+      fireEvent.click(button('Accept', 'user03'));
+      await waitFor(() => expect(rowsShown()).toHaveLength(19));
+
+      // The next page is read while user03 is still in the table; its reply is held back.
+      const table = readWith;
+      const slow = later();
+      readWith = (offset, limit) => {
+        const page = table(offset, limit);
+        return slow.promise.then(() => page);
+      };
+      fireEvent.click(screen.getByRole('button', { name: 'Load More' }));
+      await waitFor(() => expect(reads()).toEqual([0, 20]));
+      readWith = table;
+
+      // The accept is confirmed first, and only then does that page's reply arrive.
+      await act(async () => pending.answer(answered('user03')));
+      await act(async () => slow.answer(ok(null)));
+
+      await waitFor(() => expect(client.isMutating()).toBe(0));
+      await waitFor(() => expect(refreshes).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(rowsShown()).toEqual(everyoneLeft()));
+      expect(rowsShown()).toHaveLength(22);
+      // The page asked again after the rows left (19), then the burst's re-read of both.
+      expect(reads()).toEqual([0, 20, 19, 0, 20]);
+      expect(screen.queryByRole('button', { name: 'Load More' })).not.toBeInTheDocument();
+      expect(screen.queryByText('We could not load your requests')).not.toBeInTheDocument();
     });
 
     it('offers no "Load More" once every row is loaded', async () => {

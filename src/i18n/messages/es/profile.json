@@ -45,7 +45,8 @@
   "followOffline": "{action, select, unfollow {Sin conexión — seguís siguiendo a esta persona} request {Sin conexión — no enviamos la solicitud} cancel {Sin conexión — tu solicitud sigue pendiente} other {Sin conexión — no empezaste a seguir a esta persona}}",
   "private": {
     "title": "Este perfil es privado",
-    "body": "{state, select, requested {Cuando acepte tu solicitud, vas a ver sus recetas.} other {Seguí esta cuenta para ver sus recetas.}}"
+    "body": "{state, select, requested {Cuando acepte tu solicitud, vas a ver sus recetas.} other {Seguí esta cuenta para ver sus recetas.}}",
+    "viewProfile": "Ver su perfil"
   },
   "unfollowPrivate": {
     "title": "¿Dejar de seguir a {name}?",
@@ -56,7 +57,8 @@
     "title": "¿Eliminar a {name} de tus seguidores?",
     "body": "No le vamos a avisar. Si tu cuenta es privada, va a dejar de ver tus recetas.",
     "confirm": "Eliminar",
-    "failed": "No pudimos eliminar a este seguidor"
+    "failed": "No pudimos eliminar a este seguidor",
+    "offline": "Sin conexión — sigue siendo tu seguidor"
   },
   "edit": {
     "title": "Editar perfil",

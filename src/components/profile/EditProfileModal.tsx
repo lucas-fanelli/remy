@@ -22,19 +22,14 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useId } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+// The poller's own dispatcher, rather than the event name spelled again here: importing it
+// brings in nothing but React.
+import { requestNotificationsRefresh } from '@/hooks/useNotificationPolling';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { MAX_UPLOAD_SIZE } from '@/lib/constants';
 import { queryKeys } from '@/lib/query/keys';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-
-/**
- * The window event the notification poller answers by fetching at once, instead of at its
- * next tick. It is NOTIFICATIONS_REFRESH_EVENT in useNotificationPolling, spelled again here
- * rather than imported so this form does not pull in the poller; the two must stay equal,
- * and EditProfileModal.test.tsx listens on the poller's constant to hold them to it.
- */
-const NOTIFICATIONS_REFRESH_EVENT = 'remy:notifications-refresh';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -278,7 +273,7 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         if (!formData.isPrivate) {
           void queryClient.invalidateQueries({ queryKey: queryKeys.followRequests() });
         }
-        window.dispatchEvent(new Event(NOTIFICATIONS_REFRESH_EVENT));
+        requestNotificationsRefresh();
       }
 
       onClose();

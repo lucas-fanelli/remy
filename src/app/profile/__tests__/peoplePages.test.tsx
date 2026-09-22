@@ -116,6 +116,14 @@ const cachedProfile = (username: string, isPrivate: boolean, followState: Follow
   followState,
 });
 
+/** The view a private account shows someone who does not follow it: no recipes at all. */
+const lockedProfile = (username: string, followState: FollowState) => ({
+  visibility: 'private',
+  user: { id: `id-${username}`, username, isPrivate: true },
+  stats: { recipesCount: 1, followersCount: 7, followingCount: 2 },
+  followState,
+});
+
 const stale = (client: QueryClient, key: readonly unknown[]) =>
   client.getQueryState(key)?.isInvalidated;
 
@@ -364,9 +372,48 @@ describe.each(PAGES)('the $name page', ({ Page, listOf, title, loadFailed, signI
 
       await waitFor(() => expect(client.getQueryData(queryKeys.recipe('r1'))).toBeUndefined());
       expect(stale(client, FEED)).toBe(true);
-      // Their followers count, and the viewer's own "following".
-      expect(stale(client, queryKeys.profile('fede'))).toBe(true);
+      // The viewer's own "following". Theirs goes further: see the next test.
       expect(stale(client, queryKeys.profile('vera'))).toBe(true);
+    });
+
+    it('unfollowing a private account drops its cached profile, recipes and all, instead of settling it', async () => {
+      serve(listOf([person('fede', true, 'following')]), [
+        ok({ success: true, state: 'none', was: 'following', followersCount: 4 }),
+      ]);
+      const client = seededClient();
+      // The full view a follower gets: the recipes are in it.
+      client.setQueryData(queryKeys.profile('fede'), {
+        ...cachedProfile('fede', true, 'following'),
+        recipes: [{ id: 'r1' }],
+      });
+
+      renderPage(Page, client);
+      fireEvent.click(await findButton('fede', 'Following'));
+      fireEvent.click(
+        within(screen.getByRole('dialog', { name: 'Unfollow fede?' })).getByRole('button', {
+          name: 'Unfollow',
+        })
+      );
+
+      expect(await findButton('fede', 'Follow')).toBeInTheDocument();
+      // Settled to "none", the entry would open the next visit on those recipes under
+      // "Follow", until its refetch put the lock back. Gone, the visit loads and meets it.
+      await waitFor(() => expect(client.getQueryData(queryKeys.profile('fede'))).toBeUndefined());
+    });
+
+    it('a request answered "following" drops the locked profile it had cached, instead of settling "Following" onto the lock', async () => {
+      // The account went public since the list loaded.
+      serve(listOf([person('eva', true, 'none')]), [
+        ok({ success: true, state: 'following', followersCount: 8 }),
+      ]);
+      const client = seededClient();
+      client.setQueryData(queryKeys.profile('eva'), lockedProfile('eva', 'none'));
+
+      renderPage(Page, client);
+      fireEvent.click(await findButton('eva', 'Follow'));
+
+      expect(await findButton('eva', 'Following')).toBeInTheDocument();
+      await waitFor(() => expect(client.getQueryData(queryKeys.profile('eva'))).toBeUndefined());
     });
 
     it('following a public account only dates the two counts it moved', async () => {
@@ -565,20 +612,41 @@ describe('"Remove" on your own followers list', () => {
     expect(screen.queryByText('We could not remove this follower')).not.toBeInTheDocument();
   });
 
-  it.each([
+  it.each<[string, Reply, string]>([
+    // The route's catch-all says no more than the page's own sentence does.
     [
-      'the server refuses',
-      () => Promise.resolve(refused(500, { code: 'user.removeFollowerFailed' })),
+      'the server’s catch-all refuses',
+      refused(500, { error: 'Failed to remove follower', code: 'user.removeFollowerFailed' }),
+      'We could not remove this follower',
     ],
-    ['the request never leaves', offline],
-  ])('puts the row back where it was, and says so, when %s', async (_case, reply) => {
+    // The middleware's 429 carries no code: its English `error` would reach a Spanish
+    // reader untranslated, so the page's own sentence stands in.
+    [
+      'the rate limit refuses without a code, as the middleware does',
+      refused(429, { error: 'Too many requests', retryAfter: 30 }),
+      'We could not remove this follower',
+    ],
+    // A specific code speaks for itself.
+    [
+      'the session has expired',
+      refused(401, { error: 'Unauthorized', code: 'unauthorized' }),
+      'You need to log in to do that.',
+    ],
+    [
+      'the rate limit refuses with its code',
+      refused(429, { error: 'Too many requests', code: 'rateLimited' }),
+      'Too many attempts. Wait a moment and try again.',
+    ],
+    // Nothing was refused: the request never reached the server.
+    ['the request never leaves', offline, 'No connection — they are still your follower'],
+  ])('puts the row back where it was, and says why, when %s', async (_case, reply, message) => {
     serve(followers(), [reply]);
 
     renderPage(FollowersPage);
     fireEvent.click(await findButton('bruno', 'Remove'));
     fireEvent.click(within(removeDialog('bruno')).getByRole('button', { name: 'Remove' }));
 
-    expect(await screen.findByText('We could not remove this follower')).toBeInTheDocument();
+    expect(await screen.findByText(message)).toBeInTheDocument();
     const handles = screen.getAllByText(/^@/).map((node) => node.textContent);
     expect(handles).toEqual(['@bruno', '@clara']);
   });

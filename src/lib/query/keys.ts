@@ -43,13 +43,18 @@ export const queryKeys = {
   /**
    * One owner's inbox (GET /api/follow-requests), every page loaded so far.
    *
-   * Keyed on the owner, unlike the keys above. Only logging out clears the cache: a session
-   * that expires, followed by another account signing in on the same tab, keeps it. An inbox
-   * is one person's private list — who is asking to follow them — and under a bare
-   * ['followRequests'] the next account would have been shown it for up to a minute. Keyed on
-   * the owner, the next account gets an entry of its own.
+   * Keyed on the owner, unlike the keys above. AuthContext empties the whole cache whenever
+   * the signed-in account changes, so this is a second line rather than the only one: an
+   * inbox is one person's private list — who is asking to follow them — and if anything ever
+   * served a cache across accounts again, the next account would still get an entry of its
+   * own rather than someone else's requests.
    */
   followRequestInbox: (ownerId: string) => ['followRequests', ownerId] as const,
+  /**
+   * The follow mutation for one account — the profile header's and each list row's. Not a
+   * query: a mutation key, spelled here so the three places that use it cannot drift apart.
+   */
+  followMutation: (username: string) => ['follow', username] as const,
 } as const;
 
 /** The first segment of every recipe-bearing key, for adapters that match by prefix. */

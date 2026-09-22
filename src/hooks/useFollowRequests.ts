@@ -263,15 +263,34 @@ export function useFollowRequests() {
     return rowsOf(data.pages).filter((row) => !hidden.has(row.requester.username));
   }, [data, answering]);
 
+  const loadMore = useCallback(async () => {
+    const result = await fetchNextPage();
+    // The rows already on screen stay: a failed "Cargar más" is a toast, not an error
+    // page that throws away what the owner was reading.
+    if (result.isFetchNextPageError) showError(t('requests.loadFailed'));
+  }, [fetchNextPage, showError, t]);
+
   /**
    * The server no longer has this request: neither may the cache. A read already on its way
    * was sent before the answer and still lists it, and landing after this write it would
-   * bring the row back, answered, so it is cancelled first. What it would have fetched, the
-   * refetch at the end of the burst fetches.
+   * bring the row back, answered, so it is cancelled first. That holds for "Cargar más" too:
+   * a next page lands on top of the pages it started from, the answered row among them.
+   *
+   * What a cancelled refetch would have fetched, the refetch at the end of the burst fetches.
+   * Not a cancelled "Cargar más": that refetch re-reads only the pages already in the cache,
+   * so the page the owner asked for would never come. It is asked for again, counted from
+   * the rows the server now holds, and waited for, so that the refetch finds it among the
+   * pages instead of cancelling it in turn.
    */
   const forget = async (username: string) => {
+    const read = queryClient.getQueryState(inboxKey);
+    const loadingMore =
+      read !== undefined &&
+      read.fetchStatus !== 'idle' &&
+      read.fetchMeta?.fetchMore?.direction === 'forward';
     await queryClient.cancelQueries({ queryKey: inboxKey });
     queryClient.setQueryData<Inbox>(inboxKey, (inbox) => withoutRequest(inbox, username));
+    if (loadingMore) await loadMore();
   };
 
   const { mutate } = useMutation({
@@ -326,13 +345,6 @@ export function useFollowRequests() {
     (username: string, answer: RequestAnswer) => mutate({ username, answer }),
     [mutate]
   );
-
-  const loadMore = useCallback(async () => {
-    const result = await fetchNextPage();
-    // The rows already on screen stay: a failed "Cargar más" is a toast, not an error
-    // page that throws away what the owner was reading.
-    if (result.isFetchNextPageError) showError(t('requests.loadFailed'));
-  }, [fetchNextPage, showError, t]);
 
   // Every row on screen was answered, but the server has more: fetch them rather than say
   // "no tenés solicitudes pendientes" over a list that is not finished. Not while any read

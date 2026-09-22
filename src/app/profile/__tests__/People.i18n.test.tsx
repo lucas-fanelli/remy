@@ -284,6 +284,24 @@ describe('Followers page in Spanish', () => {
       expect(await screen.findByText('No pudimos eliminar a este seguidor')).toBeInTheDocument();
       await waitFor(() => expect(screen.getByText('@bruno')).toBeInTheDocument());
     });
+
+    it('should say in Spanish that a removal that never left kept the follower', async () => {
+      withOfflineToggle({ followers: people });
+
+      renderInSpanish(<FollowersPage />);
+      const [first] = await screen.findAllByRole('button', { name: 'Eliminar' });
+      fireEvent.click(first);
+      fireEvent.click(
+        within(
+          screen.getByRole('dialog', { name: '¿Eliminar a bruno de tus seguidores?' })
+        ).getByRole('button', { name: 'Eliminar' })
+      );
+
+      expect(
+        await screen.findByText('Sin conexión — sigue siendo tu seguidor')
+      ).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText('@bruno')).toBeInTheDocument());
+    });
   });
 });
 

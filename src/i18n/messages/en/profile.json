@@ -45,7 +45,8 @@
   "followOffline": "{action, select, unfollow {No connection — you're still following them} request {No connection — your request was not sent} cancel {No connection — your request is still pending} other {No connection — you're not following them}}",
   "private": {
     "title": "This profile is private",
-    "body": "{state, select, requested {Once they accept your request, you'll see their recipes.} other {Follow this account to see their recipes.}}"
+    "body": "{state, select, requested {Once they accept your request, you'll see their recipes.} other {Follow this account to see their recipes.}}",
+    "viewProfile": "View their profile"
   },
   "unfollowPrivate": {
     "title": "Unfollow {name}?",
@@ -56,7 +57,8 @@
     "title": "Remove {name} from your followers?",
     "body": "We won't tell them. If your account is private, they will stop seeing your recipes.",
     "confirm": "Remove",
-    "failed": "We could not remove this follower"
+    "failed": "We could not remove this follower",
+    "offline": "No connection — they are still your follower"
   },
   "edit": {
     "title": "Edit Profile",

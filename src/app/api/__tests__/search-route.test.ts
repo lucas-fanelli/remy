@@ -91,3 +91,36 @@ describe("GET /api/search — a private account's recipes", () => {
     expect(body.recipes.map((r: { id: string }) => r.id)).toEqual(expected);
   });
 });
+
+describe('GET /api/search — the accounts it finds', () => {
+  // As the user service answers: the whole public profile, more than a result should carry.
+  const account = (username: string, isPrivate: boolean) => ({
+    id: `id-${username}`,
+    username,
+    email: `${username}@example.com`,
+    fullName: username.toUpperCase(),
+    avatar: null,
+    bio: null,
+    role: 'user',
+    isPrivate,
+  });
+
+  it('says which of them are private, so the search bar can draw the lock', async () => {
+    // It said nothing, and every private account a reader found looked public — the lock
+    // the search bar and the search page draw was unreachable.
+    (container.get as jest.Mock).mockReturnValue({
+      searchUsers: jest.fn().mockResolvedValue([account('ana', true), account('beto', false)]),
+    });
+    (getCurrentUser as jest.Mock).mockResolvedValue(null);
+
+    const response = await GET(new NextRequest('http://localhost:3000/api/search?q=a'));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    // Named field by field: the header a locked profile shows anyone, and nothing past it.
+    expect(body.users).toEqual([
+      { username: 'ana', fullName: 'ANA', avatar: null, bio: null, isPrivate: true },
+      { username: 'beto', fullName: 'BETO', avatar: null, bio: null, isPrivate: false },
+    ]);
+  });
+});

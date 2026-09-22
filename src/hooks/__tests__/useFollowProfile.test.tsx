@@ -280,6 +280,73 @@ describe('useFollowProfile', () => {
       expect(gets).toHaveLength(2);
     });
 
+    it.each([
+      ['is answered', ok({ state: 'requested', followersCount: 7 }), 'requested'],
+      // Settled by the failure instead of an answer: the relock is owed all the same.
+      ['fails', null, 'none'],
+    ] as const)(
+      'still relocks when the tap that cut the relock short %s',
+      async (_, answer, state) => {
+        // Unfollow a private account, then tap "Seguir" before the locked view arrives. The
+        // tap cancels the refetch so it cannot land on the new paint, and the request's own
+        // answer changes no access — the viewer was already out. Nothing else would send the
+        // refetch again, and the recipes the unfollow took away would stay on screen.
+        const user = { id: 'u1', username: 'ana', isPrivate: true };
+        const relock = later();
+        const lockedAnswer = {
+          user,
+          stats,
+          recipes: [],
+          isOwnProfile: false,
+          isPrivateProfile: true,
+          followState: state,
+        };
+        const profileAnswers = [
+          Promise.resolve(
+            ok({
+              user,
+              stats: { ...stats, followersCount: 8 },
+              recipes: [recipe],
+              isOwnProfile: false,
+              followState: 'following',
+            })
+          ),
+          relock.promise,
+          Promise.resolve(ok(lockedAnswer)),
+        ];
+        mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+          if (init?.method !== 'POST') {
+            return profileAnswers.shift() ?? Promise.resolve(ok(lockedAnswer));
+          }
+          if (String(url).endsWith('/unfollow')) {
+            return Promise.resolve(ok({ state: 'none', was: 'following', followersCount: 7 }));
+          }
+          return answer
+            ? Promise.resolve(answer)
+            : Promise.reject(new TypeError('Failed to fetch'));
+        });
+        const client = testQueryClient();
+        const { result } = renderHook(
+          () => ({ profile: useProfile('ana'), follow: useFollowProfile('ana') }),
+          { wrapper: queryWrapper(client) }
+        );
+        await waitFor(() => expect(result.current.profile.data?.visibility).toBe('public'));
+        const gets = () => mockFetch.mock.calls.filter(([, init]) => init?.method !== 'POST');
+
+        act(() => result.current.follow.act('unfollow'));
+        // The unfollow is answered and the relock is on its way — and held there.
+        await waitFor(() => expect(gets()).toHaveLength(2));
+        expect(client.isFetching({ queryKey: KEY })).toBe(1);
+
+        act(() => result.current.follow.act('request'));
+
+        await waitFor(() => expect(result.current.profile.data?.visibility).toBe('private'));
+        expect(result.current.profile.data?.followState).toBe(state);
+        expect(posts(mockFetch)).toEqual(['ana/unfollow', 'ana/follow']);
+        expect(gets()).toHaveLength(3);
+      }
+    );
+
     it('unfollowing one marks every recipe list stale and drops the recipe pages', async () => {
       mockFetch.mockResolvedValue(ok({ state: 'none', was: 'following', followersCount: 7 }));
       const { client, act: tap } = setup(full(true, 'following', 8));
