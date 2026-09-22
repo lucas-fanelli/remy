@@ -78,11 +78,19 @@ describe('Followers page in Spanish', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should ask a visitor without a session to sign in', async () => {
-    // The prompt belongs to a session that drops while the page is open: a visitor who
-    // arrives already signed out never clears the page's own `loading`, because only the
-    // fetch does and the fetch is skipped. That guard predates the migration and is not
-    // this branch's to change - the copy on the branch is.
+  it('should ask a visitor who arrives signed out to sign in', () => {
+    // The common case, and the one that used to render a blank page forever: the page
+    // checked its own `loading` before the session, and only the fetch clears `loading` —
+    // a fetch a signed-out visitor never makes.
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: false, user: null });
+
+    renderWithLocale(render, 'es', <FollowersPage />);
+
+    expect(screen.getByText('Iniciá sesión para ver los seguidores')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument();
+  });
+
+  it('should ask a visitor whose session drops while the page is open to sign in', async () => {
     const { rerender } = renderWithLocale(render, 'es', <FollowersPage />);
     await screen.findByRole('heading', { name: 'Seguidores' });
 
@@ -152,7 +160,16 @@ describe('Following page in Spanish', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should ask a visitor without a session to sign in', async () => {
+  it('should ask a visitor who arrives signed out to sign in', () => {
+    mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: false, user: null });
+
+    renderWithLocale(render, 'es', <FollowingPage />);
+
+    expect(screen.getByText('Iniciá sesión para ver a quién sigue')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument();
+  });
+
+  it('should ask a visitor whose session drops while the page is open to sign in', async () => {
     const { rerender } = renderWithLocale(render, 'es', <FollowingPage />);
     await screen.findByRole('heading', { name: 'Siguiendo' });
 

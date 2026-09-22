@@ -39,8 +39,14 @@ model User {
   posts         Post[]
   comments      Comment[]
   likes         Like[]
-  followers     Follow[]  @relation("UserFollowers")
-  following     Follow[]  @relation("UserFollowing")
+  // Who follows this user: the Follow rows whose followingId is this user.
+  // The names used to be paired the other way round — `followers` held the accounts this
+  // user FOLLOWS — so every `_count.followers` printed the following count, and every
+  // profile showed the two numbers swapped. Relation names never reach SQL: renaming them
+  // changes no table, column or constraint, and needs no migration.
+  followers     Follow[]  @relation("FollowsAsFollowed")
+  // Whom this user follows: the Follow rows whose followerId is this user.
+  following     Follow[]  @relation("FollowsAsFollower")
   pantry        UserPantry?
   savedRecipes  SavedRecipe[]
   ratings       Rating[]
@@ -146,8 +152,8 @@ model Follow {
   createdAt   DateTime @default(now())
 
   // Relations
-  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  follower    User     @relation("FollowsAsFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("FollowsAsFollowed", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followerId])
