@@ -5,6 +5,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { queryKeys } from '@/lib/query/keys';
 import RecipeFeed from '../RecipeFeed';
 
 // Speed up waitFor - needs longer timeout for multiple sequential async operations
@@ -107,11 +108,12 @@ const mockTheme = createTheme();
  * waiting out a retry, and a fresh client per render keeps one test's pages out of the
  * next test's cache.
  */
-const renderWithProviders = (component: React.ReactElement) => {
-  const queryClient = new QueryClient({
+const renderWithProviders = (
+  component: React.ReactElement,
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
+  })
+) => {
   let result: any;
   act(() => {
     result = render(
@@ -690,6 +692,42 @@ describe('RecipeFeed Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/recipe deleted successfully/i)).toBeInTheDocument();
     });
+  });
+
+  it('takes a deleted recipe off every cached list, not only the feed', async () => {
+    // The feed's delete filtered the feed's own pages and nothing else, so the recipe stayed
+    // on its author's profile — and in the pantry matches shown beside this very feed.
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
+    setupSuccessfulFetch();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    queryClient.setQueryData(queryKeys.profile('author'), {
+      visibility: 'public',
+      user: { id: 'u', username: 'author' },
+      stats: { recipesCount: 1, followersCount: 0, followingCount: 0 },
+      recipes: [{ id: mockRecipe.id }],
+      savedRecipes: [],
+      isFollowing: null,
+    });
+
+    renderWithProviders(<RecipeFeed />, queryClient);
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }));
+    await waitFor(() => {
+      expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
+    });
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/recipe deleted successfully/i)).toBeInTheDocument();
+    });
+    const profile = queryClient.getQueryData<{ recipes: unknown[] }>(queryKeys.profile('author'));
+    expect(profile?.recipes).toEqual([]);
   });
 
   it('should handle delete error', async () => {

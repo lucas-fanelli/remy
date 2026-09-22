@@ -1,7 +1,8 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { renderWithQueryClient as render } from '@/__tests__/helpers/queryClient';
 import '@testing-library/jest-dom';
 // Filters React's false 'suspended inside act' report for focus moved inside an effect
 import './editorHarness';

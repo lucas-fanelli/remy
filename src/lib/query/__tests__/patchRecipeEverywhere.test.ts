@@ -1,7 +1,15 @@
 import { QueryClient } from '@tanstack/react-query';
 import { VIEWER_SPECS, type Engagement } from '@/lib/engagement/specs';
 import { queryKeys } from '../keys';
-import { patchRecipeEverywhere, readEngagement } from '../patchRecipeEverywhere';
+import {
+  invalidateRecipeLists,
+  patchRecipeEverywhere,
+  readEngagement,
+  removeRecipeEverywhere,
+} from '../patchRecipeEverywhere';
+
+/** `removeRecipeEverywhere` marks the lists stale without awaiting it; let that land. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 /**
  * Patching every cache a recipe sits in, and being able to put all of them back.
@@ -286,6 +294,128 @@ describe('a profile in the cache', () => {
     );
 
     expect(VIEWER_SPECS.like.read(readEngagement(queryClient, 'a')!)).toBe(true);
+  });
+});
+
+describe('removeRecipeEverywhere', () => {
+  let queryClient: QueryClient;
+  const feedKey = queryKeys.feed({ difficulty: 'all', time: 'any', sort: 'newest' });
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  const seedEveryList = () => {
+    queryClient.setQueryData(feedKey, {
+      pages: [{ recipes: [recipe('gone'), recipe('stays')] }],
+      pageParams: [0],
+    });
+    queryClient.setQueryData(queryKeys.search('x'), {
+      users: [{ id: 'gone', username: 'shares-an-id' }],
+      recipes: [recipe('gone')],
+    });
+    queryClient.setQueryData(queryKeys.matched(), {
+      readyToCook: [recipe('gone')],
+      almostThere: [recipe('stays')],
+      pantryItemsCount: 2,
+    });
+    queryClient.setQueryData(queryKeys.profile('ana'), {
+      visibility: 'public',
+      user: { id: 'u', username: 'ana' },
+      stats: { recipesCount: 1, followersCount: 0, followingCount: 0 },
+      recipes: [recipe('gone')],
+      savedRecipes: [recipe('gone')],
+      isFollowing: null,
+    });
+  };
+
+  const ids = (list: { id: string }[] | undefined) => list?.map((r) => r.id);
+
+  it('takes a deleted recipe out of every list at once, not just the feed', () => {
+    // The feed's own delete filtered the feed's pages and nothing else, so the recipe stayed
+    // on its author's profile, in search, and in the pantry matches on the same page.
+    seedEveryList();
+
+    removeRecipeEverywhere(queryClient, 'gone');
+
+    type Feed = { pages: { recipes: { id: string }[] }[] };
+    expect(ids(queryClient.getQueryData<Feed>(feedKey)?.pages[0].recipes)).toEqual(['stays']);
+    type Search = { recipes: { id: string }[] };
+    expect(ids(queryClient.getQueryData<Search>(queryKeys.search('x'))?.recipes)).toEqual([]);
+    type Matches = { readyToCook: { id: string }[]; almostThere: { id: string }[] };
+    const matches = queryClient.getQueryData<Matches>(queryKeys.matched());
+    expect(ids(matches?.readyToCook)).toEqual([]);
+    expect(ids(matches?.almostThere)).toEqual(['stays']);
+    type Profile = { recipes: { id: string }[]; savedRecipes: { id: string }[] };
+    const profile = queryClient.getQueryData<Profile>(queryKeys.profile('ana'));
+    expect(ids(profile?.recipes)).toEqual([]);
+    expect(ids(profile?.savedRecipes)).toEqual([]);
+  });
+
+  it('never removes a person who happens to share the id', () => {
+    seedEveryList();
+
+    removeRecipeEverywhere(queryClient, 'gone');
+
+    const search = queryClient.getQueryData<{ users: { id: string }[] }>(queryKeys.search('x'));
+    expect(ids(search?.users)).toEqual(['gone']);
+  });
+
+  it("leaves the recipe's own page entry to the page", () => {
+    // Dropping it while that page is still mounted would make the page refetch a 404 on its
+    // way out.
+    const detail = { recipe: recipe('gone') };
+    queryClient.setQueryData(queryKeys.recipe('gone'), detail);
+
+    removeRecipeEverywhere(queryClient, 'gone');
+
+    expect(queryClient.getQueryData(queryKeys.recipe('gone'))).toBe(detail);
+  });
+
+  it('marks every list stale, since counts and page boundaries moved too', async () => {
+    seedEveryList();
+
+    removeRecipeEverywhere(queryClient, 'gone');
+
+    await settle();
+    for (const key of [
+      feedKey,
+      queryKeys.search('x'),
+      queryKeys.matched(),
+      queryKeys.profile('ana'),
+    ]) {
+      expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+    }
+  });
+});
+
+describe('invalidateRecipeLists', () => {
+  let queryClient: QueryClient;
+  const feedKey = queryKeys.feed({ difficulty: 'all', time: 'any', sort: 'newest' });
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  it('marks the lists stale without refetching any of them', async () => {
+    // Refetching now would re-download every page of a feed scrolled deep, for a change the
+    // reader can already see. Stale is enough: the next screen to show a list refetches it.
+    const queryFn = jest.fn().mockResolvedValue({ pages: [], pageParams: [] });
+    queryClient.setQueryData(feedKey, { pages: [], pageParams: [] });
+    queryClient.setQueryDefaults(feedKey, { queryFn });
+
+    await invalidateRecipeLists(queryClient);
+
+    expect(queryClient.getQueryState(feedKey)?.isInvalidated).toBe(true);
+    expect(queryFn).not.toHaveBeenCalled();
+  });
+
+  it("leaves a recipe's own page alone, which is not a list", async () => {
+    queryClient.setQueryData(queryKeys.recipe('a'), { recipe: recipe('a') });
+
+    await invalidateRecipeLists(queryClient);
+
+    expect(queryClient.getQueryState(queryKeys.recipe('a'))?.isInvalidated).toBe(false);
   });
 });
 

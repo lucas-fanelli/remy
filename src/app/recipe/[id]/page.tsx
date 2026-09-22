@@ -59,6 +59,7 @@ import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/
 import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { useTextDescriptor } from '@/i18n/text';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
+import { removeRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
 import type { PantryPlan } from '@/lib/cooking/pantryPlan';
@@ -221,8 +222,8 @@ export default function RecipeDetailPage() {
   };
 
   const handleEditSuccess = (_updatedRecipe: DomainRecipe) => {
-    // Invalidate the cache to refetch with updated data
-    queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+    // No invalidation here: useUpdateRecipe refreshes this page and marks every list stale
+    // itself, so no screen that edits a recipe can forget to.
     setSnackbar({ open: true, message: t('toasts.updated'), severity: 'success' });
   };
 
@@ -244,6 +245,10 @@ export default function RecipeDetailPage() {
         const errorData = await response.json();
         throw new Error(apiErrorMessage(errorData, t('toasts.deleteFailed')));
       }
+
+      // Out of the feed, the profiles, search and the matches before the reader lands on
+      // any of them. It went nowhere before: the feed you arrived at still had it.
+      removeRecipeEverywhere(queryClient, recipeId);
 
       setSnackbar({ open: true, message: t('toasts.deleted'), severity: 'success' });
 
