@@ -347,6 +347,46 @@ describe('useFollowProfile', () => {
       }
     );
 
+    it('locks a private account the moment the reader unfollows, before the server answers', async () => {
+      // Lucas, in production: the recipes took about four seconds to go — the unfollow's
+      // round trip, then the profile read again.
+      const pending = later();
+      mockFetch.mockReturnValue(pending.promise);
+      const { client, act: tap } = setup(full(true, 'following', 8));
+
+      act(() => tap('unfollow'));
+
+      await waitFor(() => expect(client.getQueryData<Profile>(KEY)?.visibility).toBe('private'));
+      expect(client.getQueryData<Profile>(KEY)).not.toHaveProperty('recipes');
+      expect(follow(client)).toEqual({ state: 'none', count: 7 });
+    });
+
+    it('gives the recipes back when that unfollow fails', async () => {
+      mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
+      const { client, act: tap } = setup(full(true, 'following', 8));
+
+      act(() => tap('unfollow'));
+
+      await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+      const profile = client.getQueryData<Profile>(KEY);
+      expect(profile?.visibility).toBe('public');
+      expect(profile).toMatchObject({ followState: 'following', recipes: [recipe] });
+      expect(follow(client)).toEqual({ state: 'following', count: 8 });
+    });
+
+    it('does not lock a public account the reader unfollows', async () => {
+      mockFetch.mockReturnValue(later().promise);
+      const { client, act: tap } = setup(full(false, 'following', 8));
+
+      act(() => tap('unfollow'));
+
+      await waitFor(() => expect(follow(client)).toEqual({ state: 'none', count: 7 }));
+      expect(client.getQueryData<Profile>(KEY)).toMatchObject({
+        visibility: 'public',
+        recipes: [recipe],
+      });
+    });
+
     it('unfollowing one marks every recipe list stale and drops the recipe pages', async () => {
       mockFetch.mockResolvedValue(ok({ state: 'none', was: 'following', followersCount: 7 }));
       const { client, act: tap } = setup(full(true, 'following', 8));

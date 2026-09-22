@@ -35,6 +35,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
+import { applyNotificationsToCache, type NotificationNews } from '@/hooks/notificationsToCache';
 import { FOLLOW_REQUESTS_PATH, afterRequestAccepted } from '@/hooks/useFollowRequests';
 import { useNotificationPolling } from '@/hooks/useNotificationPolling';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
@@ -118,6 +119,11 @@ export default function Navigation() {
     onMarkAllFailed: useCallback(
       (body: unknown) => showError(apiErrorMessage(body, tNotifications('markAllFailed'))),
       [showError, apiErrorMessage, tNotifications]
+    ),
+    // What other people did, reaching the screens it changed: see notificationsToCache.
+    onNewNotifications: useCallback(
+      (fresh: NotificationNews[]) => applyNotificationsToCache(queryClient, fresh, user?.username),
+      [queryClient, user?.username]
     ),
   });
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<null | HTMLElement>(null);

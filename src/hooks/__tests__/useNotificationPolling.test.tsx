@@ -175,3 +175,95 @@ describe('useNotificationPolling — follow requests', () => {
     });
   });
 });
+
+describe('useNotificationPolling — what other people did', () => {
+  // The bell is how the app hears about other people. Lucas, testing with two accounts in
+  // production: the owner accepted, and the requester's window went on saying "Solicitado"
+  // until he reloaded it — the bell had heard, and told nobody.
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockReset();
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  const note = (id: string) => ({
+    id,
+    type: 'follow_accepted',
+    isRead: false,
+    createdAt: '2026-09-22T00:00:00.000Z',
+    sender: { id: 's1', username: 'ana', fullName: null, avatar: null },
+    postId: null,
+    commentId: null,
+  });
+
+  const withNotes = (...notes: ReturnType<typeof note>[]) =>
+    ok({ notifications: notes, unreadCount: notes.length, pendingRequestsCount: 0 });
+
+  const ids = (onNew: jest.Mock, call: number) =>
+    (onNew.mock.calls[call][0] as { id: string }[]).map((n) => n.id);
+
+  function setupWithNews(onNew: jest.Mock, user = USER) {
+    return renderHook(
+      ({ who }) => useNotificationPolling({ user: who, onAuthInvalid, onNewNotifications: onNew }),
+      { initialProps: { who: user } }
+    );
+  }
+
+  it('reports what a fetch brought that the previous one did not have', async () => {
+    const onNew = jest.fn();
+    mockFetch.mockResolvedValueOnce(withNotes(note('n1')));
+    const { unmount } = setupWithNews(onNew);
+    await waitFor(() => expect(reads(mockFetch)).toHaveLength(1));
+    await act(async () => {});
+    // What was already there when the reader signed in is not news.
+    expect(onNew).not.toHaveBeenCalled();
+
+    mockFetch.mockResolvedValueOnce(withNotes(note('n2'), note('n1')));
+    act(() => requestNotificationsRefresh());
+    await waitFor(() => expect(onNew).toHaveBeenCalledTimes(1));
+    expect(ids(onNew, 0)).toEqual(['n2']);
+
+    mockFetch.mockResolvedValueOnce(withNotes(note('n2'), note('n1')));
+    act(() => requestNotificationsRefresh());
+    await waitFor(() => expect(reads(mockFetch)).toHaveLength(3));
+    await act(async () => {});
+    expect(onNew).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
+  it('starts again from a baseline when another account signs in', async () => {
+    const onNew = jest.fn();
+    mockFetch.mockResolvedValueOnce(withNotes(note('n1')));
+    const { rerender, unmount } = setupWithNews(onNew);
+    await waitFor(() => expect(reads(mockFetch)).toHaveLength(1));
+
+    // Everything the next account has is new to this bell, and none of it is news.
+    mockFetch.mockResolvedValueOnce(withNotes(note('m1'), note('m2')));
+    rerender({ who: { id: 'u2' } });
+    await waitFor(() => expect(reads(mockFetch)).toHaveLength(2));
+    await act(async () => {});
+
+    expect(onNew).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it('reads again when the reader comes back to the window, not only to the tab', async () => {
+    // Two windows side by side both stay visible, so moving between them never fired the
+    // visibility change the bell was listening for.
+    mockFetch.mockResolvedValue(withNotes());
+    const { unmount } = setup();
+    await waitFor(() => expect(reads(mockFetch)).toHaveLength(1));
+    // No jitter, so the test does not wait on a random delay.
+    jest.spyOn(Math, 'random').mockReturnValue(0);
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => expect(reads(mockFetch)).toHaveLength(2));
+    unmount();
+  });
+});
