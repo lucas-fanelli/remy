@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React from 'react';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface User {
   id: string;
@@ -159,7 +160,7 @@ export default function SearchResults({
                 >
                   <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
                     <Avatar
-                      src={user.avatar}
+                      src={cloudinaryImage(user.avatar, 'avatar')}
                       sx={{
                         bgcolor: 'primary.main',
                         width: { xs: 32, md: 40 },
@@ -200,7 +201,7 @@ export default function SearchResults({
                 >
                   <ListItemAvatar sx={{ minWidth: { xs: 44, md: 56 } }}>
                     <Avatar
-                      src={recipe.imageUrl}
+                      src={cloudinaryImage(recipe.imageUrl, 'avatar')}
                       variant="rounded"
                       sx={{
                         bgcolor: 'secondary.main',

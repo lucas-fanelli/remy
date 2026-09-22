@@ -21,6 +21,7 @@ import React, { useEffect, useState } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { MotionPaper } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface UserListItem {
   id: string;
@@ -167,7 +168,7 @@ export default function FollowersPage() {
                 >
                   <ListItemAvatar>
                     <Avatar
-                      src={follower.avatar || undefined}
+                      src={cloudinaryImage(follower.avatar, 'avatar') || undefined}
                       sx={{
                         width: 48,
                         height: 48,

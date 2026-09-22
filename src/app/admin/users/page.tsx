@@ -37,6 +37,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 /** Which request failed, not what to say about it - the sentence is looked up at render time. */
 type UsersFailure = 'load' | 'delete' | 'role';
@@ -278,7 +279,7 @@ export default function AdminUsersPage() {
                   <TableRow key={u.id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar src={u.avatar || undefined}>
+                        <Avatar src={cloudinaryImage(u.avatar, 'avatar') || undefined}>
                           <Person />
                         </Avatar>
                         <Box>

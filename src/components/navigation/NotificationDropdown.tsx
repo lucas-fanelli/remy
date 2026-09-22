@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React from 'react';
 import { useDateFnsLocale } from '@/i18n/dates';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface Notification {
   id: string;
@@ -165,7 +166,7 @@ export default function NotificationDropdown({
               >
                 <ListItemAvatar>
                   <Avatar
-                    src={notification.sender.avatar || undefined}
+                    src={cloudinaryImage(notification.sender.avatar, 'avatar') || undefined}
                     alt={notification.sender.username}
                     sx={{ width: 40, height: 40 }}
                   >

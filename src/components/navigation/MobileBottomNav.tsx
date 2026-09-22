@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import React from 'react';
 import { BRANDING } from '@/config/branding';
 import { useBrandLogo } from '@/config/useBrandLogo';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface NavItem {
   id: string;
@@ -157,7 +158,7 @@ export default function MobileBottomNav({
             >
               <Avatar
                 sx={{ width: { xs: 20, sm: 24 }, height: { xs: 20, sm: 24 } }}
-                src={user?.avatar || undefined}
+                src={cloudinaryImage(user?.avatar, 'avatar') || undefined}
               >
                 {user?.username?.charAt(0).toUpperCase()}
               </Avatar>

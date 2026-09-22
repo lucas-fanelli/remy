@@ -34,6 +34,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useNotificationPolling } from '@/hooks/useNotificationPolling';
+import { cloudinaryImage } from '@/lib/utils/cloudinary';
 import SlideUp from './common/SlideUp';
 import DesktopMenu from './navigation/DesktopMenu';
 import MobileBottomNav from './navigation/MobileBottomNav';
@@ -337,7 +338,7 @@ export default function Navigation() {
             <IconButton onClick={handleMenuOpen} size={isSmallDesktop ? 'small' : 'medium'}>
               <Avatar
                 sx={{ width: { xs: 20, md: 24 }, height: { xs: 20, md: 24 } }}
-                src={user?.avatar || undefined}
+                src={cloudinaryImage(user?.avatar, 'avatar') || undefined}
               >
                 {user?.username?.charAt(0).toUpperCase()}
               </Avatar>

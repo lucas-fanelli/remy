@@ -32,7 +32,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import React, { useRef } from 'react';
 import { useBrandLogo } from '@/config/useBrandLogo';
 import { ViewerState } from '@/domain/types/recipe';
-import { isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
 import DifficultyChip from './display/DifficultyChip';
 
@@ -245,7 +245,11 @@ export default function RecipeCard({
         ) : (
           <Box
             component="img"
-            src={recipe.imageUrl && isCloudinaryUrl(recipe.imageUrl) ? recipe.imageUrl : brandLogo}
+            src={
+              recipe.imageUrl && isCloudinaryUrl(recipe.imageUrl)
+                ? cloudinaryImage(recipe.imageUrl, 'card')
+                : brandLogo
+            }
             alt={recipe.title}
             onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
               // Non-Cloudinary URLs already use the fallback as src, so skip
@@ -320,7 +324,7 @@ export default function RecipeCard({
               <Avatar
                 component={Link}
                 href={`/profile/${recipe.author.username}`}
-                src={recipe.author.avatar ?? undefined}
+                src={cloudinaryImage(recipe.author.avatar, 'avatar') ?? undefined}
                 alt={recipe.author.username}
                 sx={{ width: 36, height: 36, mr: 1.5, textDecoration: 'none' }}
               >
