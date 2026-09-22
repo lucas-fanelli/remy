@@ -1,6 +1,14 @@
 'use client';
 
-import { FavoriteBorder, PersonAdd, ChatBubbleOutline, Star } from '@mui/icons-material';
+import {
+  FavoriteBorder,
+  PersonAdd,
+  PersonAddAlt1,
+  HowToReg,
+  ChatBubbleOutline,
+  Star,
+  ChevronRight,
+} from '@mui/icons-material';
 import {
   Box,
   Menu,
@@ -17,12 +25,14 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React from 'react';
+import { FOLLOW_REQUESTS_PATH } from '@/hooks/useFollowRequests';
 import { useDateFnsLocale } from '@/i18n/dates';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
+import type { NotificationType } from '@/domain/types/notification';
 
 interface Notification {
   id: string;
-  type: 'follow' | 'like' | 'comment' | 'rating';
+  type: NotificationType;
   isRead: boolean;
   createdAt: string;
   sender: {
@@ -40,6 +50,12 @@ interface NotificationDropdownProps {
   onClose: () => void;
   notifications: Notification[];
   unreadCount: number;
+  /**
+   * Follow requests waiting on an answer, from the requests table. It drives the pinned
+   * row, and it is deliberately not derived from `notifications`: those are only the first
+   * rows, can be read or deleted, and none of that answers a request.
+   */
+  pendingRequestsCount: number;
   markAllAsRead: () => void;
   markingAsRead: boolean;
   mounted: boolean;
@@ -50,6 +66,12 @@ function getNotificationIcon(type: string) {
   switch (type) {
     case 'follow':
       return <PersonAdd color="primary" />;
+    // The same person-and-plus family as a follow, told apart at a glance: someone asking
+    // (a request waiting on you), and someone who said yes to you.
+    case 'follow_request':
+      return <PersonAddAlt1 color="primary" />;
+    case 'follow_accepted':
+      return <HowToReg color="success" />;
     case 'like':
       return <FavoriteBorder color="error" />;
     case 'comment':
@@ -61,11 +83,42 @@ function getNotificationIcon(type: string) {
   }
 }
 
+/**
+ * "Solicitudes de seguimiento · N solicitudes pendientes", pinned above the notifications
+ * whenever anyone is waiting on an answer. Shared by this dropdown and /notifications.
+ *
+ * Pinned rather than found among the rows because a "quiere seguirte" can be read, deleted
+ * or pushed past the first ten, and the request would still be there. And a row of its own
+ * rather than buttons on each "quiere seguirte": every notification row is a button, and an
+ * "Aceptar" inside one would be a button nested in a button, its tap also opening the row.
+ */
+export function PendingRequestsRow({ count, onClick }: { count: number; onClick: () => void }) {
+  const t = useTranslations('notifications');
+  return (
+    <ListItemButton onClick={onClick} sx={{ py: 1.5 }}>
+      <ListItemAvatar>
+        <Avatar
+          sx={{ width: 40, height: 40, bgcolor: 'primary.main', color: 'primary.contrastText' }}
+        >
+          <PersonAddAlt1 fontSize="small" />
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText
+        primary={t('requests.title')}
+        secondary={t('requests.pending', { count })}
+        slotProps={{ primary: { variant: 'body2', sx: { fontWeight: 600 } } }}
+      />
+      <ChevronRight color="action" />
+    </ListItemButton>
+  );
+}
+
 export default function NotificationDropdown({
   anchorEl,
   onClose,
   notifications,
   unreadCount,
+  pendingRequestsCount,
   markAllAsRead,
   markingAsRead,
   mounted,
@@ -139,15 +192,31 @@ export default function NotificationDropdown({
         )}
       </Box>
 
-      {notifications.length === 0 ? (
-        <Box sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            {t('empty.title')}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            {t('empty.description')}
-          </Typography>
+      {pendingRequestsCount > 0 && (
+        <Box sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+          <PendingRequestsRow
+            count={pendingRequestsCount}
+            onClick={() => {
+              onClose();
+              router.push(FOLLOW_REQUESTS_PATH);
+            }}
+          />
         </Box>
+      )}
+
+      {notifications.length === 0 ? (
+        // Pending requests are something to act on, so "todavía no tenés notificaciones"
+        // under the row that lists them would contradict it.
+        pendingRequestsCount > 0 ? null : (
+          <Box sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              {t('empty.title')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              {t('empty.description')}
+            </Typography>
+          </Box>
+        )
       ) : (
         <List sx={{ p: 0 }}>
           {notifications.slice(0, 10).map((notification, index) => (

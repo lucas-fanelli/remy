@@ -1,5 +1,6 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
+import { renderWithQueryClient } from '@/__tests__/helpers/queryClient';
 import { renderWithLocale } from '@/i18n/testing';
 import EditProfileModal from '../EditProfileModal';
 
@@ -27,9 +28,10 @@ jest.mock('@/contexts/ToastContext', () => ({
   }),
 }));
 
+// Inside a QueryClient: a save that changes privacy marks the owner's profile stale.
 const renderInSpanish = () =>
   renderWithLocale(
-    render,
+    renderWithQueryClient,
     'es',
     <EditProfileModal open={true} onClose={jest.fn()} onSuccess={jest.fn()} />
   );
@@ -103,5 +105,20 @@ describe('EditProfileModal in Spanish', () => {
     await waitFor(() => {
       expect(mockShowSuccess).toHaveBeenCalledWith('¡Actualizamos tu perfil!');
     });
+  });
+
+  it('should warn in Spanish that going public accepts the pending requests', () => {
+    // The same owner as above, with a private account.
+    const signedIn = mockUseAuth();
+    mockUseAuth.mockReturnValue({ ...signedIn, user: { ...signedIn.user, isPrivate: true } });
+    renderInSpanish();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Cuenta privada/ }));
+
+    const note = 'Al hacer pública tu cuenta, aceptás todas las solicitudes pendientes.';
+    expect(screen.getByText(note)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Cuenta privada/ })).toHaveAccessibleDescription(
+      note
+    );
   });
 });

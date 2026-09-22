@@ -42,6 +42,12 @@
     "removeFailed": "No pudimos borrar ese registro."
   },
   "currentPasswordIncorrect": "La contraseña actual no es correcta",
+  "followRequest": {
+    "acceptFailed": "No pudimos aceptar la solicitud.",
+    "declineFailed": "No pudimos rechazar la solicitud.",
+    "listFailed": "No pudimos cargar tus solicitudes de seguimiento.",
+    "notFound": "Esta solicitud ya no está."
+  },
   "forbidden": "No tenés permiso para hacer eso.",
   "invalidRequest": "Hay datos que no son válidos. Revisalos y probá de nuevo.",
   "network": "No pudimos conectarnos. Revisá tu conexión y probá de nuevo.",
@@ -135,6 +141,7 @@
     "notFound": "No encontramos a ese usuario.",
     "profileFailed": "No pudimos cargar el perfil.",
     "profilePrivate": "Este perfil es privado.",
+    "removeFollowerFailed": "No pudimos eliminar a este seguidor.",
     "statsFailed": "No pudimos cargar las estadísticas.",
     "unfollowFailed": "No pudimos dejar de seguir a ese usuario."
   }

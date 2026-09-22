@@ -278,50 +278,6 @@ describe('UserRepository - Unit Tests', () => {
     });
   });
 
-  describe('update', () => {
-    it('should update user', async () => {
-      const updateData = {
-        fullName: 'Updated Name',
-        bio: 'Updated bio',
-      };
-
-      const updatedUser = { ...mockUser, ...updateData };
-      prismaMock.user.update.mockResolvedValue(updatedUser);
-
-      const result = await userRepository.update('user-123', updateData);
-
-      expect(result).toEqual(updatedUser);
-      expect(prismaMock.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-123' },
-        data: updateData,
-      });
-    });
-
-    it('should update single field', async () => {
-      const updateData = { bio: 'New bio' };
-      const updatedUser = { ...mockUser, bio: 'New bio' };
-      prismaMock.user.update.mockResolvedValue(updatedUser);
-
-      const result = await userRepository.update('user-123', updateData);
-
-      expect(result.bio).toBe('New bio');
-      expect(prismaMock.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-123' },
-        data: updateData,
-      });
-    });
-
-    it('should update privacy setting', async () => {
-      const updateData = { isPrivate: true };
-      const updatedUser = { ...mockUser, isPrivate: true };
-      prismaMock.user.update.mockResolvedValue(updatedUser);
-
-      const result = await userRepository.update('user-123', updateData);
-
-      expect(result.isPrivate).toBe(true);
-    });
-  });
-
   describe('updatePassword', () => {
     it('should update user password', async () => {
       const newHashedPassword = 'new_hashed_password';

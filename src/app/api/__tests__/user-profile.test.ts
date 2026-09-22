@@ -8,7 +8,6 @@ jest.mock('@/lib/database/prisma', () => ({
   default: {
     user: { findUnique: jest.fn() },
     post: { findMany: jest.fn() },
-    follow: { findUnique: jest.fn() },
     savedRecipe: { findMany: jest.fn() },
   },
 }));
@@ -19,22 +18,31 @@ jest.mock('@/lib/api/auth', () => ({ verifySessionToken: jest.fn() }));
 // to answer.
 jest.mock('@/lib/api/viewerState', () => ({ loadViewerState: jest.fn(async () => () => null) }));
 
+// Where the viewer stands with the account. How it is derived — a follow outranks a
+// request, a request to a public account counts for nothing — is state.test.ts's; here each
+// test says what it is, and checks the route both shows it and decides by it.
+jest.mock('@/lib/follows/state', () => ({ followStateOf: jest.fn() }));
+
 // The real rule, wrapped so a test can check the route asks it rather than deciding alone.
 jest.mock('@/lib/privacy/visibility', () => {
   const actual = jest.requireActual('@/lib/privacy/visibility');
-  return { ...actual, canViewContentOf: jest.fn(actual.canViewContentOf) };
+  return { ...actual, canViewContent: jest.fn(actual.canViewContent) };
 });
 
 import { verifySessionToken } from '@/lib/api/auth';
 import { loadViewerState } from '@/lib/api/viewerState';
 import prisma from '@/lib/database/prisma';
-import { canViewContentOf, visiblePostsWhere } from '@/lib/privacy/visibility';
+import { followStateOf } from '@/lib/follows/state';
+import { canViewContent, visiblePostsWhere } from '@/lib/privacy/visibility';
 import { GET } from '../users/[username]/profile/route';
+import type { FollowState } from '@/domain/types/follow';
 
-const { canViewContentOf: realCanViewContentOf } = jest.requireActual('@/lib/privacy/visibility');
+const { canViewContent: realCanViewContent } = jest.requireActual('@/lib/privacy/visibility');
 
 const OWNER_ID = 'owner-1';
 const STRANGER_ID = 'stranger-1';
+
+const STATS = { recipesCount: 1, followersCount: 2, followingCount: 3 };
 
 /** The account row as the first query selects it: the header and the three counts. */
 function account(isPrivate: boolean) {
@@ -80,6 +88,11 @@ function accountLookupFinds(isPrivate: boolean) {
   );
 }
 
+/** Where the viewer stands with the account, as src/lib/follows/state.ts would say. */
+function viewerStands(state: FollowState) {
+  (followStateOf as jest.Mock).mockResolvedValue(state);
+}
+
 /** A request from `viewerId`, or from nobody when it is null. */
 function requestAs(viewerId: string | null, query = ''): NextRequest {
   if (viewerId === null) {
@@ -103,11 +116,11 @@ const accountQuery = () => (prisma.user.findUnique as jest.Mock).mock.calls[0][0
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // clearAllMocks keeps a queued mockResolvedValueOnce; a test that queued one and was never
+  // clearAllMocks keeps a queued mockReturnValueOnce; a test that queued one and was never
   // asked must not hand it to the next test.
-  (canViewContentOf as jest.Mock).mockReset().mockImplementation(realCanViewContentOf);
+  (canViewContent as jest.Mock).mockReset().mockImplementation(realCanViewContent);
+  (followStateOf as jest.Mock).mockReset().mockResolvedValue('none');
   (prisma.post.findMany as jest.Mock).mockResolvedValue([RECIPE]);
-  (prisma.follow.findUnique as jest.Mock).mockResolvedValue(null);
   (prisma.savedRecipe.findMany as jest.Mock).mockResolvedValue([]);
 });
 
@@ -116,10 +129,10 @@ describe('GET /api/users/[username]/profile — a private account', () => {
     accountLookupFinds(true);
   });
 
-  // The locked view is the person and nothing of their recipes. The recipes used to be
-  // selected inside the account lookup itself and thrown away afterwards, so "no recipe
-  // query ran" held even then; what proves they are no longer read is the lookup's own
-  // select.
+  // The locked view is the header: the person, the three counts and where the viewer
+  // stands — nothing of the recipes. The recipes used to be selected inside the account
+  // lookup itself and thrown away afterwards, so "no recipe query ran" held even then; what
+  // proves they are no longer read is the lookup's own select.
   const LOCKED = {
     user: {
       id: OWNER_ID,
@@ -129,33 +142,89 @@ describe('GET /api/users/[username]/profile — a private account', () => {
       bio: 'Stews, mostly',
       isPrivate: true,
     },
+    stats: STATS,
     recipes: [],
     isOwnProfile: false,
     isPrivateProfile: true,
   };
 
-  it('shows a stranger the header only, and never reads the recipes', async () => {
-    const response = await GET(requestAs(STRANGER_ID), context);
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual(LOCKED);
+  function expectNoRecipesRead() {
     expect(accountQuery().select).not.toHaveProperty('posts');
     expect(prisma.post.findMany).not.toHaveBeenCalled();
     expect(prisma.savedRecipe.findMany).not.toHaveBeenCalled();
     expect(loadViewerState).not.toHaveBeenCalled();
+  }
+
+  it('shows a stranger the header and the counts, offers to follow, and never reads the recipes', async () => {
+    const response = await GET(requestAs(STRANGER_ID), context);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ...LOCKED, followState: 'none' });
+    expect(followStateOf).toHaveBeenCalledWith(prisma, STRANGER_ID, OWNER_ID);
+    expectNoRecipesRead();
   });
 
-  it('shows a signed-out visitor the same locked view', async () => {
+  it('shows someone whose request is pending that it is, and still no recipes', async () => {
+    // "Solicitado" on the button, and a request opens nothing.
+    viewerStands('requested');
+
+    const response = await GET(requestAs(STRANGER_ID), context);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ...LOCKED, followState: 'requested' });
+    expectNoRecipesRead();
+  });
+
+  it('shows a signed-out visitor the same locked view, with no follow state', async () => {
     const response = await GET(requestAs(null), context);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual(LOCKED);
+    expect(await response.json()).toEqual({ ...LOCKED, followState: null });
     expect(verifySessionToken).not.toHaveBeenCalled();
-    expect(accountQuery().select).not.toHaveProperty('posts');
-    expect(prisma.post.findMany).not.toHaveBeenCalled();
+    expect(followStateOf).not.toHaveBeenCalled();
+    expectNoRecipesRead();
   });
 
-  it('shows the owner their recipes, their counts and their website', async () => {
+  it('lets an accepted follower in: the recipes, the website, and that they follow', async () => {
+    viewerStands('following');
+
+    const response = await GET(requestAs(STRANGER_ID), context);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.isPrivateProfile).toBeUndefined();
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: OWNER_ID } })
+    );
+    expect(body.recipes).toEqual([expect.objectContaining({ id: 'post-1' })]);
+    expect(body.stats).toEqual(STATS);
+    expect(body.user).toEqual(
+      expect.objectContaining({ isPrivate: true, website: 'https://chef.example' })
+    );
+    expect(body.followState).toBe('following');
+    expect(body.isFollowing).toBe(true);
+    // Their own profile only
+    expect(body.savedRecipes).toBeUndefined();
+  });
+
+  it('decides through the shared rule, handing it whether the viewer follows', async () => {
+    // The follow state is read once, for the button, and passed on: the rule is not
+    // re-derived here, and the follow row is not read a second time.
+    (canViewContent as jest.Mock).mockReturnValueOnce(true);
+
+    const response = await GET(requestAs(STRANGER_ID), context);
+    const body = await response.json();
+
+    expect(canViewContent).toHaveBeenCalledWith(
+      STRANGER_ID,
+      expect.objectContaining({ id: OWNER_ID, isPrivate: true }),
+      false
+    );
+    expect(body.isPrivateProfile).toBeUndefined();
+    expect(body.recipes).toEqual([expect.objectContaining({ id: 'post-1' })]);
+  });
+
+  it('shows the owner their recipes, their counts and their website, and no follow button', async () => {
     const response = await GET(requestAs(OWNER_ID), context);
     const body = await response.json();
 
@@ -173,25 +242,12 @@ describe('GET /api/users/[username]/profile — a private account', () => {
     expect(body.recipes).toEqual([
       expect.objectContaining({ id: 'post-1', title: 'Secret stew', likeCount: 1 }),
     ]);
-    expect(body.stats).toEqual({ recipesCount: 1, followersCount: 2, followingCount: 3 });
+    expect(body.stats).toEqual(STATS);
     expect(body.user.website).toBe('https://chef.example');
-  });
-
-  it('lets in whoever the shared rule lets in', async () => {
-    // Stands in for S3, where the rule also admits an accepted follower: the change is made
-    // in visibility.ts alone, and this route has to follow it rather than decide by itself.
-    (canViewContentOf as jest.Mock).mockResolvedValueOnce(true);
-
-    const response = await GET(requestAs(STRANGER_ID), context);
-    const body = await response.json();
-
-    expect(canViewContentOf).toHaveBeenCalledWith(
-      prisma,
-      STRANGER_ID,
-      expect.objectContaining({ id: OWNER_ID, isPrivate: true })
-    );
-    expect(body.isPrivateProfile).toBeUndefined();
-    expect(body.recipes).toEqual([expect.objectContaining({ id: 'post-1' })]);
+    expect(body.user.isPrivate).toBe(true);
+    expect(body.followState).toBeNull();
+    expect(body).not.toHaveProperty('isFollowing');
+    expect(followStateOf).not.toHaveBeenCalled();
   });
 });
 
@@ -227,8 +283,11 @@ describe('GET /api/users/[username]/profile — a public account', () => {
     accountLookupFinds(false);
   });
 
-  it('shows a stranger the recipes, and whether they follow the account', async () => {
-    (prisma.follow.findUnique as jest.Mock).mockResolvedValue({ id: 'follow-1' });
+  it.each<[FollowState, boolean]>([
+    ['following', true],
+    ['none', false],
+  ])('shows a stranger the recipes, and that they stand at %p', async (state, isFollowing) => {
+    viewerStands(state);
 
     const response = await GET(requestAs(STRANGER_ID), context);
     const body = await response.json();
@@ -236,16 +295,40 @@ describe('GET /api/users/[username]/profile — a public account', () => {
     expect(response.status).toBe(200);
     expect(body.recipes).toEqual([expect.objectContaining({ id: 'post-1' })]);
     expect(body.isOwnProfile).toBe(false);
-    expect(body.isFollowing).toBe(true);
+    expect(body.user.isPrivate).toBe(false);
+    expect(body.followState).toBe(state);
+    // Kept for a tab still running the bundle from before followState
+    expect(body.isFollowing).toBe(isFollowing);
+    expect(followStateOf).toHaveBeenCalledWith(prisma, STRANGER_ID, OWNER_ID);
   });
 
-  it('shows a signed-out visitor the recipes', async () => {
+  it('reads the recipes alongside the follow state, not after it', async () => {
+    // A public profile is visible whatever the follow state says, so waiting for it before
+    // asking for the recipes only added a round trip to the most visited route.
+    let answerFollowState: (state: FollowState) => void = () => {};
+    (followStateOf as jest.Mock).mockReturnValue(
+      new Promise((resolve) => {
+        answerFollowState = resolve;
+      })
+    );
+
+    const pending = GET(requestAs(STRANGER_ID), context);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(prisma.post.findMany).toHaveBeenCalled();
+    answerFollowState('none');
+    expect((await pending).status).toBe(200);
+  });
+
+  it('shows a signed-out visitor the recipes, and no follow state', async () => {
     const response = await GET(requestAs(null), context);
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.recipes).toEqual([expect.objectContaining({ id: 'post-1' })]);
-    expect(body.isFollowing).toBeUndefined();
+    expect(body.followState).toBeNull();
+    expect(body).not.toHaveProperty('isFollowing');
+    expect(followStateOf).not.toHaveBeenCalled();
   });
 
   it('pages the recipes by postsLimit and postsOffset', async () => {
@@ -264,5 +347,6 @@ it('answers 404 for an account that does not exist, and reads nothing else', asy
 
   expect(response.status).toBe(404);
   expect(await response.json()).toEqual({ error: 'User not found', code: 'user.notFound' });
+  expect(followStateOf).not.toHaveBeenCalled();
   expect(prisma.post.findMany).not.toHaveBeenCalled();
 });

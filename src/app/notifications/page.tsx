@@ -1,6 +1,13 @@
 'use client';
 
-import { FavoriteBorder, PersonAdd, ChatBubbleOutline, Star } from '@mui/icons-material';
+import {
+  FavoriteBorder,
+  PersonAdd,
+  PersonAddAlt1,
+  HowToReg,
+  ChatBubbleOutline,
+  Star,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -12,22 +19,27 @@ import {
   ListItemText,
   Button,
   Alert,
+  Skeleton,
 } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
+import { PendingRequestsRow } from '@/components/navigation/NotificationDropdown';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { FOLLOW_REQUESTS_PATH, afterRequestAccepted } from '@/hooks/useFollowRequests';
 import { useDateFnsLocale } from '@/i18n/dates';
 import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
+import type { NotificationType } from '@/domain/types/notification';
 
 interface Notification {
   id: string;
-  type: 'follow' | 'like' | 'comment' | 'rating';
+  type: NotificationType;
   isRead: boolean;
   createdAt: string;
   sender: {
@@ -42,6 +54,36 @@ interface Notification {
 
 const PAGE_SIZE = 20;
 
+/**
+ * The page before its first answer, sized like it: the title is known, the rows are not.
+ * It used to render nothing at all, a blank column under the header until the list arrived.
+ */
+function NotificationsSkeleton({ label }: { label: string }) {
+  return (
+    <Paper role="status" aria-label={label}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <Box
+          key={i}
+          sx={{
+            display: 'flex',
+            gap: 2,
+            px: 2,
+            py: 1.5,
+            borderBottom: i < 4 ? 1 : 0,
+            borderColor: 'divider',
+          }}
+        >
+          <Skeleton variant="circular" width={40} height={40} />
+          <Box sx={{ flex: 1 }}>
+            <Skeleton variant="text" width="70%" />
+            <Skeleton variant="text" width="25%" />
+          </Box>
+        </Box>
+      ))}
+    </Paper>
+  );
+}
+
 export default function NotificationsPage() {
   const t = useTranslations('notifications');
   const tCommon = useTranslations('common');
@@ -52,7 +94,14 @@ export default function NotificationsPage() {
   // this page had none, which is part of why its failures had nowhere to appear.
   const { showError } = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  /**
+   * Follow requests waiting on an answer, as this page's own GET counted them in the
+   * requests table. Not the navigation's copy: this page already makes the request that
+   * carries it, and a second source could disagree with the rows it sits above.
+   */
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
@@ -92,6 +141,11 @@ export default function NotificationsPage() {
         setLoadFailed(false);
         const data = await response.json();
         const fetched = data.notifications || [];
+        // Every page answers the count as it is now, so the latest page's is the truest.
+        const pending = data.pendingRequestsCount;
+        setPendingRequestsCount(
+          typeof pending === 'number' && Number.isFinite(pending) && pending > 0 ? pending : 0
+        );
         if (append) {
           setNotifications((prev) => [...prev, ...fetched]);
         } else {
@@ -160,10 +214,15 @@ export default function NotificationsPage() {
     }
   };
 
+  // The same icons as the dropdown (NotificationDropdown.tsx), which says why these two.
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'follow':
         return <PersonAdd color="primary" />;
+      case 'follow_request':
+        return <PersonAddAlt1 color="primary" />;
+      case 'follow_accepted':
+        return <HowToReg color="success" />;
       case 'like':
         return <FavoriteBorder color="error" />;
       case 'comment':
@@ -187,46 +246,69 @@ export default function NotificationsPage() {
     // Mark as read (best effort) before navigating
     if (!notification.isRead) {
       try {
-        await fetch(`/api/notifications/${notification.id}`, { method: 'PATCH' });
+        await fetch(`/api/notifications/${notification.id}`, {
+          method: 'PATCH',
+          // The middleware refuses a write without it (CSRF); the dropdown always sent it.
+          headers: { 'X-Requested-With': 'fetch' },
+        });
       } catch {} // Best effort
       setNotifications((prev) =>
         prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
       );
     }
 
-    if (notification.type === 'follow') {
+    // The same routing as the dropdown's (Navigation.tsx).
+    if (notification.type === 'follow_request') {
+      router.push(FOLLOW_REQUESTS_PATH);
+    } else if (notification.type === 'follow' || notification.type === 'follow_accepted') {
+      if (notification.type === 'follow_accepted') {
+        afterRequestAccepted(queryClient, notification.sender.username, user?.username);
+      }
       router.push(`/profile/${notification.sender.username}`);
     } else if (notification.postId) {
       router.push(`/recipe/${notification.postId}`);
     }
   };
 
-  if (isLoading) {
-    return null;
-  }
+  const header = (unreadCount: number) => (
+    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+        {t('title')}
+      </Typography>
+      {unreadCount > 0 && (
+        <Button variant="text" onClick={markAllAsRead} disabled={markingAsRead} size="small">
+          {markingAsRead ? t('marking') : t('markAll')}
+        </Button>
+      )}
+    </Box>
+  );
 
-  if (!user) {
-    return null;
-  }
-
-  if (loading) {
-    return null;
+  // Signed out as well: the redirect above is on its way.
+  if (isLoading || !user || loading) {
+    return (
+      <PageFrame width="reading">
+        {header(0)}
+        <NotificationsSkeleton label={tCommon('status.loading')} />
+      </PageFrame>
+    );
   }
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <PageFrame width="reading">
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4" sx={{ fontWeight: 600 }}>
-          {t('title')}
-        </Typography>
-        {unreadCount > 0 && (
-          <Button variant="text" onClick={markAllAsRead} disabled={markingAsRead} size="small">
-            {markingAsRead ? t('marking') : t('markAll')}
-          </Button>
-        )}
-      </Box>
+      {header(unreadCount)}
+
+      {/* Pinned above everything, as in the dropdown: see PendingRequestsRow for why it is a
+          row of its own and not buttons on each "quiere seguirte". */}
+      {!loadFailed && pendingRequestsCount > 0 && (
+        <Paper sx={{ mb: 2, overflow: 'hidden' }}>
+          <PendingRequestsRow
+            count={pendingRequestsCount}
+            onClick={() => router.push(FOLLOW_REQUESTS_PATH)}
+          />
+        </Paper>
+      )}
 
       {/* A read that failed is not a read that found nothing. Before this, a 500 rendered
           "you have no notifications yet" — the most reassuring possible way to show an
@@ -245,14 +327,18 @@ export default function NotificationsPage() {
           {t('loadFailed')}
         </Alert>
       ) : notifications.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="body1" color="text.secondary">
-            {t('empty.title')}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {t('empty.description')}
-          </Typography>
-        </Paper>
+        // Not under a pinned row of requests waiting on an answer: "todavía no tenés
+        // notificaciones" would contradict it.
+        pendingRequestsCount > 0 ? null : (
+          <Paper sx={{ p: 4, textAlign: 'center' }}>
+            <Typography variant="body1" color="text.secondary">
+              {t('empty.title')}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {t('empty.description')}
+            </Typography>
+          </Paper>
+        )
       ) : (
         <Paper>
           <List sx={{ width: '100%' }}>

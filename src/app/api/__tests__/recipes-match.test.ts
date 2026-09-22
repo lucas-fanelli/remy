@@ -29,16 +29,18 @@ import { admits, type PostRow } from './helpers/postWhere';
 import { GET } from '../recipes/match/route';
 
 /**
- * Whose recipes the pantry match may suggest. It used to be public authors only, at all
- * three places the route reads posts, so a private author never matched their own recipes
- * against their own pantry.
+ * Whose recipes the pantry match may suggest: public authors, the viewer's own, and private
+ * authors the viewer follows. It used to be public authors only, at all three places the
+ * route reads posts, so a private author never matched their own recipes against their own
+ * pantry.
  */
 
 const VIEWER = '11111111-1111-4111-8111-111111111111'; // keeps a private account
 const OTHER_PRIVATE = '22222222-2222-4222-8222-222222222222';
 const PUBLIC_AUTHOR = '33333333-3333-4333-8333-333333333333';
+const FOLLOWED_PRIVATE = '44444444-4444-4444-8444-444444444444'; // the viewer follows them
 
-function post(id: string, userId: string, isPrivate: boolean): PostRow {
+function post(id: string, userId: string, isPrivate: boolean, followerIds: string[] = []): PostRow {
   return {
     id,
     userId,
@@ -53,7 +55,15 @@ function post(id: string, userId: string, isPrivate: boolean): PostRow {
       { name: 'tomato', amount: '2', unit: 'u' },
       { name: 'onion', amount: '1', unit: 'u' },
     ],
-    user: { id: userId, username: `u-${userId.slice(0, 4)}`, avatar: null, isPrivate },
+    user: {
+      id: userId,
+      username: `u-${userId.slice(0, 4)}`,
+      avatar: null,
+      isPrivate,
+      // The author's Follow rows as `followers` holds them, for visiblePostsWhere's
+      // follower arm.
+      followers: followerIds.map((followerId) => ({ followerId })),
+    },
     _count: { likes: 0, comments: 0 },
   };
 }
@@ -62,6 +72,7 @@ const ROWS = [
   post('public-salad', PUBLIC_AUTHOR, false),
   post('own-private-salad', VIEWER, true),
   post('other-private-salad', OTHER_PRIVATE, true),
+  post('followed-private-salad', FOLLOWED_PRIVATE, true, [VIEWER]),
 ];
 
 function pantryOf(...names: string[]) {
@@ -110,28 +121,40 @@ beforeEach(() => {
 });
 
 describe('GET /api/recipes/match — whose recipes it suggests', () => {
-  it("asks the candidate query for public authors or the viewer's own recipes", async () => {
+  it('asks the candidate query for public authors, the viewer, or authors the viewer follows', async () => {
     await match();
 
     const query = candidateQuery();
     expect(query).toBeDefined();
-    // Parenthesised, so the ANDs after it hold for both arms; and the id compared is the
-    // signed-in viewer's, bound as a parameter.
-    const arm = query!.text.match(
-      /WHERE\s+\(u\."isPrivate"\s*=\s*false\s+OR\s+p\."userId"\s*=\s*\$(\d+)\)/
+    // Parenthesised, so the ANDs after it hold for every arm. Both ids compared are the
+    // signed-in viewer's, bound as parameters: the author is theirs, or they are the
+    // follower of the author — not the one followed.
+    const arms = query!.text.match(
+      new RegExp(
+        [
+          String.raw`WHERE\s+\(u\."isPrivate"\s*=\s*false`,
+          String.raw`\s+OR\s+p\."userId"\s*=\s*\$(\d+)`,
+          String.raw`\s+OR\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+"follows"\s+f`,
+          String.raw`\s+WHERE\s+f\."followerId"\s*=\s*\$(\d+)`,
+          String.raw`\s+AND\s+f\."followingId"\s*=\s*p\."userId"\s*\)\s*\)`,
+        ].join('')
+      )
     );
-    expect(arm).not.toBeNull();
-    expect(query!.values[Number(arm![1]) - 1]).toBe(VIEWER);
+    expect(arms).not.toBeNull();
+    expect(query!.values[Number(arms![1]) - 1]).toBe(VIEWER);
+    expect(query!.values[Number(arms![2]) - 1]).toBe(VIEWER);
+    // A pending request opens nothing, so the requests table is not asked.
+    expect(query!.text).not.toContain('follow_requests');
   });
 
-  it("returns the viewer's own private recipe, and never another private account's", async () => {
+  it("returns the viewer's own and a followed account's private recipes, and no other private account's", async () => {
     const { status, body } = await match();
 
     expect(status).toBe(200);
     const ids = [...body.readyToCook, ...body.almostThere, ...body.needMore].map(
       (r: { id: string }) => r.id
     );
-    expect(ids).toEqual(['public-salad', 'own-private-salad']);
+    expect(ids).toEqual(['public-salad', 'own-private-salad', 'followed-private-salad']);
   });
 
   it('applies the same rule when the pantry has no name to search with', async () => {
@@ -146,6 +169,7 @@ describe('GET /api/recipes/match — whose recipes it suggests', () => {
     expect(ROWS.filter((row) => admits(fallbackWhere, row)).map((r) => r.id)).toEqual([
       'public-salad',
       'own-private-salad',
+      'followed-private-salad',
     ]);
   });
 });

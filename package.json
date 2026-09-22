@@ -6,6 +6,7 @@
     "build": "npx prisma generate && next build",
     "cleanup:images": "tsx src/scripts/cleanup-orphaned-images.ts",
     "db:check:cooked": "tsx src/scripts/check-cooked-columns.ts",
+    "db:check:follows": "tsx src/scripts/check-private-follows.ts",
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",

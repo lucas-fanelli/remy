@@ -1,6 +1,8 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
+import { testQueryClient } from '@/__tests__/helpers/queryClient';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { renderWithLocale } from '@/i18n/testing';
 import Footer from '../Footer';
@@ -32,10 +34,12 @@ jest.mock('@/contexts/CreateRecipeContext', () => ({
   useCreateRecipeDialog: () => ({ openCreate: jest.fn() }),
 }));
 
+let mockPendingRequests = 0;
 jest.mock('@/hooks/useNotificationPolling', () => ({
   useNotificationPolling: () => ({
     notifications: [],
     unreadCount: 0,
+    pendingRequestsCount: mockPendingRequests,
     fetchNotifications: jest.fn(),
     markAllAsRead: jest.fn(),
     markingAsRead: false,
@@ -58,13 +62,17 @@ const renderInSpanish = (ui: React.ReactElement) =>
   renderWithLocale(
     (element) =>
       render(
-        <ThemeProvider theme={theme}>
-          {/* `useToast` throws without its provider, by design: Navigation now reports a
-              rejected "mark all as read" through the shared toast rather than swallowing
-              it. The real ToastProvider, not a stub, so the Spanish message would actually
-              render if one of these tests ever asserted it. */}
-          <ToastProvider>{element}</ToastProvider>
-        </ThemeProvider>
+        // Navigation opens "aceptó tu solicitud" through the query cache (it drops the
+        // profile the cache last saw locked), so it needs a client like the app's.
+        <QueryClientProvider client={testQueryClient()}>
+          <ThemeProvider theme={theme}>
+            {/* `useToast` throws without its provider, by design: Navigation now reports a
+                rejected "mark all as read" through the shared toast rather than swallowing
+                it. The real ToastProvider, not a stub, so the Spanish message would actually
+                render if one of these tests ever asserted it. */}
+            <ToastProvider>{element}</ToastProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
       ),
     'es',
     ui
@@ -73,6 +81,7 @@ const renderInSpanish = (ui: React.ReactElement) =>
 describe('Navigation in Spanish', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPendingRequests = 0;
     mockUseAuth.mockReturnValue({
       user: { id: '1', username: 'tester', email: 'tester@test.com' },
       isAdmin: false,
@@ -118,6 +127,21 @@ describe('Navigation in Spanish', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
     });
+  });
+
+  it('should pin the pending follow requests in the bell, in Spanish', async () => {
+    mockPendingRequests = 2;
+    renderInSpanish(<Navigation />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Notificaciones' })[0]);
+
+    expect(await screen.findByText('Solicitudes de seguimiento')).toBeInTheDocument();
+    expect(screen.getByText('2 solicitudes pendientes')).toBeInTheDocument();
+    // The requests are something to act on: no "todavía no tenés notificaciones" under them.
+    expect(screen.queryByText('Todavía no tenés notificaciones')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Solicitudes de seguimiento'));
+    expect(mockPush).toHaveBeenCalledWith('/notifications/requests');
   });
 });
 

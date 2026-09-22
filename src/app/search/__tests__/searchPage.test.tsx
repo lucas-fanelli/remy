@@ -12,8 +12,9 @@ import '@testing-library/jest-dom';
  */
 
 let mockQuery = 'tostadas';
+const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
+  useRouter: () => ({ push: mockPush, refresh: jest.fn() }),
   useSearchParams: () => ({ get: (key: string) => (key === 'q' ? mockQuery : null) }),
 }));
 
@@ -178,5 +179,69 @@ describe('a search result card', () => {
       )
     );
     mockSearchReader = null;
+  });
+});
+
+// Private accounts are found too: one nobody can find is one nobody can ask to follow.
+describe('the Users tab', () => {
+  const found = [
+    { username: 'ana_cocina', fullName: 'Ana', isPrivate: true },
+    { username: 'beto', fullName: 'Beto', isPrivate: false },
+  ];
+
+  async function openUsersTab() {
+    const mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockReset();
+    mockPush.mockClear();
+    mockQuery = 'a';
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ users: found, recipes: [] }) });
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    fireEvent.click(await screen.findByText('Users (2)'));
+    await screen.findByText('ana_cocina');
+  }
+
+  const cardOf = (username: string) => screen.getByText(username).closest('.MuiCard-root');
+
+  it('marks a private account with a lock that is read as well as seen', async () => {
+    await openUsersTab();
+
+    const lock = screen.getByRole('img', { name: 'Private Account' });
+    expect(cardOf('ana_cocina')).toContainElement(lock);
+    // One lock, on the private account only.
+    expect(screen.getAllByRole('img', { name: 'Private Account' })).toHaveLength(1);
+    expect(cardOf('beto')).not.toContainElement(lock);
+  });
+
+  it('offers no follow button on a private account, as Instagram does not', async () => {
+    // The request is made from the profile, where the reader can see who they are asking.
+    await openUsersTab();
+
+    expect(screen.queryByRole('button', { name: /follow|request/i })).not.toBeInTheDocument();
+  });
+
+  it('opens the private account’s profile when it is tapped, where the lock explains itself', async () => {
+    await openUsersTab();
+
+    fireEvent.click(screen.getByText('ana_cocina'));
+
+    expect(mockPush).toHaveBeenCalledWith('/profile/ana_cocina');
+  });
+
+  it('draws no lock for a row that does not say it is private', async () => {
+    // An answer without the flag reads as public. The profile still decides what is shown.
+    const mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockReset();
+    mockQuery = 'c';
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ users: [{ username: 'caro' }], recipes: [] }),
+    });
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    fireEvent.click(await screen.findByText('Users (1)'));
+    await screen.findByText('caro');
+
+    expect(screen.queryByRole('img', { name: 'Private Account' })).not.toBeInTheDocument();
   });
 });

@@ -3,7 +3,21 @@
  * Following Domain-Driven Design principles
  */
 
-export type NotificationType = 'follow' | 'like' | 'comment' | 'rating';
+/**
+ * The stored `Notification.type`. The client passes it straight to the ICU select in
+ * notifications.text, so each value must be a valid select key: underscores, never hyphens —
+ * a hyphen breaks parsing of the whole message, for every type.
+ *
+ * - follow_request: someone asked to follow a private account; sent to its owner.
+ * - follow_accepted: the owner accepted; sent to the one who asked.
+ */
+export type NotificationType =
+  | 'follow'
+  | 'follow_request'
+  | 'follow_accepted'
+  | 'like'
+  | 'comment'
+  | 'rating';
 
 export interface NotificationSender {
   id: string;

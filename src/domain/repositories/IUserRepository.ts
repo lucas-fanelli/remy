@@ -21,6 +21,13 @@ export type UpdateUserDTO = {
   isPrivate?: boolean;
 };
 
+export type ProfileUpdate = {
+  user: User;
+  // Whose pending follow requests the save accepted by making the account public; empty
+  // for any other save. The caller tells them, once the save has committed.
+  accepted: string[];
+};
+
 export interface IUserRepository {
   // Create
   create(data: CreateUserDTO): Promise<User>;
@@ -35,8 +42,13 @@ export interface IUserRepository {
   findAllByUsernameIgnoringCase(username: string): Promise<User[]>;
   findMany(skip?: number, take?: number): Promise<User[]>;
 
-  // Update
-  update(id: string, data: UpdateUserDTO): Promise<User>;
+  // Update. There is deliberately no general `update`: it had no caller left once the
+  // profile save moved to updateProfile, and it was a way to make an account public while
+  // leaving its follow requests pending. Every privacy change goes through updateProfile.
+  // The owner's own profile save. One that sets isPrivate to false also accepts every
+  // pending follow request, in the same transaction: a public account has nothing left to
+  // approve, and a request must never wait on one.
+  updateProfile(id: string, data: UpdateUserDTO): Promise<ProfileUpdate>;
   // Also stamps passwordChangedAt, which invalidates previously issued JWTs,
   // and deletes the user's password reset tokens (outstanding links die too)
   updatePassword(id: string, hashedPassword: string): Promise<User>;

@@ -56,7 +56,7 @@ describe('Container - Unit Tests', () => {
       expect(userRepository).toHaveProperty('findByEmail');
       expect(userRepository).toHaveProperty('findByUsername');
       expect(userRepository).toHaveProperty('findMany');
-      expect(userRepository).toHaveProperty('update');
+      expect(userRepository).toHaveProperty('updateProfile');
       expect(userRepository).toHaveProperty('updatePassword');
       expect(userRepository).toHaveProperty('delete');
       expect(userRepository).toHaveProperty('exists');
@@ -79,7 +79,7 @@ describe('Container - Unit Tests', () => {
       expect(typeof userRepository.findByEmail).toBe('function');
       expect(typeof userRepository.findByUsername).toBe('function');
       expect(typeof userRepository.findMany).toBe('function');
-      expect(typeof userRepository.update).toBe('function');
+      expect(typeof userRepository.updateProfile).toBe('function');
       expect(typeof userRepository.updatePassword).toBe('function');
       expect(typeof userRepository.delete).toBe('function');
       expect(typeof userRepository.exists).toBe('function');

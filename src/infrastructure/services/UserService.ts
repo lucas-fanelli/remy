@@ -4,6 +4,7 @@ import {
   UpdateUserProfileDTO,
   UserPublicProfile,
 } from '@/domain/services/IUserService';
+import { notifyRequestsAccepted } from '@/lib/follows/requests';
 
 // Single Responsibility Principle: Only handles user management operations
 // Open/Closed Principle: Open for extension, closed for modification
@@ -52,7 +53,13 @@ export class UserService implements IUserService {
       throw new Error('Bio must be 300 characters or less');
     }
 
-    const user = await this.userRepository.update(userId, data);
+    const { user, accepted } = await this.userRepository.updateProfile(userId, data);
+
+    // A save that made the account public accepted its pending follow requests. It has
+    // committed by now, so each requester can be told. This never throws: the save has
+    // happened, and a notification that fails to send must not report it as failed.
+    await notifyRequestsAccepted(userId, accepted);
+
     const { password: _, passwordChangedAt: _changedAt, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }

@@ -41,7 +41,9 @@ export async function PUT(request: NextRequest) {
     // Get user service from container
     const userService = container.getUserService();
 
-    // Update profile
+    // Update profile. A save that makes the account public also accepts every pending follow
+    // request, in the same transaction (UserRepository.updateProfile): if either part fails,
+    // nothing is saved, and the 500 below is the truth.
     const updatedUser = await userService.updateProfile(user.id, profileData);
 
     return ApiResponseHelper.success(updatedUser, 'Profile updated successfully');

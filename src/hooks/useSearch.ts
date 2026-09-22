@@ -3,10 +3,19 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query/keys';
 import type { ViewerState } from '@/domain/types/recipe';
 
+/**
+ * What `/api/search` sends for an account. No id: key a list of these by username.
+ */
 export interface SearchUser {
   username: string;
   fullName?: string | null;
   avatar?: string;
+  /**
+   * Private accounts are found too: one nobody can find is one nobody can ask to follow.
+   * Optional because it only draws the lock — a row without it reads as public, and that
+   * costs nothing, since the profile the row opens decides what this reader may see.
+   */
+  isPrivate?: boolean;
 }
 
 /** What `/api/search` sends for a recipe — written off the route, not remembered. */

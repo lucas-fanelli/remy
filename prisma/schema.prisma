@@ -47,6 +47,10 @@ model User {
   followers     Follow[]  @relation("FollowsAsFollowed")
   // Whom this user follows: the Follow rows whose followerId is this user.
   following     Follow[]  @relation("FollowsAsFollower")
+  // Pending requests to follow a private account. A request is never a follow and grants
+  // nothing: nothing that reads Follow can see these.
+  followRequestsSent     FollowRequest[] @relation("FollowRequestRequester")
+  followRequestsReceived FollowRequest[] @relation("FollowRequestTarget")
   pantry        UserPantry?
   savedRecipes  SavedRecipe[]
   ratings       Rating[]
@@ -159,6 +163,25 @@ model Follow {
   @@index([followerId])
   @@index([followingId])
   @@map("follows")
+}
+
+/// A pending request to follow a private account. Accepting deletes this row and inserts into
+/// Follow in one transaction, so a pair is never in both tables and nothing that reads Follow
+/// can mistake a request for a follower — a separate table rather than a status column on
+/// Follow, which would have needed every existing follower count, list and access check to
+/// remember a filter, and failed open wherever one forgot. Written only by src/lib/follows.
+model FollowRequest {
+  id          String   @id @default(uuid())
+  requesterId String
+  targetId    String
+  createdAt   DateTime @default(now())
+
+  requester   User     @relation("FollowRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  target      User     @relation("FollowRequestTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, targetId])   // one request per pair; answers "am I pending?"
+  @@index([targetId, createdAt])      // the owner's inbox, newest first
+  @@map("follow_requests")
 }
 
 model UserPantry {
@@ -299,7 +322,7 @@ model Notification {
   id          String   @id @default(uuid())
   recipientId String   // User who receives the notification
   senderId    String   // User who triggered the notification
-  type        String   // "follow", "like", "comment", "rating"
+  type        String   // "follow", "follow_request", "follow_accepted", "like", "comment", "rating"
   postId      String?  // Optional: related post for likes/comments
   commentId   String?  // Optional: related comment
   isRead      Boolean  @default(false)

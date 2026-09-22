@@ -3,10 +3,14 @@ import type { Prisma } from '@prisma/client';
 /**
  * Who may see a private account's recipes. This is the one place the rule is written.
  *
- * A viewer may see an owner's CONTENT if and only if the owner is public, or the viewer IS
- * the owner. Signed out, a viewer sees public owners only. Followers are not let in yet;
- * when they are (S3, the follow-requests slice), the change stays inside this file, and
- * each function below says where it goes.
+ * A viewer may see an owner's CONTENT if and only if the owner is public, the viewer IS the
+ * owner, or the viewer FOLLOWS the owner: a row in "follows" with the viewer as followerId
+ * and the owner as followingId. Signed out, a viewer sees public owners only.
+ *
+ * A pending follow request is not a follow and opens nothing. Requests live in their own
+ * table, "follow_requests", and nothing in this file reads it — VisibilityDb does not even
+ * include it — so no mistake here can let a requester in. Accepting a request is what moves
+ * the pair into "follows" (src/lib/follows/requests.ts).
  *
  * CONTENT is the owner's recipes and everything reached through a recipe id — the detail,
  * comments (read and write), the rating aggregate and rating writes, like, save, cook-plan,
@@ -35,53 +39,60 @@ export interface ContentOwner {
  * checks and then writes inside a transaction passes its `tx`, so the check runs in the same
  * transaction as the write it guards.
  *
- * `follow` is listed although nothing here reads it yet: it is the table S3 reads, and
- * listing it now means adding the follower arm changes no caller.
+ * `follow` and not `followRequest`, on purpose: a request must never count as a follow, and
+ * a rule that cannot reach the requests table cannot be made to.
  */
 export type VisibilityDb = Pick<Prisma.TransactionClient, 'post' | 'follow'>;
 
 /**
  * The rule itself, pure: may `viewerId` (null when signed out) see `owner`'s content?
  *
- * For code that already holds everything the rule needs — the owner row today, and from S3
- * on whether the viewer follows them, loaded in the same query. Code that would have to
- * look that up calls canViewContentOf instead.
+ * For code that already holds everything the rule needs: the owner row, and whether the
+ * viewer follows them — the profile route, which reads the follow anyway for its button
+ * and passes it on rather than have the same row read twice. Code that would have to look
+ * the follow up calls canViewContentOf instead.
+ *
+ * `viewerFollowsOwner` defaults to false, so a caller that does not know the answer fails
+ * closed: it keeps a follower out rather than letting a stranger in. It cannot let anyone
+ * in who is signed out, whatever it says.
  */
-export function canViewContent(viewerId: string | null, owner: ContentOwner): boolean {
+export function canViewContent(
+  viewerId: string | null,
+  owner: ContentOwner,
+  viewerFollowsOwner = false
+): boolean {
   if (!owner.isPrivate) return true;
   if (viewerId === null) return false;
-  // S3 (followers): the follower arm of the rule goes here. canViewContent gains a third
-  // parameter, `viewerFollowsOwner = false`, and this line becomes
-  //   return viewerId === owner.id || viewerFollowsOwner;
-  // The default keeps a caller that does not know the answer failing closed.
-  return viewerId === owner.id;
+  return viewerId === owner.id || viewerFollowsOwner;
 }
 
 /**
  * The rule for one owner, asking the database whatever it needs in order to decide.
  *
- * Today it needs nothing — public-or-owner is known from the owner row — so `db` goes
- * unread. S3 adds exactly one query here, and only for a private owner and a signed-in
- * viewer who is not the owner; the lookup rides @@unique([followerId, followingId]):
+ * At most one query, and only when the owner row cannot decide alone: a private owner and
+ * a signed-in viewer who is someone else. Then it asks whether that viewer follows the
+ * owner, with a lookup that rides @@unique([followerId, followingId]). A public owner, the
+ * owner themself and a signed-out viewer cost nothing — which is nearly every request.
  *
- *   if (!owner.isPrivate || viewerId === null || viewerId === owner.id) {
- *     return canViewContent(viewerId, owner);
- *   }
- *   const follow = await db.follow.findUnique({
- *     where: { followerId_followingId: { followerId: viewerId, followingId: owner.id } },
- *     select: { id: true },
- *   });
- *   return canViewContent(viewerId, owner, follow !== null);
- *
- * The profile, followers, following, stats and user-recipes routes decide through this, and
- * canSeePost does too, so that one change reaches all of them.
+ * The followers, following, stats and user-recipes routes decide through this, and
+ * canSeePost does too.
  */
 export async function canViewContentOf(
   db: VisibilityDb,
   viewerId: string | null,
   owner: ContentOwner
 ): Promise<boolean> {
-  return canViewContent(viewerId, owner);
+  if (!owner.isPrivate || viewerId === null || viewerId === owner.id) {
+    return canViewContent(viewerId, owner);
+  }
+  const follow = await db.follow.findUnique({
+    where: { followerId_followingId: { followerId: viewerId, followingId: owner.id } },
+    select: { id: true },
+  });
+  // A row lets the viewer in; anything else keeps them out — not only Prisma's null, but
+  // the undefined a bare mocked client answers, which `!== null` would have taken for a
+  // follow.
+  return canViewContent(viewerId, owner, Boolean(follow));
 }
 
 /**
@@ -99,13 +110,19 @@ export async function canViewContentOf(
 export function visiblePostsWhere(viewerId: string | null): Prisma.PostWhereInput {
   const publicAuthor: Prisma.PostWhereInput = { user: { isPrivate: false } };
   if (viewerId === null) return publicAuthor;
-  // S3 (followers) adds the third arm here, and nowhere else:
-  //   { user: { followers: { some: { followerId: viewerId } } } }
-  // It is right only once `User.followers` means the Follow rows whose followingId is that
-  // user. Today the two relation names are swapped — schema.prisma pairs User.followers with
-  // Follow.follower, on followerId — and a separate PR fixes them. The arm must not land
-  // before that fix: against today's schema it would match only the author themself.
-  return { OR: [publicAuthor, { userId: viewerId }] };
+  return {
+    OR: [
+      publicAuthor,
+      { userId: viewerId },
+      // Authors the viewer follows. `User.followers` is the Follow rows whose followingId is
+      // that user, so this reads "one of the author's followers is the viewer" — the viewer
+      // follows the author, not the other way round. Mirrored — `following` with
+      // `followingId: viewerId` — it would open the private recipes of everyone who follows
+      // the viewer instead. visibility.test.ts checks the direction against the generated
+      // client's own relation metadata, not against this spelling.
+      { user: { followers: { some: { followerId: viewerId } } } },
+    ],
+  };
 }
 
 /** What a recipe id leads to, for one viewer. */

@@ -50,6 +50,11 @@ export const MAX_DAILY_RECIPES = 10;
  *   48883 - Recipe match endpoint (key2 = hashtext(userId), per-user)
  *   48884 - Recipe create daily-limit check (key2 = hashtext(userId), per-user)
  *   48885 - Password reset request throttle (key2 = hashtext(userId), per-user)
+ *   48886 - Follows, per followed account (key2 = hashtext(followedId)): shared by every pair
+ *           writer, exclusive by the private-to-public sweep. FOLLOW_OWNER_LOCK in
+ *           src/lib/follows/requests.ts.
+ *   48887 - Follows, per pair (key2 = hashtext('followerId:followedId')). FOLLOW_PAIR_LOCK
+ *           in src/lib/follows/requests.ts.
  */
 export const PG_ADVISORY_LOCK_RECALC_RATINGS = 48879;
 export const PG_ADVISORY_LOCK_ADMIN_DELETE = 48880;

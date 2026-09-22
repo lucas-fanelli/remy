@@ -7,9 +7,20 @@
     "title": "No notifications yet",
     "description": "When someone follows you or interacts with your recipes, you'll see it here"
   },
-  "text": "{type, select, follow {{name} started following you} like {{name} liked your recipe} comment {{name} commented on your recipe} rating {{name} rated your recipe} other {You have a new notification}}",
+  "text": "{type, select, follow {{name} started following you} follow_request {{name} requested to follow you} follow_accepted {{name} accepted your follow request} like {{name} liked your recipe} comment {{name} commented on your recipe} rating {{name} rated your recipe} other {You have a new notification}}",
   "loadMore": "Load More",
   "viewAll": "View all notifications",
   "loadFailed": "We could not load your notifications",
-  "markAllFailed": "We could not mark them as read"
+  "markAllFailed": "We could not mark them as read",
+  "requests": {
+    "title": "Follow requests",
+    "pending": "{count, plural, one {# pending request} other {# pending requests}}",
+    "empty": "You have no pending requests",
+    "accept": "Accept",
+    "decline": "Decline",
+    "loadFailed": "We could not load your requests",
+    "actionFailed": "{action, select, accept {We could not accept the request} other {We could not decline the request}}",
+    "actionOffline": "No connection — the request is still pending",
+    "gone": "This request is no longer there"
+  }
 }

@@ -171,21 +171,13 @@ function ruleCopiesIn(source: ts.SourceFile): RuleCopy[] {
  */
 const ALLOWED: ReadonlyArray<Omit<RuleCopy, 'line'> & { reason: string }> = [
   {
-    file: 'src/infrastructure/repositories/UserRepository.ts',
-    inside: 'UserRepository.search',
-    spelling: 'isPrivate: false',
-    reason:
-      'people search hides private ACCOUNTS, which is a header decision, not content; S3 ' +
-      'drops the filter so a private account can be found and asked to follow',
-  },
-  {
     file: MATCH_ROUTE,
     inside: 'GET',
     spelling: '"isPrivate" = false',
     reason:
       'raw SQL cannot call visiblePostsWhere; the rule stays inline so ' +
       'raw-sql-conventions.test.ts keeps checking its table names, and a test below pins ' +
-      'its owner arm',
+      'every arm',
   },
 ];
 
@@ -209,6 +201,8 @@ describe('the privacy rule is written in one file', () => {
         'src/app/api/search/route.ts',
         'src/app/api/users/[username]/profile/route.ts',
         'src/infrastructure/services/RecipeService.ts',
+        // People search: it hid private accounts until S3, and nobody can ask to follow an
+        // account they cannot find. The scan must keep reading it so the filter stays out.
         'src/infrastructure/repositories/UserRepository.ts',
       ])
     );
@@ -267,15 +261,15 @@ describe('the privacy rule is written in one file', () => {
     expect(unused).toEqual([]);
   });
 
-  it("keeps the viewer's own recipes in the pantry match's raw SQL", () => {
+  it("carries every arm of the rule in the pantry match's raw SQL", () => {
     // The candidate query is the one copy that cannot call visiblePostsWhere, so its arms are
-    // pinned here: public authors, OR the viewer's own recipes, in parentheses so the AND
-    // conditions after them still apply to both. It used to have the public arm alone.
-    //
-    // S3 widens it to
-    //   (u."isPrivate" = false OR p."userId" = ${user.id} OR EXISTS (SELECT 1 FROM "follows" f
-    //     WHERE f."followerId" = ${user.id} AND f."followingId" = p."userId"))
-    // and checks for `FROM "follows" f` here as well.
+    // pinned here, in parentheses so the AND conditions after them still apply to all three:
+    // public authors, OR the viewer's own recipes, OR authors the viewer follows. It used to
+    // have the public arm alone, which hid a private author's own recipes from them; without
+    // the third arm an accepted follower's pantry would never match the recipes they were
+    // let in to see. The follow is pinned the right way round — the viewer as follower, the
+    // author as the one followed — and "follow_requests" appears nowhere: a request opens
+    // nothing.
     const rawSql: string[] = [];
     const visit = (node: ts.Node) => {
       if (
@@ -288,12 +282,21 @@ describe('the privacy rule is written in one file', () => {
     };
     visit(parse(MATCH_ROUTE));
 
+    // Compared as text with the layout taken out: runs of whitespace become one space, and
+    // none is kept just inside a parenthesis, so re-wrapping the SQL does not fail this.
+    const flatten = (sql: string) =>
+      sql.replace(/\s+/g, ' ').replace(/\(\s/g, '(').replace(/\s\)/g, ')');
+    const RULE =
+      '(u."isPrivate" = false' +
+      ' OR p."userId" = ${user.id}' +
+      ' OR EXISTS (SELECT 1 FROM "follows" f' +
+      ' WHERE f."followerId" = ${user.id} AND f."followingId" = p."userId"))';
+
     const filtering = rawSql.filter((sql) => sql.includes('"isPrivate"'));
     expect(filtering.length).toBeGreaterThan(0);
     for (const sql of filtering) {
-      expect(sql).toMatch(
-        /\(\s*u\."isPrivate"\s*=\s*false\s+OR\s+p\."userId"\s*=\s*\$\{\s*user\.id\s*\}\s*\)/
-      );
+      expect(flatten(sql)).toContain(RULE);
+      expect(sql).not.toContain('follow_requests');
     }
   });
 });

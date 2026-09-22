@@ -274,6 +274,65 @@ describe('NotificationService (Refactored)', () => {
     });
   });
 
+  describe('createFollowRequestNotification', () => {
+    it("tells the private account's owner who asked", async () => {
+      mockRepository.create.mockResolvedValue({} as Notification);
+
+      await service.createFollowRequestNotification('requester', 'owner');
+
+      expect(mockRepository.create).toHaveBeenCalledWith({
+        recipientId: 'owner',
+        senderId: 'requester',
+        type: 'follow_request',
+      });
+    });
+
+    it('tells nobody when someone asks themself', async () => {
+      await service.createFollowRequestNotification('user1', 'user1');
+
+      expect(mockRepository.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteFollowRequestNotification', () => {
+    it("deletes only that pair's follow_request, with every filter set", async () => {
+      // NotificationRepository.deleteMany drops a filter it is not given, which would widen
+      // the delete to every notification of the other fields' match.
+      mockRepository.deleteMany.mockResolvedValue(1);
+
+      await service.deleteFollowRequestNotification('requester', 'owner');
+
+      expect(mockRepository.deleteMany).toHaveBeenCalledWith({
+        recipientId: 'owner',
+        senderId: 'requester',
+        type: 'follow_request',
+      });
+    });
+  });
+
+  describe('createFollowAcceptedNotification', () => {
+    it('replaces an earlier follow_accepted for the pair instead of stacking a second', async () => {
+      mockRepository.deleteMany.mockResolvedValue(1);
+      mockRepository.create.mockResolvedValue({} as Notification);
+
+      await service.createFollowAcceptedNotification('owner', 'requester');
+
+      const pair = { recipientId: 'requester', senderId: 'owner', type: 'follow_accepted' };
+      expect(mockRepository.deleteMany).toHaveBeenCalledWith(pair);
+      expect(mockRepository.create).toHaveBeenCalledWith(pair);
+      expect(mockRepository.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+        mockRepository.create.mock.invocationCallOrder[0]
+      );
+    });
+
+    it('tells nobody when the owner and the requester are the same account', async () => {
+      await service.createFollowAcceptedNotification('user1', 'user1');
+
+      expect(mockRepository.deleteMany).not.toHaveBeenCalled();
+      expect(mockRepository.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteLikeNotification', () => {
     it('should delete a like notification', async () => {
       mockRepository.deleteMany.mockResolvedValue(1);

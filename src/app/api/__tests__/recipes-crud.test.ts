@@ -12,6 +12,8 @@ jest.mock('@/lib/database/prisma', () => ({
       findUnique: jest.fn(),
       count: jest.fn(),
     },
+    // canSeePost's second question, for a private author: does the reader follow them
+    follow: { findUnique: jest.fn() },
     // The four tables that answer "what did THIS reader do to these recipes".
     like: { findMany: jest.fn() },
     savedRecipe: { findMany: jest.fn() },
@@ -358,6 +360,8 @@ describe('GET /api/recipes/[id]', () => {
     (prisma.cookedRecipe.groupBy as jest.Mock).mockResolvedValue([]);
     (prisma.rating.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.rating.groupBy as jest.Mock).mockResolvedValue([]);
+    // Nobody follows the author unless a test says so
+    (prisma.follow.findUnique as jest.Mock).mockResolvedValue(null);
   });
 
   const get = () => recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });
@@ -410,6 +414,19 @@ describe('GET /api/recipes/[id]', () => {
       const response = await get();
 
       expect(response.status).toBe(200);
+    });
+
+    it('is an accepted follower’s to read', async () => {
+      (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'follower-1' });
+      (prisma.follow.findUnique as jest.Mock).mockResolvedValue({ id: 'follow-1' });
+
+      const response = await get();
+
+      expect(response.status).toBe(200);
+      expect(prisma.follow.findUnique).toHaveBeenCalledWith({
+        where: { followerId_followingId: { followerId: 'follower-1', followingId: 'author-1' } },
+        select: { id: true },
+      });
     });
 
     it('is refused to someone else, with the same body every recipe-scoped route sends', async () => {

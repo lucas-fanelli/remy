@@ -64,6 +64,49 @@ export class NotificationService implements INotificationService {
     });
   }
 
+  async createFollowRequestNotification(requesterId: string, ownerId: string): Promise<void> {
+    // Business rule: nobody is notified of their own action (src/lib/follows already refuses
+    // a request to yourself; the service holds the rule on its own, as for every other type)
+    if (requesterId === ownerId) {
+      return;
+    }
+
+    await this.notificationRepository.create({
+      recipientId: ownerId,
+      senderId: requesterId,
+      type: 'follow_request',
+    });
+  }
+
+  async deleteFollowRequestNotification(requesterId: string, ownerId: string): Promise<void> {
+    await this.notificationRepository.deleteMany({
+      recipientId: ownerId,
+      senderId: requesterId,
+      type: 'follow_request',
+    });
+  }
+
+  async createFollowAcceptedNotification(ownerId: string, requesterId: string): Promise<void> {
+    if (ownerId === requesterId) {
+      return;
+    }
+
+    // The unique index on (recipient, sender, type, post, comment) cannot stop a second one:
+    // post and comment are NULL here, and PostgreSQL counts NULLs as distinct. Accept,
+    // unfollow, ask again and be accepted again would stack two "aceptó tu solicitud" rows,
+    // so the older one goes first.
+    await this.notificationRepository.deleteMany({
+      recipientId: requesterId,
+      senderId: ownerId,
+      type: 'follow_accepted',
+    });
+    await this.notificationRepository.create({
+      recipientId: requesterId,
+      senderId: ownerId,
+      type: 'follow_accepted',
+    });
+  }
+
   async createLikeNotification(
     userId: string,
     postId: string,
