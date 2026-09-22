@@ -1,6 +1,6 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { ToastProvider } from '@/contexts/ToastContext';
 import SearchPage from '../page';
@@ -17,13 +17,28 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => ({ get: (key: string) => (key === 'q' ? mockQuery : null) }),
 }));
 
+let mockSearchReader: { id: string; username: string } | null = null;
 jest.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: null }),
+  useAuth: () => ({ user: mockSearchReader }),
 }));
 
 jest.mock('@/components/recipe/RecipeCard', () => {
-  return function MockRecipeCard({ recipe }: { recipe: { title: string } }) {
-    return <div data-testid="result">{recipe.title}</div>;
+  return function MockRecipeCard({
+    recipe,
+    onLike,
+    onSave,
+  }: {
+    recipe: { title: string };
+    onLike?: () => void;
+    onSave?: () => void;
+  }) {
+    return (
+      <div data-testid="result">
+        <span>{recipe.title}</span>
+        {onLike && <button onClick={onLike}>Like</button>}
+        {onSave && <button onClick={onSave}>Save</button>}
+      </div>
+    );
   };
 });
 
@@ -64,6 +79,28 @@ describe('the search page', () => {
     mockFetch = global.fetch as jest.Mock;
     mockFetch.mockReset();
     mockQuery = 'tostadas';
+  });
+
+  it('shows where the results will be while it searches, not an empty area', () => {
+    // The P2 plan asked every screen moved onto the cache to replace its blank loading
+    // state; this one was moved and kept rendering nothing under its tabs.
+    mockFetch.mockReturnValue(new Promise(() => {}));
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+
+    expect(screen.getByRole('status', { name: 'Loading...' })).toBeInTheDocument();
+    // And no count on the tabs: "(0)" is an answer, and there is none yet.
+    expect(screen.getByText('Recipes')).toBeInTheDocument();
+    expect(screen.queryByText('Recipes (0)')).not.toBeInTheDocument();
+  });
+
+  it('counts the results on the tabs once there are some', async () => {
+    mockFetch.mockResolvedValue(respond([recipe('t', 'Tostadas'), recipe('u', 'Tostadas II')]));
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+
+    expect(await screen.findByText('Recipes (2)')).toBeInTheDocument();
+    expect(screen.getByText('Users (0)')).toBeInTheDocument();
   });
 
   it('shows the results for what the URL says, even when an older search answers last', async () => {
@@ -116,5 +153,30 @@ describe('the search page', () => {
 
     await waitFor(() => expect(screen.getByText(/could not run the search/i)).toBeInTheDocument());
     expect(screen.queryByText(/no recipes/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('a search result card', () => {
+  it('can be saved from the results, like every card', async () => {
+    mockSearchReader = { id: 'u1', username: 'reader' };
+    const mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockReset();
+    mockQuery = 'tostadas';
+    mockFetch.mockImplementation((url: string) =>
+      url.includes('/save')
+        ? Promise.resolve({ ok: true, json: async () => ({ saved: true }) })
+        : Promise.resolve(respond([recipe('t', 'Tostadas')]))
+    );
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/recipes/t/save',
+        expect.objectContaining({ body: JSON.stringify({ saved: true }) })
+      )
+    );
+    mockSearchReader = null;
   });
 });

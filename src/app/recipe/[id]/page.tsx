@@ -38,6 +38,7 @@ import {
 } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import NextLink from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useCallback } from 'react';
@@ -59,6 +60,7 @@ import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/
 import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { useTextDescriptor } from '@/i18n/text';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
+import { removeRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
 import type { PantryPlan } from '@/lib/cooking/pantryPlan';
@@ -126,6 +128,7 @@ export default function RecipeDetailPage() {
       ? renderText(queryError.descriptor)
       : queryError.message
     : null;
+  const privateAuthor = queryError instanceof RecipeFetchError ? queryError.privateAuthor : null;
 
   // The heart, the count and the bookmark come with the recipe, so they are right on the
   // first paint. They used to be three pieces of local state seeded to false/0 and then
@@ -221,8 +224,8 @@ export default function RecipeDetailPage() {
   };
 
   const handleEditSuccess = (_updatedRecipe: DomainRecipe) => {
-    // Invalidate the cache to refetch with updated data
-    queryClient.invalidateQueries({ queryKey: ['recipe', recipeId] });
+    // No invalidation here: useUpdateRecipe refreshes this page and marks every list stale
+    // itself, so no screen that edits a recipe can forget to.
     setSnackbar({ open: true, message: t('toasts.updated'), severity: 'success' });
   };
 
@@ -244,6 +247,10 @@ export default function RecipeDetailPage() {
         const errorData = await response.json();
         throw new Error(apiErrorMessage(errorData, t('toasts.deleteFailed')));
       }
+
+      // Out of the feed, the profiles, search and the matches before the reader lands on
+      // any of them. It went nowhere before: the feed you arrived at still had it.
+      removeRecipeEverywhere(queryClient, recipeId);
 
       setSnackbar({ open: true, message: t('toasts.deleted'), severity: 'success' });
 
@@ -477,8 +484,26 @@ export default function RecipeDetailPage() {
           </Box>
         )}
 
+        {/* A private account's recipe: not an error, so not red, and it says where to go —
+            the author's profile, where following them is (or will be) the way in. */}
+        {privateAuthor && (
+          <PageFrame width="reading">
+            <Alert severity="info" sx={{ mb: { xs: 1.5, md: 2 } }}>
+              {error}
+            </Alert>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button component={NextLink} href={`/profile/${privateAuthor}`} variant="contained">
+                {t('states.viewAuthor')}
+              </Button>
+              <Button onClick={handleBack} startIcon={<ArrowBack />}>
+                {tCommon('actions.goBack')}
+              </Button>
+            </Box>
+          </PageFrame>
+        )}
+
         {/* Error state */}
-        {(error || (!loading && !recipe)) && (
+        {!privateAuthor && (error || (!loading && !recipe)) && (
           <PageFrame width="reading">
             <Alert
               severity="error"

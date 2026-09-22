@@ -40,6 +40,11 @@
     "loadFailed": "No pudimos cargar a quién sigue"
   },
   "followFailed": "{action, select, unfollow {No pudimos dejar de seguir a esta persona} other {No pudimos seguir a esta persona}}",
+  "followOffline": "{action, select, unfollow {Sin conexión — seguís siguiendo a esta persona} other {Sin conexión — no empezaste a seguir a esta persona}}",
+  "private": {
+    "title": "Este perfil es privado",
+    "body": "Sus recetas no se muestran."
+  },
   "edit": {
     "title": "Editar perfil",
     "changePhoto": "Cambiar foto",

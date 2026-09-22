@@ -1,6 +1,7 @@
 import { PrismaClient, Post } from '@prisma/client';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
 import { CreateRecipeDTO, UpdateRecipeDTO, RecipeSearchOptions } from '@/domain/types/recipe';
+import { visiblePostsWhere } from '@/lib/privacy/visibility';
 import { RecipeRepository } from '../../RecipeRepository';
 
 describe('RecipeRepository - Unit Tests', () => {
@@ -191,6 +192,34 @@ describe('RecipeRepository - Unit Tests', () => {
   });
 
   describe('search', () => {
+    // Told nobody, search answers as it would a signed-out viewer: public authors only.
+    const publicAuthorsOnly = { AND: [{ user: { isPrivate: false } }] };
+
+    // The pantry suggestions are scored from this list, and it used to carry no privacy
+    // filter at all: any signed-in user was handed private accounts' recipes in full.
+    it("keeps to the recipes the viewer may see: public authors' and their own", async () => {
+      prismaMock.post.findMany.mockResolvedValue([mockPost]);
+
+      await recipeRepository.search({ query: 'pasta' }, 'viewer-1');
+
+      // Under AND, beside the text search's OR rather than in place of it.
+      expect(prismaMock.post.findMany.mock.calls[0][0]?.where).toEqual({
+        AND: [visiblePostsWhere('viewer-1')],
+        OR: [
+          { title: { contains: 'pasta', mode: 'insensitive' } },
+          { description: { contains: 'pasta', mode: 'insensitive' } },
+        ],
+      });
+    });
+
+    it("gives a caller that does not say who is asking public authors' recipes only", async () => {
+      prismaMock.post.findMany.mockResolvedValue([mockPost]);
+
+      await recipeRepository.search({});
+
+      expect(prismaMock.post.findMany.mock.calls[0][0]?.where).toEqual(publicAuthorsOnly);
+    });
+
     it('should search recipes with query', async () => {
       const searchOptions: RecipeSearchOptions = {
         query: 'pasta',
@@ -203,6 +232,7 @@ describe('RecipeRepository - Unit Tests', () => {
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
         where: {
+          ...publicAuthorsOnly,
           OR: [
             { title: { contains: 'pasta', mode: 'insensitive' } },
             { description: { contains: 'pasta', mode: 'insensitive' } },
@@ -226,7 +256,7 @@ describe('RecipeRepository - Unit Tests', () => {
 
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: { difficulty: 'easy' },
+        where: { ...publicAuthorsOnly, difficulty: 'easy' },
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
@@ -245,7 +275,7 @@ describe('RecipeRepository - Unit Tests', () => {
 
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: { cookingTime: { lte: 60 } },
+        where: { ...publicAuthorsOnly, cookingTime: { lte: 60 } },
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
@@ -264,7 +294,7 @@ describe('RecipeRepository - Unit Tests', () => {
 
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: { prepTime: { lte: 30 } },
+        where: { ...publicAuthorsOnly, prepTime: { lte: 30 } },
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
@@ -283,7 +313,7 @@ describe('RecipeRepository - Unit Tests', () => {
 
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-123' },
+        where: { ...publicAuthorsOnly, userId: 'user-123' },
         orderBy: { createdAt: 'desc' },
         take: 20,
         skip: 0,
@@ -303,7 +333,7 @@ describe('RecipeRepository - Unit Tests', () => {
 
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: publicAuthorsOnly,
         orderBy: { createdAt: 'desc' },
         take: 10,
         skip: 5,
@@ -323,7 +353,7 @@ describe('RecipeRepository - Unit Tests', () => {
 
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
-        where: {},
+        where: publicAuthorsOnly,
         orderBy: { likes: 'asc' },
         take: 20,
         skip: 0,
@@ -353,6 +383,7 @@ describe('RecipeRepository - Unit Tests', () => {
       expect(result).toHaveLength(1);
       expect(prismaMock.post.findMany).toHaveBeenCalledWith({
         where: {
+          ...publicAuthorsOnly,
           OR: [
             { title: { contains: 'pasta', mode: 'insensitive' } },
             { description: { contains: 'pasta', mode: 'insensitive' } },
