@@ -69,7 +69,8 @@ export interface RecipeCardModel {
   /** Rendered as one pill, prep + cooking; omitted unless both are present. */
   prepTime?: number;
   cookingTime?: number;
-  servings?: number;
+  /** `null` when the recipe never recorded it, which the card renders as no chip at all. */
+  servings?: number | null;
   author?: { username: string; fullName?: string | null; avatar?: string | null } | null;
   averageRating?: number | null;
   totalRatings?: number;
@@ -458,7 +459,7 @@ export default function RecipeCard({
         {/* Meta row: the chips that describe the dish rather than decorate the photo.
             Each appears only if the surface knows it — that is what lets one card serve a
             feed entry and a pantry match without a flag between them. */}
-        {(recipe.difficulty || recipe.servings !== undefined) && (
+        {(recipe.difficulty || recipe.servings != null) && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {recipe.difficulty && (
               <DifficultyChip
@@ -467,7 +468,7 @@ export default function RecipeCard({
                 sx={{ fontSize: '0.8125rem' }}
               />
             )}
-            {recipe.servings !== undefined && (
+            {recipe.servings != null && (
               <Chip
                 icon={<Person sx={{ fontSize: 16 }} />}
                 label={t('meta.servings', { count: recipe.servings })}

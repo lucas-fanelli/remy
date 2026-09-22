@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import striptags from 'striptags';
 import { IUserService } from '@/domain/services/IUserService';
 import { getCurrentUser } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
@@ -93,9 +94,10 @@ export async function GET(request: NextRequest) {
       difficulty: recipe.difficulty || 'medium',
       prepTime: recipe.prepTime || 0,
       cookingTime: recipe.cookingTime || 0,
-      servings: recipe.servings || 4,
-      likeCount: recipe._count.likes,
-      commentCount: recipe._count.comments,
+      // The real value, not `|| 4`. The search page stopped inventing servings in the card
+      // work, but this route kept doing it, so that fix never reached the screen.
+      servings: recipe.servings,
+      ...engagementCounts(recipe._count),
       averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount ?? 0,
       author: {

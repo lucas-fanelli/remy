@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import striptags from 'striptags';
 import { requireAuth } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import { MAX_ITEM_NAME_LENGTH, PG_ADVISORY_LOCK_MATCH } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
@@ -33,8 +34,8 @@ interface MatchedRecipeData {
   matchedIngredients: number;
   totalIngredients: number;
   missingIngredients: string[];
-  likesCount: number;
-  commentsCount: number;
+  likeCount: number;
+  commentCount: number;
   user: { id: string; username: string; avatar: string | null } | null;
   viewer: ViewerState | null;
 }
@@ -299,8 +300,7 @@ export async function GET(request: NextRequest) {
         matchedIngredients: match.matchedCount,
         totalIngredients: match.totalIngredients,
         missingIngredients: match.missingIngredients.map((i) => striptags(i.name)),
-        likesCount: recipe._count.likes,
-        commentsCount: recipe._count.comments,
+        ...engagementCounts(recipe._count),
         user: recipe.user,
         viewer: viewerState(recipe.id),
       };

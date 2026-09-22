@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ForbiddenError, NotFoundError, ValidationError } from '@/domain/errors';
 import { UpdateRecipeDTO } from '@/domain/types/recipe';
 import { getCurrentUser, requireAuth } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
@@ -67,8 +68,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ...recipe,
         averageRating: safeRating(recipe.averageRating),
         totalRatings: recipe.totalRatings ?? 0,
-        likeCount: counts.likes,
-        commentCount: counts.comments,
+        ...engagementCounts(counts),
         viewer: viewerState(recipe.id),
         ratingBreakdown,
       },

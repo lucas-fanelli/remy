@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
@@ -89,8 +90,7 @@ export async function GET(
       cookingTime: recipe.cookingTime,
       prepTime: recipe.prepTime,
       servings: recipe.servings,
-      likesCount: recipe._count.likes,
-      commentsCount: recipe._count.comments,
+      ...engagementCounts(recipe._count),
       createdAt: recipe.createdAt,
     }));
 

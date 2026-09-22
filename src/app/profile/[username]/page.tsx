@@ -38,8 +38,8 @@ interface Recipe {
   title: string;
   imageUrl: string;
   difficulty: string;
-  likesCount: number;
-  commentsCount: number;
+  likeCount: number;
+  commentCount: number;
   averageRating?: number;
   totalRatings?: number;
   author?: {
@@ -51,11 +51,10 @@ interface Recipe {
 /**
  * A profile recipe, narrowed to what a card shows.
  *
- * Note the rename: the profile API says `likesCount` and `commentsCount` while the feed,
- * search and detail endpoints all say `likeCount` and `commentCount`. Both were required
- * on the interface above, returned by the server and rendered by nothing at all — this is
- * the first time either appears on a profile. The counts are the app's, so the card takes
- * the app's spelling; making the two endpoints agree belongs to the data-layer pass.
+ * There used to be a rename here — `likeCount: recipe.likesCount` — because the profile
+ * API was the one endpoint spelling its counters in the plural. The endpoints agree now
+ * (`lib/api/engagementCounts`), so the mapper is a straight pass-through for them, and the
+ * cache adapters, which patch `likeCount`, can reach a heart on this page.
  */
 const toCardModel = (recipe: Recipe): RecipeCardModel => ({
   id: recipe.id,
@@ -65,8 +64,8 @@ const toCardModel = (recipe: Recipe): RecipeCardModel => ({
   author: recipe.author,
   averageRating: recipe.averageRating,
   totalRatings: recipe.totalRatings,
-  likeCount: recipe.likesCount,
-  commentCount: recipe.commentsCount,
+  likeCount: recipe.likeCount,
+  commentCount: recipe.commentCount,
 });
 
 interface ProfileStats {

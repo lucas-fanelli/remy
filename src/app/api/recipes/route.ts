@@ -4,6 +4,7 @@ import striptags from 'striptags';
 import { z, ZodError } from 'zod';
 import { ValidationError } from '@/domain/errors';
 import { getCurrentUser, requireAuth } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import {
   MAX_SEARCH_QUERY_LENGTH,
@@ -219,7 +220,9 @@ export async function GET(request: NextRequest) {
       userId: recipe.userId,
       cookingTime: recipe.cookingTime || 0,
       prepTime: recipe.prepTime || 0,
-      servings: recipe.servings || 1,
+      // The real value. It was `|| 1` here and `|| 4` in search, so one recipe with no
+      // servings recorded read "1 porción" in the feed and "4 porciones" in search.
+      servings: recipe.servings,
       difficulty: recipe.difficulty || 'easy',
       ingredients: recipe.ingredients || [],
       instructions: recipe.instructions || [],
@@ -235,8 +238,7 @@ export async function GET(request: NextRequest) {
         : undefined,
       averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount,
-      likeCount: recipe._count.likes,
-      commentCount: recipe._count.comments,
+      ...engagementCounts(recipe._count),
       viewer: viewerState(recipe.id),
     }));
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import { USERNAME_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
@@ -207,8 +208,7 @@ export async function GET(
             cookingTime: s.post.cookingTime,
             prepTime: s.post.prepTime,
             servings: s.post.servings,
-            likesCount: s.post._count.likes,
-            commentsCount: s.post._count.comments,
+            ...engagementCounts(s.post._count),
             createdAt: s.post.createdAt,
             averageRating: safeRating(s.post.averageRating),
             totalRatings: s.post.reviewCount ?? 0,
@@ -247,8 +247,7 @@ export async function GET(
       cookingTime: recipe.cookingTime,
       prepTime: recipe.prepTime,
       servings: recipe.servings,
-      likesCount: recipe._count.likes,
-      commentsCount: recipe._count.comments,
+      ...engagementCounts(recipe._count),
       createdAt: recipe.createdAt,
       averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount ?? 0,

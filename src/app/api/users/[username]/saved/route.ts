@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
@@ -92,8 +93,7 @@ export async function GET(
       cookingTime: post.cookingTime,
       prepTime: post.prepTime,
       servings: post.servings,
-      likesCount: post._count.likes,
-      commentsCount: post._count.comments,
+      ...engagementCounts(post._count),
       averageRating: safeRating(post.averageRating),
       totalRatings: post.reviewCount ?? 0,
       createdAt: post.createdAt,

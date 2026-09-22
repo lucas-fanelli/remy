@@ -37,15 +37,18 @@ interface MatchedRecipe {
 /**
  * A matched recipe, narrowed to what a card can show.
  *
- * `/api/recipes/match` answers with these five fields and no more — no author, no times,
- * no servings, no ratings, no counts — so these cards come out deliberately sparser than
- * a feed card. That is the point of every meta field being optional: the alternative is
- * what the search page used to do, which was invent values to satisfy a type.
+ * CORRECTION. An earlier version of this comment said `/api/recipes/match` answers with
+ * these five fields and no more, and that the endpoint carries no viewer dimension. Both
+ * were false. The route sends the author (`user`), `prepTime`, `cookingTime`, `servings`,
+ * both counters and a real `viewer: viewerState(recipe.id)`. The claim was written from
+ * the `MatchedRecipe` interface below, which declares nine fields, instead of from what
+ * the server sends — an incomplete client type taken as the truth about the payload.
  *
- * Both call sites also pass `viewer={null}`, and that is a known gap rather than a claim:
- * the endpoint carries no viewer dimension at all. Nothing on these cards reads it today,
- * because with no counts and no handlers there is no engagement row to read it — but if
- * this card ever grows one here, the endpoint has to answer first.
+ * So these cards are sparser than a feed card because THIS MAPPER THROWS THE REST AWAY,
+ * not because the data is missing, and `viewer={null}` at both call sites renders every
+ * heart as signed-out while the real answer is sitting in the response. Wiring both
+ * through is P2 step 6; it is left for that step rather than done here because it changes
+ * what the home page shows, and a naming change should not also be a visual one.
  */
 const toCardModel = (recipe: MatchedRecipe): RecipeCardModel => ({
   id: recipe.id,

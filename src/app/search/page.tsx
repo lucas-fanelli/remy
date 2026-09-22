@@ -39,7 +39,13 @@ interface Recipe {
   difficulty: string;
   prepTime: number;
   cookingTime: number;
-  servings: number;
+  /**
+   * `null` for a recipe that never recorded it. This said `number` while the route sent
+   * `servings || 4`, so the type was technically true and the value was invented. The
+   * route sends the real value now, and a client interface that disagreed with the
+   * payload is exactly how the pantry-match card came to throw away data it was sent.
+   */
+  servings: number | null;
   userId: string;
   likeCount?: number;
   commentCount?: number;
