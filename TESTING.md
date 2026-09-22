@@ -439,7 +439,7 @@ Track these metrics:
 ✅ **Comprehensive test infrastructure**
 
 **Components with 100% coverage:**
-- PersistentSearchBar, AnimatedTabs, InstallPrompt, LoadingWithProgress
+- PersistentSearchBar, AnimatedTabs, LoadingWithProgress
 - AuthContext, ToastContext, validation schemas, container
 
 **Testing is not optional. Every line of code must be tested.**
