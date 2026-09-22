@@ -103,7 +103,10 @@ export default function FollowersPage() {
     }
   };
 
-  if (loading || authLoading) {
+  // The session first. A visitor without one never fetches, so this page's own `loading`
+  // never clears for them: checking it first left anyone arriving signed out on a blank
+  // page forever, with the sign-in prompt below unreachable.
+  if (authLoading) {
     return null;
   }
 
@@ -118,6 +121,10 @@ export default function FollowersPage() {
         </Button>
       </PageFrame>
     );
+  }
+
+  if (loading) {
+    return null;
   }
 
   if (error) {
