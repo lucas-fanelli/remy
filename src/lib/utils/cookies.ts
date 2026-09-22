@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSessionLifetimeSeconds } from '@/lib/auth/session';
 
-const COOKIE_NAME = 'auth_token';
+/** The session cookie. The root layout checks only that it is present: see AuthProvider. */
+export const COOKIE_NAME = 'auth_token';
 
 /**
  * Set httpOnly auth cookie on a NextResponse.

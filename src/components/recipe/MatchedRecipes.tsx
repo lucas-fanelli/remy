@@ -54,7 +54,7 @@ const toCardModel = (recipe: MatchedRecipe): RecipeCardModel => ({
 export default function MatchedRecipes() {
   const t = useTranslations('feed');
   const tCommon = useTranslations('common');
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, sessionLikely } = useAuth();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -80,9 +80,10 @@ export default function MatchedRecipes() {
     router.push('/pantry');
   };
 
-  // Return null during loading - the global LoadingBar shows progress
-  // If not authenticated, don't show this component (user not logged in)
-  if (!isAuthenticated) {
+  // A guest sees nothing here. While the session is still being checked, the block keeps
+  // its place only if the request carried a session cookie: the feed below no longer waits
+  // for that check, and a block arriving above it afterwards would push it down.
+  if (!isAuthenticated && !(authLoading && sessionLikely)) {
     return null;
   }
 

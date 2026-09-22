@@ -9,17 +9,7 @@ import {
   Link as LinkIcon,
   LockOutlined,
 } from '@mui/icons-material';
-import {
-  Box,
-  Typography,
-  Avatar,
-  Button,
-  Grid,
-  IconButton,
-  Alert,
-  Skeleton,
-  Link,
-} from '@mui/material';
+import { Box, Typography, Avatar, Button, Grid, IconButton, Alert, Link } from '@mui/material';
 import { motion } from 'framer-motion';
 import NextLink from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -30,8 +20,8 @@ import { MotionBox } from '@/components/motion';
 import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import FollowButton from '@/components/profile/FollowButton';
+import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import RecipeCard, { type RecipeCardModel } from '@/components/recipe/RecipeCard';
-import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
@@ -98,36 +88,6 @@ function StatLink({ href, children }: { href: string | null; children: React.Rea
   );
 }
 
-/**
- * The first visit to a profile, sized like the page it becomes.
- *
- * It used to render nothing at all while loading, leaving a blank page under the header
- * and letting everything below jump when the profile arrived. A second visit does not get
- * here: the profile is in the cache and paints at once.
- */
-function ProfileSkeleton({ label }: { label: string }) {
-  return (
-    <PageFrame>
-      <Box role="status" aria-label={label}>
-        <Box sx={{ display: 'flex', gap: 4, mb: 4, flexDirection: { xs: 'column', sm: 'row' } }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Skeleton
-              variant="circular"
-              sx={{ width: { xs: 100, sm: 150 }, height: { xs: 100, sm: 150 } }}
-            />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Skeleton variant="text" width={180} sx={{ fontSize: '2.125rem', mb: 2 }} />
-            <Skeleton variant="text" width={280} sx={{ mb: 2 }} />
-            <Skeleton variant="text" width="60%" />
-          </Box>
-        </Box>
-        <RecipeGridSkeleton />
-      </Box>
-    </PageFrame>
-  );
-}
-
 export default function ProfilePage() {
   const t = useTranslations('profile');
   const tCommon = useTranslations('common');
@@ -158,7 +118,7 @@ export default function ProfilePage() {
   // on screen rather than swapping a good page for an error.
   if (!profileQuery.data) {
     if (!profileQuery.isError) {
-      return <ProfileSkeleton label={tCommon('status.loading')} />;
+      return <ProfileSkeleton />;
     }
 
     const reason =
