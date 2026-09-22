@@ -65,7 +65,9 @@
     "undoFailed": "No se pudo deshacer",
     "unliked": "Sacaste tu me gusta",
     "unsaved": "Receta quitada de guardadas",
-    "updated": "¡Receta actualizada!"
+    "updated": "¡Receta actualizada!",
+    "likeOffline": "Sin conexión — te devolvimos el me gusta",
+    "saveOffline": "Sin conexión — no se guardó"
   },
   "card": {
     "comments": "Comentarios",

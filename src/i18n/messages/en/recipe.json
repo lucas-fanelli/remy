@@ -65,7 +65,9 @@
     "undoFailed": "Could not undo that",
     "unliked": "Recipe unliked",
     "unsaved": "Recipe removed from saved",
-    "updated": "Recipe updated successfully!"
+    "updated": "Recipe updated successfully!",
+    "likeOffline": "No connection — we put your like back",
+    "saveOffline": "No connection — it was not saved"
   },
   "card": {
     "comments": "Comments",
