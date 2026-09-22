@@ -5,6 +5,7 @@ import React from 'react';
 import '@testing-library/jest-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider as CustomThemeProvider } from '@/contexts/ThemeContext';
+import { ToastProvider } from '@/contexts/ToastContext';
 import Navigation from '../Navigation';
 
 // Speed up waitFor - aggressive timeout
@@ -84,7 +85,11 @@ const renderWithProviders = (component: React.ReactElement) => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={mockTheme}>
         <CustomThemeProvider>
-          <AuthProvider>{component}</AuthProvider>
+          {/* Navigation reports a failed "mark all as read" through the shared toast now,
+              so it needs the provider — `useToast` throws without one, by design. */}
+          <ToastProvider>
+            <AuthProvider>{component}</AuthProvider>
+          </ToastProvider>
         </CustomThemeProvider>
       </ThemeProvider>
     </QueryClientProvider>

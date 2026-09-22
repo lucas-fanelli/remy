@@ -15,27 +15,39 @@ import { readFileSync } from 'fs';
  *
  * KNOWN is the remaining work, not an exemption list. It may shrink and never grow: adding
  * a file to it means shipping a new silent failure, and the count is what fails the test.
+ *
+ * WHAT THIS CANNOT SEE, and it matters: it measures a code SHAPE, not what the reader ends
+ * up experiencing. `useNotificationPolling.fetchNotifications` has an `else` and so passes
+ * here, but that else only counts the failure and writes to the console — the dropdown goes
+ * on saying "you have no notifications yet" until ten failures inside ten minutes trip its
+ * circuit breaker, at which point the bell finally dims and offers a retry. Nine server
+ * errors in a row look exactly like an empty inbox. Passing this test is a floor, not a
+ * guarantee, and that gap is its own slice of P2's step 2.
  */
 
 /**
- * Sites still to fix, by file. Every entry is a bug, scheduled as P2's step 2.
+ * Empty, and it is meant to stay that way.
  *
- * These counts come from the matcher below, not from a text search. A first draft of this
- * list was taken from `grep "if (response.ok)"` and said 20 across 13 files; the matcher
- * says 9 across 8, because the difference is every handler that already has an `else` —
- * including the feed's like, which the grep could not tell apart from the broken ones.
- * Two more were in `recipe/[id]/page.tsx` and are fixed in this change.
+ * The count came down measured rather than guessed, and every number along the way was
+ * wrong in an instructive direction:
+ *
+ *   `grep "if (response.ok)"`       20 across 13 files  — counted every handler that
+ *                                                         already answers, including the
+ *                                                         one correct implementation
+ *   the brace matcher                9 across 8 files   — the real shape
+ *   plus the early-return rule       8 across 7 files   — ResetPasswordForm was never
+ *                                                         broken; it returns and then
+ *                                                         handles 429 / bad token / 400
+ *
+ * Two were fixed in the recipe page, four in the notification path, and the last four were
+ * all READS, which is the pattern worth keeping in mind: a failed write leaves a control
+ * that did not move, but a failed read renders as "nothing here" — a confident claim the
+ * screen has no grounds for. An unreadable pantry said "your pantry is empty" and offered
+ * to help you add your first ingredient.
+ *
+ * An entry appearing here again means a new silent failure shipped.
  */
-const KNOWN: Record<string, number> = {
-  'src/app/notifications/page.tsx': 2,
-  'src/app/pantry/page.tsx': 1,
-  'src/app/search/page.tsx': 1,
-  'src/components/Navigation.tsx': 1,
-  'src/components/auth/ResetPasswordForm.tsx': 1,
-  'src/components/recipe/CommentsSection.tsx': 1,
-  'src/components/search/PersistentSearchBar.tsx': 1,
-  'src/hooks/useNotificationPolling.ts': 1,
-};
+const KNOWN: Record<string, number> = {};
 
 /** Comments only — a `//` inside a string literal is not worth the parser this would need. */
 function stripComments(source: string): string {
@@ -55,6 +67,27 @@ function endOfBlock(source: string, openBrace: number): number {
   return -1;
 }
 
+/**
+ * Does the success block hand control back, so that everything after the `if` is the
+ * failure path?
+ *
+ * `if (ok) { navigate(); return; }` followed by an error ladder is correct — it is the
+ * same shape as `if (!ok) { report(); return; }`, written the other way round. An earlier
+ * version of this matcher only looked for `else` and flagged `ResetPasswordForm`, which
+ * handles 429, an invalid token, a 400 and a fallback in the four statements after its
+ * early return. A test that cries wolf gets its list padded with exemptions, which is how
+ * a guard stops guarding.
+ */
+function blockExits(block: string): boolean {
+  const body = stripComments(block).trim().replace(/\}$/, '').trim();
+  const lastStatement =
+    body
+      .split('\n')
+      .filter((l) => l.trim())
+      .pop() ?? '';
+  return /\b(return|throw)\b/.test(lastStatement);
+}
+
 function silentOkChecks(source: string): number {
   const clean = stripComments(source);
   const pattern = /if\s*\(\s*(?:response|res|r)\.ok\s*\)\s*\{/g;
@@ -65,8 +98,11 @@ function silentOkChecks(source: string): number {
     const brace = clean.indexOf('{', match.index);
     const after = endOfBlock(clean, brace);
     if (after === -1) continue;
-    // An `else` immediately after means the rejection is handled.
-    if (!/^\s*else\b/.test(clean.slice(after))) found++;
+
+    // Either shape answers the rejection: an `else` branch, or an early return that leaves
+    // the rest of the function to be the failure path.
+    const handled = /^\s*else\b/.test(clean.slice(after)) || blockExits(clean.slice(brace, after));
+    if (!handled) found++;
   }
   return found;
 }
@@ -116,6 +152,30 @@ describe('no write swallows an HTTP rejection', () => {
   it('does not flag a handler that answers the rejection', () => {
     // The feed's like handler — the one correct implementation, and the model for P2.
     expect(silentOkChecks(readFileSync('src/components/recipe/RecipeFeed.tsx', 'utf8'))).toBe(0);
+  });
+
+  it('accepts an early return, because the rest of the function is then the failure path', () => {
+    const earlyReturn = `
+      if (response.ok) {
+        hardNavigate('/auth?reset=success');
+        return;
+      }
+      if (response.status === 429) { setError(rateLimited); }
+      else { setError(generic); }
+    `;
+
+    expect(silentOkChecks(earlyReturn)).toBe(0);
+  });
+
+  it('still catches a success block that neither branches nor exits', () => {
+    const silent = `
+      if (response.ok) {
+        setThing(await response.json());
+      }
+      doSomethingUnrelated();
+    `;
+
+    expect(silentOkChecks(silent)).toBe(1);
   });
 
   it('reads the braces rather than the text', () => {

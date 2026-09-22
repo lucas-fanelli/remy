@@ -1,5 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Recipe, UpdateRecipeDTO } from '@/domain/types/recipe';
 import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
+import { queryKeys } from '@/lib/query/keys';
+import { invalidateRecipeLists } from '@/lib/query/patchRecipeEverywhere';
 
 export interface UpdateRecipeResponse {
   recipe: Recipe;
@@ -43,6 +46,8 @@ const toUpdateBody = (data: UpdateRecipeDTO): UpdateRecipeDTO => {
  * false` so the form prints its own translated copy instead (docs/I18N.md, API errors).
  */
 export function useUpdateRecipe(onSuccess?: (recipe: Recipe) => void) {
+  const queryClient = useQueryClient();
+
   const updateRecipe = async (
     recipeId: string,
     data: UpdateRecipeDTO
@@ -64,6 +69,12 @@ export function useUpdateRecipe(onSuccess?: (recipe: Recipe) => void) {
     }
 
     const result: UpdateRecipeResponse = await response.json();
+
+    // Here rather than at each caller, so none can forget. The recipe's own page refetches
+    // now — it is usually the screen that asked. Every list holding the old title, photo
+    // or times refetches the next time it is shown; before, only that page heard.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.recipe(recipeId) });
+    void invalidateRecipeLists(queryClient);
     onSuccess?.(result.recipe);
     return result;
   };

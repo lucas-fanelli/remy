@@ -1,7 +1,9 @@
 {
   "states": {
     "notFound": "Recipe not found",
-    "loadFailed": "Failed to load recipe"
+    "loadFailed": "Failed to load recipe",
+    "private": "This recipe belongs to @{username}, whose account is private.",
+    "viewAuthor": "View their profile"
   },
   "meta": {
     "difficulty": "{level, select, easy {easy} medium {medium} hard {hard} other {{level}}}",
@@ -51,11 +53,11 @@
     "copyManually": "Cannot copy link — please copy the URL manually",
     "deleteFailed": "Failed to delete recipe",
     "deleted": "Recipe deleted successfully!",
-    "likeFailed": "Failed to like recipe",
+    "likeFailed": "Failed to update like",
     "liked": "Recipe liked!",
     "linkCopied": "Link copied to clipboard!",
     "loginToCook": "Please login to mark recipes as cooked",
-    "loginToLike": "Please login to like recipes",
+    "loginToLike": "Please log in to like recipes",
     "loginToSave": "Please login to save recipes",
     "rated": "Rating saved",
     "ratingCleared": "Rating removed",
@@ -65,7 +67,12 @@
     "undoFailed": "Could not undo that",
     "unliked": "Recipe unliked",
     "unsaved": "Recipe removed from saved",
-    "updated": "Recipe updated successfully!"
+    "updated": "Recipe updated successfully!",
+    "likeOffline": "No connection — the like didn't go through",
+    "saveOffline": "No connection — it was not saved",
+    "unlikeOffline": "No connection — your like is still there",
+    "unsaveOffline": "No connection — it's still in your saved recipes",
+    "unsaveFailed": "We couldn't remove it from your saved recipes"
   },
   "card": {
     "comments": "Comments",
@@ -75,7 +82,9 @@
     "edit": "Edit Recipe",
     "like": "Like",
     "options": "recipe options",
-    "unlike": "Unlike"
+    "save": "Save",
+    "unlike": "Unlike",
+    "unsave": "Remove from saved"
   },
   "cookDialog": {
     "cancel": "Cancel",

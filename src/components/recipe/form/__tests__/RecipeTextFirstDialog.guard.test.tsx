@@ -1,7 +1,8 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { renderWithQueryClient as render } from '@/__tests__/helpers/queryClient';
 import '@testing-library/jest-dom';
 import './editorHarness';
 import { PUBLISH_GUARD_MS } from '../formMotion';
