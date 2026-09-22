@@ -27,7 +27,7 @@ jest.mock('@/contexts/AuthContext', () => ({
 
 const mockFetch = global.fetch as jest.Mock;
 
-/** Midday in Buenos Aires, so the pinned time zone cannot move it to the day before */
+/** Afternoon in Madrid, so the pinned time zone cannot move it to another day */
 const ISO = '2024-01-15T15:00:00.000Z';
 
 const theme = createTheme();
