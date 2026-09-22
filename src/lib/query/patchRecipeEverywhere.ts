@@ -61,14 +61,7 @@ function isDetailPayload(data: unknown): data is { recipe: CachedRecipe } {
   );
 }
 
-/**
- * The recipe detail page: `{ recipe: ApiRecipe }` under `['recipe', id]`.
- *
- * The only adapter for now, deliberately. The feed, search and profile caches join when
- * those screens stop holding their lists in `useState` — until then there is nothing of
- * theirs in the cache to patch, and pretending otherwise would be dead code that looks
- * like coverage.
- */
+/** The recipe detail page: `{ recipe: ApiRecipe }` under `['recipe', id]`. */
 const detailAdapter: RecipeCacheAdapter = {
   matches: (key) => key[0] === 'recipe' && typeof key[1] === 'string',
   map: (data, recipeId, patch) => {
@@ -118,6 +111,13 @@ const infiniteListAdapter: RecipeCacheAdapter = {
   },
 };
 
+/**
+ * Two shapes so far: the detail page's envelope and any infinite list.
+ *
+ * Search, the profile tabs and the pantry matches join when those screens stop holding
+ * their lists in `useState` — until then there is nothing of theirs in the cache to patch,
+ * and an adapter for an empty cache would be dead code that looks like coverage.
+ */
 export const RECIPE_CACHE_ADAPTERS: readonly RecipeCacheAdapter[] = [
   detailAdapter,
   infiniteListAdapter,
