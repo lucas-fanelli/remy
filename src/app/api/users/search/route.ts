@@ -9,7 +9,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query');
-    const limit = searchParams.get('limit');
+    // Absent means undefined, so the schema's default applies. The null that get() returns
+    // coerces to 0, which failed `positive()`: every search without ?limit= was a 400.
+    const limit = searchParams.get('limit') ?? undefined;
 
     // Validate input
     const validatedData = searchSchema.parse({ query, limit });
@@ -17,9 +19,19 @@ export async function GET(request: NextRequest) {
     // Get user service from container
     const userService = container.getUserService();
 
-    // Search users - strip email and id from public results
+    // Each account's profile header, named field by field — what a locked profile shows
+    // anyone, id included. Private accounts are found now, so this must be a list of what
+    // goes out rather than of what stays in: the row used to be spread minus email and id,
+    // and it sent the role, verification, website and dates of everyone it found.
     const users = (await userService.searchUsers(validatedData.query, validatedData.limit)).map(
-      ({ email: _email, id: _id, ...rest }) => rest
+      (user) => ({
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        avatar: user.avatar,
+        bio: user.bio,
+        isPrivate: user.isPrivate,
+      })
     );
 
     return ApiResponseHelper.success(users);

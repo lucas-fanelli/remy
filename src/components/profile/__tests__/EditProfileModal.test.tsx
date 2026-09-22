@@ -282,6 +282,83 @@ describe('EditProfileModal', () => {
     });
   });
 
+  // Going public accepts every pending follow request, which cannot be undone, so no save
+  // may do it by accident: privacy is sent only when the switch was flipped in this form.
+  describe('Privacy in the saved payload', () => {
+    function openAs(isPrivate: boolean) {
+      mockUseAuth.mockReturnValue({
+        user: { ...mockUser, isPrivate },
+        token: null,
+        isLoading: false,
+        isAuthenticated: true,
+        isAdmin: false,
+        login: jest.fn(),
+        register: jest.fn(),
+        logout: jest.fn(),
+        updateProfile: mockUpdateProfile,
+      });
+      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+    }
+
+    async function savedPayload(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+      await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledTimes(1));
+      return mockUpdateProfile.mock.calls[0][0];
+    }
+
+    it('leaves it out of a bio edit in a tab whose copy of the account says public', async () => {
+      // The stale second tab: another tab made the account private since this one loaded.
+      // Sending this tab's "public" would make it public again and accept every request.
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      openAs(false);
+
+      const bio = screen.getByLabelText(/bio/i);
+      await user.clear(bio);
+      await user.type(bio, 'Nueva bio');
+      const payload = await savedPayload(user);
+
+      expect(payload).toMatchObject({ bio: 'Nueva bio' });
+      expect(payload).not.toHaveProperty('isPrivate');
+    });
+
+    it('leaves it out of a private account saved without touching the switch', async () => {
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      openAs(true);
+
+      const payload = await savedPayload(user);
+
+      expect(payload).not.toHaveProperty('isPrivate');
+    });
+
+    it.each([
+      ['on', false, true],
+      ['off', true, false],
+    ])('sends the switch when it was turned %s', async (_, wasPrivate, isPrivate) => {
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      openAs(wasPrivate);
+
+      await user.click(screen.getByRole('checkbox'));
+      const payload = await savedPayload(user);
+
+      expect(payload).toHaveProperty('isPrivate', isPrivate);
+    });
+
+    it('leaves it out when the switch was flipped and flipped back', async () => {
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      openAs(true);
+
+      await user.click(screen.getByRole('checkbox'));
+      await user.click(screen.getByRole('checkbox'));
+      const payload = await savedPayload(user);
+
+      expect(payload).not.toHaveProperty('isPrivate');
+    });
+  });
+
   describe('Dialog Close', () => {
     it('should call onClose when cancel button is clicked', async () => {
       const user = userEvent.setup({ delay: null });

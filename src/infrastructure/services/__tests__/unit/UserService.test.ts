@@ -1,7 +1,11 @@
 import { User } from '@prisma/client';
 import { mockDeep } from 'jest-mock-extended';
 import { IUserRepository } from '@/domain/repositories/IUserRepository';
+import { notifyRequestsAccepted } from '@/lib/follows/requests';
 import { UserService } from '../../UserService';
+
+// Tested in src/lib/follows; here it only has to be called, or not, at the right moment
+jest.mock('@/lib/follows/requests', () => ({ notifyRequestsAccepted: jest.fn() }));
 
 describe('UserService - Unit Tests', () => {
   let userService: UserService;
@@ -25,6 +29,7 @@ describe('UserService - Unit Tests', () => {
   };
 
   beforeEach(() => {
+    jest.clearAllMocks();
     mockUserRepository = mockDeep<IUserRepository>();
     userService = new UserService(mockUserRepository);
   });
@@ -47,7 +52,9 @@ describe('UserService - Unit Tests', () => {
     });
 
     it('should not expose passwordChangedAt after a profile update', async () => {
-      mockUserRepository.update = jest.fn().mockResolvedValue(mockUser);
+      mockUserRepository.updateProfile = jest
+        .fn()
+        .mockResolvedValue({ user: mockUser, accepted: [] });
 
       const result = await userService.updateProfile('user-123', { bio: 'New bio' });
 
@@ -120,7 +127,9 @@ describe('UserService - Unit Tests', () => {
       };
 
       const updatedUser = { ...mockUser, ...updateData };
-      mockUserRepository.update = jest.fn().mockResolvedValue(updatedUser);
+      mockUserRepository.updateProfile = jest
+        .fn()
+        .mockResolvedValue({ user: updatedUser, accepted: [] });
 
       const result = await userService.updateProfile('user-123', updateData);
 
@@ -146,7 +155,9 @@ describe('UserService - Unit Tests', () => {
       };
 
       const updatedUser = { ...mockUser, ...updateData };
-      mockUserRepository.update = jest.fn().mockResolvedValue(updatedUser);
+      mockUserRepository.updateProfile = jest
+        .fn()
+        .mockResolvedValue({ user: updatedUser, accepted: [] });
 
       const result = await userService.updateProfile('user-123', updateData);
 
@@ -169,7 +180,9 @@ describe('UserService - Unit Tests', () => {
       };
 
       const updatedUser = { ...mockUser, ...updateData };
-      mockUserRepository.update = jest.fn().mockResolvedValue(updatedUser);
+      mockUserRepository.updateProfile = jest
+        .fn()
+        .mockResolvedValue({ user: updatedUser, accepted: [] });
 
       const result = await userService.updateProfile('user-123', updateData);
 
@@ -182,11 +195,58 @@ describe('UserService - Unit Tests', () => {
       };
 
       const updatedUser = { ...mockUser, isPrivate: true };
-      mockUserRepository.update = jest.fn().mockResolvedValue(updatedUser);
+      mockUserRepository.updateProfile = jest
+        .fn()
+        .mockResolvedValue({ user: updatedUser, accepted: [] });
 
       const result = await userService.updateProfile('user-123', updateData);
 
       expect(result.isPrivate).toBe(true);
+    });
+
+    it('should save through updateProfile, which accepts pending requests on going public', async () => {
+      mockUserRepository.updateProfile = jest
+        .fn()
+        .mockResolvedValue({ user: mockUser, accepted: [] });
+
+      await userService.updateProfile('user-123', { isPrivate: false });
+
+      expect(mockUserRepository.updateProfile).toHaveBeenCalledWith('user-123', {
+        isPrivate: false,
+      });
+      expect(mockUserRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should tell the requesters a save accepted, once the save has returned', async () => {
+      mockUserRepository.updateProfile = jest
+        .fn()
+        .mockResolvedValue({ user: mockUser, accepted: ['req-1', 'req-2'] });
+
+      await userService.updateProfile('user-123', { isPrivate: false });
+
+      expect(notifyRequestsAccepted).toHaveBeenCalledWith('user-123', ['req-1', 'req-2']);
+      expect(
+        (mockUserRepository.updateProfile as jest.Mock).mock.invocationCallOrder[0]
+      ).toBeLessThan((notifyRequestsAccepted as jest.Mock).mock.invocationCallOrder[0]);
+    });
+
+    it('should tell no one when the save fails', async () => {
+      mockUserRepository.updateProfile = jest.fn().mockRejectedValue(new Error('lock timeout'));
+
+      await expect(userService.updateProfile('user-123', { isPrivate: false })).rejects.toThrow(
+        'lock timeout'
+      );
+      expect(notifyRequestsAccepted).not.toHaveBeenCalled();
+    });
+
+    it('should save nothing when validation fails', async () => {
+      mockUserRepository.updateProfile = jest.fn();
+
+      await expect(
+        userService.updateProfile('user-123', { isPrivate: false, bio: 'a'.repeat(301) })
+      ).rejects.toThrow('Bio must be 300 characters or less');
+      expect(mockUserRepository.updateProfile).not.toHaveBeenCalled();
+      expect(notifyRequestsAccepted).not.toHaveBeenCalled();
     });
   });
 

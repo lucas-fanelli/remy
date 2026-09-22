@@ -45,6 +45,23 @@ export interface INotificationService {
   createFollowNotification(followerId: string, followingId: string): Promise<void>;
 
   /**
+   * Tell a private account's owner that someone asked to follow them ('follow_request').
+   */
+  createFollowRequestNotification(requesterId: string, ownerId: string): Promise<void>;
+
+  /**
+   * Take a follow request's notification back once there is nothing left to answer: the
+   * request was cancelled, declined or accepted.
+   */
+  deleteFollowRequestNotification(requesterId: string, ownerId: string): Promise<void>;
+
+  /**
+   * Tell the one who asked that the owner accepted ('follow_accepted'), replacing any
+   * earlier one for the same pair.
+   */
+  createFollowAcceptedNotification(ownerId: string, requesterId: string): Promise<void>;
+
+  /**
    * Create a like notification
    */
   createLikeNotification(userId: string, postId: string, postAuthorId: string): Promise<void>;

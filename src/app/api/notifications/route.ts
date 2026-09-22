@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api/auth';
 import { container } from '@/lib/container/container';
+import prisma from '@/lib/database/prisma';
 import { logServerError } from '@/lib/utils/logger';
 /**
  * GET /api/notifications
- * Get all notifications for the logged-in user
+ * Get all notifications for the logged-in user, and pendingRequestsCount: how many follow
+ * requests are waiting on their answer
  *
  * Following Clean Architecture:
  * - API Route (Presentation Layer) → Service (Business Logic) → Repository (Data Access)
@@ -25,11 +27,18 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10) || 50));
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
 
-    // Use service layer to get notifications
+    // Use service layer to get notifications. The pending follow requests ride along because
+    // the navigation already polls this route: the badge costs one indexed count, not a
+    // second request. They are counted in "follow_requests" itself, never in the
+    // notifications: a notification is only the doorbell, and reading it, or marking
+    // everything read, answers no request.
     const notificationService = container.getNotificationService();
-    const result = await notificationService.getUserNotifications(user.id, limit, offset);
+    const [result, pendingRequestsCount] = await Promise.all([
+      notificationService.getUserNotifications(user.id, limit, offset),
+      prisma.followRequest.count({ where: { targetId: user.id } }),
+    ]);
 
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, pendingRequestsCount });
   } catch (error) {
     logServerError('Error fetching notifications:', error);
     return NextResponse.json(

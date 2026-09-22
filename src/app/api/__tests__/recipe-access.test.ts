@@ -9,9 +9,11 @@
  * comments and scores, see its ingredients through the cook plan, and like, save, rate,
  * comment on and cook it, and be sent its like count and rating breakdown in return.
  *
- * Each route is sent the same four viewers. A refused one must leave with the 403 body and
- * nothing else, and the database must have been asked one thing only: who wrote the recipe.
- * A write, a count or a notification after that is the leak this closes.
+ * Each route is sent the same viewers. A refused one must leave with the 403 body and
+ * nothing else, and the database must have been asked the gate's questions only: who wrote
+ * the recipe and, when that author is private, whether this viewer follows them. A write, a
+ * count or a notification after that is the leak this closes. A follower of the private
+ * author is let in by every route, none of which changed for it: they all ask canSeePost.
  */
 import { NextRequest } from 'next/server';
 
@@ -34,6 +36,8 @@ function mockClient() {
   });
   return {
     post: table(),
+    // The gate's second question, for a private author: does the viewer follow them
+    follow: table(),
     comment: table(),
     rating: table(),
     like: table(),
@@ -80,6 +84,7 @@ const RECIPE = '7e783849-1e07-4ac7-9b95-fe3a40fe622e';
 const COMMENT = '0da1dbf8-1363-42fa-b78f-7ca1572150e0';
 const AUTHOR = 'author-1';
 const STRANGER = 'stranger-1';
+const FOLLOWER = 'follower-1';
 const RECIPE_URL = `http://localhost:3000/api/recipes/${RECIPE}`;
 
 let viewerId: string | null = null;
@@ -152,6 +157,11 @@ beforeEach(() => {
   // What each route finds once it is let in. Set on both clients, so a route reads the
   // same data whichever it asks.
   for (const db of [prisma, tx]) {
+    // The author has one follower, FOLLOWER; the stranger follows nobody.
+    db.follow.findUnique.mockImplementation(
+      async ({ where }: { where: { followerId_followingId: { followerId: string } } }) =>
+        where.followerId_followingId.followerId === FOLLOWER ? { id: 'follow-1' } : null
+    );
     db.comment.findMany.mockResolvedValue([]);
     db.comment.count.mockResolvedValue(0);
     db.rating.findMany.mockResolvedValue([]);
@@ -276,7 +286,7 @@ const ROUTES: RouteCase[] = [
 describe.each(ROUTES)('$route', ({ call, gate, okStatus, work, arrange }) => {
   beforeEach(() => arrange?.());
 
-  it('refuses a stranger on a private recipe, having asked only who wrote it', async () => {
+  it('refuses a stranger on a private recipe, having asked only who wrote it and whether they follow them', async () => {
     signedInAs(STRANGER);
     recipeIs('private');
 
@@ -289,10 +299,21 @@ describe.each(ROUTES)('$route', ({ call, gate, okStatus, work, arrange }) => {
       code: 'user.profilePrivate',
       author: { username: 'marta' },
     });
-    // One query, the gate's — on `tx` where the route writes, so the check and the write
-    // it guards share a transaction.
-    expect(queriesMade()).toEqual([gate]);
+    // The gate's two queries and nothing else — both on `tx` where the route writes, so
+    // the check and the write it guards share a transaction.
+    const client = gate.split('.')[0];
+    expect(queriesMade()).toEqual([`${client}.post.findUnique`, `${client}.follow.findUnique`]);
     expect(container.getNotificationService).not.toHaveBeenCalled();
+  });
+
+  it('lets a follower of the author in on a private recipe', async () => {
+    signedInAs(FOLLOWER);
+    recipeIs('private');
+
+    const response = await call();
+
+    expect(response.status).toBe(okStatus);
+    expect(work()).toHaveBeenCalled();
   });
 
   it('lets the author in on their own private recipe', async () => {

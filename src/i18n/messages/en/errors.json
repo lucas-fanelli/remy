@@ -42,6 +42,12 @@
     "removeFailed": "We could not remove that entry."
   },
   "currentPasswordIncorrect": "Current password is incorrect",
+  "followRequest": {
+    "acceptFailed": "We could not accept the follow request.",
+    "declineFailed": "We could not decline the follow request.",
+    "listFailed": "We could not load your follow requests.",
+    "notFound": "This follow request is no longer there."
+  },
   "forbidden": "You do not have permission to do that.",
   "invalidRequest": "Some of the data is not valid. Check it and try again.",
   "network": "We could not connect. Check your connection and try again.",
@@ -135,6 +141,7 @@
     "notFound": "We could not find that user.",
     "profileFailed": "We could not load the profile.",
     "profilePrivate": "This profile is private.",
+    "removeFollowerFailed": "We could not remove that follower.",
     "statsFailed": "We could not load the stats.",
     "unfollowFailed": "We could not unfollow that user."
   }

@@ -105,19 +105,25 @@ export async function GET(request: NextRequest) {
           // No ESCAPE clause below: PostgreSQL rejects it with LIKE ANY(...), and the
           // backslash emitted by escapeLike is already the default LIKE escape character.
           //
-          // The first WHERE line mirrors visiblePostsWhere (src/lib/privacy/visibility.ts),
-          // which raw SQL cannot call: public authors, OR the viewer's own recipes. When the
-          // rule changes, this line changes with it; privacy-conventions.test.ts pins its
-          // arms. It had the public arm alone, so a private author never matched their own
-          // recipes against their own pantry. The parentheses keep the ANDs after it applying
-          // to both arms. It stays inline, not in a Prisma.sql fragment, so
+          // The first WHERE condition mirrors visiblePostsWhere
+          // (src/lib/privacy/visibility.ts), which raw SQL cannot call: public authors, OR the
+          // viewer's own recipes, OR authors the viewer follows — a "follows" row with the
+          // viewer as follower and the author as the one followed, which the
+          // (followerId, followingId) unique index answers. A pending request is not a
+          // follow, and "follow_requests" is deliberately not read. When the rule changes,
+          // this condition changes with it; privacy-conventions.test.ts pins its arms. It had
+          // the public arm alone, so a private author never matched their own recipes
+          // against their own pantry. The parentheses keep the ANDs after it applying to
+          // every arm. It stays inline, not in a Prisma.sql fragment, so
           // raw-sql-conventions.test.ts keeps checking its table names.
           const likePatterns = pantryPatterns.map((name) => `%${escapeLike(name)}%`);
           allCandidates = await tx.$queryRaw<{ id: string; ingredients: unknown }[]>`
           SELECT p.id, p.ingredients
           FROM "posts" p
           JOIN "users" u ON u.id = p."userId"
-          WHERE (u."isPrivate" = false OR p."userId" = ${user.id})
+          WHERE (u."isPrivate" = false OR p."userId" = ${user.id} OR EXISTS (
+              SELECT 1 FROM "follows" f WHERE f."followerId" = ${user.id} AND f."followingId" = p."userId"
+            ))
             AND p.ingredients IS NOT NULL AND jsonb_typeof(p.ingredients) = 'array' AND jsonb_array_length(p.ingredients) <= 100
             AND EXISTS (
               SELECT 1 FROM jsonb_array_elements(p.ingredients) AS elem

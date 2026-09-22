@@ -73,8 +73,15 @@ export const API_ERROR_CODES = [
   'user.notFound',
   'user.profileFailed',
   'user.profilePrivate',
+  'user.removeFollowerFailed',
   'user.statsFailed',
   'user.unfollowFailed',
+
+  // src/app/api/follow-requests/** — the owner's inbox of requests to follow a private account
+  'followRequest.acceptFailed',
+  'followRequest.declineFailed',
+  'followRequest.listFailed',
+  'followRequest.notFound',
 
   // src/app/api/recipes/**
   'recipe.createFailed',

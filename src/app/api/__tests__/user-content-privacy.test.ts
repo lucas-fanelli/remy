@@ -6,14 +6,18 @@ import { NextRequest } from 'next/server';
 /**
  * The four routes that serve one account's content by username — its followers, who it
  * follows, its counts and its recipes — and the gate in front of each. All four decide
- * through canViewContentOf, so S3 lets an accepted follower into all of them by changing
- * visibility.ts alone.
+ * through canViewContentOf, so an accepted follower got into all of them when visibility.ts
+ * learned about followers, and none of the four changed for it.
  */
 
 jest.mock('@/lib/database/prisma', () => ({
   __esModule: true,
   default: {
-    follow: { findMany: jest.fn(), count: jest.fn() },
+    // findUnique is the rule's own question — does the viewer follow the owner — and
+    // findMany/count the lists and counts it guards.
+    follow: { findMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
+    // Read only for the follow state on each listed person's button
+    followRequest: { findMany: jest.fn() },
     post: { findMany: jest.fn(), count: jest.fn() },
   },
 }));
@@ -43,8 +47,16 @@ const { canViewContentOf: realCanViewContentOf } = jest.requireActual('@/lib/pri
 
 const OWNER_ID = 'owner-1';
 const STRANGER_ID = 'stranger-1';
+const FOLLOWER_ID = 'follower-1';
 
-const PERSON = { id: 'person-9', username: 'fan', fullName: 'A Fan', avatar: null, bio: null };
+const PERSON = {
+  id: 'person-9',
+  username: 'fan',
+  fullName: 'A Fan',
+  avatar: null,
+  bio: null,
+  isPrivate: false,
+};
 
 /** The account as UserService.getUserByUsername returns it (no password). */
 function account(isPrivate: boolean) {
@@ -91,7 +103,10 @@ const ROUTES: RouteCase[] = [
         .mockResolvedValueOnce([]); // which of them the viewer follows
       (prisma.follow.count as jest.Mock).mockResolvedValue(1);
     },
-    content: { followers: [{ ...PERSON, isFollowing: false }], total: 1 },
+    content: {
+      followers: [{ ...PERSON, followState: 'none', isFollowing: false }],
+      total: 1,
+    },
   },
   {
     path: 'following',
@@ -103,7 +118,10 @@ const ROUTES: RouteCase[] = [
         .mockResolvedValueOnce([]);
       (prisma.follow.count as jest.Mock).mockResolvedValue(1);
     },
-    content: { following: [{ ...PERSON, isFollowing: false }], total: 1 },
+    content: {
+      following: [{ ...PERSON, followState: 'none', isFollowing: false }],
+      total: 1,
+    },
   },
   {
     path: 'stats',
@@ -161,8 +179,17 @@ const context = { params: Promise.resolve({ username: 'chef' }) };
 function expectNoContentRead() {
   expect(prisma.follow.findMany).not.toHaveBeenCalled();
   expect(prisma.follow.count).not.toHaveBeenCalled();
+  expect(prisma.followRequest.findMany).not.toHaveBeenCalled();
   expect(prisma.post.findMany).not.toHaveBeenCalled();
   expect(prisma.post.count).not.toHaveBeenCalled();
+}
+
+/** The owner has one follower, FOLLOWER_ID, as the rule's follow lookup finds them. */
+function followedBy(followerId: string) {
+  (prisma.follow.findUnique as jest.Mock).mockImplementation(
+    async ({ where }: { where: { followerId_followingId: { followerId: string } } }) =>
+      where.followerId_followingId.followerId === followerId ? { id: 'follow-1' } : null
+  );
 }
 
 beforeEach(() => {
@@ -171,6 +198,8 @@ beforeEach(() => {
   // next test.
   jest.resetAllMocks();
   (canViewContentOf as jest.Mock).mockImplementation(realCanViewContentOf);
+  followedBy(FOLLOWER_ID);
+  (prisma.followRequest.findMany as jest.Mock).mockResolvedValue([]);
 });
 
 describe.each(ROUTES)(
@@ -183,6 +212,8 @@ describe.each(ROUTES)(
       });
 
       it('refuses a stranger with 403 user.profilePrivate, and reads none of it', async () => {
+        // A stranger here is anyone who does not follow the owner — someone whose request
+        // is pending included: the rule never reads the requests.
         const response = await GET(requestAs(path, STRANGER_ID), context);
 
         expect(response.status).toBe(403);
@@ -191,6 +222,17 @@ describe.each(ROUTES)(
           code: 'user.profilePrivate',
         });
         expectNoContentRead();
+      });
+
+      it('serves an accepted follower', async () => {
+        const response = await GET(requestAs(path, FOLLOWER_ID), context);
+
+        expect(response.status).toBe(200);
+        expect(prisma.follow.findUnique).toHaveBeenCalledWith({
+          where: { followerId_followingId: { followerId: FOLLOWER_ID, followingId: OWNER_ID } },
+          select: { id: true },
+        });
+        expect(await response.json()).toEqual(content);
       });
 
       it(`refuses a signed-out visitor with ${signedOut}, and reads none of it`, async () => {
@@ -242,6 +284,72 @@ describe.each(ROUTES)(
       expect(response.status).toBe(404);
       expect(await response.json()).toEqual({ error: 'User not found', code: 'user.notFound' });
       expectNoContentRead();
+    });
+  }
+);
+
+/**
+ * Each person on a followers or following list carries where the VIEWER stands with them,
+ * for the button on their row — the viewer's state, not the listed account's.
+ */
+describe.each([
+  { path: 'followers', GET: followersGET, relation: 'follower' },
+  { path: 'following', GET: followingGET, relation: 'following' },
+] as const)(
+  'GET /api/users/[username]/$path — each row’s follow button',
+  ({ path, GET, relation }) => {
+    const FOLLOWED = { ...PERSON, id: 'person-1', username: 'followed', isPrivate: false };
+    const ASKED = { ...PERSON, id: 'person-2', username: 'asked', isPrivate: true };
+    const UNKNOWN = { ...PERSON, id: 'person-3', username: 'unknown', isPrivate: true };
+
+    beforeEach(() => {
+      mockGetUserByUsername.mockResolvedValue(account(false));
+      (prisma.follow.findMany as jest.Mock)
+        .mockResolvedValueOnce([FOLLOWED, ASKED, UNKNOWN].map((p) => ({ [relation]: p })))
+        // The viewer follows the first; they asked the second, a private account, to be let in.
+        .mockResolvedValueOnce([{ followingId: FOLLOWED.id }]);
+      (prisma.followRequest.findMany as jest.Mock).mockResolvedValue([{ targetId: ASKED.id }]);
+      (prisma.follow.count as jest.Mock).mockResolvedValue(3);
+    });
+
+    it('says following, requested or none on each row, and keeps isFollowing beside it', async () => {
+      const response = await GET(requestAs(path, STRANGER_ID), context);
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body[path]).toEqual([
+        { ...FOLLOWED, followState: 'following', isFollowing: true },
+        // A pending request is not a follow: the deprecated flag says false
+        { ...ASKED, followState: 'requested', isFollowing: false },
+        { ...UNKNOWN, followState: 'none', isFollowing: false },
+      ]);
+      expect(body.total).toBe(3);
+    });
+
+    it('asks about the whole page in one query per table, keyed on the viewer', async () => {
+      await GET(requestAs(path, STRANGER_ID), context);
+
+      const ids = [FOLLOWED.id, ASKED.id, UNKNOWN.id];
+      // The page itself, then the viewer's follows among it — never one query per row
+      expect(prisma.follow.findMany).toHaveBeenCalledTimes(2);
+      expect(prisma.follow.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({ where: { followerId: STRANGER_ID, followingId: { in: ids } } })
+      );
+      expect(prisma.followRequest.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.followRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ requesterId: STRANGER_ID, targetId: { in: ids } }),
+        })
+      );
+    });
+
+    it('selects whether each person is private, so a tap can show "Solicitado" at once', async () => {
+      await GET(requestAs(path, STRANGER_ID), context);
+
+      const pageQuery = (prisma.follow.findMany as jest.Mock).mock.calls[0][0];
+      expect(pageQuery.include[relation].select).toEqual(
+        expect.objectContaining({ isPrivate: true })
+      );
     });
   }
 );

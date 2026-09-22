@@ -2,8 +2,10 @@ import { User, Role, PrismaClient } from '@prisma/client';
 import {
   IUserRepository,
   CreateUserDTO,
+  ProfileUpdate,
   UpdateUserDTO,
 } from '@/domain/repositories/IUserRepository';
+import { acceptAllPending } from '@/lib/follows/requests';
 
 const IGNORING_CASE_LOOKUP_LIMIT = 10;
 
@@ -75,10 +77,33 @@ export class UserRepository implements IUserRepository {
     });
   }
 
-  async update(id: string, data: UpdateUserDTO): Promise<User> {
-    return this.prisma.user.update({
-      where: { id },
-      data,
+  /**
+   * A save that makes the account public takes every pending follow request with it, as
+   * follows. The sweep and the update are one transaction, so they commit together or not
+   * at all: afterwards no request waits on a public account, for an approval nobody will
+   * be asked for; and if either half fails, the account is still private with its requests
+   * still pending, and the save reports a failure that is true.
+   *
+   * The sweep runs on EVERY save that sets isPrivate to false, not only one that turns it
+   * from true. Telling the two apart means reading the old value first, and that read, made
+   * without the sweep's lock, can be stale by the time the update lands: another tab making
+   * the account private in between would leave the requests that arrive meanwhile pending
+   * on a public account. On an account that was already public the sweep claims nothing,
+   * and no one is told anything.
+   *
+   * The sweep goes before the update, as acceptAllPending asks: its comment has the deadlock
+   * the other order risks.
+   */
+  async updateProfile(id: string, data: UpdateUserDTO): Promise<ProfileUpdate> {
+    // Private, or privacy not part of this save: there is nothing to accept
+    if (data.isPrivate !== false) {
+      return { user: await this.prisma.user.update({ where: { id }, data }), accepted: [] };
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const { accepted } = await acceptAllPending(tx, id);
+      const user = await tx.user.update({ where: { id }, data });
+      return { user, accepted };
     });
   }
 
@@ -114,13 +139,18 @@ export class UserRepository implements IUserRepository {
   }
 
   async search(query: string, limit: number = 10, offset: number = 0): Promise<User[]> {
-    // Exclude email and password at the query level so sensitive data never
-    // leaves the database layer. The Prisma select returns a partial object
-    // that is cast to User — callers (e.g. UserService.searchUsers) should
-    // already strip password, but this provides defense-in-depth.
+    // Private accounts are found too. Search used to leave them out, and a private account
+    // nobody can find is one nobody can ask to follow — the only way into it. Finding one
+    // shows its header, never its recipes (src/lib/privacy/visibility.ts).
+    //
+    // Because private accounts come back, the select is the profile HEADER and nothing
+    // more — what a locked profile shows anyone: no email or password, and no website,
+    // role, verification or dates either. It is chosen here, at the query, so a caller that
+    // spreads a row cannot send more than that; /api/users/search once did, and sent the
+    // role and dates of everyone it found. The partial row is cast to User; both callers
+    // (/api/search and /api/users/search) read these fields and no others.
     return this.prisma.user.findMany({
       where: {
-        isPrivate: false,
         OR: [
           { username: { contains: query, mode: 'insensitive' } },
           { fullName: { contains: query, mode: 'insensitive' } },
@@ -132,13 +162,7 @@ export class UserRepository implements IUserRepository {
         fullName: true,
         bio: true,
         avatar: true,
-        website: true,
-        role: true,
-        isVerified: true,
         isPrivate: true,
-        createdAt: true,
-        updatedAt: true,
-        // email and password intentionally excluded
       },
       take: limit,
       skip: offset,

@@ -228,13 +228,19 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
         avatarUrl = uploadData.url;
       }
 
+      // Privacy goes only when the switch was flipped in this form. The form starts from this
+      // tab's copy of the account, and another tab may have made the account private since:
+      // sent with every save, that stale "public" would make it public again on a bio edit,
+      // and going public accepts every pending follow request, which cannot be undone.
+      const privacyChanged = formData.isPrivate !== (user?.isPrivate || false);
+
       // Single call: updateProfile sends PUT to /api/users/profile AND updates local state
       await updateProfile({
         fullName: formData.fullName.trim() || null,
         bio: formData.bio.trim() || null,
         website: formData.website.trim() || null,
         avatar: avatarUrl,
-        isPrivate: formData.isPrivate,
+        ...(privacyChanged ? { isPrivate: formData.isPrivate } : {}),
       });
 
       showSuccess(t('edit.success'));

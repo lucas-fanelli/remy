@@ -11,7 +11,12 @@ import { NextRequest } from 'next/server';
  * that its own profile page hides. It had no test at all.
  */
 
-jest.mock('@/lib/database/prisma', () => ({ __esModule: true, default: { follow: {}, post: {} } }));
+// The privacy rule asks one thing of the database here: whether a signed-in reader follows
+// a private account.
+jest.mock('@/lib/database/prisma', () => ({
+  __esModule: true,
+  default: { follow: { findUnique: jest.fn() }, post: {} },
+}));
 
 const mockGetCurrentUser = jest.fn();
 jest.mock('@/lib/api/auth', () => ({
@@ -23,6 +28,7 @@ jest.mock('@/lib/container/container', () => ({
   container: { getUserService: () => ({ getUserByUsername: mockGetUserByUsername }) },
 }));
 
+import prisma from '@/lib/database/prisma';
 import { GET } from '../users/[username]/route';
 
 /** The account as UserService.getUserByUsername returns it: everything but the password. */
@@ -60,6 +66,8 @@ describe('GET /api/users/[username]', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetCurrentUser.mockResolvedValue(null);
+    // Nobody follows anybody unless a test says so
+    (prisma.follow.findUnique as jest.Mock).mockResolvedValue(null);
   });
 
   it('never says who is an admin, or anything else the profile page does not show', async () => {
@@ -99,6 +107,16 @@ describe('GET /api/users/[username]', () => {
   it('shows a private account to its owner in full', async () => {
     mockGetCurrentUser.mockResolvedValue({ id: 'owner-1' });
     mockGetUserByUsername.mockResolvedValue(account(true));
+
+    const { body } = await get();
+
+    expect(body.data.user.website).toBe('https://chef.example.com');
+  });
+
+  it('shows a private account to an accepted follower in full', async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: 'follower-1' });
+    mockGetUserByUsername.mockResolvedValue(account(true));
+    (prisma.follow.findUnique as jest.Mock).mockResolvedValue({ id: 'follow-1' });
 
     const { body } = await get();
 

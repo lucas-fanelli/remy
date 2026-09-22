@@ -16,8 +16,13 @@ export type PostRow = Record<string, unknown>;
  * and the object still looks plausible.
  *
  * It knows only the filters the recipe lists use, and throws on anything else, so a filter
- * cannot pass a test by being ignored. The follower arm S3 adds to visiblePostsWhere
- * (`user: { followers: { some: ... } }`) is one it will have to learn.
+ * cannot pass a test by being ignored.
+ *
+ * A to-many relation is a list on the row, filtered with `some` — visiblePostsWhere's
+ * follower arm, `user: { followers: { some: { followerId } } }`, reads the author's
+ * `followers: [{ followerId }, …]`. A row that lists none has none. Which COLUMN a relation
+ * is joined on is the schema's business, not this stand-in's: visibility.test.ts proves the
+ * arm points the right way against the generated client.
  */
 export function admits(where: object, row: PostRow): boolean {
   return Object.entries(where).every(([field, condition]) => {
@@ -28,9 +33,23 @@ export function admits(where: object, row: PostRow): boolean {
     const value = row[field];
     // A to-one relation, like `user: { isPrivate: false }`: the same question, one level down.
     if (isRecord(value)) return admits(condition as object, value);
+    if (isRecord(condition) && 'some' in condition) return someAdmitted(value, condition, field);
     if (isRecord(condition)) return meets(value, condition, field);
     return value === condition;
   });
+}
+
+/** A to-many relation filter, `{ some: where }`: does any row in the list pass. */
+function someAdmitted(value: unknown, filter: PostRow, field: string): boolean {
+  const { some, ...rest } = filter;
+  if (Object.keys(rest).length > 0 || !isRecord(some)) {
+    throw new Error(
+      `admits() knows only { some: where } on ${field}; teach it before relying on it`
+    );
+  }
+  if (value === undefined) return false;
+  if (!Array.isArray(value)) throw new Error(`admits() expected ${field} to be a list of rows`);
+  return value.some((row: PostRow) => admits(some, row));
 }
 
 /** A plain object: a relation's row, or a filter. Not an array, a Date or Prisma.DbNull. */

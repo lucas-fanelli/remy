@@ -3,6 +3,7 @@ import { verifySessionToken } from '@/lib/api/auth';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { followStatesFor } from '@/lib/follows/state';
 import { canViewContentOf } from '@/lib/privacy/visibility';
 import { extractAuthToken } from '@/lib/utils/auth';
 import { logServerError } from '@/lib/utils/logger';
@@ -63,7 +64,8 @@ export async function GET(
     );
     const offset = Math.max(0, parseInt(request.nextUrl.searchParams.get('offset') || '0') || 0);
 
-    // Get followers with user details and total count in parallel
+    // Get followers with user details and total count in parallel. Only "follows" is read:
+    // a pending request is not a follower, so it is neither listed nor counted here.
     const [followers, total] = await Promise.all([
       prisma.follow.findMany({
         where: {
@@ -79,6 +81,9 @@ export async function GET(
               fullName: true,
               avatar: true,
               bio: true,
+              // A row's button turns to "Solicitado", not "Siguiendo", when the viewer
+              // follows a private account from here — so the page has to know which rows are.
+              isPrivate: true,
             },
           },
         },
@@ -89,34 +94,24 @@ export async function GET(
       prisma.follow.count({ where: { followingId: user.id } }),
     ]);
 
-    // If user is logged in, check which followers they are following
-    let followingMap: Record<string, boolean> = {};
-    if (currentUserId) {
-      const followingRelations = await prisma.follow.findMany({
-        where: {
-          followerId: currentUserId,
-          followingId: {
-            in: followers.map((f) => f.follower.id),
-          },
-        },
-        select: {
-          followingId: true,
-        },
-      });
+    // Where the viewer stands with each person listed, for the button on their row: one
+    // query per table for the whole page, never one per row.
+    const states = await followStatesFor(
+      prisma,
+      currentUserId,
+      followers.map((f) => f.follower.id)
+    );
 
-      followingMap = followingRelations.reduce(
-        (acc, rel) => {
-          acc[rel.followingId] = true;
-          return acc;
-        },
-        {} as Record<string, boolean>
-      );
-    }
-
-    const followersList = followers.map((f) => ({
-      ...f.follower,
-      isFollowing: followingMap[f.follower.id] || false,
-    }));
+    const followersList = followers.map(({ follower }) => {
+      const followState = states.get(follower.id) ?? 'none';
+      return {
+        ...follower,
+        followState,
+        // What the page read before followState, kept for one release so a tab still
+        // running the old bundle draws its buttons. A pending request is not a follow.
+        isFollowing: followState === 'following',
+      };
+    });
 
     return NextResponse.json({ followers: followersList, total });
   } catch (error) {
