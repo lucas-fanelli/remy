@@ -1,10 +1,31 @@
 'use client';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { readBody } from '@/lib/api/readBody';
+import type { NotificationType } from '@/domain/types/notification';
+
+/**
+ * The window event that makes the poller fetch now instead of at its next tick.
+ *
+ * For a screen that just changed what the bell should say, from somewhere the poller cannot
+ * see: answering a follow request in the inbox, or making an account public, which answers
+ * every request at once. Without it the badge and the pinned "Solicitudes de seguimiento"
+ * count went on showing the old number for up to a minute. An event rather than a shared
+ * store, because the poller lives in the navigation and the screens that change the count
+ * sit under an unrelated branch of the tree.
+ *
+ * EditProfileModal spells this string itself; the two must stay equal.
+ */
+export const NOTIFICATIONS_REFRESH_EVENT = 'remy:notifications-refresh';
+
+/** Ask the poller to fetch now. A no-op on the server, and when nobody is signed in to poll. */
+export function requestNotificationsRefresh(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(NOTIFICATIONS_REFRESH_EVENT));
+}
 
 interface Notification {
   id: string;
-  type: 'follow' | 'like' | 'comment' | 'rating';
+  type: NotificationType;
   isRead: boolean;
   createdAt: string;
   sender: {
@@ -36,6 +57,12 @@ interface UseNotificationPollingOptions {
 interface UseNotificationPollingReturn {
   notifications: Notification[];
   unreadCount: number;
+  /**
+   * Follow requests waiting on the owner's answer, counted by the server in the requests
+   * table itself — not the unread 'follow_request' notifications, which reading, marking
+   * all read or the 50-row limit would all make disagree with the inbox.
+   */
+  pendingRequestsCount: number;
   fetchNotifications: () => Promise<void>;
   markAllAsRead: () => Promise<void>;
   markingAsRead: boolean;
@@ -52,6 +79,7 @@ export function useNotificationPolling({
 }: UseNotificationPollingOptions): UseNotificationPollingReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const markingAsReadRef = useRef(false);
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const [isPollingPaused, setIsPollingPaused] = useState(false);
@@ -113,6 +141,12 @@ export function useNotificationPolling({
         if (!isMountedRef.current) return;
         setNotifications(uniqueNotifications);
         setUnreadCount(data.unreadCount || 0);
+        // Zero when the field is missing or not a count, so a server without it shows no
+        // pinned row rather than "NaN solicitudes pendientes".
+        const pending = data?.pendingRequestsCount;
+        setPendingRequestsCount(
+          typeof pending === 'number' && Number.isFinite(pending) && pending > 0 ? pending : 0
+        );
       } else if (response.status === 401) {
         // Confirm auth is truly invalid before destroying session.
         // Use a separate AbortController so aborting the notification controller
@@ -192,6 +226,7 @@ export function useNotificationPolling({
     // Clear previous user's data and reset backoff on login/user change
     setNotifications([]);
     setUnreadCount(0);
+    setPendingRequestsCount(0);
     failureTimestampsRef.current = [];
     pollingStoppedRef.current = false;
     breakerTrippedAtRef.current = 0;
@@ -296,6 +331,18 @@ export function useNotificationPolling({
     };
   }, [user, fetchNotifications]);
 
+  // A screen changed what the bell should say (see NOTIFICATIONS_REFRESH_EVENT): fetch now.
+  // fetchNotifications aborts whatever poll is already in flight, and that matters here — a
+  // poll sent before the change would otherwise land after this one and put the old count,
+  // and the old "quiere seguirte" rows, back. The schedule is left alone: this is one extra
+  // read, not a new rhythm.
+  useEffect(() => {
+    if (!user) return;
+    const refresh = () => void fetchNotifications();
+    window.addEventListener(NOTIFICATIONS_REFRESH_EVENT, refresh);
+    return () => window.removeEventListener(NOTIFICATIONS_REFRESH_EVENT, refresh);
+  }, [user, fetchNotifications]);
+
   const markAllAsRead = useCallback(async () => {
     if (!user || markingAsReadRef.current) return;
 
@@ -333,6 +380,7 @@ export function useNotificationPolling({
   return {
     notifications,
     unreadCount,
+    pendingRequestsCount,
     fetchNotifications,
     markAllAsRead,
     markingAsRead,

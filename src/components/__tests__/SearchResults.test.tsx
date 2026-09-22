@@ -376,3 +376,52 @@ describe('SearchResults Component', () => {
     });
   });
 });
+
+// Private accounts are found too: one nobody can find is one nobody can ask to follow.
+describe('SearchResults with a private account', () => {
+  const found = [
+    { id: '1', username: 'ana_cocina', isPrivate: true },
+    { id: '2', username: 'beto', isPrivate: false },
+  ];
+
+  const renderFound = (onClose = jest.fn()) =>
+    renderWithTheme(
+      <SearchResults query="a" users={found} recipes={[]} loading={false} onClose={onClose} />
+    );
+
+  const rowOf = (username: string) => screen.getByRole('button', { name: new RegExp(username) });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('marks the private account with a lock that is read as well as seen', () => {
+    renderFound();
+
+    const lock = screen.getByRole('img', { name: 'Private Account' });
+    expect(rowOf('ana_cocina')).toContainElement(lock);
+    // The row's name carries it too, so a reader hears "private" before choosing.
+    expect(rowOf('ana_cocina')).toHaveAccessibleName(/ana_cocina.*Private Account/);
+    // On the private account only.
+    expect(screen.getAllByRole('img', { name: 'Private Account' })).toHaveLength(1);
+    expect(rowOf('beto')).not.toContainElement(lock);
+  });
+
+  it('offers no follow button on it, as Instagram does not', () => {
+    // A button here would also sit inside the row's own button, and its click would
+    // open the profile as well.
+    renderFound();
+
+    expect(screen.queryByRole('button', { name: /follow|request/i })).not.toBeInTheDocument();
+  });
+
+  it('opens the private account’s profile when it is tapped, and closes the dropdown', () => {
+    const onClose = jest.fn();
+    renderFound(onClose);
+
+    fireEvent.click(rowOf('ana_cocina'));
+
+    expect(mockPush).toHaveBeenCalledWith('/profile/ana_cocina');
+    expect(onClose).toHaveBeenCalled();
+  });
+});

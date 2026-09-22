@@ -7,9 +7,20 @@
     "title": "Todavía no tenés notificaciones",
     "description": "Cuando alguien te siga o interactúe con tus recetas, lo vas a ver acá"
   },
-  "text": "{type, select, follow {{name} empezó a seguirte} like {A {name} le gustó tu receta} comment {{name} comentó tu receta} rating {{name} puntuó tu receta} other {Tenés una notificación nueva}}",
+  "text": "{type, select, follow {{name} empezó a seguirte} follow_request {{name} quiere seguirte} follow_accepted {{name} aceptó tu solicitud} like {A {name} le gustó tu receta} comment {{name} comentó tu receta} rating {{name} puntuó tu receta} other {Tenés una notificación nueva}}",
   "loadMore": "Cargar más",
   "viewAll": "Ver todas las notificaciones",
   "loadFailed": "No pudimos cargar tus notificaciones",
-  "markAllFailed": "No pudimos marcarlas como leídas"
+  "markAllFailed": "No pudimos marcarlas como leídas",
+  "requests": {
+    "title": "Solicitudes de seguimiento",
+    "pending": "{count, plural, one {# solicitud pendiente} other {# solicitudes pendientes}}",
+    "empty": "No tenés solicitudes pendientes",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "loadFailed": "No pudimos cargar tus solicitudes",
+    "actionFailed": "{action, select, accept {No pudimos aceptar la solicitud} other {No pudimos rechazar la solicitud}}",
+    "actionOffline": "Sin conexión — la solicitud sigue pendiente",
+    "gone": "Esta solicitud ya no está"
+  }
 }

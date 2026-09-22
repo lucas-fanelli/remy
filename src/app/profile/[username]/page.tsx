@@ -9,8 +9,19 @@ import {
   Link as LinkIcon,
   LockOutlined,
 } from '@mui/icons-material';
-import { Box, Typography, Avatar, Button, Grid, IconButton, Alert, Skeleton } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Avatar,
+  Button,
+  Grid,
+  IconButton,
+  Alert,
+  Skeleton,
+  Link,
+} from '@mui/material';
 import { motion } from 'framer-motion';
+import NextLink from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState } from 'react';
@@ -18,6 +29,7 @@ import PageFrame from '@/components/layout/PageFrame';
 import { MotionBox } from '@/components/motion';
 import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
+import FollowButton from '@/components/profile/FollowButton';
 import RecipeCard, { type RecipeCardModel } from '@/components/recipe/RecipeCard';
 import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
@@ -27,6 +39,7 @@ import { useFollowProfile } from '@/hooks/useFollowProfile';
 import { useProfile, ProfileFetchError, type ProfileRecipe } from '@/hooks/useProfile';
 import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
+import type { FollowAction } from '@/lib/follows/client/followAction';
 
 /**
  * A profile recipe, narrowed to what a card shows.
@@ -57,6 +70,33 @@ const statCount = (chunks: React.ReactNode) => (
     {chunks}
   </Typography>
 );
+
+/**
+ * A follower or following count, which opens its list — but only where the list would
+ * open.
+ *
+ * The locked view of a private account shows the counts (how many, never who), and its
+ * lists are exactly as private as its recipes: the routes answer 403 to the same viewers.
+ * A link there would lead to a lock one tap later, so on that view the sentence is plain
+ * text and nothing suggests it can be opened.
+ *
+ * A real link where it does open, not a clickable paragraph: the paragraph it replaces
+ * could not be reached from the keyboard and was announced as text.
+ */
+function StatLink({ href, children }: { href: string | null; children: React.ReactNode }) {
+  if (href === null) return <>{children}</>;
+  return (
+    <Link
+      component={NextLink}
+      href={href}
+      color="inherit"
+      underline="none"
+      sx={{ transition: 'opacity 0.2s', '&:hover': { opacity: 0.7 } }}
+    >
+      {children}
+    </Link>
+  );
+}
 
 /**
  * The first visit to a profile, sized like the page it becomes.
@@ -146,23 +186,26 @@ export default function ProfilePage() {
   }
 
   const profile = profileQuery.data;
-  const { user } = profile;
-  // A private profile seen by someone else carries the person and nothing else: no
-  // counts, no recipes, no follow state. Everything below that needs them is behind this.
+  const { user, stats } = profile;
+  // A private profile seen by someone else carries the person, the counts and the follow
+  // state, and nothing of the recipes. Everything below that needs the recipes — the tabs,
+  // the grids, and the links into the people lists — is behind this.
   const details = profile.visibility === 'public' ? profile : null;
-  const isFollowing = details?.isFollowing === true;
+  // Where the viewer stands. null — signed out, or your own profile — reads as 'none': a
+  // signed-out reader sees "Seguir", and a tap on it goes to sign in.
+  const followState = profile.followState ?? 'none';
   // The Saved tab is what you have saved NOW, read off each recipe's own bookmark rather
   // than off the list the server sent. Unsaving here empties that bookmark optimistically,
   // so the recipe leaves the tab the moment you tap — and a failed unsave puts the bookmark
   // back, which brings the recipe back with it. No second mutation to keep in step.
   const savedNow = (details?.savedRecipes ?? []).filter((recipe) => recipe.viewer?.saved !== false);
 
-  const handleFollow = () => {
+  const handleFollow = (action: FollowAction) => {
     if (!isAuthenticated) {
       router.push('/auth');
       return;
     }
-    follow.toggle(!isFollowing);
+    follow.act(action);
   };
 
   const likeRecipe = (recipeId: string) => likeToggle.toggle(recipeId);
@@ -222,67 +265,49 @@ export default function ProfilePage() {
                       </IconButton>
                     </>
                   ) : (
-                    // Not on a private profile: the route does not say whether you follow
-                    // it, so the button could only guess, and following unlocks nothing
-                    // there — the recipes stay hidden from everyone but the owner.
-                    details && (
-                      <Button
-                        key={`follow-btn-${isFollowing}`}
-                        variant={isFollowing ? 'outlined' : 'contained'}
-                        onClick={handleFollow}
-                        size="small"
-                        sx={{
-                          minWidth: 100,
-                          transition: 'all 0.2s ease-in-out',
-                        }}
-                      >
-                        {isFollowing ? t('actions.following') : t('actions.follow')}
-                      </Button>
-                    )
+                    // Everyone else gets the button, on both views. On the locked one it is
+                    // the only way in: "Seguir" sends the request, "Solicitado" says one is
+                    // waiting and takes it back when tapped. Signed out, it reads "Seguir"
+                    // and leads to sign in (handleFollow).
+                    <FollowButton
+                      state={followState}
+                      isPrivate={user.isPrivate}
+                      name={user.username}
+                      onAction={handleFollow}
+                      size="small"
+                    />
                   )}
                 </Box>
 
-                {/* Stats - one message each, so the count and its noun agree in both languages */}
-                {details && (
-                  <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
-                    <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                      {t.rich('stats.recipes', {
-                        count: details.stats.recipesCount,
-                        value: statCount,
-                      })}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: 'text.primary',
-                        cursor: 'pointer',
-                        '&:hover': { opacity: 0.7 },
-                        transition: 'opacity 0.2s',
-                      }}
-                      onClick={() => router.push(`/profile/${username}/followers`)}
-                    >
+                {/* Stats - one message each, so the count and its noun agree in both
+                    languages. On both views: the locked one shows how many, and StatLink
+                    decides whether the people behind the number can be opened. The count
+                    is the cache's, so a follow moves it the moment it is tapped — and a
+                    request, which is not a follower, does not. */}
+                <Box sx={{ display: 'flex', gap: 4, mb: 2 }}>
+                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                    {t.rich('stats.recipes', {
+                      count: stats.recipesCount,
+                      value: statCount,
+                    })}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                    <StatLink href={details ? `/profile/${username}/followers` : null}>
                       {t.rich('stats.followers', {
-                        count: details.stats.followersCount,
+                        count: stats.followersCount,
                         value: statCount,
                       })}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: 'text.primary',
-                        cursor: 'pointer',
-                        '&:hover': { opacity: 0.7 },
-                        transition: 'opacity 0.2s',
-                      }}
-                      onClick={() => router.push(`/profile/${username}/following`)}
-                    >
+                    </StatLink>
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                    <StatLink href={details ? `/profile/${username}/following` : null}>
                       {t.rich('stats.following', {
-                        count: details.stats.followingCount,
+                        count: stats.followingCount,
                         value: statCount,
                       })}
-                    </Typography>
-                  </Box>
-                )}
+                    </StatLink>
+                  </Typography>
+                </Box>
 
                 {/* Bio */}
                 {user.fullName && (
@@ -340,13 +365,21 @@ export default function ProfilePage() {
           </MotionBox>
 
           {!details ? (
+            // The locked view: a private account, and a viewer who does not follow it. What
+            // it says under the lock follows the button above — "Seguí esta cuenta…" while
+            // there is nothing to wait for (signed out reads as 'none' too), "Cuando acepte
+            // tu solicitud…" once a request is out. It switches with the paint, before the
+            // server answers, and back if the request fails. An accepted follower never
+            // lands here: the route sends them the full view.
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <LockOutlined sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
               <Typography variant="h6" color="text.secondary">
                 {t('private.title')}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                {t('private.body')}
+              {/* Polite, so a screen reader that stays on the button — which only says
+                  "Solicitado" — also hears what the request means. */}
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }} aria-live="polite">
+                {t('private.body', { state: followState })}
               </Typography>
             </Box>
           ) : (

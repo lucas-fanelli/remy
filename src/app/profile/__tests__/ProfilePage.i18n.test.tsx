@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { renderWithLocale } from '@/i18n/testing';
@@ -122,6 +122,65 @@ describe('Profile page in Spanish', () => {
     renderInSpanish(<ProfilePage />);
 
     expect(await screen.findByText('fácil')).toBeInTheDocument();
+  });
+
+  describe('a private account', () => {
+    /** The route's locked branch: the person, the counts, where the reader stands. */
+    const lockedResponse = (followState: 'none' | 'requested' | null) => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: { id: '1', username: 'ana', fullName: 'Ana', isPrivate: true },
+        stats: { recipesCount: 4, followersCount: 1, followingCount: 2 },
+        recipes: [],
+        isOwnProfile: false,
+        isPrivateProfile: true,
+        followState,
+      }),
+    });
+
+    it('should lock the recipes and invite a follow, with the counts still there', async () => {
+      mockFetch.mockResolvedValue(lockedResponse(null));
+
+      renderInSpanish(<ProfilePage />);
+
+      expect(await screen.findByText('Este perfil es privado')).toBeInTheDocument();
+      // The `other` arm of the select: signed out reads as nothing to wait for.
+      expect(screen.getByText('Seguí esta cuenta para ver sus recetas.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Seguir' })).toBeInTheDocument();
+      expect(await findStat('4 recetas')).toBeInTheDocument();
+      expect(await findStat('1 seguidor')).toBeInTheDocument();
+      expect(await findStat('2 siguiendo')).toBeInTheDocument();
+    });
+
+    it('should say a request is waiting, in voseo', async () => {
+      mockUseAuth.mockReturnValue({ user: { username: 'vera' }, isAuthenticated: true });
+      mockFetch.mockResolvedValue(lockedResponse('requested'));
+
+      renderInSpanish(<ProfilePage />);
+
+      expect(
+        await screen.findByText('Cuando acepte tu solicitud, vas a ver sus recetas.')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Solicitado' })).toBeInTheDocument();
+    });
+
+    it('should switch to "Solicitado" and its sentence the moment "Seguir" is tapped', async () => {
+      mockUseAuth.mockReturnValue({ user: { username: 'vera' }, isAuthenticated: true });
+      mockFetch.mockImplementation((url: string) =>
+        url.endsWith('/follow') ? new Promise(() => {}) : Promise.resolve(lockedResponse('none'))
+      );
+
+      renderInSpanish(<ProfilePage />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Seguir' }));
+
+      expect(await screen.findByRole('button', { name: 'Solicitado' })).toBeInTheDocument();
+      expect(
+        screen.getByText('Cuando acepte tu solicitud, vas a ver sus recetas.')
+      ).toBeInTheDocument();
+      // A request is not a follower: still one, still singular.
+      expect(await findStat('1 seguidor')).toBeInTheDocument();
+    });
   });
 
   it('should explain a missing profile in Spanish', async () => {

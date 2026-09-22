@@ -1,6 +1,8 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
+import { isFollowState } from '@/lib/follows/client/followAction';
 import { queryKeys } from '@/lib/query/keys';
+import type { FollowState } from '@/domain/types/follow';
 import type { ViewerState } from '@/domain/types/recipe';
 
 export interface ProfileUser {
@@ -10,6 +12,12 @@ export interface ProfileUser {
   bio?: string | null;
   avatar?: string | null;
   website?: string | null;
+  /**
+   * So the page knows what a tap on "Seguir" will do before the server answers: follow a
+   * public account at once, or send a private one a request. Always true on the locked
+   * variant; on the full one it says whether the viewer got in by following.
+   */
+  isPrivate: boolean;
 }
 
 /**
@@ -48,17 +56,27 @@ export interface ProfileStats {
 /**
  * The two answers the route gives, as two shapes rather than one with holes in it.
  *
- * The route has always sent a separate, smaller payload for a private profile viewed by
- * someone else: the person, and nothing about their recipes or their counts. The page had
- * one type that assumed every answer carried `stats`, stored the missing field as the
- * stats, then read `stats.recipesCount` — and the page crashed to a blank screen for
- * anyone opening a private profile. Reproduced before fixing: `TypeError: Cannot read
- * properties of undefined (reading 'recipesCount')`.
+ * `visibility` is about THIS viewer, not the account's setting: 'public' is the full view —
+ * a public account, your own, or a private one you follow — and 'private' is the locked
+ * view a private account shows everyone else. Whether the account itself is private is
+ * `user.isPrivate`, which is how a full view of a private account you follow is told apart
+ * (unfollowing that one takes the recipes away; unfollowing a public one does not).
  *
- * A union means the private case cannot be rendered without being handled.
+ * The locked view carries the person, the three counts and where the viewer stands — a
+ * locked profile shows how many recipes and followers there are, and offers "Seguir" or
+ * "Solicitado" — and nothing about the recipes themselves. The page once had one type that
+ * assumed every answer carried everything, read `stats.recipesCount` off an answer that had
+ * no stats, and crashed to a blank screen for anyone opening a private profile. A union
+ * means the locked case cannot be rendered without being handled.
  */
 export type Profile =
-  | { visibility: 'private'; user: ProfileUser }
+  | {
+      visibility: 'private';
+      user: ProfileUser;
+      stats: ProfileStats;
+      /** `null` when nobody is signed in. Never 'following': a follower gets the full view. */
+      followState: FollowState | null;
+    }
   | {
       visibility: 'public';
       user: ProfileUser;
@@ -67,7 +85,7 @@ export type Profile =
       /** Empty on anyone else's profile: the route only sends it to the owner. */
       savedRecipes: ProfileRecipe[];
       /** `null` when nobody is signed in, or on your own profile, where it means nothing. */
-      isFollowing: boolean | null;
+      followState: FollowState | null;
     };
 
 export class ProfileFetchError extends Error {
@@ -83,12 +101,25 @@ export class ProfileFetchError extends Error {
 }
 
 interface ProfileResponse {
-  user: ProfileUser;
+  user: Omit<ProfileUser, 'isPrivate'> & { isPrivate?: boolean };
   stats?: ProfileStats;
   recipes?: ProfileRecipe[];
   savedRecipes?: ProfileRecipe[];
+  followState?: FollowState | null;
+  /** What the route sent before `followState`; it still does, for one release. */
   isFollowing?: boolean;
   isPrivateProfile?: boolean;
+}
+
+/**
+ * Where the viewer stands, from the answer. `followState` is the route's word; an answer
+ * without it — written before it existed — still says following or not through
+ * `isFollowing`, which is all there was to say then.
+ */
+function followStateIn(data: ProfileResponse): FollowState | null {
+  if (isFollowState(data.followState)) return data.followState;
+  if (typeof data.isFollowing === 'boolean') return data.isFollowing ? 'following' : 'none';
+  return null;
 }
 
 /**
@@ -107,21 +138,29 @@ export function useProfile(username: string) {
 
       const data = (await response.json()) as ProfileResponse;
 
-      if (data.isPrivateProfile) {
-        return { visibility: 'private', user: data.user };
-      }
-
-      // Every public answer carries the counts. One that does not is broken, and showing
-      // "0 followers" for it would be inventing a number rather than admitting a failure.
+      // Every answer carries the counts, the locked one included. One that does not is
+      // broken, and showing "0 followers" for it would be inventing a number rather than
+      // admitting a failure.
       if (!data.stats) throw new ProfileFetchError(response.status);
+
+      const followState = followStateIn(data);
+
+      if (data.isPrivateProfile) {
+        return {
+          visibility: 'private',
+          user: { ...data.user, isPrivate: true },
+          stats: data.stats,
+          followState,
+        };
+      }
 
       return {
         visibility: 'public',
-        user: data.user,
+        user: { ...data.user, isPrivate: data.user.isPrivate === true },
         stats: data.stats,
         recipes: data.recipes ?? [],
         savedRecipes: data.savedRecipes ?? [],
-        isFollowing: data.isFollowing ?? null,
+        followState,
       };
     },
     // Asking again will not make a missing person exist, and the one retry the app allows

@@ -1,6 +1,6 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { ToastProvider } from '@/contexts/ToastContext';
 import ProfilePage from '../[username]/page';
@@ -56,19 +56,59 @@ const publicProfile = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-/** Exactly the route's private branch: the person, and nothing about their recipes. */
-const privateProfile = {
+/**
+ * Exactly the route's locked branch: the person, the counts and where the viewer stands,
+ * and nothing about their recipes. `null` is what a signed-out reader is sent.
+ */
+const lockedProfile = (followState: 'none' | 'requested' | null = 'none') => ({
   user: { id: 'u1', username: 'ana', fullName: 'Ana', avatar: null, bio: null, isPrivate: true },
+  stats: { recipesCount: 4, followersCount: 7, followingCount: 2 },
   recipes: [],
   isOwnProfile: false,
   isPrivateProfile: true,
-};
+  followState,
+});
+const privateProfile = lockedProfile();
+
+/**
+ * The route's full branch for a private account the viewer follows: the recipes, and
+ * `isPrivate` still true — which is what makes unfollowing it ask first.
+ */
+const followerView = (followersCount = 7) =>
+  publicProfile({
+    user: {
+      id: 'u1',
+      username: 'ana',
+      fullName: 'Ana',
+      bio: null,
+      avatar: null,
+      website: null,
+      isPrivate: true,
+    },
+    stats: { recipesCount: 1, followersCount, followingCount: 2 },
+    followState: 'following',
+    isFollowing: true,
+  });
 
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 const fail = (status: number) => ({ ok: false, status, json: async () => ({}) });
 
+/** An answer the test hands over when it chooses to: the moment between a tap and its reply. */
+function later() {
+  let answer: (value: unknown) => void = () => {};
+  let drop: () => void = () => {};
+  const promise = new Promise((resolve, reject) => {
+    answer = resolve;
+    drop = () => reject(new TypeError('Failed to fetch'));
+  });
+  return { promise, answer, drop };
+}
+
 const findStat = (sentence: string) =>
   screen.findByText((_, element) => element?.tagName === 'P' && element?.textContent === sentence);
+
+const LOCK_INVITE = 'Follow this account to see their recipes.';
+const LOCK_WAITING = "Once they accept your request, you'll see their recipes.";
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -111,14 +151,263 @@ describe('the profile page', () => {
       expect(screen.getByRole('heading', { name: 'ana' })).toBeInTheDocument();
     });
 
-    it('shows no counts, no tabs and no follow button, because it was sent none of them', async () => {
+    it('offers Follow and shows the counts, but no tabs and no way into the lists', async () => {
+      // It used to show the person alone: the route sent no counts and no follow state for
+      // this view, so there was nothing to draw — and following would have unlocked nothing
+      // anyway. Now a follow is a request, and this button is the only way in.
       mockFetch.mockResolvedValue(ok(privateProfile));
 
       renderPage();
 
-      await screen.findByText('This profile is private');
-      expect(screen.queryByText(/followers/)).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Follow' })).toBeInTheDocument();
+      expect(screen.getByText(LOCK_INVITE)).toBeInTheDocument();
+      expect(await findStat('4 recipes')).toBeInTheDocument();
+      expect(await findStat('7 followers')).toBeInTheDocument();
+      expect(await findStat('2 following')).toBeInTheDocument();
+      // The lists answer 403 to this viewer, exactly like the recipes: the counts say how
+      // many, and do not pretend they can be opened.
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
       expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('the counts', () => {
+    it('open the people lists where the content is visible', async () => {
+      mockFetch.mockResolvedValue(ok(publicProfile()));
+
+      renderPage();
+
+      // Real links: the clickable paragraphs they replace could not be reached by keyboard.
+      expect(await screen.findByRole('link', { name: '7 followers' })).toHaveAttribute(
+        'href',
+        '/profile/ana/followers'
+      );
+      expect(screen.getByRole('link', { name: '2 following' })).toHaveAttribute(
+        'href',
+        '/profile/ana/following'
+      );
+      // Not the recipe count: it has no list of its own, the grid below it is the list.
+      expect(screen.queryByRole('link', { name: '1 recipe' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('following a private account', () => {
+    /**
+     * The profile route as it stands right now — a test moves `route.profile` on to what a
+     * refetch should find — and both follow routes, answered when the test says so.
+     */
+    function serve(profile: unknown) {
+      const reply = later();
+      const route = { profile };
+      mockFetch.mockImplementation((url: string) =>
+        url.endsWith('/follow') || url.endsWith('/unfollow')
+          ? reply.promise
+          : Promise.resolve(ok(route.profile))
+      );
+      return { route, reply };
+    }
+
+    /** Every POST sent, in order, as its URL. */
+    const posts = () =>
+      mockFetch.mock.calls
+        .filter(([, init]) => (init as RequestInit | undefined)?.method === 'POST')
+        .map(([url]) => url);
+
+    /** How many times the profile itself was fetched. */
+    const profileLoads = () =>
+      mockFetch.mock.calls.filter(([url]) => String(url).endsWith('/profile')).length;
+
+    it('sends a request: "Requested" at once, the count stays, and the lock says what next', async () => {
+      const { reply } = serve(lockedProfile('none'));
+
+      const queryClient = renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Follow' }));
+
+      // Before the server answers. A request is not a follower, so 7 stays 7 — the old
+      // header would have painted "Following" and 8 here.
+      expect(await screen.findByRole('button', { name: 'Requested' })).toBeInTheDocument();
+      expect(screen.getByText(LOCK_WAITING)).toBeInTheDocument();
+      expect(await findStat('7 followers')).toBeInTheDocument();
+      expect(posts()).toEqual(['/api/users/ana/follow']);
+
+      reply.answer(ok({ success: true, state: 'requested', followersCount: 7 }));
+      await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+
+      // Settled where it was painted, and still locked: a pending request opens nothing,
+      // so there was nothing to load again.
+      expect(screen.getByRole('button', { name: 'Requested' })).toBeInTheDocument();
+      expect(screen.getByText('This profile is private')).toBeInTheDocument();
+      expect(profileLoads()).toBe(1);
+    });
+
+    it('takes a request back when "Requested" is tapped, without asking', async () => {
+      const { reply } = serve(lockedProfile('requested'));
+
+      renderPage();
+      expect(await screen.findByText(LOCK_WAITING)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Requested' }));
+
+      // Cancelling loses nothing, so nothing is asked.
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Follow' })).toBeInTheDocument();
+      expect(screen.getByText(LOCK_INVITE)).toBeInTheDocument();
+      expect(posts()).toEqual(['/api/users/ana/unfollow']);
+
+      reply.answer(ok({ success: true, state: 'none', was: 'requested', followersCount: 7 }));
+      expect(await findStat('7 followers')).toBeInTheDocument();
+    });
+
+    it('goes back to "Follow" and names the request when the server refuses it', async () => {
+      const { reply } = serve(lockedProfile('none'));
+
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Follow' }));
+      await screen.findByRole('button', { name: 'Requested' });
+
+      reply.answer(fail(500));
+
+      // Not "Failed to follow user": nobody asked to follow, they asked to be let in.
+      expect(await screen.findByText('Failed to send the follow request')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Follow' })).toBeInTheDocument();
+      expect(screen.getByText(LOCK_INVITE)).toBeInTheDocument();
+    });
+
+    it('keeps the request, and says so, when a cancel has no connection', async () => {
+      const { reply } = serve(lockedProfile('requested'));
+
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Requested' }));
+      await screen.findByRole('button', { name: 'Follow' });
+
+      reply.drop();
+
+      expect(
+        await screen.findByText('No connection — your request is still pending')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Requested' })).toBeInTheDocument();
+      expect(screen.getByText(LOCK_WAITING)).toBeInTheDocument();
+    });
+
+    it('sends a signed-out reader to sign in from the locked view too', async () => {
+      mockViewer = null;
+      // Signed out, the route says nothing about where the reader stands.
+      mockFetch.mockResolvedValue(ok(lockedProfile(null)));
+
+      renderPage();
+      expect(await screen.findByText(LOCK_INVITE)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Follow' }));
+
+      expect(mockPush).toHaveBeenCalledWith('/auth');
+      expect(posts()).toEqual([]);
+    });
+
+    it('shows an accepted follower the recipes, the lists and "Following"', async () => {
+      mockFetch.mockResolvedValue(ok(followerView()));
+
+      renderPage();
+
+      expect(await screen.findByText('Receta r1')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Following' })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: '7 followers' })).toBeInTheDocument();
+      expect(screen.queryByText('This profile is private')).not.toBeInTheDocument();
+    });
+
+    it('asks before unfollowing, and puts the lock back once it is done', async () => {
+      const { route, reply } = serve(followerView());
+
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Following' }));
+
+      // Getting back in is a request the owner has to accept, not one more tap: said first.
+      const dialog = await screen.findByRole('dialog', { name: 'Unfollow ana?' });
+      expect(
+        within(dialog).getByText(
+          "This account is private: to see their recipes again you'll have to send another request."
+        )
+      ).toBeInTheDocument();
+      expect(posts()).toEqual([]);
+
+      route.profile = lockedProfile('none');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Unfollow' }));
+
+      expect(await screen.findByRole('button', { name: 'Follow' })).toBeInTheDocument();
+      expect(await findStat('6 followers')).toBeInTheDocument();
+      expect(posts()).toEqual(['/api/users/ana/unfollow']);
+
+      reply.answer(ok({ success: true, state: 'none', was: 'following', followersCount: 6 }));
+
+      // The profile is loaded again and comes back locked: the recipes go, and the counts
+      // stop being ways in.
+      expect(await screen.findByText('This profile is private')).toBeInTheDocument();
+      expect(screen.queryByText('Receta r1')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /followers/ })).not.toBeInTheDocument();
+      expect(profileLoads()).toBe(2);
+    });
+
+    it('sends nothing when the unfollow is called off', async () => {
+      serve(followerView());
+
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Following' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Unfollow ana?' });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(screen.getByRole('button', { name: 'Following' })).toBeInTheDocument();
+      expect(screen.getByText('Receta r1')).toBeInTheDocument();
+      expect(posts()).toEqual([]);
+    });
+
+    it('takes the server’s word over the paint: a request answered with a follow opens the profile', async () => {
+      // The account went public between the page load and the tap, so the server followed
+      // instead of asking. Painting "Requested" and stopping there would leave a follower
+      // staring at a lock.
+      const { route, reply } = serve(lockedProfile('none'));
+
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Follow' }));
+      await screen.findByRole('button', { name: 'Requested' });
+
+      route.profile = publicProfile({
+        stats: { recipesCount: 1, followersCount: 8, followingCount: 2 },
+        followState: 'following',
+        isFollowing: true,
+      });
+      reply.answer(ok({ success: true, state: 'following', followersCount: 8 }));
+
+      expect(await screen.findByText('Receta r1')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Following' })).toBeInTheDocument();
+      expect(await findStat('8 followers')).toBeInTheDocument();
+      expect(screen.queryByText('This profile is private')).not.toBeInTheDocument();
+    });
+
+    it('takes the server’s word the other way too: a follow answered with a request locks it', async () => {
+      // The account went private mid-tap. The paint said "Following" and 8; the server
+      // says a request is waiting and the count never moved.
+      const { route, reply } = serve(publicProfile());
+
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Follow' }));
+      expect(await findStat('8 followers')).toBeInTheDocument();
+
+      route.profile = lockedProfile('requested');
+      reply.answer(ok({ success: true, state: 'requested', followersCount: 7 }));
+
+      expect(await screen.findByText(LOCK_WAITING)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Requested' })).toBeInTheDocument();
+      expect(await findStat('7 followers')).toBeInTheDocument();
+      expect(screen.queryByText('Receta r1')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('your own profile', () => {
+    it('has Edit Profile, and no follow button', async () => {
+      mockViewer = { username: 'ana' };
+      mockFetch.mockResolvedValue(ok(publicProfile({ isFollowing: undefined })));
+
+      renderPage();
+
+      expect(await screen.findByRole('button', { name: 'Edit Profile' })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Follow' })).not.toBeInTheDocument();
     });
   });

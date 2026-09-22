@@ -31,6 +31,25 @@ export const queryKeys = {
   matched: () => ['recipes', 'matched'] as const,
   search: (query: string) => ['recipes', 'search', query] as const,
   profile: (username: string) => ['profile', username] as const,
+  /**
+   * Every follow-request inbox: the root to invalidate after anything that answers requests
+   * in bulk (making an account public accepts them all).
+   *
+   * A root of its own on purpose. 'profile' and 'recipes' are claimed by the recipe cache
+   * adapters and by invalidateRecipeLists, and a list of people is neither: under either
+   * root, a like or a new recipe would mark the inbox stale for nothing.
+   */
+  followRequests: () => ['followRequests'] as const,
+  /**
+   * One owner's inbox (GET /api/follow-requests), every page loaded so far.
+   *
+   * Keyed on the owner, unlike the keys above. Only logging out clears the cache: a session
+   * that expires, followed by another account signing in on the same tab, keeps it. An inbox
+   * is one person's private list — who is asking to follow them — and under a bare
+   * ['followRequests'] the next account would have been shown it for up to a minute. Keyed on
+   * the owner, the next account gets an entry of its own.
+   */
+  followRequestInbox: (ownerId: string) => ['followRequests', ownerId] as const,
 } as const;
 
 /** The first segment of every recipe-bearing key, for adapters that match by prefix. */

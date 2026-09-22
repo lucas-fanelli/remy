@@ -1,13 +1,24 @@
-import { render, screen, waitFor, configure } from '@testing-library/react';
+import { QueryClient, useQuery } from '@tanstack/react-query';
+import { render as rtlRender, screen, waitFor, configure } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import '@testing-library/jest-dom';
+import { queryWrapper, testQueryClient } from '@/__tests__/helpers/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { NOTIFICATIONS_REFRESH_EVENT } from '@/hooks/useNotificationPolling';
+import { queryKeys } from '@/lib/query/keys';
 import EditProfileModal from '../EditProfileModal';
 
 // Speed up waitFor operations (500ms instead of default 1000ms)
 configure({ asyncUtilTimeout: 100 });
+
+/**
+ * Every render inside a QueryClient: a save that changes privacy tells the cache the
+ * owner's profile is stale. `client` is the one a test wants to look into afterwards.
+ */
+let client: QueryClient;
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: queryWrapper(client) });
 
 // Mock dependencies
 jest.mock('@/contexts/AuthContext');
@@ -41,6 +52,7 @@ describe('EditProfileModal', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    client = testQueryClient();
 
     mockShowSuccess = jest.fn();
     mockShowError = jest.fn();
@@ -282,24 +294,29 @@ describe('EditProfileModal', () => {
     });
   });
 
+  /** The signed-in owner, private or public, and nothing else changed. */
+  function signInAs(isPrivate: boolean) {
+    mockUseAuth.mockReturnValue({
+      user: { ...mockUser, isPrivate },
+      token: null,
+      isLoading: false,
+      isAuthenticated: true,
+      isAdmin: false,
+      login: jest.fn(),
+      register: jest.fn(),
+      logout: jest.fn(),
+      updateProfile: mockUpdateProfile,
+    });
+  }
+
+  function openAs(isPrivate: boolean) {
+    signInAs(isPrivate);
+    render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
+  }
+
   // Going public accepts every pending follow request, which cannot be undone, so no save
   // may do it by accident: privacy is sent only when the switch was flipped in this form.
   describe('Privacy in the saved payload', () => {
-    function openAs(isPrivate: boolean) {
-      mockUseAuth.mockReturnValue({
-        user: { ...mockUser, isPrivate },
-        token: null,
-        isLoading: false,
-        isAuthenticated: true,
-        isAdmin: false,
-        login: jest.fn(),
-        register: jest.fn(),
-        logout: jest.fn(),
-        updateProfile: mockUpdateProfile,
-      });
-      render(<EditProfileModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
-    }
-
     async function savedPayload(user: ReturnType<typeof userEvent.setup>) {
       await user.click(screen.getByRole('button', { name: /save changes/i }));
       await waitFor(() => expect(mockUpdateProfile).toHaveBeenCalledTimes(1));
@@ -356,6 +373,207 @@ describe('EditProfileModal', () => {
       const payload = await savedPayload(user);
 
       expect(payload).not.toHaveProperty('isPrivate');
+    });
+  });
+
+  // The same save that makes an account public accepts every request waiting on it, and
+  // nothing undoes that. The owner has to be told before they press Save, not after.
+  describe('The note on making a private account public', () => {
+    const NOTE = 'Making your account public accepts every pending request.';
+
+    it('says, beside the switch, that going public accepts every pending request', async () => {
+      const user = userEvent.setup({ delay: null });
+      openAs(true);
+      const privacy = screen.getByRole('checkbox');
+
+      // Not while the account stays private: there is nothing to warn about yet.
+      expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+      expect(privacy).not.toHaveAccessibleDescription();
+
+      await user.click(privacy);
+
+      expect(screen.getByText(NOTE)).toBeVisible();
+      // A screen reader hears it with the switch itself, not only if it reads on.
+      expect(privacy).toHaveAccessibleDescription(NOTE);
+    });
+
+    it('is announced when it appears, from a live region that was there before it', async () => {
+      // A live region inserted together with its text is not announced, and focus stays on
+      // the switch while the note appears below it.
+      const user = userEvent.setup({ delay: null });
+      openAs(true);
+      const region = document.querySelector('[aria-live="polite"]');
+      expect(region).toBeEmptyDOMElement();
+
+      await user.click(screen.getByRole('checkbox'));
+
+      expect(region).toHaveTextContent(NOTE);
+    });
+
+    it('goes away when the switch is turned back on', async () => {
+      const user = userEvent.setup({ delay: null });
+      openAs(true);
+
+      await user.click(screen.getByRole('checkbox'));
+      await user.click(screen.getByRole('checkbox'));
+
+      expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+      expect(screen.getByRole('checkbox')).not.toHaveAccessibleDescription();
+    });
+
+    it('says nothing to a public account, whichever way its switch goes', async () => {
+      // A public account has no requests waiting: turning it private and back is not
+      // "making it public" in the sense the note warns about.
+      const user = userEvent.setup({ delay: null });
+      openAs(false);
+
+      await user.click(screen.getByRole('checkbox'));
+      expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('checkbox'));
+      expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+    });
+  });
+
+  // What a privacy change moved happened on the server — requests turned into followers,
+  // notifications rewritten — and nothing on this screen shows it. The modal says so.
+  describe('After a save that changed privacy', () => {
+    // The poller's own constant, not the string: the modal spells the name itself, and this
+    // is what holds the two spellings together.
+    const REFRESH = NOTIFICATIONS_REFRESH_EVENT;
+    const own = queryKeys.profile('testuser');
+    const someoneElse = queryKeys.profile('ana');
+    const inbox = queryKeys.followRequestInbox(mockUser.id);
+    let refreshes: jest.Mock;
+
+    beforeEach(() => {
+      refreshes = jest.fn();
+      window.addEventListener(REFRESH, refreshes);
+      client.setQueryData(own, { cached: 'own' });
+      client.setQueryData(someoneElse, { cached: 'ana' });
+      client.setQueryData(inbox, { cached: 'inbox' });
+    });
+
+    afterEach(() => {
+      window.removeEventListener(REFRESH, refreshes);
+    });
+
+    const isStale = (key: readonly unknown[]) => client.getQueryState(key)?.isInvalidated;
+
+    async function flipAndSave(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole('checkbox'));
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+    }
+
+    it.each([
+      ['public, which accepted every pending request', true],
+      ['private', false],
+    ])(
+      'refreshes the notifications and the owner’s profile after going %s',
+      async (_, wasPrivate) => {
+        const user = userEvent.setup({ delay: null });
+        mockUpdateProfile.mockResolvedValueOnce(undefined);
+        openAs(wasPrivate);
+
+        await flipAndSave(user);
+        await waitFor(() => expect(mockOnSuccess).toHaveBeenCalled());
+
+        expect(refreshes).toHaveBeenCalledTimes(1);
+        expect(isStale(own)).toBe(true);
+        // Only the owner's: nobody else's profile changed.
+        expect(isStale(someoneElse)).toBe(false);
+      }
+    );
+
+    it('marks the requests inbox stale after going public', async () => {
+      // Going public answered every request at once; going private answers none.
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      openAs(true);
+
+      await flipAndSave(user);
+      await waitFor(() => expect(mockOnSuccess).toHaveBeenCalled());
+
+      expect(isStale(inbox)).toBe(true);
+    });
+
+    it('leaves the requests inbox alone after going private', async () => {
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      openAs(false);
+
+      await flipAndSave(user);
+      await waitFor(() => expect(mockOnSuccess).toHaveBeenCalled());
+
+      expect(isStale(inbox)).toBe(false);
+    });
+
+    it('leaves both alone after a save that did not touch privacy', async () => {
+      // A bio edit: the page's own refetch covers it, and the notifications did not move.
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      openAs(true);
+
+      await user.type(screen.getByLabelText(/bio/i), '!');
+      await user.click(screen.getByRole('button', { name: /save changes/i }));
+      await waitFor(() => expect(mockOnSuccess).toHaveBeenCalled());
+
+      expect(refreshes).not.toHaveBeenCalled();
+      expect(isStale(own)).toBe(false);
+      expect(isStale(inbox)).toBe(false);
+    });
+
+    it('leaves both alone when the save fails', async () => {
+      // Nothing was accepted, so there is nothing to go and fetch.
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockRejectedValueOnce(new Error('Update failed'));
+      openAs(true);
+
+      await flipAndSave(user);
+      await waitFor(() => expect(mockShowError).toHaveBeenCalledWith('Update failed'));
+
+      expect(refreshes).not.toHaveBeenCalled();
+      expect(isStale(own)).toBe(false);
+      expect(isStale(inbox)).toBe(false);
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('joins the profile page’s own refetch instead of aborting it and asking again', async () => {
+      // The profile page refetches the profile on screen from its onSuccess. Marking the
+      // same query stale must not cancel that request only to send an identical one.
+      const signals: AbortSignal[] = [];
+      function ProfilePageLike() {
+        const profile = useQuery({
+          queryKey: own,
+          queryFn: ({ signal }) => {
+            signals.push(signal);
+            return new Promise((resolve) => setTimeout(() => resolve({ fetched: true }), 5));
+          },
+        });
+        return (
+          <EditProfileModal
+            open={true}
+            onClose={mockOnClose}
+            onSuccess={() => void profile.refetch()}
+          />
+        );
+      }
+      client.removeQueries({ queryKey: own });
+      const user = userEvent.setup({ delay: null });
+      mockUpdateProfile.mockResolvedValueOnce(undefined);
+      signInAs(true);
+      render(<ProfilePageLike />);
+      await waitFor(() => expect(client.getQueryData(own)).toEqual({ fetched: true }));
+
+      await flipAndSave(user);
+      await waitFor(() => expect(mockOnClose).toHaveBeenCalled());
+      await waitFor(() => expect(client.getQueryState(own)?.fetchStatus).toBe('idle'));
+
+      // The first load, then the page's refetch — and that one was allowed to finish.
+      expect(signals).toHaveLength(2);
+      expect(signals.map((s) => s.aborted)).toEqual([false, false]);
+      expect(refreshes).toHaveBeenCalledTimes(1);
     });
   });
 

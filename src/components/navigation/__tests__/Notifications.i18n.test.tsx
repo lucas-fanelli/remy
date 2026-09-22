@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import React from 'react';
 import { renderWithLocale } from '@/i18n/testing';
 import NotificationDropdown from '../NotificationDropdown';
@@ -56,6 +56,7 @@ const renderDropdown = (props: Partial<React.ComponentProps<typeof NotificationD
       onClose={jest.fn()}
       notifications={notifications}
       unreadCount={1}
+      pendingRequestsCount={0}
       markAllAsRead={jest.fn()}
       markingAsRead={false}
       mounted={true}
@@ -108,5 +109,63 @@ describe('NotificationDropdown in Spanish', () => {
     expect(
       screen.getByText('Cuando alguien te siga o interactúe con tus recetas, lo vas a ver acá')
     ).toBeInTheDocument();
+  });
+});
+
+describe('NotificationDropdown — follow requests, in Spanish', () => {
+  const requested = {
+    id: 'n5',
+    type: 'follow_request' as const,
+    isRead: false,
+    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    sender: sender('ana', 'Ana'),
+  };
+  const accepted = { ...requested, id: 'n6', type: 'follow_accepted' as const };
+
+  it('should say who wants to follow you, and who accepted', () => {
+    renderDropdown({ notifications: [requested, accepted] });
+
+    expect(screen.getByText('Ana quiere seguirte')).toBeInTheDocument();
+    expect(screen.getByText('Ana aceptó tu solicitud')).toBeInTheDocument();
+  });
+
+  it('should read an accepted request as a follow, the way the server converts it', () => {
+    renderDropdown({ notifications: [{ ...requested, type: 'follow' as const }] });
+
+    expect(screen.getByText('Ana empezó a seguirte')).toBeInTheDocument();
+  });
+
+  it.each([
+    [1, '1 solicitud pendiente'],
+    [3, '3 solicitudes pendientes'],
+  ])('should pin %i pending request(s) as "%s"', (count, sentence) => {
+    renderDropdown({ pendingRequestsCount: count });
+
+    expect(screen.getByText('Solicitudes de seguimiento')).toBeInTheDocument();
+    expect(screen.getByText(sentence)).toBeInTheDocument();
+  });
+
+  it('should pin nothing when no one is waiting', () => {
+    renderDropdown({ pendingRequestsCount: 0 });
+
+    expect(screen.queryByText('Solicitudes de seguimiento')).not.toBeInTheDocument();
+  });
+
+  it('should keep the pinned row, and drop "todavía no tenés notificaciones", with no rows', () => {
+    renderDropdown({ notifications: [], unreadCount: 0, pendingRequestsCount: 2 });
+
+    expect(screen.getByText('2 solicitudes pendientes')).toBeInTheDocument();
+    expect(screen.queryByText('Todavía no tenés notificaciones')).not.toBeInTheDocument();
+  });
+
+  it('should put no "Aceptar" or "Rechazar" inside a "quiere seguirte" row', () => {
+    renderDropdown({ notifications: [requested] });
+
+    // Each row is itself a button; one inside it would be a button nested in a button.
+    const row = screen.getByText('Ana quiere seguirte').closest('[role="button"]');
+    expect(row).not.toBeNull();
+    expect(within(row as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText('Aceptar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Rechazar')).not.toBeInTheDocument();
   });
 });

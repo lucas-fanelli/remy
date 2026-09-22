@@ -1,5 +1,5 @@
 'use client';
-import { Close as CloseIcon, PhotoCamera } from '@mui/icons-material';
+import { Close as CloseIcon, InfoOutlined, PhotoCamera } from '@mui/icons-material';
 import {
   Dialog,
   DialogTitle,
@@ -17,14 +17,24 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { MAX_UPLOAD_SIZE } from '@/lib/constants';
+import { queryKeys } from '@/lib/query/keys';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+/**
+ * The window event the notification poller answers by fetching at once, instead of at its
+ * next tick. It is NOTIFICATIONS_REFRESH_EVENT in useNotificationPolling, spelled again here
+ * rather than imported so this form does not pull in the poller; the two must stay equal,
+ * and EditProfileModal.test.tsx listens on the poller's constant to hold them to it.
+ */
+const NOTIFICATIONS_REFRESH_EVENT = 'remy:notifications-refresh';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -54,8 +64,10 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
   const apiErrorMessage = useApiErrorMessage();
   const { user, isAuthenticated, updateProfile } = useAuth();
   const { showSuccess, showError } = useToast();
+  const queryClient = useQueryClient();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const acceptsRequestsNoteId = useId();
 
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ProfileForm>({
@@ -245,6 +257,30 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
 
       showSuccess(t('edit.success'));
       onSuccess();
+
+      if (privacyChanged && user) {
+        // A privacy change moves more than the switch. Going public accepted every pending
+        // follow request in that same save, on the server: the owner's follower count grew,
+        // each "quiere seguirte" became "empezó a seguirte", and the pinned requests row has
+        // nothing left to count. Either way the cached profile still says the old privacy.
+        // None of that is on this screen, so it is told, not waited for: the poller fetches
+        // now instead of at its next tick, and every cached view of the owner's profile (a
+        // prefix, so anything keyed under it too) is stale.
+        //
+        // After onSuccess, and with cancelRefetch off: the profile page's onSuccess already
+        // refetches the profile it shows, and a second refetch would abort that request only
+        // to send the same one again. This one joins it and still marks the rest.
+        void queryClient.invalidateQueries(
+          { queryKey: queryKeys.profile(user.username) },
+          { cancelRefetch: false }
+        );
+        // Going public answered the whole inbox at once. Going private answers nothing.
+        if (!formData.isPrivate) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.followRequests() });
+        }
+        window.dispatchEvent(new Event(NOTIFICATIONS_REFRESH_EVENT));
+      }
+
       onClose();
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -255,6 +291,12 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
   };
 
   if (!user) return null;
+
+  // Turning a private account public is the one switch here that does more than it says:
+  // the same save accepts every pending follow request, and there is nothing to undo it
+  // with. So it is said beside the switch, before the save, and only when it is true — a
+  // public account has no requests waiting, and one that stays private keeps them.
+  const acceptsPendingRequests = user.isPrivate && !formData.isPrivate;
 
   return (
     <Dialog
@@ -410,7 +452,16 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
 
           <FormControlLabel
             control={
-              <Switch checked={formData.isPrivate} onChange={handleSwitchChange} color="primary" />
+              <Switch
+                checked={formData.isPrivate}
+                onChange={handleSwitchChange}
+                color="primary"
+                // The consequence is part of what the switch now means, so a screen reader
+                // hears it with the switch, not only if it wanders down to the note.
+                inputProps={{
+                  'aria-describedby': acceptsPendingRequests ? acceptsRequestsNoteId : undefined,
+                }}
+              />
             }
             label={
               <Box>
@@ -421,6 +472,22 @@ export default function EditProfileModal({ open, onClose, onSuccess }: EditProfi
               </Box>
             }
           />
+          {/* A polite live region that is there from the first paint: one inserted together
+              with its text is not announced, and the note appears exactly when the switch
+              is turned off, with focus still on the switch. */}
+          <Box aria-live="polite">
+            {acceptsPendingRequests && (
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75, mt: 1 }}>
+                {/* The tone goes on the icon and the words stay in body ink, as in the cook
+                    dialog's shortfall rows: it is a heads-up, not an error, and the words
+                    are what carry it. The icon is decorative (MUI hides it from readers). */}
+                <InfoOutlined sx={{ fontSize: '1rem', color: 'warning.main', mt: '1px' }} />
+                <Typography id={acceptsRequestsNoteId} variant="caption" color="text.primary">
+                  {t('edit.publicAcceptsRequests')}
+                </Typography>
+              </Box>
+            )}
+          </Box>
         </DialogContent>
 
         <DialogActions

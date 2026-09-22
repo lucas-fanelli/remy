@@ -1,6 +1,6 @@
 'use client';
 
-import { Person, Restaurant } from '@mui/icons-material';
+import { LockOutlined, Person, Restaurant } from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -23,9 +23,19 @@ import RecipeCard from '@/components/recipe/RecipeCard';
 import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
-import { useSearch } from '@/hooks/useSearch';
+import { useSearch, type SearchUser } from '@/hooks/useSearch';
 import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
+
+/**
+ * A found account, and whether it is private.
+ *
+ * Private accounts are found too: one nobody can find is one nobody can ask to follow,
+ * which is the only way in. The flag is optional because it only draws the lock — an
+ * answer without it reads as public, and that costs nothing, since the profile the row
+ * opens decides for itself what this reader may see.
+ */
+type FoundUser = SearchUser & { isPrivate?: boolean };
 
 // Fallback loading component for Suspense (useSearchParams requires a Suspense boundary)
 function SearchPageFallback() {
@@ -40,6 +50,9 @@ function SearchPageFallback() {
 function SearchPageContent() {
   const t = useTranslations('search');
   const tCommon = useTranslations('common');
+  // For the lock's name, 'Cuenta privada': the words on the switch that makes an account
+  // private, so the owner and the people who find them call it the same thing.
+  const tProfile = useTranslations('profile');
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -57,7 +70,7 @@ function SearchPageContent() {
    * the two are separate cache entries and the page only ever reads the one it asked for.
    */
   const search = useSearch(query);
-  const users = search.data?.users ?? [];
+  const users: FoundUser[] = search.data?.users ?? [];
   const recipes = search.data?.recipes ?? [];
   const loading = search.isPending;
   /** A search that failed is not a search that found nothing. */
@@ -230,9 +243,28 @@ function SearchPageContent() {
                               <Person />
                             </Avatar>
                             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                              <Typography variant="h6" noWrap>
-                                {user.username}
-                              </Typography>
+                              {/* The lock says the account is private and nothing more:
+                                  no follow button on the row (as on Instagram) — the
+                                  request is made from the profile, where the reader can
+                                  see what they are asking for. It never shrinks, so a long
+                                  name ellipsizes before the lock is lost. */}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography variant="h6" noWrap sx={{ minWidth: 0 }}>
+                                  {user.username}
+                                </Typography>
+                                {user.isPrivate && (
+                                  <LockOutlined
+                                    // titleAccess gives the icon role="img" and this name,
+                                    // so the lock is read as well as seen.
+                                    titleAccess={tProfile('edit.private')}
+                                    sx={{
+                                      fontSize: '1.125rem',
+                                      color: 'text.secondary',
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                )}
+                              </Box>
                               <Typography variant="body2" color="text.secondary" noWrap>
                                 {user.fullName || `@${user.username}`}
                               </Typography>
