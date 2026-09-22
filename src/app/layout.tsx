@@ -1,6 +1,6 @@
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { Nunito } from 'next/font/google';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import AppAnalytics from '@/components/analytics/AppAnalytics';
@@ -16,6 +16,7 @@ import { ToastProvider } from '@/contexts/ToastContext';
 import { OPEN_GRAPH_LOCALES } from '@/i18n/config';
 import { getServerLocale } from '@/i18n/locale';
 import { getMessages } from '@/i18n/messages';
+import { COOKIE_NAME } from '@/lib/utils/cookies';
 import QueryProvider from '@/providers/QueryProvider';
 import { tokensFor } from '@/theme/tokens';
 import type { Metadata } from 'next';
@@ -107,6 +108,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Resolved from the cookie on the server, so this first HTML is already in the right
   // language - logged in or out, before and after login, with no flash and no re-render.
   const locale = await getServerLocale();
+  // Only whether a session cookie came with the request, not whether it is valid: enough
+  // for a page to keep room for what a signed-in reader will see instead of making the
+  // public part wait for /api/auth/me. See AuthProvider's sessionLikely.
+  const sessionHint = (await cookies()).has(COOKIE_NAME);
 
   return (
     <html
@@ -169,7 +174,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <QueryProvider>
               <ThemeProvider>
                 <ToastProvider>
-                  <AuthProvider>
+                  <AuthProvider sessionHint={sessionHint}>
                     <PwaProvider>
                       <MotionProvider>
                         <CreateRecipeProvider>

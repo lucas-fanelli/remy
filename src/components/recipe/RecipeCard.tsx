@@ -330,11 +330,16 @@ export default function RecipeCard({
             zIndex: 1,
           }}
         >
+          {/* No prefetch on the author links: Next prefetches every link that scrolls into
+              view, and a feed page of cards meant a server call per author for profiles
+              almost nobody opens from here. The recipe link keeps it — that is the tap, and
+              its prefetch is what lets the recipe's skeleton appear at once. */}
           {recipe.author && (
             <>
               <Avatar
                 component={Link}
                 href={`/profile/${recipe.author.username}`}
+                prefetch={false}
                 src={cloudinaryImage(recipe.author.avatar, 'avatar') ?? undefined}
                 alt={recipe.author.username}
                 sx={{ width: 36, height: 36, mr: 1.5, textDecoration: 'none' }}
@@ -344,6 +349,7 @@ export default function RecipeCard({
               <Typography
                 component={Link}
                 href={`/profile/${recipe.author.username}`}
+                prefetch={false}
                 variant="body2"
                 sx={{
                   fontWeight: 500,

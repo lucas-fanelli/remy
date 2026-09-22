@@ -54,6 +54,7 @@ import RecipeTimeStrip from '@/components/recipe/display/RecipeTimeStrip';
 import StepNumber from '@/components/recipe/display/StepNumber';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import RatingBreakdown from '@/components/recipe/RatingBreakdown';
+import RecipeSkeleton from '@/components/recipe/RecipeSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
@@ -477,12 +478,9 @@ export default function RecipeDetailPage() {
           owned since it was introduced; the two stacked. The background was repainted on
           top of the column that already had it. */}
       <>
-        {/* Loading state - inside MotionBox for animation */}
-        {loading && !recipe && (
-          <Box sx={{ minHeight: 'calc(100vh - 64px)' }}>
-            {/* Empty space with same structure to prevent layout shift */}
-          </Box>
-        )}
+        {/* The same skeleton the route's loading.tsx shows, so the hand-over is seamless.
+            It used to be an empty box a screen tall: no shift, but nothing to look at. */}
+        {loading && !recipe && <RecipeSkeleton />}
 
         {/* A private account's recipe: not an error, so not red, and it says where to go —
             the author's profile, where following them is (or will be) the way in. */}

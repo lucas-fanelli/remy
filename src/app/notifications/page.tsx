@@ -19,7 +19,6 @@ import {
   ListItemText,
   Button,
   Alert,
-  Skeleton,
 } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -28,6 +27,7 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { PendingRequestsRow } from '@/components/navigation/NotificationDropdown';
+import { NotificationRowsSkeleton } from '@/components/notifications/NotificationsSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { FOLLOW_REQUESTS_PATH, afterRequestAccepted } from '@/hooks/useFollowRequests';
@@ -53,36 +53,6 @@ interface Notification {
 }
 
 const PAGE_SIZE = 20;
-
-/**
- * The page before its first answer, sized like it: the title is known, the rows are not.
- * It used to render nothing at all, a blank column under the header until the list arrived.
- */
-function NotificationsSkeleton({ label }: { label: string }) {
-  return (
-    <Paper role="status" aria-label={label}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <Box
-          key={i}
-          sx={{
-            display: 'flex',
-            gap: 2,
-            px: 2,
-            py: 1.5,
-            borderBottom: i < 4 ? 1 : 0,
-            borderColor: 'divider',
-          }}
-        >
-          <Skeleton variant="circular" width={40} height={40} />
-          <Box sx={{ flex: 1 }}>
-            <Skeleton variant="text" width="70%" />
-            <Skeleton variant="text" width="25%" />
-          </Box>
-        </Box>
-      ))}
-    </Paper>
-  );
-}
 
 export default function NotificationsPage() {
   const t = useTranslations('notifications');
@@ -288,7 +258,8 @@ export default function NotificationsPage() {
     return (
       <PageFrame width="reading">
         {header(0)}
-        <NotificationsSkeleton label={tCommon('status.loading')} />
+        {/* The same rows as the route's loading.tsx, which shows this page's skeleton. */}
+        <NotificationRowsSkeleton />
       </PageFrame>
     );
   }

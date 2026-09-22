@@ -101,6 +101,47 @@ describe('AuthContext', () => {
     });
   }
 
+  describe('sessionLikely', () => {
+    // For keeping room for what only a signed-in reader sees, now that the home page does
+    // not wait for /api/auth/me: the server's first impression while the check runs, then
+    // the answer.
+    function Likely() {
+      const { sessionLikely, isLoading } = useAuth();
+      return (
+        <div data-testid="likely">{`${isLoading ? 'checking' : 'known'}:${sessionLikely}`}</div>
+      );
+    }
+
+    it("is the layout's hint while the check runs, then the check's answer", async () => {
+      let answer: (value: unknown) => void = () => {};
+      mockFetch.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+
+      render(
+        <AuthProvider sessionHint>
+          <Likely />
+        </AuthProvider>
+      );
+      expect(screen.getByTestId('likely')).toHaveTextContent('checking:true');
+
+      // The cookie was an expired session.
+      answer({ ok: false, status: 401, json: async () => ({}) });
+
+      await waitFor(() => expect(screen.getByTestId('likely')).toHaveTextContent('known:false'));
+    });
+
+    it('is false while the check runs when no session cookie came with the page', () => {
+      mockFetch.mockReturnValueOnce(new Promise(() => {}));
+
+      render(
+        <AuthProvider>
+          <Likely />
+        </AuthProvider>
+      );
+
+      expect(screen.getByTestId('likely')).toHaveTextContent('checking:false');
+    });
+  });
+
   describe('Initial State', () => {
     it('should start with loading state', async () => {
       mockUnauthenticatedMount();
