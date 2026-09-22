@@ -216,6 +216,79 @@ describe('the pantry matches in the cache', () => {
   });
 });
 
+describe('a profile in the cache', () => {
+  let queryClient: QueryClient;
+
+  const profile = (over: Record<string, unknown> = {}) => ({
+    visibility: 'public',
+    user: { id: 'a', username: 'shares-an-id-with-the-recipe' },
+    stats: { recipesCount: 1, followersCount: 0, followingCount: 0 },
+    recipes: [recipe('a')],
+    savedRecipes: [recipe('b')],
+    isFollowing: null,
+    ...over,
+  });
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  it('reaches a recipe on either tab', () => {
+    queryClient.setQueryData(queryKeys.profile('ana'), profile());
+
+    patchRecipeEverywhere(queryClient, 'b', like(true));
+
+    const data = queryClient.getQueryData<{ savedRecipes: { viewer: { liked: boolean } }[] }>(
+      queryKeys.profile('ana')
+    );
+    expect(data?.savedRecipes[0].viewer.liked).toBe(true);
+  });
+
+  it('never touches the person whose profile it is', () => {
+    // `user` sits beside the lists and has an `id` too — here the same id as the recipe.
+    const data = profile();
+    queryClient.setQueryData(queryKeys.profile('ana'), data);
+
+    patchRecipeEverywhere(queryClient, 'a', like(true));
+
+    const after = queryClient.getQueryData<{ user: unknown; stats: unknown }>(
+      queryKeys.profile('ana')
+    );
+    expect(after?.user).toBe(data.user);
+    expect(after?.stats).toBe(data.stats);
+  });
+
+  it('leaves a private profile alone, which has no lists to patch', () => {
+    const data = { visibility: 'private', user: { id: 'a', username: 'ana' } };
+    queryClient.setQueryData(queryKeys.profile('ana'), data);
+
+    patchRecipeEverywhere(queryClient, 'a', like(true));
+
+    expect(queryClient.getQueryData(queryKeys.profile('ana'))).toBe(data);
+  });
+
+  it('can be read back, which is what decides like versus unlike', () => {
+    queryClient.setQueryData(
+      queryKeys.profile('ana'),
+      profile({
+        recipes: [
+          recipe('a', {
+            viewer: {
+              liked: true,
+              saved: false,
+              timesCooked: 0,
+              lastCookedAt: null,
+              myRating: null,
+            },
+          }),
+        ],
+      })
+    );
+
+    expect(VIEWER_SPECS.like.read(readEngagement(queryClient, 'a')!)).toBe(true);
+  });
+});
+
 describe('readEngagement', () => {
   let queryClient: QueryClient;
 

@@ -174,12 +174,20 @@ const matchesAdapter = namedListsAdapter(
 );
 
 /**
- * Four shapes so far: the detail page's envelope, any infinite list, search, and the
- * pantry matches.
+ * `{ visibility, user, stats, recipes, savedRecipes, isFollowing }` under
+ * `['profile', username]` — what `useProfile` stores, not what the route sends.
  *
- * The profile tabs join when that screen stops holding its lists in `useState` — until
- * then there is nothing of theirs in the cache to patch, and an adapter for an empty cache
- * would be dead code that looks like coverage.
+ * `user` sits right beside the lists and has an `id` too. Naming the fields is what keeps
+ * a heart away from the person whose profile it is.
+ */
+const profileAdapter = namedListsAdapter(
+  (key) => key[0] === 'profile' && typeof key[1] === 'string',
+  ['recipes', 'savedRecipes']
+);
+
+/**
+ * Five shapes: the detail page's envelope, any infinite list, search, the pantry matches
+ * and a profile's two tabs.
  *
  * More than one adapter can match a key: every search key starts with `'recipes'`, which
  * the infinite-list adapter also answers to. So nothing below picks "the first adapter
@@ -192,6 +200,7 @@ export const RECIPE_CACHE_ADAPTERS: readonly RecipeCacheAdapter[] = [
   infiniteListAdapter,
   searchAdapter,
   matchesAdapter,
+  profileAdapter,
 ];
 
 /** Every adapter that claims this key, in registration order. */
