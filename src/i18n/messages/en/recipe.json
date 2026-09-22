@@ -1,7 +1,9 @@
 {
   "states": {
     "notFound": "Recipe not found",
-    "loadFailed": "Failed to load recipe"
+    "loadFailed": "Failed to load recipe",
+    "private": "This recipe belongs to @{username}, whose account is private.",
+    "viewAuthor": "View their profile"
   },
   "meta": {
     "difficulty": "{level, select, easy {easy} medium {medium} hard {hard} other {{level}}}",

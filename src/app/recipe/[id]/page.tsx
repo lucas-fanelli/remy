@@ -38,6 +38,7 @@ import {
 } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import NextLink from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useCallback } from 'react';
@@ -127,6 +128,7 @@ export default function RecipeDetailPage() {
       ? renderText(queryError.descriptor)
       : queryError.message
     : null;
+  const privateAuthor = queryError instanceof RecipeFetchError ? queryError.privateAuthor : null;
 
   // The heart, the count and the bookmark come with the recipe, so they are right on the
   // first paint. They used to be three pieces of local state seeded to false/0 and then
@@ -482,8 +484,26 @@ export default function RecipeDetailPage() {
           </Box>
         )}
 
+        {/* A private account's recipe: not an error, so not red, and it says where to go —
+            the author's profile, where following them is (or will be) the way in. */}
+        {privateAuthor && (
+          <PageFrame width="reading">
+            <Alert severity="info" sx={{ mb: { xs: 1.5, md: 2 } }}>
+              {error}
+            </Alert>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button component={NextLink} href={`/profile/${privateAuthor}`} variant="contained">
+                {t('states.viewAuthor')}
+              </Button>
+              <Button onClick={handleBack} startIcon={<ArrowBack />}>
+                {tCommon('actions.goBack')}
+              </Button>
+            </Box>
+          </PageFrame>
+        )}
+
         {/* Error state */}
-        {(error || (!loading && !recipe)) && (
+        {!privateAuthor && (error || (!loading && !recipe)) && (
           <PageFrame width="reading">
             <Alert
               severity="error"

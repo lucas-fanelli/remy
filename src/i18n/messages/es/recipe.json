@@ -1,7 +1,9 @@
 {
   "states": {
     "notFound": "No encontramos la receta",
-    "loadFailed": "No pudimos cargar la receta"
+    "loadFailed": "No pudimos cargar la receta",
+    "private": "Esta receta es de @{username}, que tiene la cuenta privada.",
+    "viewAuthor": "Ver su perfil"
   },
   "meta": {
     "difficulty": "{level, select, easy {fácil} medium {media} hard {difícil} other {{level}}}",
