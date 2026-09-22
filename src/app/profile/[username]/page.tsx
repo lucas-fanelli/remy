@@ -19,12 +19,13 @@ import { MotionBox } from '@/components/motion';
 import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import RecipeCard, { type RecipeCardModel } from '@/components/recipe/RecipeCard';
+import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFollowProfile } from '@/hooks/useFollowProfile';
 import { useProfile, ProfileFetchError, type ProfileRecipe } from '@/hooks/useProfile';
-import { useLike } from '@/hooks/useViewerMutation';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 /**
@@ -81,13 +82,7 @@ function ProfileSkeleton({ label }: { label: string }) {
             <Skeleton variant="text" width="60%" />
           </Box>
         </Box>
-        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-          {[0, 1, 2].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <Skeleton variant="rounded" height={340} />
-            </Grid>
-          ))}
-        </Grid>
+        <RecipeGridSkeleton />
       </Box>
     </PageFrame>
   );
@@ -103,6 +98,7 @@ export default function ProfilePage() {
 
   const profileQuery = useProfile(username);
   const likeToggle = useLike();
+  const saveToggle = useSave();
   const follow = useFollowProfile(username);
 
   const [activeTab, setActiveTab] = useState(0);
@@ -155,6 +151,11 @@ export default function ProfilePage() {
   // counts, no recipes, no follow state. Everything below that needs them is behind this.
   const details = profile.visibility === 'public' ? profile : null;
   const isFollowing = details?.isFollowing === true;
+  // The Saved tab is what you have saved NOW, read off each recipe's own bookmark rather
+  // than off the list the server sent. Unsaving here empties that bookmark optimistically,
+  // so the recipe leaves the tab the moment you tap — and a failed unsave puts the bookmark
+  // back, which brings the recipe back with it. No second mutation to keep in step.
+  const savedNow = (details?.savedRecipes ?? []).filter((recipe) => recipe.viewer?.saved !== false);
 
   const handleFollow = () => {
     if (!isAuthenticated) {
@@ -401,6 +402,7 @@ export default function ProfilePage() {
                                 recipe={toCardModel(recipe)}
                                 viewer={recipe.viewer}
                                 onLike={() => likeRecipe(recipe.id)}
+                                onSave={() => saveToggle.toggle(recipe.id)}
                               />
                             </MotionBox>
                           </Grid>
@@ -412,7 +414,7 @@ export default function ProfilePage() {
                   {/* Saved Recipes Tab */}
                   {activeTab === 1 && isOwnProfile && (
                     <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-                      {details.savedRecipes.length === 0 ? (
+                      {savedNow.length === 0 ? (
                         <Grid item xs={12}>
                           <Box sx={{ textAlign: 'center', py: 8 }}>
                             <BookmarkBorder sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
@@ -425,7 +427,7 @@ export default function ProfilePage() {
                           </Box>
                         </Grid>
                       ) : (
-                        details.savedRecipes.map((recipe, index) => (
+                        savedNow.map((recipe, index) => (
                           <Grid item xs={12} sm={6} md={4} key={recipe.id} sx={{ display: 'flex' }}>
                             <MotionBox
                               initial={{ opacity: 0, y: 20 }}
@@ -442,6 +444,7 @@ export default function ProfilePage() {
                                 recipe={toCardModel(recipe)}
                                 viewer={recipe.viewer}
                                 onLike={() => likeRecipe(recipe.id)}
+                                onSave={() => saveToggle.toggle(recipe.id)}
                               />
                             </MotionBox>
                           </Grid>

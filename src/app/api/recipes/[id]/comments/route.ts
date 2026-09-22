@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import striptags from 'striptags';
-import { requireAuth } from '@/lib/api/auth';
+import { getCurrentUser, requireAuth } from '@/lib/api/auth';
 import { MAX_COMMENT_LENGTH, UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse } from '@/lib/privacy/visibility';
 import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
 import { logServerError } from '@/lib/utils/logger';
 import { requireJsonContentType } from '@/lib/utils/request';
@@ -19,6 +20,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         { status: 400 }
       );
     }
+
+    // Sign-in stays optional: anyone may read the comments on a public recipe, as they may
+    // read the recipe itself. A private author's thread is for whoever may read that
+    // author's recipes. This handler used to check nothing, not even that the recipe
+    // existed, so anyone holding the id of a private recipe could read its thread and
+    // every score in it.
+    const viewer = await getCurrentUser(request);
+    const access = await canSeePost(prisma, recipeId, viewer?.id ?? null);
+    if (access.status !== 'ok') return deniedPostResponse(access);
 
     const searchParams = request.nextUrl.searchParams;
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50') || 50));
@@ -128,12 +138,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (cloudinaryError) return cloudinaryError;
     }
 
-    // Recipe check + comment creation atomically in a single transaction
-    const { comment, recipeAuthorId } = await prisma.$transaction(async (tx) => {
-      const recipe = await tx.post.findUnique({ where: { id: recipeId } });
-      if (!recipe) {
-        throw new Error('RECIPE_NOT_FOUND');
-      }
+    // The access check and the comment in one transaction: nothing is written, and the
+    // author is not notified, on a recipe the commenter may not see.
+    const outcome = await prisma.$transaction(async (tx) => {
+      const access = await canSeePost(tx, recipeId, user.id);
+      if (access.status !== 'ok') return { denied: access };
 
       const newComment = await tx.comment.create({
         data: {
@@ -153,8 +162,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       });
 
-      return { comment: newComment, recipeAuthorId: recipe.userId };
+      return { denied: null, comment: newComment, recipeAuthorId: access.authorId };
     });
+
+    if (outcome.denied) return deniedPostResponse(outcome.denied);
+    const { comment, recipeAuthorId } = outcome;
 
     // Create notification - non-critical, don't fail the request if this errors
     try {
@@ -177,12 +189,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       message: 'Comment added successfully',
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
-      return NextResponse.json(
-        { error: 'Recipe not found', code: 'recipe.notFound' },
-        { status: 404 }
-      );
-    }
     logServerError('Error creating comment:', error);
     return NextResponse.json(
       { error: 'Failed to create comment', code: 'comment.createFailed' },

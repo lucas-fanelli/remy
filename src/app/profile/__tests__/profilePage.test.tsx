@@ -204,7 +204,9 @@ describe('the profile page', () => {
       renderPage();
       fireEvent.click(await screen.findByRole('button', { name: 'Like' }));
 
-      expect(await screen.findByText('No connection — we put your like back')).toBeInTheDocument();
+      expect(
+        await screen.findByText("No connection — the like didn't go through")
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Like' })).toBeInTheDocument();
       expect(screen.getByText('3')).toBeInTheDocument();
     });
@@ -300,6 +302,107 @@ describe('the profile page', () => {
 
       expect(mockPush).toHaveBeenCalledWith('/auth');
       expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('your Saved tab', () => {
+    const saved = (id: string) => ({
+      ...recipe(id),
+      title: `Guardada ${id}`,
+      viewer: { ...viewer(false), saved: true },
+    });
+    const own = (list: unknown[]) =>
+      publicProfile({ recipes: [], savedRecipes: list, isFollowing: undefined });
+
+    const openSavedTab = async () => {
+      fireEvent.click(await screen.findByText('Saved'));
+      await screen.findByText('Guardada s1');
+    };
+
+    beforeEach(() => {
+      mockViewer = { username: 'ana' };
+    });
+
+    it('lets go of a recipe the moment you unsave it, before the server answers', async () => {
+      // Lucas's call: unsaving from here takes the recipe out at once, like every other
+      // tap in this layer — not an empty bookmark sitting there until a reload.
+      let answerSave: (value: unknown) => void = () => {};
+      mockFetch.mockImplementation((url: string) =>
+        url.includes('/save')
+          ? new Promise((resolve) => {
+              answerSave = resolve;
+            })
+          : Promise.resolve(ok(own([saved('s1'), saved('s2')])))
+      );
+
+      renderPage();
+      await openSavedTab();
+      fireEvent.click(screen.getAllByRole('button', { name: 'Remove from saved' })[0]);
+
+      await waitFor(() => expect(screen.queryByText('Guardada s1')).not.toBeInTheDocument());
+      expect(screen.getByText('Guardada s2')).toBeInTheDocument();
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/recipes/s1/save',
+        expect.objectContaining({ body: JSON.stringify({ saved: false }) })
+      );
+
+      answerSave(ok({ saved: false }));
+    });
+
+    it('brings it back, and says it is still saved, when the unsave fails', async () => {
+      // The server's catch-all code is "recipe.saveFailed" in both directions; translated as
+      // is, it would have told the reader "we could not save the recipe" about one that
+      // still is saved.
+      mockFetch.mockImplementation((url: string) =>
+        url.includes('/save')
+          ? Promise.resolve({
+              ok: false,
+              status: 500,
+              json: async () => ({ error: 'Failed to save recipe', code: 'recipe.saveFailed' }),
+            })
+          : Promise.resolve(ok(own([saved('s1')])))
+      );
+
+      renderPage();
+      await openSavedTab();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove from saved' }));
+
+      expect(
+        await screen.findByText("We couldn't remove it from your saved recipes")
+      ).toBeInTheDocument();
+      expect(screen.getByText('Guardada s1')).toBeInTheDocument();
+    });
+
+    it('says the recipe is still there when the unsave fails for want of a connection', async () => {
+      mockFetch.mockImplementation((url: string) =>
+        url.includes('/save')
+          ? Promise.reject(new TypeError('Failed to fetch'))
+          : Promise.resolve(ok(own([saved('s1')])))
+      );
+
+      renderPage();
+      await openSavedTab();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove from saved' }));
+
+      expect(
+        await screen.findByText("No connection — it's still in your saved recipes")
+      ).toBeInTheDocument();
+      expect(screen.getByText('Guardada s1')).toBeInTheDocument();
+    });
+
+    it('shows its empty state once the last one goes', async () => {
+      // The tab never needed one mid-visit before: it could not change while you looked.
+      mockFetch.mockImplementation((url: string) =>
+        url.includes('/save')
+          ? Promise.resolve(ok({ saved: false }))
+          : Promise.resolve(ok(own([saved('s1')])))
+      );
+
+      renderPage();
+      await openSavedTab();
+      fireEvent.click(screen.getByRole('button', { name: 'Remove from saved' }));
+
+      expect(await screen.findByText('No saved recipes yet')).toBeInTheDocument();
     });
   });
 

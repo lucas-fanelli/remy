@@ -41,7 +41,11 @@ function del(): NextRequest {
 beforeEach(() => {
   jest.clearAllMocks();
   (requireAuth as jest.Mock).mockResolvedValue({ id: 'user-1' });
-  (prisma.post.findUnique as jest.Mock).mockResolvedValue({ id: VALID_UUID });
+  // What canSeePost reads: the author, public here. recipe-access.test.ts covers private.
+  (prisma.post.findUnique as jest.Mock).mockResolvedValue({
+    userId: 'author-1',
+    user: { isPrivate: false, username: 'author' },
+  });
   (prisma.rating.aggregate as jest.Mock).mockResolvedValue({
     _avg: { rating: 4.5 },
     _count: { rating: 2 },

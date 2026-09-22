@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse } from '@/lib/privacy/visibility';
 import { logServerError } from '@/lib/utils/logger';
 
 /**
@@ -46,13 +47,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const recipe = await tx.post.findUnique({
-        where: { id: recipeId },
-        select: { userId: true },
-      });
-      if (!recipe) {
-        throw new Error('RECIPE_NOT_FOUND');
-      }
+      // Before the like is read or written, and in the same transaction: on a recipe the
+      // reader may not see there is no like, no unlike — the legacy flip included — no
+      // count and no notification. It used to check only that the recipe existed.
+      const access = await canSeePost(tx, recipeId, user.id);
+      if (access.status !== 'ok') return { denied: access };
 
       const existingLike = await tx.like.findUnique({
         where: { postId_userId: { postId: recipeId, userId: user.id } },
@@ -71,12 +70,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       const likeCount = await tx.like.count({ where: { postId: recipeId } });
       return {
+        denied: null,
         liked: shouldBeLiked,
         likeCount,
-        recipeAuthorId: recipe.userId,
+        recipeAuthorId: access.authorId,
         changed: shouldBeLiked !== !!existingLike,
       };
     });
+
+    if (result.denied) return deniedPostResponse(result.denied);
 
     // Handle notifications outside transaction (non-critical). Only on an actual change:
     // a repeated "like" must not send the author a second notification.
@@ -107,12 +109,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       message: result.liked ? 'Recipe liked' : 'Recipe unliked',
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
-      return NextResponse.json(
-        { error: 'Recipe not found', code: 'recipe.notFound' },
-        { status: 404 }
-      );
-    }
     logServerError('Error setting like:', error);
     return NextResponse.json(
       { error: 'Failed to toggle like', code: 'recipe.likeFailed' },

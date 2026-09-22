@@ -65,7 +65,17 @@ describe('every viewer spec', () => {
       expect(spec.read(next)).toBe(true);
     });
 
-    it('has a sentence for each of the five things that can happen', () => {
+    const everySentence = () => [
+      spec.text.on,
+      spec.text.off,
+      spec.text.signedOut,
+      spec.text.failed.on,
+      spec.text.failed.off,
+      spec.text.offline.on,
+      spec.text.offline.off,
+    ];
+
+    it('has a sentence for each of the things that can happen', () => {
       // `offline` is separate from `failed` on purpose: the reader is owed "and I put it
       // back", not "it broke".
       expect(Object.keys(spec.text).sort()).toEqual([
@@ -75,9 +85,32 @@ describe('every viewer spec', () => {
         'on',
         'signedOut',
       ]);
-      Object.values(spec.text).forEach((descriptor) => {
+      everySentence().forEach((descriptor) => {
         expect(descriptor.key).toMatch(/^recipe\./);
       });
+    });
+
+    it('says which way an offline failure left things', () => {
+      // One sentence for both got it backwards half the time: a failed unsave said "it was
+      // not saved" about a recipe that still was, and a failed like said "we put your like
+      // back" while emptying it.
+      expect(spec.text.offline.on.key).not.toBe(spec.text.offline.off.key);
+    });
+
+    it.each(['es', 'en'])('has every sentence written in %s', (locale) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const messages = require(`@/i18n/messages/${locale}/recipe.json`);
+      everySentence().forEach(({ key }) => {
+        const value = key
+          .split('.')
+          .slice(1)
+          .reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], messages);
+        expect({ key, value: typeof value }).toEqual({ key, value: 'string' });
+      });
+    });
+
+    it("names its route's catch-all failure code, which cannot say which way it failed", () => {
+      expect(spec.serverFailureCode).toBe(`recipe.${spec.key}Failed`);
     });
   });
 });
