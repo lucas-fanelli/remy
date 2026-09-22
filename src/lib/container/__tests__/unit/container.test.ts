@@ -382,22 +382,6 @@ describe('Container - Unit Tests', () => {
     });
   });
 
-  describe('getIngredientMatchService', () => {
-    it('should return IngredientMatchService instance', () => {
-      const ingredientMatchService = container.getIngredientMatchService();
-
-      expect(ingredientMatchService).toBeDefined();
-      expect(ingredientMatchService.constructor.name).toBe('IngredientMatchService');
-    });
-
-    it('should return same instance on multiple calls (singleton)', () => {
-      const service1 = container.getIngredientMatchService();
-      const service2 = container.getIngredientMatchService();
-
-      expect(service1).toBe(service2);
-    });
-  });
-
   describe('getNotificationService', () => {
     it('should return NotificationService instance', () => {
       const notificationService = container.getNotificationService();

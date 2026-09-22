@@ -1,5 +1,7 @@
 'use client';
 import {
+  Bookmark,
+  BookmarkBorder,
   Favorite,
   FavoriteBorder,
   ChatBubbleOutline,
@@ -103,6 +105,12 @@ interface RecipeCardProps {
    * count renders whenever it is given, and becomes a button only when it can do something.
    */
   onLike?: () => void;
+  /**
+   * The bookmark. Before this, saving existed on exactly one surface — inside a recipe —
+   * while four endpoints served `viewer.saved` to cards that never showed it. That is why
+   * a broken save went unnoticed: nothing else in the app could disagree with it.
+   */
+  onSave?: () => void;
   onComment?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -125,6 +133,7 @@ export default function RecipeCard({
   href,
   onClick,
   onLike,
+  onSave,
   onComment,
   onEdit,
   onDelete,
@@ -135,6 +144,7 @@ export default function RecipeCard({
   const brandLogo = useBrandLogo();
   const tokens = useTokens();
   const liked = viewer?.liked ?? false;
+  const saved = viewer?.saved ?? false;
   const timesCooked = viewer?.timesCooked ?? 0;
   const t = useTranslations('recipe');
   const tCommon = useTranslations('common');
@@ -174,7 +184,7 @@ export default function RecipeCard({
   const showEngagement =
     recipe.likeCount !== undefined ||
     recipe.commentCount !== undefined ||
-    Boolean(onLike || onComment);
+    Boolean(onLike || onSave || onComment);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -497,6 +507,11 @@ export default function RecipeCard({
           fetched viewer state and counts and then threw them away. */}
       {showEngagement && (
         <CardActions
+          // MUI's own spacing gives every child after the first `margin-left: 8px` through a
+          // selector more specific than `sx`, so the `ml: 'auto'` below computed to 8px: the
+          // cooked badge never reached the right edge, and the bookmark sat beside the
+          // counts. The margins are stated here instead.
+          disableSpacing
           sx={{
             px: 2,
             pb: 2,
@@ -536,7 +551,9 @@ export default function RecipeCard({
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 2 }}>
+          {/* 8px: what it has always rendered at. The `ml: 2` written here never applied
+              under MUI's spacing rule, and nobody has seen 16px. */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
             {onComment ? (
               <Tooltip title={t('card.comments')}>
                 <IconButton onClick={onComment} size="small" sx={{ p: 0.5 }}>
@@ -553,35 +570,56 @@ export default function RecipeCard({
             </Typography>
           </Box>
 
-          {/* Read-only on purpose: cooking something takes ingredients out of your pantry,
-              and that is a decision to confirm on the recipe page, not a card tap. This
-              only says you have made it — which the card could never say before. */}
-          {timesCooked > 0 && (
-            <Tooltip
-              title={
-                timesCooked === 1
-                  ? t('card.cookedOnce')
-                  : t('card.cookedTimes', { count: timesCooked })
-              }
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  ml: 'auto',
-                  color: 'success.main',
-                }}
+          {/* The right end of the row: what is yours about this recipe. */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+            {/* Read-only on purpose: cooking something takes ingredients out of your pantry,
+                and that is a decision to confirm on the recipe page, not a card tap. This
+                only says you have made it — which the card could never say before. */}
+            {timesCooked > 0 && (
+              <Tooltip
+                title={
+                  timesCooked === 1
+                    ? t('card.cookedOnce')
+                    : t('card.cookedTimes', { count: timesCooked })
+                }
               >
-                <RestaurantIcon sx={{ fontSize: 20 }} />
-                {timesCooked > 1 && (
-                  <Typography variant="body2" color="inherit">
-                    {timesCooked}
-                  </Typography>
-                )}
-              </Box>
-            </Tooltip>
-          )}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: 'success.main',
+                  }}
+                >
+                  <RestaurantIcon sx={{ fontSize: 20 }} />
+                  {timesCooked > 1 && (
+                    <Typography variant="body2" color="inherit">
+                      {timesCooked}
+                    </Typography>
+                  )}
+                </Box>
+              </Tooltip>
+            )}
+
+            {/* Only as a button. Unlike the heart there is no count to show read-only, and a
+                bookmark nobody can press only adds noise to the row. */}
+            {onSave && (
+              <Tooltip title={saved ? t('card.unsave') : t('card.save')}>
+                <IconButton
+                  onClick={onSave}
+                  size="small"
+                  color={saved ? 'primary' : 'default'}
+                  sx={{ p: 0.5 }}
+                >
+                  {saved ? (
+                    <Bookmark sx={{ fontSize: 22 }} />
+                  ) : (
+                    <BookmarkBorder sx={{ fontSize: 22 }} />
+                  )}
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         </CardActions>
       )}
 

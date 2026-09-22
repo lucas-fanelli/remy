@@ -1,6 +1,8 @@
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
+import { queryKeys } from '@/lib/query/keys';
+import { getQueryClient } from '@/providers/QueryProvider';
 import { AuthProvider, useAuth } from '../AuthContext';
 
 // Reusable test components
@@ -721,6 +723,100 @@ describe('AuthContext', () => {
       await waitFor(() => {
         expect(screen.getByTestId('error')).toHaveTextContent('Update failed');
       });
+    });
+  });
+
+  // Feeds, profiles and recipes are fetched as whoever is signed in and cached under keys
+  // that do not name them, so the cache is that person's. Only logout used to empty it: the
+  // next account to sign in on the same tab was served the previous one's entries, private
+  // recipes included, until they went stale.
+  describe('Query cache', () => {
+    const otherUser = { ...mockUser, id: 'user456', username: 'otheruser' };
+    // A recipe of a private account that the first user may see and the next may not.
+    const privateRecipe = { id: 'private-recipe', title: 'Guiso de la abuela' };
+    const recipeKey = queryKeys.recipe(privateRecipe.id);
+
+    const cache = () => getQueryClient();
+
+    beforeEach(() => {
+      cache().clear();
+    });
+
+    function renderSignedInApp() {
+      render(
+        <AuthProvider>
+          <AuthStatus />
+          <AuthActions />
+        </AuthProvider>
+      );
+    }
+
+    it('empties the cache when a different account signs in', async () => {
+      mockAuthenticatedMount();
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { user: otherUser } }),
+      });
+
+      renderSignedInApp();
+      await waitForAuthenticated();
+      cache().setQueryData(recipeKey, privateRecipe);
+
+      fireEvent.click(screen.getByText('Login'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user-data')).toHaveTextContent('otheruser');
+      });
+      expect(cache().getQueryData(recipeKey)).toBeUndefined();
+    });
+
+    it('empties the cache when the session check finds the session gone', async () => {
+      // The tab comes back after an hour, the session has expired, and the recheck answers
+      // 401. Whoever signs in next starts from nothing.
+      mockAuthenticatedMount();
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
+
+      renderSignedInApp();
+      await waitForAuthenticated();
+      cache().setQueryData(recipeKey, privateRecipe);
+
+      const anHourLater = Date.now() + 60 * 60 * 1000;
+      const now = jest.spyOn(Date, 'now').mockReturnValue(anHourLater);
+      try {
+        fireEvent(document, new Event('visibilitychange'));
+
+        await waitForUnauthenticated();
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(cache().getQueryData(recipeKey)).toBeUndefined();
+      } finally {
+        now.mockRestore();
+      }
+    });
+
+    it('still empties the cache on logout', async () => {
+      mockAuthenticatedMount();
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+
+      renderSignedInApp();
+      await waitForAuthenticated();
+      cache().setQueryData(recipeKey, privateRecipe);
+
+      fireEvent.click(screen.getByText('Logout'));
+
+      await waitForUnauthenticated();
+      expect(cache().getQueryData(recipeKey)).toBeUndefined();
+    });
+
+    it('keeps what the page fetched while the first session check was out', async () => {
+      // Both went out with the same cookie, so the data is already the signed-in user's.
+      // Emptying the cache here would only make the first screen load twice.
+      cache().setQueryData(recipeKey, privateRecipe);
+      mockAuthenticatedMount();
+
+      renderSignedInApp();
+      await waitForAuthenticated();
+
+      expect(cache().getQueryData(recipeKey)).toEqual(privateRecipe);
     });
   });
 
