@@ -41,8 +41,6 @@
     "message": "La receta se va a borrar de tu cuenta y de todos los dispositivos sincronizados."
   },
   "toasts": {
-    "deleted": "Receta eliminada",
-    "deleteFailed": "No pudimos eliminar la receta",
     "updated": "Receta actualizada"
   },
   "matches": {

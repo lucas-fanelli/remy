@@ -16,11 +16,6 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
   useTheme,
   useMediaQuery,
   CircularProgress,
@@ -31,6 +26,8 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useDeferredDelete, useHiddenByDelete } from '@/hooks/useDeferredDelete';
 import { useDateFnsLocale } from '@/i18n/dates';
 import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
@@ -47,6 +44,14 @@ interface Comment {
     username: string;
     avatar?: string;
   };
+}
+
+/** The server refused a comment's delete, with what it said. */
+class CommentDeleteError extends Error {
+  constructor(readonly body: unknown) {
+    super('Comment delete failed');
+    this.name = 'CommentDeleteError';
+  }
 }
 
 interface CommentsSectionProps {
@@ -94,9 +99,11 @@ export default function CommentsSection({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<{ [key: string]: HTMLElement | null }>({});
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const deferDelete = useDeferredDelete();
+  const hiddenByDelete = useHiddenByDelete();
+  const { showError } = useToast();
+  /** What is on screen: every comment but those whose delete is waiting or on its way. */
+  const shown = comments.filter((comment) => !hiddenByDelete(`comment:${comment.id}`));
 
   // Image upload state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -309,41 +316,39 @@ export default function CommentsSection({
     }
   };
 
+  /**
+   * No "are you sure?": the comment leaves at once and the toast offers Undo; the delete is
+   * sent when that has gone unanswered (lib/undo/deferredDeletes). The list is this
+   * section's own state, which the deferred delete cannot reach, so what is on screen is
+   * filtered through it instead — which also keeps the comment out of a thread read again
+   * while its delete waits.
+   */
   const handleDeleteClick = (commentId: string) => {
-    setCommentToDelete(commentId);
-    setDeleteDialogOpen(true);
     handleMenuClose(commentId);
-  };
+    if (!user) return;
 
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setCommentToDelete(null);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!user || !commentToDelete) return;
-
-    try {
-      setDeleting(true);
-      const response = await fetch(`/api/recipes/${recipeId}/comments/${commentToDelete}`, {
-        method: 'DELETE',
-        headers: { 'X-Requested-With': 'fetch' },
-      });
-
-      if (response.ok) {
-        setComments(comments.filter((c) => c.id !== commentToDelete));
-        setDeleteDialogOpen(false);
-        setCommentToDelete(null);
-      } else {
-        const errorData = await response.json();
-        setError(apiErrorMessage(errorData, t('errors.deleteFailed')));
-      }
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      setError(t('errors.deleteFailed'));
-    } finally {
-      setDeleting(false);
-    }
+    deferDelete({
+      key: `comment:${commentId}`,
+      message: t('deleted'),
+      // Hidden and shown by the filter below.
+      hide: () => {},
+      restore: () => {},
+      commit: async ({ keepalive }) => {
+        const response = await fetch(`/api/recipes/${recipeId}/comments/${commentId}`, {
+          method: 'DELETE',
+          headers: { 'X-Requested-With': 'fetch' },
+          keepalive,
+        });
+        if (!response.ok) throw new CommentDeleteError(await readBody(response));
+      },
+      onCommitted: () => setComments((current) => current.filter((c) => c.id !== commentId)),
+      onFailed: (error) =>
+        showError(
+          error instanceof CommentDeleteError
+            ? apiErrorMessage(error.body, t('errors.deleteFailed'))
+            : t('errors.deleteOffline')
+        ),
+    });
   };
 
   return (
@@ -358,7 +363,7 @@ export default function CommentsSection({
           fontSize: { xs: '1.25rem', sm: '1.5rem' },
         }}
       >
-        {t('title', { count: comments.length })}
+        {t('title', { count: shown.length })}
       </Typography>
 
       {/* Comment Input */}
@@ -512,7 +517,7 @@ export default function CommentsSection({
       )}
 
       {/* Comments List */}
-      {loading ? null : comments.length === 0 ? (
+      {loading ? null : shown.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: { xs: 4, md: 6 } }}>
           <Typography
             variant="h6"
@@ -533,7 +538,7 @@ export default function CommentsSection({
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, md: 2 } }}>
           <AnimatePresence>
-            {comments.map((comment, index) => (
+            {shown.map((comment, index) => (
               <MotionCard
                 key={comment.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -740,36 +745,6 @@ export default function CommentsSection({
           </AnimatePresence>
         </Box>
       )}
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-        maxWidth="xs"
-        aria-labelledby="delete-comment-dialog-title"
-        aria-describedby="delete-comment-dialog-description"
-      >
-        <DialogTitle id="delete-comment-dialog-title">{t('deleteDialog.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="delete-comment-dialog-description">
-            {t('deleteDialog.message')}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={deleting}>
-            {tCommon('actions.cancel')}
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
-            disabled={deleting}
-            autoFocus
-          >
-            {deleting ? tCommon('status.deleting') : tCommon('actions.delete')}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

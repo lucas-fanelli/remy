@@ -1,6 +1,7 @@
 import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { renderWithQueryClient } from '@/__tests__/helpers/queryClient';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { renderWithLocale } from '@/i18n/testing';
 import PantryPage from '../page';
 
@@ -41,8 +42,15 @@ const pantryItems = [
 
 const mockFetch = jest.fn();
 
-// The pantry lives in the query cache now.
-const renderInSpanish = () => renderWithLocale(renderWithQueryClient, 'es', <PantryPage />);
+// The pantry lives in the query cache now, and speaks through the app's toast.
+const renderInSpanish = () =>
+  renderWithLocale(
+    renderWithQueryClient,
+    'es',
+    <ToastProvider>
+      <PantryPage />
+    </ToastProvider>
+  );
 
 describe('Pantry in Spanish', () => {
   beforeEach(() => {
@@ -143,14 +151,14 @@ describe('Pantry in Spanish', () => {
     );
   });
 
-  it('should ask in Spanish before deleting, without renaming the item', async () => {
+  it('should offer to undo a delete in Spanish, instead of asking first', async () => {
     renderInSpanish();
 
     await screen.findByText('Zanahoria');
     fireEvent.click(screen.getAllByTestId('DeleteIcon')[0].closest('button')!);
 
-    expect(await screen.findByText('¿Eliminar el ingrediente?')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+    expect(await screen.findByText('Eliminamos el ingrediente')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Deshacer' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

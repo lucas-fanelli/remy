@@ -14,17 +14,15 @@
   "recently": "recently",
   "photoAlt": "Photo by {username}",
   "edit": {},
-  "deleteDialog": {
-    "title": "Delete selected comment?",
-    "message": "Comment will be permanently removed from your account and all synced devices"
-  },
   "errors": {
     "uploadFailed": "Failed to upload image",
     "postFailed": "Failed to post comment",
     "updateFailed": "Failed to update comment",
     "deleteFailed": "Failed to delete comment",
+    "deleteOffline": "No connection — your comment is still there",
     "invalidType": "Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.",
     "tooLarge": "Image too large. Maximum size is 5MB.",
     "loadFailed": "We could not load the comments"
-  }
+  },
+  "deleted": "Comment deleted"
 }

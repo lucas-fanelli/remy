@@ -14,6 +14,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
+import { sendWaitingDelete } from '@/lib/undo/deferredDeletes';
 import { getQueryClient } from '@/providers/QueryProvider';
 
 export type User = {
@@ -227,6 +228,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Optimistic logout: UI clears immediately, cookie may persist on network failure.
   // Signing nobody in empties the query cache, as any change of account does (adoptUser).
   const logout = useCallback(async () => {
+    // A delete still waiting out its Undo goes now, while the session it needs still
+    // exists: see lib/undo/deferredDeletes.
+    sendWaitingDelete(true);
     settleSession(null);
 
     // Clearing the in-memory query cache is not enough: the service worker used to keep a

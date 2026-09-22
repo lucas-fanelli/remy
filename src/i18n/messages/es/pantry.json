@@ -32,10 +32,6 @@
     "categoryHelper": "Categoría: {category}",
     "notes": "Notas (opcional)"
   },
-  "delete": {
-    "title": "¿Eliminar el ingrediente?",
-    "message": "El ingrediente se va a borrar de tu cuenta y de todos los dispositivos sincronizados"
-  },
   "duplicate": {
     "title": "El ingrediente ya existe",
     "message": "{name} ya está en tu despensa con {amount}.",
@@ -46,6 +42,7 @@
     "added": "Agregamos el ingrediente",
     "alreadyExists": "Ese ingrediente ya existe",
     "deleteFailed": "No pudimos eliminar el ingrediente",
+    "deleteOffline": "Sin conexión — el ingrediente sigue en tu despensa",
     "deleted": "Eliminamos el ingrediente",
     "loadFailed": "No pudimos cargar tu despensa",
     "nameRequired": "Escribí el nombre del ingrediente",

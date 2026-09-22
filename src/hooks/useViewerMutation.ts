@@ -8,6 +8,8 @@ import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { VIEWER_SPECS, type Engagement, type ViewerSpec } from '@/lib/engagement/specs';
 import { patchRecipeEverywhere, readEngagement } from '@/lib/query/patchRecipeEverywhere';
+import { isHidden, isWaiting, undoDelete, whenAnswered } from '@/lib/undo/deferredDeletes';
+import { useDeferredDelete } from './useDeferredDelete';
 
 /**
  * One implementation of "toggle a viewer flag and tell the truth about it".
@@ -48,34 +50,73 @@ export interface ViewerToggle {
   isPending: (recipeId: string) => boolean;
 }
 
+/** Send one toggle to its route. `keepalive` for a removal sent as the page goes away. */
+async function sendToggle<T>(
+  spec: ViewerSpec<T>,
+  recipeId: string,
+  next: boolean,
+  keepalive = false
+): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(spec.url(recipeId), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify(spec.body(next)),
+      keepalive,
+    });
+  } catch {
+    // A thrown fetch is the network, not the server. It is the case the reader named
+    // and it gets its own sentence rather than the generic failure.
+    throw new ViewerMutationError(null, true);
+  }
+
+  const body = await readBody(response);
+  if (!response.ok) throw new ViewerMutationError(body, false);
+  return body as T;
+}
+
 function useViewerMutation<T>(spec: ViewerSpec<T>): ViewerToggle {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showError, showInfo, showSuccess } = useToast();
   const renderText = useTextDescriptor();
   const apiErrorMessage = useApiErrorMessage();
+  const deferDelete = useDeferredDelete();
+
+  /** What to say when a toggle did not happen, by which way it was going. */
+  const failureMessage = (error: unknown, next: boolean) => {
+    const direction = next ? 'on' : 'off';
+    const body = error instanceof ViewerMutationError ? error.body : null;
+    const failed = renderText(spec.text.failed[direction]);
+
+    return error instanceof ViewerMutationError && error.offline
+      ? renderText(spec.text.offline[direction])
+      : // The route's catch-all cannot say which way it failed; this can. A specific code
+        // — an expired session, a rate limit — still speaks for itself.
+        hasCode(body, spec.serverFailureCode)
+        ? failed
+        : apiErrorMessage(body, failed);
+  };
+
+  /** The server has answered: its word on every cached copy, and the lists it changed. */
+  const adoptAnswer = (recipeId: string, data: T) => {
+    patchRecipeEverywhere(queryClient, recipeId, (engagement: Engagement) =>
+      spec.settle(engagement, data)
+    );
+    // Stale, not refetched: see the note below on why nothing refetches after a write.
+    if (user) {
+      for (const queryKey of spec.membership?.(user) ?? []) {
+        void queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
+      }
+    }
+  };
 
   const mutation = useMutation({
     mutationKey: ['viewer', spec.key],
 
-    mutationFn: async ({ recipeId, next }: { recipeId: string; next: boolean }) => {
-      let response: Response;
-      try {
-        response = await fetch(spec.url(recipeId), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-          body: JSON.stringify(spec.body(next)),
-        });
-      } catch {
-        // A thrown fetch is the network, not the server. It is the case the reader named
-        // and it gets its own sentence rather than the generic failure.
-        throw new ViewerMutationError(null, true);
-      }
-
-      const body = await readBody(response);
-      if (!response.ok) throw new ViewerMutationError(body, false);
-      return body as T;
-    },
+    mutationFn: ({ recipeId, next }: { recipeId: string; next: boolean }) =>
+      sendToggle(spec, recipeId, next),
 
     onMutate: ({ recipeId, next }) => {
       if (!user) {
@@ -97,32 +138,11 @@ function useViewerMutation<T>(spec: ViewerSpec<T>): ViewerToggle {
       if (error instanceof Abort) return;
 
       context?.undo();
-
-      const direction = next ? 'on' : 'off';
-      const body = error instanceof ViewerMutationError ? error.body : null;
-      const failed = renderText(spec.text.failed[direction]);
-
-      showError(
-        error instanceof ViewerMutationError && error.offline
-          ? renderText(spec.text.offline[direction])
-          : // The route's catch-all cannot say which way it failed; this can. A specific code
-            // — an expired session, a rate limit — still speaks for itself.
-            hasCode(body, spec.serverFailureCode)
-            ? failed
-            : apiErrorMessage(body, failed)
-      );
+      showError(failureMessage(error, next));
     },
 
     onSuccess: (data, { recipeId, next }) => {
-      patchRecipeEverywhere(queryClient, recipeId, (engagement: Engagement) =>
-        spec.settle(engagement, data)
-      );
-      // Stale, not refetched: see the note below on why nothing refetches after a write.
-      if (user) {
-        for (const queryKey of spec.membership?.(user) ?? []) {
-          void queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
-        }
-      }
+      adoptAnswer(recipeId, data);
       showSuccess(renderText(next ? spec.text.on : spec.text.off));
     },
 
@@ -140,10 +160,53 @@ function useViewerMutation<T>(spec: ViewerSpec<T>): ViewerToggle {
       // test, written for exactly that bug in PR #7, caught it here.
       const engagement = readEngagement(queryClient, recipeId);
       const current = engagement ? spec.read(engagement) : false;
+      const value = next ?? !current;
 
-      mutation.mutate({ recipeId, next: next ?? !current });
+      if (spec.undoableOff && user) {
+        const undoKey = `${spec.key}:${recipeId}`;
+
+        // Tapped again while its removal waits: putting it back is Undo — the server was
+        // never told — and taking it off again is what is already happening.
+        if (isWaiting(undoKey)) {
+          if (value) undoDelete(undoKey);
+          return;
+        }
+
+        // Its removal is on its way to the server. Sent now, this would race it and could
+        // land first, leaving the server with the removal and the screen with the save.
+        if (value && isHidden(undoKey)) {
+          patchRecipeEverywhere(queryClient, recipeId, (e: Engagement) => spec.optimistic(e, true));
+          void whenAnswered(undoKey).then(() => mutation.mutate({ recipeId, next: true }));
+          return;
+        }
+
+        // Removing waits out the Undo window before it is sent: see lib/undo/deferredDeletes.
+        if (!value) {
+          deferDelete({
+            key: undoKey,
+            message: renderText(spec.text.off),
+            hide: () =>
+              patchRecipeEverywhere(queryClient, recipeId, (e: Engagement) =>
+                spec.optimistic(e, false)
+              ),
+            restore: () =>
+              patchRecipeEverywhere(queryClient, recipeId, (e: Engagement) =>
+                spec.optimistic(e, true)
+              ),
+            commit: async ({ keepalive }) => {
+              adoptAnswer(recipeId, await sendToggle(spec, recipeId, false, keepalive));
+            },
+            onFailed: (error) => showError(failureMessage(error, false)),
+          });
+          return;
+        }
+      }
+
+      mutation.mutate({ recipeId, next: value });
     },
-    [mutation, queryClient, spec]
+    // failureMessage and adoptAnswer are rebuilt each render from the values listed here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mutation, queryClient, spec, user, deferDelete, renderText, showError]
   );
 
   const isPending = useCallback(
