@@ -66,6 +66,28 @@ describe('the search page', () => {
     mockQuery = 'tostadas';
   });
 
+  it('shows where the results will be while it searches, not an empty area', () => {
+    // The P2 plan asked every screen moved onto the cache to replace its blank loading
+    // state; this one was moved and kept rendering nothing under its tabs.
+    mockFetch.mockReturnValue(new Promise(() => {}));
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+
+    expect(screen.getByRole('status', { name: 'Loading...' })).toBeInTheDocument();
+    // And no count on the tabs: "(0)" is an answer, and there is none yet.
+    expect(screen.getByText('Recipes')).toBeInTheDocument();
+    expect(screen.queryByText('Recipes (0)')).not.toBeInTheDocument();
+  });
+
+  it('counts the results on the tabs once there are some', async () => {
+    mockFetch.mockResolvedValue(respond([recipe('t', 'Tostadas'), recipe('u', 'Tostadas II')]));
+
+    renderPage(new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+
+    expect(await screen.findByText('Recipes (2)')).toBeInTheDocument();
+    expect(screen.getByText('Users (0)')).toBeInTheDocument();
+  });
+
   it('shows the results for what the URL says, even when an older search answers last', async () => {
     // Reproduced in a browser before this was fixed: searching "tostadas" (made slow) then
     // "empanadas" left the URL saying `empanadas` and the page showing five Tostadas. The

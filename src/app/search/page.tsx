@@ -20,6 +20,7 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, Suspense } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import RecipeCard from '@/components/recipe/RecipeCard';
+import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useSearch } from '@/hooks/useSearch';
@@ -61,6 +62,7 @@ function SearchPageContent() {
   const loading = search.isPending;
   /** A search that failed is not a search that found nothing. */
   const searchFailed = search.isError;
+  const answered = search.isSuccess ? 'yes' : 'no';
 
   // Search results can be liked now. They could not before: this page had no mutation,
   // so it passed counts and no handler rather than render a heart that did nothing. The
@@ -94,13 +96,20 @@ function SearchPageContent() {
         sx={{ mb: 3, width: 'fit-content', mx: 'auto', borderRadius: '20px', overflow: 'hidden' }}
       >
         <AnimatedTabs
+          // A count only once there is an answer. They read "(0)" while the search was
+          // still running and after it failed — the same claim the banner below refuses to
+          // make, one line above it.
           tabs={[
             {
               key: 0,
-              label: t('page.tabs.recipes', { count: recipes.length }),
+              label: t('page.tabs.recipes', { known: answered, count: recipes.length }),
               icon: <Restaurant />,
             },
-            { key: 1, label: t('page.tabs.users', { count: users.length }), icon: <Person /> },
+            {
+              key: 1,
+              label: t('page.tabs.users', { known: answered, count: users.length }),
+              icon: <Person />,
+            },
           ]}
           activeKey={tabValue}
           onChange={(key) => setTabValue(key as number)}
@@ -121,7 +130,13 @@ function SearchPageContent() {
         >
           {t('page.loadFailed')}
         </Alert>
-      ) : loading ? null : (
+      ) : loading ? (
+        // Not nothing: an empty results area let the footer rise into the gap and drop
+        // again when the cards arrived.
+        <Box role="status" aria-label={tCommon('status.loading')} sx={{ py: 3 }}>
+          <RecipeGridSkeleton />
+        </Box>
+      ) : (
         <TabPanelTransition activeKey={tabValue}>
           {/* Recipes Tab */}
           {tabValue === 0 && (

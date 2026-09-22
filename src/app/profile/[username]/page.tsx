@@ -19,6 +19,7 @@ import { MotionBox } from '@/components/motion';
 import CookingLog from '@/components/profile/CookingLog';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import RecipeCard, { type RecipeCardModel } from '@/components/recipe/RecipeCard';
+import RecipeGridSkeleton from '@/components/recipe/RecipeGridSkeleton';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,13 +82,7 @@ function ProfileSkeleton({ label }: { label: string }) {
             <Skeleton variant="text" width="60%" />
           </Box>
         </Box>
-        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
-          {[0, 1, 2].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <Skeleton variant="rounded" height={340} />
-            </Grid>
-          ))}
-        </Grid>
+        <RecipeGridSkeleton />
       </Box>
     </PageFrame>
   );
