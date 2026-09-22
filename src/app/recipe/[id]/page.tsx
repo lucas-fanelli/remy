@@ -99,6 +99,24 @@ function toEditableRecipe(apiRecipe: ApiRecipe): DomainRecipe {
   };
 }
 
+/**
+ * Read a response body without letting a non-JSON one hide the real failure.
+ *
+ * Parsing before checking `ok` is the right order — the server's own message and error code
+ * live in that body, and `apiErrorMessage` needs them. But a proxy answering 502 with HTML
+ * makes `.json()` throw, and a bare `await response.json()` then sends the whole thing to
+ * the `catch`, where a genuine server rejection is reported as though the network had
+ * failed. `null` is a body `apiErrorMessage` already handles: it falls back to the generic
+ * sentence, and the status still decides which branch runs.
+ */
+async function readBody(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 export default function RecipeDetailPage() {
   const t = useTranslations('recipe');
   const tCommon = useTranslations('common');
@@ -277,23 +295,38 @@ export default function RecipeDetailPage() {
         body: JSON.stringify({ liked: !liked }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        // The recipe query owns this state now, so the cached copy is what has to change.
-        // Writing the server's answer straight in beats invalidating: no second round trip,
-        // and no window where a refetch hands back the pre-click answer — which is what
-        // made the heart appear to undo itself.
-        patchCachedRecipe((cached) => ({
-          ...cached,
-          likeCount: data.likeCount,
-          viewer: cached.viewer ? { ...cached.viewer, liked: data.liked } : cached.viewer,
-        }));
+      // Read the body first, then branch on the status — the shape `saveMyRating` a
+      // hundred lines up already uses. This was `if (response.ok) { ... }` with no else,
+      // so every HTTP rejection was completely silent: an expired session, a 429 from the
+      // rate limiter, a 500. The heart did not move and nothing was said, and the
+      // `toasts.likeFailed` message that exists in both locales was unreachable.
+      const data = (await readBody(response)) as { liked?: boolean; likeCount?: number } | null;
+
+      if (!response.ok) {
         setSnackbar({
           open: true,
-          message: data.liked ? t('toasts.liked') : t('toasts.unliked'),
-          severity: 'success',
+          message: apiErrorMessage(data, t('toasts.likeFailed')),
+          severity: 'error',
         });
+        return;
       }
+
+      // The recipe query owns this state now, so the cached copy is what has to change.
+      // Writing the server's answer straight in beats invalidating: no second round trip,
+      // and no window where a refetch hands back the pre-click answer — which is what
+      // made the heart appear to undo itself.
+      patchCachedRecipe((cached) => ({
+        ...cached,
+        likeCount: data?.likeCount ?? cached.likeCount,
+        viewer: cached.viewer
+          ? { ...cached.viewer, liked: data?.liked ?? cached.viewer.liked }
+          : cached.viewer,
+      }));
+      setSnackbar({
+        open: true,
+        message: data?.liked ? t('toasts.liked') : t('toasts.unliked'),
+        severity: 'success',
+      });
     } catch (error) {
       console.error('Error toggling like:', error);
       setSnackbar({ open: true, message: t('toasts.likeFailed'), severity: 'error' });
@@ -316,18 +349,31 @@ export default function RecipeDetailPage() {
         body: JSON.stringify({ saved: !saved }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        patchCachedRecipe((cached) => ({
-          ...cached,
-          viewer: cached.viewer ? { ...cached.viewer, saved: data.saved } : cached.viewer,
-        }));
+      // Same rewrite as the heart, and this one mattered more: saving is shown back in
+      // exactly one place — the profile's read-only Saved tab — so a save that did not
+      // stick had nowhere else to be noticed.
+      const data = (await readBody(response)) as { saved?: boolean } | null;
+
+      if (!response.ok) {
         setSnackbar({
           open: true,
-          message: data.saved ? t('toasts.saved') : t('toasts.unsaved'),
-          severity: 'success',
+          message: apiErrorMessage(data, t('toasts.saveFailed')),
+          severity: 'error',
         });
+        return;
       }
+
+      patchCachedRecipe((cached) => ({
+        ...cached,
+        viewer: cached.viewer
+          ? { ...cached.viewer, saved: data?.saved ?? cached.viewer.saved }
+          : cached.viewer,
+      }));
+      setSnackbar({
+        open: true,
+        message: data?.saved ? t('toasts.saved') : t('toasts.unsaved'),
+        severity: 'success',
+      });
     } catch (error) {
       console.error('Error toggling save:', error);
       setSnackbar({ open: true, message: t('toasts.saveFailed'), severity: 'error' });
