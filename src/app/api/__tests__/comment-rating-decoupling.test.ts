@@ -48,7 +48,11 @@ beforeEach(() => {
   jest.clearAllMocks();
   (requireAuth as jest.Mock).mockResolvedValue({ id: 'user-1' });
   (prisma.$transaction as jest.Mock).mockImplementation((fn) => fn(prisma));
-  (prisma.post.findUnique as jest.Mock).mockResolvedValue({ id: RECIPE, userId: 'author-1' });
+  // What canSeePost reads: the author, public here. recipe-access.test.ts covers private.
+  (prisma.post.findUnique as jest.Mock).mockResolvedValue({
+    userId: 'author-1',
+    user: { isPrivate: false, username: 'author' },
+  });
   (prisma.comment.findFirst as jest.Mock).mockResolvedValue({ id: COMMENT, userId: 'user-1' });
   (prisma.comment.findUnique as jest.Mock).mockResolvedValue({
     id: COMMENT,

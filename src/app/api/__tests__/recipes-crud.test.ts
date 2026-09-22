@@ -57,7 +57,7 @@ const mockTokenService = {
 const mockRecipeService = {
   createRecipe: jest.fn(),
   getRecipeById: jest.fn(),
-  getRecipeForViewer: jest.fn(),
+  getRecipeWithCounts: jest.fn(),
   getUserRecipes: jest.fn(),
   searchRecipes: jest.fn(),
   updateRecipe: jest.fn(),
@@ -340,10 +340,19 @@ describe('GET /api/recipes/[id]', () => {
   const counts = { likes: 7, comments: 4 };
   const params = Promise.resolve({ id: VALID_UUID });
 
+  /** What canSeePost reads: the author, and whether they keep a private profile. */
+  const authoredBy = (isPrivate: boolean) =>
+    (prisma.post.findUnique as jest.Mock).mockResolvedValue({
+      userId: 'author-1',
+      user: { isPrivate, username: 'ana' },
+    });
+
   beforeEach(() => {
     jest.clearAllMocks();
     (container.getRecipeService as jest.Mock).mockReturnValue(mockRecipeService);
     (getCurrentUser as jest.Mock).mockResolvedValue(null);
+    authoredBy(false);
+    mockRecipeService.getRecipeWithCounts.mockResolvedValue({ recipe, counts });
     (prisma.like.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.savedRecipe.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.cookedRecipe.groupBy as jest.Mock).mockResolvedValue([]);
@@ -351,25 +360,17 @@ describe('GET /api/recipes/[id]', () => {
     (prisma.rating.groupBy as jest.Mock).mockResolvedValue([]);
   });
 
-  it('should carry the engagement counts the page used to probe for', async () => {
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
+  const get = () => recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });
 
-    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
-      params,
-    });
-    const body = await response.json();
+  it('should carry the engagement counts the page used to probe for', async () => {
+    const body = await (await get()).json();
 
     expect(body.recipe.likeCount).toBe(7);
     expect(body.recipe.commentCount).toBe(4);
   });
 
   it('should say viewer is null for a signed-out visitor, not that they liked nothing', async () => {
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
-
-    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
-      params,
-    });
-    const body = await response.json();
+    const body = await (await get()).json();
 
     // `{ liked: false }` here would be a claim about somebody who does not exist.
     expect(body.recipe.viewer).toBeNull();
@@ -379,12 +380,8 @@ describe('GET /api/recipes/[id]', () => {
     (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'reader-1' });
     (prisma.like.findMany as jest.Mock).mockResolvedValue([{ postId: VALID_UUID }]);
     (prisma.rating.findMany as jest.Mock).mockResolvedValue([{ postId: VALID_UUID, rating: 5 }]);
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
 
-    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
-      params,
-    });
-    const body = await response.json();
+    const body = await (await get()).json();
 
     expect(body.recipe.viewer).toEqual({
       liked: true,
@@ -396,82 +393,85 @@ describe('GET /api/recipes/[id]', () => {
   });
 
   it('should return the recipe when it is public', async () => {
-    // Arrange
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
-
-    // Act
-    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
-      params,
-    });
+    const response = await get();
     const body = await response.json();
 
-    // Assert
     expect(response.status).toBe(200);
     expect(body.recipe.title).toBe('Chocotorta');
   });
 
-  it('should pass the signed-in viewer so the author can read their own recipe', async () => {
-    // Arrange
-    (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'author-1' });
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
+  // The direct link used to bypass the privacy rule every list endpoint applies.
+  describe('a recipe whose author keeps a private profile', () => {
+    beforeEach(() => authoredBy(true));
 
-    // Act
-    await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });
+    it('is the author’s to read', async () => {
+      (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'author-1' });
 
-    // Assert
-    expect(mockRecipeService.getRecipeForViewer).toHaveBeenCalledWith(VALID_UUID, 'author-1');
-  });
+      const response = await get();
 
-  it('should pass null for a signed-out visitor', async () => {
-    // Arrange
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'ok', recipe, counts });
-
-    // Act
-    await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), { params });
-
-    // Assert
-    expect(mockRecipeService.getRecipeForViewer).toHaveBeenCalledWith(VALID_UUID, null);
-  });
-
-  // The direct link used to bypass the privacy rule every list endpoint applies
-  it('should refuse a recipe whose author keeps a private profile', async () => {
-    // Arrange
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'private' });
-
-    // Act
-    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
-      params,
+      expect(response.status).toBe(200);
     });
-    const body = await response.json();
 
-    // Assert
-    expect(response.status).toBe(403);
-    expect(body.error).toBe('This profile is private');
-    expect(body.recipe).toBeUndefined();
+    it('is refused to someone else, with the same body every recipe-scoped route sends', async () => {
+      // It used to answer without the author, so the recipe page and its comments told the
+      // same reader the same thing in two shapes.
+      (getCurrentUser as jest.Mock).mockResolvedValue({ id: 'someone-else' });
+
+      const response = await get();
+      const body = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(body).toEqual({
+        error: 'This profile is private',
+        code: 'user.profilePrivate',
+        author: { username: 'ana' },
+      });
+      expect(mockRecipeService.getRecipeWithCounts).not.toHaveBeenCalled();
+    });
+
+    it('is refused to a signed-out visitor', async () => {
+      const response = await get();
+
+      expect(response.status).toBe(403);
+      expect(mockRecipeService.getRecipeWithCounts).not.toHaveBeenCalled();
+    });
+  });
+
+  it('should decide through canSeePost, the gate every recipe-scoped route uses', async () => {
+    // Asked by id, with the author and their visibility — so when the rule learns about
+    // followers (in one place, canViewContentOf), this route learns with it.
+    await get();
+
+    expect(prisma.post.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: VALID_UUID } })
+    );
   });
 
   it('should return 404 when the recipe does not exist', async () => {
-    // Arrange
-    mockRecipeService.getRecipeForViewer.mockResolvedValue({ status: 'notFound' });
+    (prisma.post.findUnique as jest.Mock).mockResolvedValue(null);
 
-    // Act
-    const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
-      params,
-    });
+    const response = await get();
 
-    // Assert
+    expect(response.status).toBe(404);
+    expect(mockRecipeService.getRecipeWithCounts).not.toHaveBeenCalled();
+  });
+
+  it('should return 404 when the recipe is deleted between the check and the read', async () => {
+    mockRecipeService.getRecipeWithCounts.mockResolvedValue(null);
+
+    const response = await get();
+
     expect(response.status).toBe(404);
   });
 
-  it('should return 400 for a malformed id without asking the service', async () => {
-    // Act
+  it('should return 400 for a malformed id without asking anything', async () => {
     const response = await recipeGET(createGetRequest('http://localhost:3000/api/recipes/x'), {
       params: Promise.resolve({ id: 'not-a-uuid' }),
     });
 
-    // Assert
     expect(response.status).toBe(400);
-    expect(mockRecipeService.getRecipeForViewer).not.toHaveBeenCalled();
+    expect(prisma.post.findUnique).not.toHaveBeenCalled();
+    expect(mockRecipeService.getRecipeWithCounts).not.toHaveBeenCalled();
   });
 });
 

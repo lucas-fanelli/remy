@@ -17,20 +17,13 @@ export interface IRecipeService {
   getRecipeById(id: string): Promise<Recipe | null>;
 
   /**
-   * Get a recipe as a particular viewer sees it.
+   * A recipe with its engagement counts, or null when it does not exist.
    *
-   * Returns 'private' when the author keeps a private profile and the viewer is someone
-   * else — the same rule every list endpoint applies by filtering those recipes out.
-   * Pass null for a signed-out visitor.
+   * Decides nothing about who may see it: the route asks canSeePost first, as every door
+   * reached through a recipe id does. This used to be getRecipeForViewer, carrying its own
+   * copy of the privacy rule — one that could not know about followers.
    */
-  getRecipeForViewer(
-    id: string,
-    viewerId: string | null
-  ): Promise<
-    | { status: 'ok'; recipe: Recipe; counts: RecipeCounts }
-    | { status: 'notFound' }
-    | { status: 'private' }
-  >;
+  getRecipeWithCounts(id: string): Promise<{ recipe: Recipe; counts: RecipeCounts } | null>;
 
   /**
    * Get recipes by user

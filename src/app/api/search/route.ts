@@ -7,6 +7,7 @@ import { loadViewerState } from '@/lib/api/viewerState';
 import { MAX_SEARCH_QUERY_LENGTH } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { visiblePostsWhere } from '@/lib/privacy/visibility';
 import { logServerError } from '@/lib/utils/logger';
 import { safeRating } from '@/lib/utils/recipe';
 
@@ -43,6 +44,12 @@ export async function GET(request: NextRequest) {
       bio: u.bio,
     }));
 
+    // Optional auth — search is open to guests. Who is reading is resolved BEFORE the recipe
+    // query because it decides which recipes the search may return: a private author finds
+    // their own, a stranger and a guest (null) find public authors only. It also puts the
+    // reader's own hearts on the cards below.
+    const requester = await getCurrentUser(request);
+
     // Search recipes with engagement data
     // Prisma 'contains' mode auto-escapes SQL wildcards (%, _) — no manual escaping needed
     const recipes = await prisma.post.findMany({
@@ -51,7 +58,10 @@ export async function GET(request: NextRequest) {
           { title: { contains: query.trim(), mode: 'insensitive' } },
           { description: { contains: query.trim(), mode: 'insensitive' } },
         ],
-        user: { isPrivate: false },
+        // Under AND, never beside the OR above: for a signed-in reader the privacy rule is
+        // itself an OR, and one object holds one OR — the text query or the rule would
+        // silently drop out.
+        AND: [visiblePostsWhere(requester?.id ?? null)],
       },
       take: limit,
       skip: offset,
@@ -72,10 +82,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Optional auth — search is open to guests, but a signed-in reader's own hearts belong
-    // on these cards too. Search is the surface where the heart was not merely wrong but
-    // missing: it hid the actions rather than admit it did not know.
-    const requester = await getCurrentUser(request);
+    // A signed-in reader's own hearts belong on these cards. Search is the surface where the
+    // heart was not merely wrong but missing: it hid the actions rather than admit it did
+    // not know.
     const viewerState = await loadViewerState(
       requester?.id,
       recipes.map((r) => r.id)

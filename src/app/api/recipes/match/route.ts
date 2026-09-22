@@ -6,6 +6,7 @@ import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import { MAX_ITEM_NAME_LENGTH, PG_ADVISORY_LOCK_MATCH } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
+import { visiblePostsWhere } from '@/lib/privacy/visibility';
 import { ingredientMatches, normalizeIngredientName } from '@/lib/utils/ingredients';
 import { logServerError } from '@/lib/utils/logger';
 import type { ViewerState } from '@/domain/types/recipe';
@@ -103,12 +104,20 @@ export async function GET(request: NextRequest) {
         if (pantryPatterns.length > 0) {
           // No ESCAPE clause below: PostgreSQL rejects it with LIKE ANY(...), and the
           // backslash emitted by escapeLike is already the default LIKE escape character.
+          //
+          // The first WHERE line mirrors visiblePostsWhere (src/lib/privacy/visibility.ts),
+          // which raw SQL cannot call: public authors, OR the viewer's own recipes. When the
+          // rule changes, this line changes with it; privacy-conventions.test.ts pins its
+          // arms. It had the public arm alone, so a private author never matched their own
+          // recipes against their own pantry. The parentheses keep the ANDs after it applying
+          // to both arms. It stays inline, not in a Prisma.sql fragment, so
+          // raw-sql-conventions.test.ts keeps checking its table names.
           const likePatterns = pantryPatterns.map((name) => `%${escapeLike(name)}%`);
           allCandidates = await tx.$queryRaw<{ id: string; ingredients: unknown }[]>`
           SELECT p.id, p.ingredients
           FROM "posts" p
           JOIN "users" u ON u.id = p."userId"
-          WHERE u."isPrivate" = false
+          WHERE (u."isPrivate" = false OR p."userId" = ${user.id})
             AND p.ingredients IS NOT NULL AND jsonb_typeof(p.ingredients) = 'array' AND jsonb_array_length(p.ingredients) <= 100
             AND EXISTS (
               SELECT 1 FROM jsonb_array_elements(p.ingredients) AS elem
@@ -120,7 +129,7 @@ export async function GET(request: NextRequest) {
         `;
         } else {
           allCandidates = await tx.post.findMany({
-            where: { ingredients: { not: Prisma.DbNull }, user: { isPrivate: false } },
+            where: { ingredients: { not: Prisma.DbNull }, AND: [visiblePostsWhere(user.id)] },
             take: limit,
             orderBy: { averageRating: 'desc' },
             select: { id: true, ingredients: true },
@@ -243,13 +252,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Phase 3: Fetch full recipe data with timeout protection
+    // Phase 3: Fetch full recipe data with timeout protection. The privacy rule is applied
+    // again, not trusted from phase 1: phase 1's transaction has ended, and a recipe whose
+    // author went private since must not come back with its title and photo.
     const matchedIds = cappedResults.map((m) => m.id);
     const recipes = await prisma.$transaction(
       async (tx) => {
         await tx.$executeRaw`SET LOCAL statement_timeout = '5s'`;
         return tx.post.findMany({
-          where: { id: { in: matchedIds }, user: { isPrivate: false } },
+          where: { id: { in: matchedIds }, AND: [visiblePostsWhere(user.id)] },
           select: {
             id: true,
             title: true,
