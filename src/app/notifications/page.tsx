@@ -2,7 +2,6 @@
 
 import { FavoriteBorder, PersonAdd, ChatBubbleOutline, Star } from '@mui/icons-material';
 import {
-  Container,
   Box,
   Typography,
   Paper,
@@ -17,6 +16,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
+import PageFrame from '@/components/layout/PageFrame';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDateFnsLocale } from '@/i18n/dates';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
@@ -176,7 +176,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <Container maxWidth="md" sx={{ mt: 10, pb: 8 }}>
+    <PageFrame width="reading">
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" sx={{ fontWeight: 600 }}>
           {t('title')}
@@ -257,6 +257,6 @@ export default function NotificationsPage() {
           )}
         </Paper>
       )}
-    </Container>
+    </PageFrame>
   );
 }

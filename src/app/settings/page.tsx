@@ -11,7 +11,6 @@ import {
   OpenInNew,
 } from '@mui/icons-material';
 import {
-  Container,
   Box,
   Typography,
   Divider,
@@ -31,6 +30,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useState, useEffect } from 'react';
 import LanguageSwitcher from '@/components/common/LanguageSwitcher';
+import PageFrame from '@/components/layout/PageFrame';
 import { MotionPaper } from '@/components/motion';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
 import { BRANDING } from '@/config/branding';
@@ -80,8 +80,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <Box sx={{ pb: { xs: 6, md: 8 }, backgroundColor: 'background.default' }}>
-      <Container maxWidth="md" sx={{ pt: { xs: 2, md: 4 }, px: { xs: 2, md: 3 } }}>
+    <>
+      <PageFrame width="reading">
         {/* Header */}
         <Box sx={{ mb: { xs: 3, md: 4 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
@@ -354,13 +354,13 @@ export default function SettingsPage() {
         >
           {t('notice')}
         </Alert>
-      </Container>
+      </PageFrame>
 
       {/* Change Password Dialog */}
       <ChangePasswordDialog
         open={changePasswordOpen}
         onClose={() => setChangePasswordOpen(false)}
       />
-    </Box>
+    </>
   );
 }

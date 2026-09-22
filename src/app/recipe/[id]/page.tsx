@@ -16,7 +16,6 @@ import {
   ZoomIn,
 } from '@mui/icons-material';
 import {
-  Container,
   Box,
   Typography,
   Chip,
@@ -42,6 +41,7 @@ import { motion } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useCallback } from 'react';
+import PageFrame from '@/components/layout/PageFrame';
 import { MotionBox, MotionCard } from '@/components/motion';
 import CommentsSection from '@/components/recipe/CommentsSection';
 import CookConfirmDialog from '@/components/recipe/CookConfirmDialog';
@@ -531,12 +531,10 @@ export default function RecipeDetailPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      <Box
-        sx={{
-          pb: { xs: 10, sm: 11, md: 4 },
-          backgroundColor: 'background.default',
-        }}
-      >
+      {/* The `pb: { xs: 10 }` here was clearance for the bottom bar, which the shell has
+          owned since it was introduced; the two stacked. The background was repainted on
+          top of the column that already had it. */}
+      <>
         {/* Loading state - inside MotionBox for animation */}
         {loading && !recipe && (
           <Box sx={{ minHeight: 'calc(100vh - 64px)' }}>
@@ -546,7 +544,7 @@ export default function RecipeDetailPage() {
 
         {/* Error state */}
         {(error || (!loading && !recipe)) && (
-          <Container maxWidth="md" sx={{ py: { xs: 3, md: 4 }, px: { xs: 2, md: 3 } }}>
+          <PageFrame width="reading">
             <Alert
               severity="error"
               sx={{ mb: { xs: 1.5, md: 2 }, fontSize: { xs: '0.875rem', md: '1rem' } }}
@@ -560,15 +558,12 @@ export default function RecipeDetailPage() {
             >
               {tCommon('actions.goBack')}
             </Button>
-          </Container>
+          </PageFrame>
         )}
 
         {/* Recipe content */}
         {recipe && (
-          <Container
-            maxWidth="lg"
-            sx={{ pt: { xs: 1, md: 2 }, px: { xs: 2, md: 3 }, position: 'relative' }}
-          >
+          <PageFrame sx={{ position: 'relative' }}>
             {/* Recipe Image */}
             <MotionBox
               initial={{ opacity: 0, y: 20 }}
@@ -1082,7 +1077,7 @@ export default function RecipeDetailPage() {
                 myRating={myRating}
               />
             </MotionBox>
-          </Container>
+          </PageFrame>
         )}
 
         {/* Edit Recipe Modal */}
@@ -1213,7 +1208,7 @@ export default function RecipeDetailPage() {
             </Box>
           )}
         </Dialog>
-      </Box>
+      </>
     </motion.div>
   );
 }
