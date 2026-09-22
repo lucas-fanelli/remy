@@ -106,6 +106,58 @@ describe('patchRecipeEverywhere', () => {
   });
 });
 
+describe('a search result in the cache', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  it('is reached, even though another adapter claims its key first', () => {
+    // The bug this guards: every search key starts with `'recipes'`, which the
+    // infinite-list adapter also answers to. A dispatcher taking "the first adapter that
+    // matches" let that one claim the key, find no `pages`, hand the payload back
+    // untouched — and the search adapter never ran. A heart tapped in search would have
+    // moved nothing.
+    queryClient.setQueryData(queryKeys.search('empanadas'), {
+      users: [],
+      recipes: [recipe('a')],
+    });
+
+    patchRecipeEverywhere(queryClient, 'a', like(true));
+
+    const data = queryClient.getQueryData<{ recipes: { viewer: { liked: boolean } }[] }>(
+      queryKeys.search('empanadas')
+    );
+    expect(data?.recipes[0].viewer.liked).toBe(true);
+  });
+
+  it('never touches the users beside the recipes', () => {
+    // An adapter that walked the payload for anything with an `id` would find the people
+    // too. A heart must not be able to reach a person.
+    const users = [{ id: 'a', username: 'shares-an-id-with-the-recipe' }];
+    queryClient.setQueryData(queryKeys.search('x'), { users, recipes: [recipe('a')] });
+
+    patchRecipeEverywhere(queryClient, 'a', like(true));
+
+    const data = queryClient.getQueryData<{ users: unknown[] }>(queryKeys.search('x'));
+    expect(data?.users).toBe(users);
+  });
+
+  it('can be read back, which is what decides like versus unlike', () => {
+    queryClient.setQueryData(queryKeys.search('x'), {
+      users: [],
+      recipes: [
+        recipe('a', {
+          viewer: { liked: true, saved: false, timesCooked: 0, lastCookedAt: null, myRating: null },
+        }),
+      ],
+    });
+
+    expect(VIEWER_SPECS.like.read(readEngagement(queryClient, 'a')!)).toBe(true);
+  });
+});
+
 describe('readEngagement', () => {
   let queryClient: QueryClient;
 

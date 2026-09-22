@@ -22,41 +22,9 @@ import PageFrame from '@/components/layout/PageFrame';
 import RecipeCard from '@/components/recipe/RecipeCard';
 import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
+import { useSearch } from '@/hooks/useSearch';
+import { useLike } from '@/hooks/useViewerMutation';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
-import type { ViewerState } from '@/domain/types/recipe';
-
-interface User {
-  username: string;
-  fullName?: string | null;
-  avatar?: string;
-}
-
-interface Recipe {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  difficulty: string;
-  prepTime: number;
-  cookingTime: number;
-  /**
-   * `null` for a recipe that never recorded it. This said `number` while the route sent
-   * `servings || 4`, so the type was technically true and the value was invented. The
-   * route sends the real value now, and a client interface that disagreed with the
-   * payload is exactly how the pantry-match card came to throw away data it was sent.
-   */
-  servings: number | null;
-  userId: string;
-  likeCount?: number;
-  commentCount?: number;
-  averageRating?: number;
-  totalRatings?: number;
-  viewer: ViewerState | null;
-  author: {
-    username: string;
-    avatar?: string;
-  };
-}
 
 // Fallback loading component for Suspense (useSearchParams requires a Suspense boundary)
 function SearchPageFallback() {
@@ -78,43 +46,29 @@ function SearchPageContent() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [tabValue, setTabValue] = useState(0);
-  const [users, setUsers] = useState<User[]>([]);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  /**
+   * The search, from the cache, keyed by what was searched for.
+   *
+   * Reproduced before this: searching "tostadas" (made slow) and then "empanadas" left the
+   * URL saying `empanadas` while the page showed five Tostadas. The old effect had no abort
+   * and no stale check, so whichever answer arrived last won. With the query in the key
+   * the two are separate cache entries and the page only ever reads the one it asked for.
+   */
+  const search = useSearch(query);
+  const users = search.data?.users ?? [];
+  const recipes = search.data?.recipes ?? [];
+  const loading = search.isPending;
   /** A search that failed is not a search that found nothing. */
-  const [searchFailed, setSearchFailed] = useState(false);
+  const searchFailed = search.isError;
+
+  // Search results can be liked now. They could not before: this page had no mutation,
+  // so it passed counts and no handler rather than render a heart that did nothing. The
+  // list is in the cache now, so the shared layer can paint it.
+  const likeToggle = useLike();
 
   useEffect(() => {
-    if (!query) {
-      router.push('/');
-      return;
-    }
-
-    const fetchResults = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-
-        if (!response.ok) {
-          // Was silent, and the empty state is a confident claim: "we found no recipes
-          // matching". A 500 said the thing you searched for does not exist.
-          setSearchFailed(true);
-          return;
-        }
-
-        setSearchFailed(false);
-        const data = await response.json();
-        setUsers(data.users || []);
-        setRecipes(data.recipes || []);
-      } catch (error) {
-        console.error('Error fetching search results:', error);
-        setSearchFailed(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchResults();
+    if (!query) router.push('/');
   }, [query, router]);
 
   const handleUserClick = (username: string) => {
@@ -160,7 +114,7 @@ function SearchPageContent() {
         <Alert
           severity="error"
           action={
-            <Button color="inherit" size="small" onClick={() => router.refresh()}>
+            <Button color="inherit" size="small" onClick={() => search.refetch()}>
               {tCommon('actions.retry')}
             </Button>
           }
@@ -208,10 +162,11 @@ function SearchPageContent() {
                           commentCount: recipe.commentCount,
                         }}
                         viewer={recipe.viewer}
-                        // The counts show here for the first time — they were fetched
-                        // and then discarded. No `onLike`/`onComment` on purpose: this
-                        // page has no like mutation, and a heart that fills and then
-                        // reverts is worse than one that plainly reports the count.
+                        // A handler at last. This page passed counts and no `onLike`
+                        // because it had no mutation, and a heart that fills and then
+                        // reverts is worse than one that plainly reports the count. The
+                        // list is in the cache now, so the shared layer can paint it.
+                        onLike={() => likeToggle.toggle(recipe.id)}
                       />
                     </Grid>
                   ))}

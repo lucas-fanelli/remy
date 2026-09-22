@@ -111,17 +111,79 @@ const infiniteListAdapter: RecipeCacheAdapter = {
   },
 };
 
+function isCachedRecipe(value: unknown): value is CachedRecipe {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { id?: unknown }).id === 'string'
+  );
+}
+
 /**
- * Two shapes so far: the detail page's envelope and any infinite list.
+ * A payload that keeps recipes in one or more named arrays at its top level —
+ * `{ users, recipes }` for search, `{ readyToCook, almostThere }` for the pantry matches,
+ * `{ recipes, savedRecipes }` for a profile.
  *
- * Search, the profile tabs and the pantry matches join when those screens stop holding
- * their lists in `useState` — until then there is nothing of theirs in the cache to patch,
- * and an adapter for an empty cache would be dead code that looks like coverage.
+ * One helper, registered once per shape with the fields it owns, rather than an adapter
+ * that walks any object looking for things with an `id`. That would also find the users in
+ * a search result, and a heart must never be able to reach a person.
+ */
+function namedListsAdapter(
+  matches: (key: readonly unknown[]) => boolean,
+  fields: readonly string[]
+): RecipeCacheAdapter {
+  return {
+    matches,
+    map: (data, recipeId, patch) => {
+      if (typeof data !== 'object' || data === null) return data;
+      const record = data as Record<string, unknown>;
+
+      let touched = false;
+      const next: Record<string, unknown> = { ...record };
+      for (const field of fields) {
+        const list = record[field];
+        if (!Array.isArray(list)) continue;
+        if (!list.some((recipe) => isCachedRecipe(recipe) && recipe.id === recipeId)) continue;
+
+        touched = true;
+        next[field] = list.map((recipe) =>
+          isCachedRecipe(recipe) && recipe.id === recipeId ? applyTo(recipe, patch) : recipe
+        );
+      }
+
+      return touched ? next : data;
+    },
+  };
+}
+
+/** `{ users, recipes }` under `['recipes', 'search', query]`. */
+const searchAdapter = namedListsAdapter(
+  (key) => key[0] === 'recipes' && key[1] === 'search',
+  ['recipes']
+);
+
+/**
+ * Three shapes so far: the detail page's envelope, any infinite list, and search.
+ *
+ * The profile tabs and the pantry matches join when those screens stop holding their lists
+ * in `useState` — until then there is nothing of theirs in the cache to patch, and an
+ * adapter for an empty cache would be dead code that looks like coverage.
+ *
+ * More than one adapter can match a key: every search key starts with `'recipes'`, which
+ * the infinite-list adapter also answers to. So nothing below picks "the first adapter
+ * that matches" — each one that matches is tried until one actually finds the recipe.
+ * Picking the first would have let the infinite-list adapter claim every search key, find
+ * no pages, return the payload untouched, and the search adapter would never have run.
  */
 export const RECIPE_CACHE_ADAPTERS: readonly RecipeCacheAdapter[] = [
   detailAdapter,
   infiniteListAdapter,
+  searchAdapter,
 ];
+
+/** Every adapter that claims this key, in registration order. */
+const adaptersFor = (key: readonly unknown[]) =>
+  RECIPE_CACHE_ADAPTERS.filter((adapter) => adapter.matches(key));
 
 /**
  * What the caches currently say about one recipe, from whichever one holds it.
@@ -140,15 +202,15 @@ export function readEngagement(queryClient: QueryClient, recipeId: string): Enga
   let found: Engagement | null = null;
 
   for (const entry of queryClient.getQueryCache().findAll()) {
-    const adapter = RECIPE_CACHE_ADAPTERS.find((candidate) => candidate.matches(entry.queryKey));
-    if (!adapter || entry.state.data === undefined) continue;
+    if (entry.state.data === undefined) continue;
 
-    adapter.map(entry.state.data, recipeId, (engagement) => {
-      found = engagement;
-      return engagement;
-    });
-
-    if (found) return found;
+    for (const adapter of adaptersFor(entry.queryKey)) {
+      adapter.map(entry.state.data, recipeId, (engagement) => {
+        found = engagement;
+        return engagement;
+      });
+      if (found) return found;
+    }
   }
 
   return found;
@@ -172,18 +234,20 @@ export function patchRecipeEverywhere(
   const entries = queryClient.getQueryCache().findAll();
 
   for (const entry of entries) {
-    const adapter = RECIPE_CACHE_ADAPTERS.find((candidate) => candidate.matches(entry.queryKey));
-    if (!adapter) continue;
-
     const before = entry.state.data;
     if (before === undefined) continue;
 
-    const after = adapter.map(before, recipeId, patch);
-    if (after === before) continue;
+    // The first adapter that actually changes the payload wins; one that merely matches
+    // the key and finds nothing is skipped rather than allowed to end the search.
+    for (const adapter of adaptersFor(entry.queryKey)) {
+      const after = adapter.map(before, recipeId, patch);
+      if (after === before) continue;
 
-    const key = entry.queryKey;
-    queryClient.setQueryData(key, after);
-    restores.push(() => queryClient.setQueryData(key, before));
+      const key = entry.queryKey;
+      queryClient.setQueryData(key, after);
+      restores.push(() => queryClient.setQueryData(key, before));
+      break;
+    }
   }
 
   return () => restores.forEach((restore) => restore());
