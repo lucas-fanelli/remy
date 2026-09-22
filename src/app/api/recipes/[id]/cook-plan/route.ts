@@ -4,6 +4,7 @@ import { UUID_REGEX } from '@/lib/constants';
 import { readRecipeIngredients } from '@/lib/cooking/applyPantryPlan';
 import { planPantryDeduction } from '@/lib/cooking/pantryPlan';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse } from '@/lib/privacy/visibility';
 import { logServerError } from '@/lib/utils/logger';
 
 /**
@@ -32,17 +33,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
+    // Before the ingredients are read. The plan lists them, amounts and all, so answering it
+    // for a private author's recipe would hand a stranger the recipe one line at a time.
+    const access = await canSeePost(prisma, id, user.id);
+    if (access.status !== 'ok') return deniedPostResponse(access);
+
     const [recipe, pantry] = await Promise.all([
       prisma.post.findUnique({ where: { id }, select: { ingredients: true } }),
       prisma.userPantry.findUnique({ where: { userId: user.id }, include: { items: true } }),
     ]);
 
-    if (!recipe) {
-      return NextResponse.json(
-        { error: 'Recipe not found', code: 'recipe.notFound' },
-        { status: 404 }
-      );
-    }
+    // The gate has just found it; this covers a delete landing between the two reads.
+    if (!recipe) return deniedPostResponse({ status: 'notFound' });
 
     const ingredients = readRecipeIngredients(recipe.ingredients);
 

@@ -17,39 +17,12 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMatches, type MatchedRecipe } from '@/hooks/useMatches';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import RecipeCard, { type RecipeCardModel } from './RecipeCard';
-import type { ViewerState } from '@/domain/types/recipe';
-
-/**
- * What `/api/recipes/match` sends for one result — read off `MatchedRecipeData` in the route,
- * which is the only honest source for it.
- *
- * This declared nine fields while the route sent sixteen. The seven it left out are the
- * ones a card needs: the author, both times, servings, both counters and the reader's own
- * `viewer`.
- */
-interface MatchedRecipe {
-  id: string;
-  title: string;
-  description: string | null;
-  imageUrl: string;
-  difficulty: string | null;
-  prepTime: number | null;
-  cookingTime: number | null;
-  servings: number | null;
-  matchPercentage: number;
-  matchedIngredients: number;
-  totalIngredients: number;
-  missingIngredients: string[];
-  likeCount: number;
-  commentCount: number;
-  /** The author, named `user` by this route where every other one says `author`. */
-  user: { id: string; username: string; avatar: string | null } | null;
-  viewer: ViewerState | null;
-}
 
 /**
  * A matched recipe, narrowed to what a card can show.
@@ -85,41 +58,23 @@ export default function MatchedRecipes() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(0);
-  const [readyToCook, setReadyToCook] = useState<MatchedRecipe[]>([]);
-  const [almostThere, setAlmostThere] = useState<MatchedRecipe[]>([]);
-  const [pantryItemsCount, setPantryItemsCount] = useState(0);
-  const [loadFailed, setLoadFailed] = useState(false);
 
-  const loadMatchedRecipes = useCallback(async () => {
-    try {
-      setLoading(true);
-      setLoadFailed(false);
-      const response = await fetch('/api/recipes/match');
-
-      if (response.ok) {
-        const data = await response.json();
-        setReadyToCook(data.readyToCook);
-        setAlmostThere(data.almostThere);
-        setPantryItemsCount(data.pantryItemsCount);
-      } else {
-        // Don't fall through to the "pantry is empty" state — that hides server errors
-        setLoadFailed(true);
-      }
-    } catch (error) {
-      console.error('Error loading matched recipes:', error);
-      setLoadFailed(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadMatchedRecipes();
-    }
-  }, [isAuthenticated, loadMatchedRecipes]);
+  /**
+   * The matches, from the cache rather than from `useState`.
+   *
+   * Moving them is what lets a heart here be tapped: the shared mutation layer paints
+   * whatever is in the cache, and a list held in local state is invisible to it.
+   */
+  const matches = useMatches(isAuthenticated);
+  const loading = matches.isPending;
+  const loadFailed = matches.isError;
+  const readyToCook = matches.data?.readyToCook ?? [];
+  const almostThere = matches.data?.almostThere ?? [];
+  const pantryItemsCount = matches.data?.pantryItemsCount ?? 0;
+  const loadMatchedRecipes = () => matches.refetch();
+  const likeToggle = useLike();
+  const saveToggle = useSave();
 
   const handleGoToPantry = () => {
     router.push('/pantry');
@@ -281,6 +236,8 @@ export default function MatchedRecipes() {
                     <RecipeCard
                       recipe={toCardModel(recipe)}
                       viewer={recipe.viewer}
+                      onLike={() => likeToggle.toggle(recipe.id)}
+                      onSave={() => saveToggle.toggle(recipe.id)}
                       overlay={
                         <Chip
                           icon={<CheckCircle sx={{ fontSize: '1rem' }} />}
@@ -322,6 +279,8 @@ export default function MatchedRecipes() {
                     <RecipeCard
                       recipe={toCardModel(recipe)}
                       viewer={recipe.viewer}
+                      onLike={() => likeToggle.toggle(recipe.id)}
+                      onSave={() => saveToggle.toggle(recipe.id)}
                       overlay={
                         <Chip
                           label={t('matches.match', { percent: recipe.matchPercentage })}

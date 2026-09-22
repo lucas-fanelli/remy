@@ -4,6 +4,7 @@ import { engagementCounts } from '@/lib/api/engagementCounts';
 import { USERNAME_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { canViewContentOf } from '@/lib/privacy/visibility';
 import { extractAuthToken } from '@/lib/utils/auth';
 import { logServerError } from '@/lib/utils/logger';
 
@@ -48,8 +49,8 @@ export async function GET(
       return NextResponse.json({ error: 'User not found', code: 'user.notFound' }, { status: 404 });
     }
 
-    // Privacy check
-    if (user.isPrivate && currentUserId !== user.id) {
+    // A private account's recipes go only to the viewers the rule lets in.
+    if (!(await canViewContentOf(prisma, currentUserId, user))) {
       return NextResponse.json(
         { error: 'This profile is private', code: 'user.profilePrivate' },
         { status: 403 }

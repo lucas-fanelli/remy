@@ -40,6 +40,11 @@
     "loadFailed": "Failed to load following"
   },
   "followFailed": "{action, select, unfollow {Failed to unfollow user} other {Failed to follow user}}",
+  "followOffline": "{action, select, unfollow {No connection — you're still following them} other {No connection — you're not following them}}",
+  "private": {
+    "title": "This profile is private",
+    "body": "Their recipes are not shown."
+  },
   "edit": {
     "title": "Edit Profile",
     "changePhoto": "Change Photo",

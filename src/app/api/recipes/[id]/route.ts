@@ -7,6 +7,7 @@ import { loadViewerState } from '@/lib/api/viewerState';
 import { UUID_REGEX } from '@/lib/constants';
 import { container } from '@/lib/container/container';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse } from '@/lib/privacy/visibility';
 import { loadRatingBreakdown } from '@/lib/ratings/recipeRating';
 import { cleanupCloudinaryImage } from '@/lib/utils/cloudinary-cleanup';
 import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
@@ -33,24 +34,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // link was a way around it.
     const viewer = await getCurrentUser(request);
 
-    const recipeService = container.getRecipeService();
-    const result = await recipeService.getRecipeForViewer(id, viewer?.id ?? null);
+    // The same gate as every other door reached through a recipe id, so the recipe answers
+    // exactly what its comments, rating and like answer — the same 403 body, author
+    // included. It used to decide through its own copy of the rule inside RecipeService,
+    // which would have kept shutting out a private author's followers after the rule
+    // learned about them: canSeePost goes through canViewContentOf, the one place that
+    // changes.
+    const access = await canSeePost(prisma, id, viewer?.id ?? null);
+    if (access.status !== 'ok') return deniedPostResponse(access);
 
-    if (result.status === 'notFound') {
+    const recipeService = container.getRecipeService();
+    const found = await recipeService.getRecipeWithCounts(id);
+
+    // Deleted between the gate and this read.
+    if (!found) {
       return NextResponse.json(
         { error: 'Recipe not found', code: 'recipe.notFound' },
         { status: 404 }
       );
     }
 
-    if (result.status === 'private') {
-      return NextResponse.json(
-        { error: 'This profile is private', code: 'user.profilePrivate' },
-        { status: 403 }
-      );
-    }
-
-    const { recipe, counts } = result;
+    const { recipe, counts } = found;
 
     // The page used to learn all of this from two extra requests — /like and /save — which
     // resolved after first paint, so the heart and the bookmark rendered empty and then
