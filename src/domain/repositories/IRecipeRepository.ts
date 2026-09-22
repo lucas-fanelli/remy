@@ -52,9 +52,13 @@ export interface IRecipeRepository {
   findByUserId(userId: string, limit?: number, offset?: number): Promise<Recipe[]>;
 
   /**
-   * Search recipes with filters and sorting
+   * Search recipes with filters and sorting, among the recipes `viewerId` may see: public
+   * authors' and, signed in, their own (src/lib/privacy/visibility.ts). Left out, it answers
+   * as it would a signed-out viewer — a caller that does not say who is looking gets the
+   * narrowest list, never a private one. It used to have no filter at all, so the pantry
+   * suggestions it feeds handed any signed-in user private accounts' recipes.
    */
-  search(options: RecipeSearchOptions): Promise<Recipe[]>;
+  search(options: RecipeSearchOptions, viewerId?: string | null): Promise<Recipe[]>;
 
   /**
    * Update a recipe

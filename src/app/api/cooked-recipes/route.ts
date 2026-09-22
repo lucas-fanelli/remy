@@ -15,6 +15,7 @@ import {
   type PantryPlan,
 } from '@/lib/cooking/pantryPlan';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse, visiblePostsWhere } from '@/lib/privacy/visibility';
 import { normalizeIngredientName } from '@/lib/utils/ingredients';
 import { logAuditEvent, logServerError } from '@/lib/utils/logger';
 // striptags strips HTML tags but does NOT escape attribute-context characters (", ', &).
@@ -48,34 +49,47 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
     const skip = (page - 1) * limit;
 
-    const [cookedRecipes, total] = await Promise.all([
+    const [entries, total] = await Promise.all([
       prisma.cookedRecipe.findMany({
         where: { userId: user.id, deletedAt: null },
         take: limit,
         skip,
-        include: {
-          post: {
-            select: {
-              id: true,
-              title: true,
-              imageUrl: true,
-              description: true,
-              difficulty: true,
-              cookingTime: true,
-              prepTime: true,
-              user: {
-                select: {
-                  username: true,
-                  avatar: true,
-                },
-              },
-            },
-          },
-        },
         orderBy: { cookedAt: 'desc' },
       }),
       prisma.cookedRecipe.count({ where: { userId: user.id, deletedAt: null } }),
     ]);
+
+    // The history is the reader's own, so every entry stays in it, and in the count. The
+    // recipe on an entry is not: its author may have gone private since, and then it is no
+    // longer the reader's to see. So only the recipes they may still see are read at all,
+    // and an entry whose recipe is not among them comes back with post: null — which the
+    // cooking log already shows, unclickable, as "this recipe is no longer here".
+    const visiblePosts = await prisma.post.findMany({
+      where: {
+        id: { in: entries.map((entry) => entry.postId) },
+        AND: [visiblePostsWhere(user.id)],
+      },
+      select: {
+        id: true,
+        title: true,
+        imageUrl: true,
+        description: true,
+        difficulty: true,
+        cookingTime: true,
+        prepTime: true,
+        user: {
+          select: {
+            username: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+    const postsById = new Map(visiblePosts.map((post) => [post.id, post]));
+    const cookedRecipes = entries.map((entry) => ({
+      ...entry,
+      post: postsById.get(entry.postId) ?? null,
+    }));
 
     return NextResponse.json({
       cookedRecipes,
@@ -135,106 +149,122 @@ export async function POST(request: NextRequest) {
     }
 
     // All checks and mutations inside a single transaction for atomicity
-    const { cookedRecipe, shortfall, deductedIngredients, deductionSkipped, timesCooked } =
-      await prisma.$transaction(async (tx) => {
-        let shortfall: IngredientPlan[] = [];
-        let deductedIngredients: DeductedIngredient[] = [];
-        let deductionSkipped = false;
+    const outcome = await prisma.$transaction(async (tx) => {
+      let shortfall: IngredientPlan[] = [];
+      let deductedIngredients: DeductedIngredient[] = [];
+      let deductionSkipped = false;
 
-        // Verify the recipe exists inside the transaction
-        const recipe = await tx.post.findUnique({ where: { id: postId } });
-        if (!recipe) {
-          throw new Error('RECIPE_NOT_FOUND');
-        }
+      // Before anything else, the daily limit included: a recipe the reader may not see
+      // is not cooked, and is not described either — the 409 below sends back the pantry
+      // plan, which lists its ingredients.
+      const access = await canSeePost(tx, postId, user.id);
+      if (access.status !== 'ok') return { denied: access };
 
-        // Cooking the same thing twice is the normal case, not a mistake — the schema was
-        // always keyed to allow it. A rolling 24-hour duplicate check used to reject the
-        // second one, which is why the button answered "you already cooked this" to
-        // somebody who had just cooked it again.
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // Cooking the same thing twice is the normal case, not a mistake — the schema was
+      // always keyed to allow it. A rolling 24-hour duplicate check used to reject the
+      // second one, which is why the button answered "you already cooked this" to
+      // somebody who had just cooked it again.
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-        // Enforce daily cook limit to prevent abuse. Entries the user has deleted do not
-        // count against it — they are gone from every other query, and burning quota for
-        // a record nobody can see was a way to be locked out with no explanation.
-        const dailyCookCount = await tx.cookedRecipe.count({
-          where: { userId: user.id, cookedAt: { gte: twentyFourHoursAgo }, deletedAt: null },
+      // Enforce daily cook limit to prevent abuse. Entries the user has deleted do not
+      // count against it — they are gone from every other query, and burning quota for
+      // a record nobody can see was a way to be locked out with no explanation.
+      const dailyCookCount = await tx.cookedRecipe.count({
+        where: { userId: user.id, cookedAt: { gte: twentyFourHoursAgo }, deletedAt: null },
+      });
+      if (dailyCookCount >= MAX_DAILY_COOKS) {
+        throw new Error('DAILY_LIMIT_REACHED');
+      }
+
+      // User-level advisory lock to prevent concurrent deductions from producing negative quantities.
+      // Unlike SELECT FOR UPDATE, this works even if the pantry row doesn't exist yet.
+      // Two-key form uses a namespace to avoid collisions with advisory locks in other features.
+      // hashtext returns 32-bit int — collision risk is acceptable at <1M users. For larger scale, split UUID into two int4 keys.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_COOKED_RECIPE}::int, hashtext(${user.id}))`;
+
+      // Read pantry inside transaction to avoid stale data
+      const pantry = await tx.userPantry.findUnique({
+        where: { userId: user.id },
+        include: { items: true },
+      });
+
+      if (pantry) {
+        // The ingredients are read here, where they are used, and only after the gate.
+        // canSeePost has just found the recipe; the `?.` covers a delete landing in
+        // between, which the create below then refuses.
+        const recipe = await tx.post.findUnique({
+          where: { id: postId },
+          select: { ingredients: true },
         });
-        if (dailyCookCount >= MAX_DAILY_COOKS) {
-          throw new Error('DAILY_LIMIT_REACHED');
-        }
+        const recipeIngredients = readRecipeIngredients(recipe?.ingredients);
 
-        // User-level advisory lock to prevent concurrent deductions from producing negative quantities.
-        // Unlike SELECT FOR UPDATE, this works even if the pantry row doesn't exist yet.
-        // Two-key form uses a namespace to avoid collisions with advisory locks in other features.
-        // hashtext returns 32-bit int — collision risk is acceptable at <1M users. For larger scale, split UUID into two int4 keys.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${PG_ADVISORY_LOCK_COOKED_RECIPE}::int, hashtext(${user.id}))`;
+        if (recipeIngredients === null) {
+          console.warn(
+            `[COOKED-RECIPES] Skipping pantry deduction for recipe ${postId}: ingredient validation failed (oversized name or unit)`
+          );
+          deductionSkipped = true;
+        } else {
+          const plan = planPantryDeduction(pantry.items, recipeIngredients);
+          shortfall = shortfalls(plan);
 
-        // Read pantry inside transaction to avoid stale data
-        const pantry = await tx.userPantry.findUnique({
-          where: { userId: user.id },
-          include: { items: true },
-        });
-
-        if (pantry) {
-          const recipeIngredients = readRecipeIngredients(recipe.ingredients);
-
-          if (recipeIngredients === null) {
-            console.warn(
-              `[COOKED-RECIPES] Skipping pantry deduction for recipe ${postId}: ingredient validation failed (oversized name or unit)`
-            );
-            deductionSkipped = true;
-          } else {
-            const plan = planPantryDeduction(pantry.items, recipeIngredients);
-            shortfall = shortfalls(plan);
-
-            // Everything the reader was shown has to still be true when they confirm. If
-            // the pantry changed under them — another tab, another device — the plan is
-            // stale and nothing is written.
-            if (shortfall.length > 0 && force !== true) {
-              throw Object.assign(new Error('INSUFFICIENT_INGREDIENTS'), { plan });
-            }
-
-            deductedIngredients = await applyPantryPlan(tx, plan);
+          // Everything the reader was shown has to still be true when they confirm. If
+          // the pantry changed under them — another tab, another device — the plan is
+          // stale and nothing is written.
+          if (shortfall.length > 0 && force !== true) {
+            throw Object.assign(new Error('INSUFFICIENT_INGREDIENTS'), { plan });
           }
-        }
 
-        // Create cooked recipe entry
-        const cookedRecipe = await tx.cookedRecipe.create({
-          data: {
-            userId: user.id,
-            postId,
-            deductedIngredients:
-              deductedIngredients.length > 0
-                ? JSON.parse(JSON.stringify(deductedIngredients))
-                : undefined,
-          },
-          include: {
-            post: {
-              select: {
-                id: true,
-                title: true,
-                imageUrl: true,
-                description: true,
-                difficulty: true,
-                cookingTime: true,
-                prepTime: true,
-                user: {
-                  select: {
-                    username: true,
-                    avatar: true,
-                  },
+          deductedIngredients = await applyPantryPlan(tx, plan);
+        }
+      }
+
+      // Create cooked recipe entry
+      const cookedRecipe = await tx.cookedRecipe.create({
+        data: {
+          userId: user.id,
+          postId,
+          deductedIngredients:
+            deductedIngredients.length > 0
+              ? JSON.parse(JSON.stringify(deductedIngredients))
+              : undefined,
+        },
+        include: {
+          post: {
+            select: {
+              id: true,
+              title: true,
+              imageUrl: true,
+              description: true,
+              difficulty: true,
+              cookingTime: true,
+              prepTime: true,
+              user: {
+                select: {
+                  username: true,
+                  avatar: true,
                 },
               },
             },
           },
-        });
-
-        const timesCooked = await tx.cookedRecipe.count({
-          where: { userId: user.id, postId, deletedAt: null },
-        });
-
-        return { cookedRecipe, shortfall, deductedIngredients, deductionSkipped, timesCooked };
+        },
       });
+
+      const timesCooked = await tx.cookedRecipe.count({
+        where: { userId: user.id, postId, deletedAt: null },
+      });
+
+      return {
+        denied: null,
+        cookedRecipe,
+        shortfall,
+        deductedIngredients,
+        deductionSkipped,
+        timesCooked,
+      };
+    });
+
+    if (outcome.denied) return deniedPostResponse(outcome.denied);
+    const { cookedRecipe, shortfall, deductedIngredients, deductionSkipped, timesCooked } = outcome;
 
     return NextResponse.json(
       {
@@ -251,12 +281,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message === 'RECIPE_NOT_FOUND') {
-        return NextResponse.json(
-          { error: 'Recipe not found', code: 'recipe.notFound' },
-          { status: 404 }
-        );
-      }
       if (error.message === 'DAILY_LIMIT_REACHED') {
         return NextResponse.json(
           {

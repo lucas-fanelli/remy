@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { text, type TextDescriptor } from '@/i18n/text';
+import { readBody } from '@/lib/api/readBody';
 import type { RatingBreakdown, ViewerState } from '@/domain/types/recipe';
 
 // API Recipe type - matches what the API actually returns
@@ -73,7 +74,10 @@ interface RecipeResponse {
 export class RecipeFetchError extends Error {
   constructor(
     readonly descriptor: TextDescriptor,
-    message: string
+    message: string,
+    /** Set when the recipe is fine and simply belongs to a private account: its author. */
+    readonly privateAuthor: string | null = null,
+    readonly status: number | null = null
   ) {
     super(message);
     this.name = 'RecipeFetchError';
@@ -85,9 +89,33 @@ async function fetchRecipe(id: string): Promise<RecipeResponse> {
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new RecipeFetchError(text('recipe.states.notFound'), 'Recipe not found');
+      throw new RecipeFetchError(text('recipe.states.notFound'), 'Recipe not found', null, 404);
     }
-    throw new RecipeFetchError(text('recipe.states.loadFailed'), 'Failed to load recipe');
+    // A private account's recipe is not a failure, and saying "we couldn't load the recipe"
+    // — what this printed since the route started answering 403 — sent the reader to retry
+    // something that would never work. Every recipe-scoped route answers this refusal with
+    // the same body, author included, so the page can say whose it is and link there.
+    if (response.status === 403) {
+      const body = (await readBody(response)) as {
+        code?: unknown;
+        author?: { username?: unknown };
+      };
+      const username = body?.author?.username;
+      if (body?.code === 'user.profilePrivate' && typeof username === 'string') {
+        throw new RecipeFetchError(
+          text('recipe.states.private', { username }),
+          'Recipe belongs to a private account',
+          username,
+          403
+        );
+      }
+    }
+    throw new RecipeFetchError(
+      text('recipe.states.loadFailed'),
+      'Failed to load recipe',
+      null,
+      response.status
+    );
   }
 
   return response.json();
@@ -102,6 +130,11 @@ export function useRecipe(id: string) {
     enabled: !!id, // Only fetch if id is provided
     staleTime: 5 * 60 * 1000, // 5 minutes
     select: selectRecipe,
+    // Asking again will not make a deleted recipe exist or a private one visible, and the
+    // one retry the app allows by default held either answer back by a second.
+    retry: (failureCount, error) =>
+      !(error instanceof RecipeFetchError && (error.status === 403 || error.status === 404)) &&
+      failureCount < 1,
   });
 }
 

@@ -3,6 +3,7 @@ import striptags from 'striptags';
 import { requireAuth } from '@/lib/api/auth';
 import { MAX_COMMENT_LENGTH, UUID_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse } from '@/lib/privacy/visibility';
 import { validateCloudinaryUrl } from '@/lib/utils/cloudinary-validation';
 import { logServerError } from '@/lib/utils/logger';
 import { requireJsonContentType } from '@/lib/utils/request';
@@ -64,7 +65,14 @@ export async function PATCH(
     }
 
     // Ownership check + update atomically in a transaction to prevent TOCTOU race
-    const comment = await prisma.$transaction(async (tx) => {
+    const outcome = await prisma.$transaction(async (tx) => {
+      // Your own comment, but on someone else's recipe: once its author has gone private
+      // and you are not let in, the thread is theirs to show or hide, and you may no more
+      // edit what you wrote there than like or rate the recipe. The comment is hidden with
+      // the recipe and comes back with it.
+      const access = await canSeePost(tx, recipeId, user.id);
+      if (access.status !== 'ok') return { denied: access };
+
       const existingComment = await tx.comment.findUnique({
         where: { id: commentId },
       });
@@ -111,13 +119,13 @@ export async function PATCH(
         },
       });
 
-      return { ...updatedComment, rating: ratingRecord?.rating || null };
+      return { denied: null, comment: { ...updatedComment, rating: ratingRecord?.rating || null } };
     });
 
-    const commentWithRating = comment;
+    if (outcome.denied) return deniedPostResponse(outcome.denied);
 
     return NextResponse.json({
-      comment: commentWithRating,
+      comment: outcome.comment,
       message: 'Comment updated successfully',
     });
   } catch (error) {
@@ -171,6 +179,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
+    // NOT gated by canSeePost, unlike PATCH, on purpose. What you wrote is yours to take
+    // back even after its recipe's author went private and shut you out: the answer is
+    // "deleted" and nothing else, so it reveals nothing of the recipe. Editing stays gated —
+    // rewriting a comment is writing into a conversation you can no longer see.
     await prisma.$transaction(async (tx) => {
       // 1. Find the comment (verify ownership and get postId/userId)
       const comment = await tx.comment.findUnique({
