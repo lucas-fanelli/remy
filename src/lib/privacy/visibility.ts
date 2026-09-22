@@ -154,14 +154,14 @@ export async function canSeePost(
  *   404 { error, code: 'recipe.notFound' }
  *   403 { error, code: 'user.profilePrivate', author: { username } }
  *
- * The 403 is what GET /api/recipes/[id] answers for a private recipe. It is not dressed up
- * as a 404: the profile already tells anyone that the account exists and is private, and
- * the client needs the difference to say "this account is private" and link to it, rather
- * than "this recipe was deleted".
+ * GET /api/recipes/[id] answers through here too. The 403 is not dressed up as a 404: the
+ * profile already tells anyone that the account exists and is private, and the client needs
+ * the difference to say "this account is private" and link to it, rather than "this recipe
+ * was deleted".
  *
- * A plain Response rather than NextResponse, which a route handler may return all the same.
- * RecipeService imports this module, and its tests run under jsdom, where merely importing
- * next/server throws "Request is not defined".
+ * A plain Response rather than NextResponse, which a route handler may return all the same,
+ * so this module stays importable from code whose tests run under jsdom, where merely
+ * importing next/server throws "Request is not defined".
  */
 export function deniedPostResponse(access: DeniedPostAccess): Response {
   if (access.status === 'notFound') {

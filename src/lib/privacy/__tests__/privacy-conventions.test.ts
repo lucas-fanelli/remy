@@ -357,13 +357,6 @@ function handlersIn(source: ts.SourceFile): Handler[] {
  */
 const NOT_GATED: ReadonlyArray<{ handler: string; calls?: string; reason: string }> = [
   {
-    handler: 'src/app/api/recipes/[id]/route.ts GET',
-    calls: 'getRecipeForViewer',
-    reason:
-      'the recipe itself: RecipeService.getRecipeForViewer applies canViewContent, and the ' +
-      'route answers the same 404 and 403',
-  },
-  {
     handler: 'src/app/api/recipes/[id]/route.ts PUT',
     calls: 'updateRecipe',
     reason: 'the author editing their own recipe; RecipeService refuses anyone else',
@@ -379,6 +372,12 @@ const NOT_GATED: ReadonlyArray<{ handler: string; calls?: string; reason: string
     reason:
       "the viewer's own cooking history, a list: an entry whose recipe they can no longer " +
       'see comes back with post: null',
+  },
+  {
+    handler: 'src/app/api/recipes/[id]/comments/[commentId]/route.ts DELETE',
+    reason:
+      "deletes the viewer's OWN comment, which stays theirs to take back after the author " +
+      'goes private; it answers with nothing of the recipe',
   },
   {
     handler: 'src/app/api/cooked-recipes/route.ts DELETE',
@@ -464,5 +463,39 @@ describe('every handler reached through a recipe id asks canSeePost', () => {
     });
 
     expect(broken).toEqual([]);
+  });
+});
+
+/**
+ * Readers that return recipes with no privacy filter at all, kept only because deleting
+ * dead code is the owner's call. Nothing serves them today; a route that started to would
+ * hand out private accounts' recipes, and neither check above would notice — there is no
+ * spelling of the rule to find, and the caller need not be reached through a recipe id.
+ */
+const UNFILTERED_READERS = [
+  'getRecipeById',
+  'getUserRecipes',
+  'getRecentRecipes',
+  'getRecipesByDifficulty',
+  'searchRecipes',
+];
+
+describe('no server code serves a reader that skips the rule', () => {
+  const callers = (name: string) =>
+    serverFiles()
+      .filter((file) => !file.startsWith('src/infrastructure/'))
+      .filter((file) => callsFunction(parse(file), name));
+
+  it.each(UNFILTERED_READERS)('nothing outside the services calls %s', (name) => {
+    expect(callers(name)).toEqual([]);
+  });
+
+  it('is guarding readers that still exist', () => {
+    // Once they are deleted, delete this list too.
+    const service = readFileSync(
+      path.join(ROOT, 'src/infrastructure/services/RecipeService.ts'),
+      'utf8'
+    );
+    UNFILTERED_READERS.forEach((name) => expect(service).toContain(`async ${name}(`));
   });
 });

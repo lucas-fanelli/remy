@@ -214,13 +214,6 @@ const ROUTES: RouteCase[] = [
     work: () => tx.comment.update,
   },
   {
-    route: 'DELETE your comment',
-    call: () => commentDELETE(send('DELETE', `${RECIPE_URL}/comments/${COMMENT}`), commentParams()),
-    gate: 'tx.post.findUnique',
-    okStatus: 200,
-    work: () => tx.comment.delete,
-  },
-  {
     route: 'POST like { liked: true }',
     call: () => likePOST(send('POST', `${RECIPE_URL}/like`, { liked: true }), recipeParams()),
     gate: 'tx.post.findUnique',
@@ -382,5 +375,34 @@ describe('the author canSeePost found is the one notified', () => {
       AUTHOR,
       'comment-2'
     );
+  });
+});
+
+describe('DELETE your own comment', () => {
+  // Not gated, unlike every other write here, on purpose: what you wrote is yours to take
+  // back even after the recipe's author went private and shut you out. The answer says
+  // "deleted" and nothing more, so it reveals nothing of the recipe.
+  const del = () =>
+    commentDELETE(send('DELETE', `${RECIPE_URL}/comments/${COMMENT}`), commentParams());
+
+  it('takes it back even when the recipe has gone private on you', async () => {
+    signedInAs(STRANGER);
+    recipeIs('private');
+
+    const response = await del();
+
+    expect(response.status).toBe(200);
+    expect(tx.comment.delete).toHaveBeenCalledWith({ where: { id: COMMENT } });
+  });
+
+  it('still never deletes somebody else’s', async () => {
+    signedInAs(STRANGER);
+    recipeIs('private');
+    tx.comment.findUnique.mockResolvedValue({ id: COMMENT, postId: RECIPE, userId: 'someone' });
+
+    const response = await del();
+
+    expect(response.status).toBe(404);
+    expect(tx.comment.delete).not.toHaveBeenCalled();
   });
 });

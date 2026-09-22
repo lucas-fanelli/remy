@@ -179,11 +179,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
-    const denied = await prisma.$transaction(async (tx) => {
-      // The same gate as PATCH, for the same reason.
-      const access = await canSeePost(tx, recipeId, user.id);
-      if (access.status !== 'ok') return access;
-
+    // NOT gated by canSeePost, unlike PATCH, on purpose. What you wrote is yours to take
+    // back even after its recipe's author went private and shut you out: the answer is
+    // "deleted" and nothing else, so it reveals nothing of the recipe. Editing stays gated —
+    // rewriting a comment is writing into a conversation you can no longer see.
+    await prisma.$transaction(async (tx) => {
       // 1. Find the comment (verify ownership and get postId/userId)
       const comment = await tx.comment.findUnique({
         where: { id: commentId },
@@ -203,10 +203,7 @@ export async function DELETE(
       // hand, and which did not filter soft-deleted cooked entries, so a cook you had
       // already undone still saved a rating. Your score is yours until you remove it at
       // DELETE /api/recipes/[id]/rating.
-      return null;
     });
-
-    if (denied) return deniedPostResponse(denied);
 
     return NextResponse.json({
       message: 'Comment deleted successfully',

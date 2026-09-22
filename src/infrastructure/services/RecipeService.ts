@@ -12,7 +12,6 @@ import {
   RecipeSearchOptions,
 } from '@/domain/types/recipe';
 import { UNIT_TO_TASTE } from '@/lib/constants';
-import { canViewContent } from '@/lib/privacy/visibility';
 
 /**
  * Recipe Service - handles business logic for recipes
@@ -56,24 +55,10 @@ export class RecipeService implements IRecipeService {
     return this.recipeRepository.findById(id);
   }
 
-  async getRecipeForViewer(
-    id: string,
-    viewerId: string | null
-  ): Promise<
-    | { status: 'ok'; recipe: Recipe; counts: RecipeCounts }
-    | { status: 'notFound' }
-    | { status: 'private' }
-  > {
+  async getRecipeWithCounts(id: string): Promise<{ recipe: Recipe; counts: RecipeCounts } | null> {
     const found = await this.recipeRepository.findByIdWithAuthor(id);
-    if (!found) return { status: 'notFound' };
-
-    // The rule from src/lib/privacy/visibility.ts, the one every list and every route
-    // reached through a recipe id applies, so the direct link cannot answer differently.
-    if (!canViewContent(viewerId, found.author)) {
-      return { status: 'private' };
-    }
-
-    return { status: 'ok', recipe: found.recipe, counts: found.counts };
+    if (!found) return null;
+    return { recipe: found.recipe, counts: found.counts };
   }
 
   async getUserRecipes(userId: string, limit?: number, offset?: number): Promise<Recipe[]> {
