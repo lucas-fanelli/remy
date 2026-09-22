@@ -158,6 +158,64 @@ describe('a search result in the cache', () => {
   });
 });
 
+describe('the pantry matches in the cache', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  });
+
+  it('reaches a recipe in either bucket', () => {
+    // The adapter names both lists so it does not have to know which one the route put a
+    // recipe in. Holding only the first would leave every "almost there" heart dead.
+    queryClient.setQueryData(queryKeys.matched(), {
+      readyToCook: [recipe('a')],
+      almostThere: [recipe('b')],
+      pantryItemsCount: 2,
+    });
+
+    patchRecipeEverywhere(queryClient, 'b', like(true));
+
+    const data = queryClient.getQueryData<{
+      almostThere: { viewer: { liked: boolean }; likeCount: number }[];
+    }>(queryKeys.matched());
+    expect(data?.almostThere[0].viewer.liked).toBe(true);
+    expect(data?.almostThere[0].likeCount).toBe(4);
+  });
+
+  it('leaves the other bucket and the pantry count exactly as they were', () => {
+    const readyToCook = [recipe('a')];
+    queryClient.setQueryData(queryKeys.matched(), {
+      readyToCook,
+      almostThere: [recipe('b')],
+      pantryItemsCount: 2,
+    });
+
+    patchRecipeEverywhere(queryClient, 'b', like(true));
+
+    const data = queryClient.getQueryData<{ readyToCook: unknown[]; pantryItemsCount: number }>(
+      queryKeys.matched()
+    );
+    // The same reference, so the list that did not change does not re-render.
+    expect(data?.readyToCook).toBe(readyToCook);
+    expect(data?.pantryItemsCount).toBe(2);
+  });
+
+  it('can be read back, which is what decides like versus unlike', () => {
+    queryClient.setQueryData(queryKeys.matched(), {
+      readyToCook: [],
+      almostThere: [
+        recipe('a', {
+          viewer: { liked: true, saved: false, timesCooked: 0, lastCookedAt: null, myRating: null },
+        }),
+      ],
+      pantryItemsCount: 1,
+    });
+
+    expect(VIEWER_SPECS.like.read(readEngagement(queryClient, 'a')!)).toBe(true);
+  });
+});
+
 describe('readEngagement', () => {
   let queryClient: QueryClient;
 
