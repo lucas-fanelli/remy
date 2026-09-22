@@ -43,9 +43,7 @@
   "toasts": {
     "deleted": "Receta eliminada",
     "deleteFailed": "No pudimos eliminar la receta",
-    "updated": "Receta actualizada",
-    "loginToLike": "Iniciá sesión para marcar me gusta",
-    "likeFailed": "No pudimos actualizar tu me gusta"
+    "updated": "Receta actualizada"
   },
   "matches": {
     "title": "Recetas con lo que tenés en la despensa",
@@ -67,5 +65,8 @@
     "missing": "{count, plural, one {Te falta} other {Te faltan}}: {names}",
     "noReady": "Todavía no hay recetas que coincidan al 100% con tu despensa. Mirá la pestaña “Casi listas”, esas las tenés al alcance.",
     "noAlmost": "Todavía no hay recetas que se acerquen a lo que tenés. Agregá más ingredientes a tu despensa."
+  },
+  "states": {
+    "loadFailed": "No pudimos cargar las recetas"
   }
 }

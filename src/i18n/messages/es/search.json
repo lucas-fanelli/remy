@@ -17,8 +17,8 @@
     "title": "Resultados de la búsqueda",
     "resultsFor": "Resultados para “{query}”",
     "tabs": {
-      "recipes": "Recetas ({count, number})",
-      "users": "Usuarios ({count, number})"
+      "recipes": "{known, select, yes {Recetas ({count, number})} other {Recetas}}",
+      "users": "{known, select, yes {Usuarios ({count, number})} other {Usuarios}}"
     },
     "noRecipes": "No encontramos recetas",
     "noUsers": "No encontramos usuarios",

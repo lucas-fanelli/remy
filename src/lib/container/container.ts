@@ -9,7 +9,6 @@ import { IUserRepository } from '@/domain/repositories/IUserRepository';
 import { IAdminService } from '@/domain/services/IAdminService';
 import { IAuthService } from '@/domain/services/IAuthService';
 import { IEmailService } from '@/domain/services/IEmailService';
-import { IIngredientMatchService } from '@/domain/services/IIngredientMatchService';
 import { INotificationService } from '@/domain/services/INotificationService';
 import { IPantryService } from '@/domain/services/IPantryService';
 import { IPasswordResetService } from '@/domain/services/IPasswordResetService';
@@ -26,7 +25,6 @@ import { UserRepository } from '@/infrastructure/repositories/UserRepository';
 // Services
 import { AdminService } from '@/infrastructure/services/AdminService';
 import { AuthService } from '@/infrastructure/services/AuthService';
-import { IngredientMatchService } from '@/infrastructure/services/IngredientMatchService';
 import { NotificationService } from '@/infrastructure/services/NotificationService';
 import { PantryService } from '@/infrastructure/services/PantryService';
 import { PasswordResetService } from '@/infrastructure/services/PasswordResetService';
@@ -131,12 +129,6 @@ class Container {
       )
     );
 
-    // Register Ingredient Match Service
-    this.services.set(
-      'IIngredientMatchService',
-      new IngredientMatchService(this.services.get('IRecipeRepository') as IRecipeRepository)
-    );
-
     // Register Notification Service
     this.services.set(
       'INotificationService',
@@ -187,10 +179,6 @@ class Container {
 
   public getPantryService(): IPantryService {
     return this.get<IPantryService>('IPantryService');
-  }
-
-  public getIngredientMatchService(): IIngredientMatchService {
-    return this.get<IIngredientMatchService>('IIngredientMatchService');
   }
 
   public getPasswordService(): IPasswordService {
