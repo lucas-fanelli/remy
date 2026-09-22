@@ -163,11 +163,23 @@ const searchAdapter = namedListsAdapter(
 );
 
 /**
- * Three shapes so far: the detail page's envelope, any infinite list, and search.
+ * `{ readyToCook, almostThere, pantryItemsCount }` under `['recipes', 'matched']`.
  *
- * The profile tabs and the pantry matches join when those screens stop holding their lists
- * in `useState` — until then there is nothing of theirs in the cache to patch, and an
- * adapter for an empty cache would be dead code that looks like coverage.
+ * One recipe can only be in one of the two lists, but both are named: the adapter does not
+ * have to know which bucket the route put it in.
+ */
+const matchesAdapter = namedListsAdapter(
+  (key) => key[0] === 'recipes' && key[1] === 'matched',
+  ['readyToCook', 'almostThere']
+);
+
+/**
+ * Four shapes so far: the detail page's envelope, any infinite list, search, and the
+ * pantry matches.
+ *
+ * The profile tabs join when that screen stops holding its lists in `useState` — until
+ * then there is nothing of theirs in the cache to patch, and an adapter for an empty cache
+ * would be dead code that looks like coverage.
  *
  * More than one adapter can match a key: every search key starts with `'recipes'`, which
  * the infinite-list adapter also answers to. So nothing below picks "the first adapter
@@ -179,6 +191,7 @@ export const RECIPE_CACHE_ADAPTERS: readonly RecipeCacheAdapter[] = [
   detailAdapter,
   infiniteListAdapter,
   searchAdapter,
+  matchesAdapter,
 ];
 
 /** Every adapter that claims this key, in registration order. */

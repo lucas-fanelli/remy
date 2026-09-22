@@ -1,8 +1,10 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ToastProvider } from '@/contexts/ToastContext';
 import MatchedRecipes from '../MatchedRecipes';
 
 // Mock framer-motion - comprehensive mock supporting all patterns
@@ -44,8 +46,23 @@ jest.mock('@/contexts/AuthContext', () => ({
 
 const mockTheme = createTheme();
 
+/**
+ * The matches live in the React Query cache now and their hearts go through the shared
+ * mutation layer, so this needs both providers. A fresh client per render keeps one test's
+ * cached matches out of the next, and `retry: false` keeps a failure test from waiting out
+ * a retry.
+ */
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={mockTheme}>
+        <ToastProvider>{component}</ToastProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 };
 
 describe('MatchedRecipes Component', () => {
@@ -351,23 +368,23 @@ describe('MatchedRecipes Component', () => {
     });
   });
 
-  it('should handle fetch error gracefully', async () => {
+  it('says the matches could not load when the network drops, not that the pantry is empty', async () => {
+    // This asserted a `console.error('Error loading matched recipes:', …)` that React Query
+    // does not emit — and a console line was never what the reader needed. The test below
+    // covers a server rejection; this one covers a thrown fetch, which reaches the same
+    // visible state by a different road and must not fall through to "add ingredients".
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
     mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
 
     renderWithProviders(<MatchedRecipes />);
 
     await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });
+    expect(screen.queryByText(/your pantry is empty/i)).not.toBeInTheDocument();
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error loading matched recipes:',
-      expect.any(Error)
-    );
     consoleErrorSpy.mockRestore();
   });
 
