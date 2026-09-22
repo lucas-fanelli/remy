@@ -1,6 +1,7 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { renderWithLocale } from '@/i18n/testing';
 import Footer from '../Footer';
 import Navigation from '../Navigation';
@@ -55,7 +56,16 @@ const theme = createTheme();
 
 const renderInSpanish = (ui: React.ReactElement) =>
   renderWithLocale(
-    (element) => render(<ThemeProvider theme={theme}>{element}</ThemeProvider>),
+    (element) =>
+      render(
+        <ThemeProvider theme={theme}>
+          {/* `useToast` throws without its provider, by design: Navigation now reports a
+              rejected "mark all as read" through the shared toast rather than swallowing
+              it. The real ToastProvider, not a stub, so the Spanish message would actually
+              render if one of these tests ever asserted it. */}
+          <ToastProvider>{element}</ToastProvider>
+        </ThemeProvider>
+      ),
     'es',
     ui
   );

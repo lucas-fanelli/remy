@@ -15,6 +15,14 @@ import { readFileSync } from 'fs';
  *
  * KNOWN is the remaining work, not an exemption list. It may shrink and never grow: adding
  * a file to it means shipping a new silent failure, and the count is what fails the test.
+ *
+ * WHAT THIS CANNOT SEE, and it matters: it measures a code SHAPE, not what the reader ends
+ * up experiencing. `useNotificationPolling.fetchNotifications` has an `else` and so passes
+ * here, but that else only counts the failure and writes to the console — the dropdown goes
+ * on saying "you have no notifications yet" until ten failures inside ten minutes trip its
+ * circuit breaker, at which point the bell finally dims and offers a retry. Nine server
+ * errors in a row look exactly like an empty inbox. Passing this test is a floor, not a
+ * guarantee, and that gap is its own slice of P2's step 2.
  */
 
 /**
@@ -27,14 +35,11 @@ import { readFileSync } from 'fs';
  * Two more were in `recipe/[id]/page.tsx` and are fixed in this change.
  */
 const KNOWN: Record<string, number> = {
-  'src/app/notifications/page.tsx': 2,
   'src/app/pantry/page.tsx': 1,
   'src/app/search/page.tsx': 1,
-  'src/components/Navigation.tsx': 1,
   'src/components/auth/ResetPasswordForm.tsx': 1,
   'src/components/recipe/CommentsSection.tsx': 1,
   'src/components/search/PersistentSearchBar.tsx': 1,
-  'src/hooks/useNotificationPolling.ts': 1,
 };
 
 /** Comments only — a `//` inside a string literal is not worth the parser this would need. */

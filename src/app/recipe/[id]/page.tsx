@@ -57,6 +57,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
 import { useTextDescriptor } from '@/i18n/text';
+import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
@@ -97,24 +98,6 @@ function toEditableRecipe(apiRecipe: ApiRecipe): DomainRecipe {
     createdAt: new Date(apiRecipe.createdAt),
     updatedAt: new Date(apiRecipe.updatedAt),
   };
-}
-
-/**
- * Read a response body without letting a non-JSON one hide the real failure.
- *
- * Parsing before checking `ok` is the right order — the server's own message and error code
- * live in that body, and `apiErrorMessage` needs them. But a proxy answering 502 with HTML
- * makes `.json()` throw, and a bare `await response.json()` then sends the whole thing to
- * the `catch`, where a genuine server rejection is reported as though the network had
- * failed. `null` is a body `apiErrorMessage` already handles: it falls back to the generic
- * sentence, and the status still decides which branch runs.
- */
-async function readBody(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 export default function RecipeDetailPage() {

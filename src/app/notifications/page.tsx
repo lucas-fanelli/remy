@@ -11,6 +11,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Button,
+  Alert,
 } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -18,7 +19,10 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useDateFnsLocale } from '@/i18n/dates';
+import { readBody } from '@/lib/api/readBody';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
 
 interface Notification {
@@ -43,6 +47,10 @@ export default function NotificationsPage() {
   const tCommon = useTranslations('common');
   const dateLocale = useDateFnsLocale();
   const { user, isLoading } = useAuth();
+  const apiErrorMessage = useApiErrorMessage();
+  // The shared toast, not another local Snackbar. There are already several of those and
+  // this page had none, which is part of why its failures had nowhere to appear.
+  const { showError } = useToast();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +58,8 @@ export default function NotificationsPage() {
   const [markingAsRead, setMarkingAsRead] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  /** A failed read is not an empty one, and the page has to be able to say which. */
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const fetchNotifications = useCallback(
     async (currentOffset = 0, append = false) => {
@@ -63,24 +73,48 @@ export default function NotificationsPage() {
           `/api/notifications?limit=${PAGE_SIZE}&offset=${currentOffset}`
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          const fetched = data.notifications || [];
+        if (!response.ok) {
+          // Two different failures, and they need two different answers. A failed FIRST
+          // page left the list `[]` and the page rendered "you have no notifications yet"
+          // — a server error dressed as good news — so that one replaces the whole list
+          // with an error and a retry. A failed "load more" happens while a perfectly good
+          // list is on screen; replacing it would throw away what the reader already has,
+          // so that one is a toast. A first draft of this handled only the first case and
+          // reintroduced the silence for the second.
           if (append) {
-            setNotifications((prev) => [...prev, ...fetched]);
+            showError(apiErrorMessage(await readBody(response), t('loadFailed')));
           } else {
-            setNotifications(fetched);
+            setLoadFailed(true);
           }
-          setHasMore(fetched.length === PAGE_SIZE);
+          return;
         }
+
+        setLoadFailed(false);
+        const data = await response.json();
+        const fetched = data.notifications || [];
+        if (append) {
+          setNotifications((prev) => [...prev, ...fetched]);
+        } else {
+          setNotifications(fetched);
+        }
+        setHasMore(fetched.length === PAGE_SIZE);
       } catch (error) {
         console.error('Error fetching notifications:', error);
+        if (append) {
+          showError(t('loadFailed'));
+        } else {
+          setLoadFailed(true);
+        }
       } finally {
         setLoading(false);
         setLoadingMore(false);
       }
     },
-    [user]
+    // All three are stable identities, which matters because the effect below depends on
+    // this callback: `showToast` is `useCallback(…, [])`, `showError` depends only on it,
+    // and `apiErrorMessage` only on next-intl's `t`, which is memoised per locale. An
+    // unstable one here would turn a mount into a refetch loop.
+    [user, showError, apiErrorMessage, t]
   );
 
   const handleLoadMore = useCallback(() => {
@@ -110,11 +144,17 @@ export default function NotificationsPage() {
         headers: { 'X-Requested-With': 'fetch' },
       });
 
-      if (response.ok) {
-        setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
+      if (!response.ok) {
+        // Was silent: the dots stayed exactly where they were and nothing was said, so
+        // the only reading available was that the button did not register the tap.
+        showError(apiErrorMessage(await readBody(response), t('markAllFailed')));
+        return;
       }
+
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
     } catch (error) {
       console.error('Error marking notifications as read:', error);
+      showError(t('markAllFailed'));
     } finally {
       setMarkingAsRead(false);
     }
@@ -188,7 +228,23 @@ export default function NotificationsPage() {
         )}
       </Box>
 
-      {notifications.length === 0 ? (
+      {/* A read that failed is not a read that found nothing. Before this, a 500 rendered
+          "you have no notifications yet" — the most reassuring possible way to show an
+          error — and the only way out was to reload the page and hope. This branch is the
+          FIRST page only; a failed "load more" raises a toast instead, so that a list the
+          reader already has is never thrown away to report that there is no more of it. */}
+      {loadFailed ? (
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={() => fetchNotifications()}>
+              {tCommon('actions.retry')}
+            </Button>
+          }
+        >
+          {t('loadFailed')}
+        </Alert>
+      ) : notifications.length === 0 ? (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary">
             {t('empty.title')}

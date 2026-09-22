@@ -9,5 +9,7 @@
   },
   "text": "{type, select, follow {{name} started following you} like {{name} liked your recipe} comment {{name} commented on your recipe} rating {{name} rated your recipe} other {You have a new notification}}",
   "loadMore": "Load More",
-  "viewAll": "View all notifications"
+  "viewAll": "View all notifications",
+  "loadFailed": "We could not load your notifications",
+  "markAllFailed": "We could not mark them as read"
 }

@@ -27,13 +27,15 @@ import {
 import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BRANDING } from '@/config/branding';
 import { useBrandLogo } from '@/config/useBrandLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useNotificationPolling } from '@/hooks/useNotificationPolling';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
 import SlideUp from './common/SlideUp';
 import DesktopMenu from './navigation/DesktopMenu';
@@ -77,6 +79,9 @@ export default function Navigation() {
   const brandLogo = useBrandLogo();
   const t = useTranslations('nav');
   const tCommon = useTranslations('common');
+  const tNotifications = useTranslations('notifications');
+  const apiErrorMessage = useApiErrorMessage();
+  const { showError } = useToast();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallDesktop = useMediaQuery(theme.breakpoints.down('lg'));
@@ -100,7 +105,16 @@ export default function Navigation() {
     retryNow,
     setNotifications,
     setUnreadCount: setUnreadNotifications,
-  } = useNotificationPolling({ user, onAuthInvalid: logout });
+  } = useNotificationPolling({
+    user,
+    onAuthInvalid: logout,
+    // The hook reports; this decides what the app says. Before this the rejection was
+    // swallowed and every dot stayed put with nothing said.
+    onMarkAllFailed: useCallback(
+      (body: unknown) => showError(apiErrorMessage(body, tNotifications('markAllFailed'))),
+      [showError, apiErrorMessage, tNotifications]
+    ),
+  });
   const [notificationsAnchorEl, setNotificationsAnchorEl] = useState<null | HTMLElement>(null);
 
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -172,20 +186,24 @@ export default function Navigation() {
   const handleNotificationClick = async (notification: Notification) => {
     handleNotificationsClose();
     if (!notification.isRead && user) {
+      // Best effort, and deliberately quiet: the reader is navigating away, so a message
+      // about it would land on the page they just left. What this does NOT do any more is
+      // disagree with the notifications page, which marks its own copy read regardless of
+      // the answer — one screen showed the dot gone and the other showed it still there
+      // for the same failure. If the write really did fail the dot returns on the next
+      // poll, which is the honest outcome and self-correcting.
       try {
-        const response = await fetch(`/api/notifications/${notification.id}`, {
+        await fetch(`/api/notifications/${notification.id}`, {
           method: 'PATCH',
           headers: { 'X-Requested-With': 'fetch' },
         });
-        if (response.ok) {
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
-          );
-          setUnreadNotifications((prev) => Math.max(0, prev - 1));
-        }
       } catch (error) {
         console.error('Error marking notification as read:', error);
       }
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
+      );
+      setUnreadNotifications((prev) => Math.max(0, prev - 1));
     }
     if (notification.type === 'follow') {
       router.push(`/profile/${notification.sender.username}`);
