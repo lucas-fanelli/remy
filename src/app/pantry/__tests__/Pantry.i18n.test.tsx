@@ -1,5 +1,6 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
+import { renderWithQueryClient } from '@/__tests__/helpers/queryClient';
 import { renderWithLocale } from '@/i18n/testing';
 import PantryPage from '../page';
 
@@ -40,7 +41,8 @@ const pantryItems = [
 
 const mockFetch = jest.fn();
 
-const renderInSpanish = () => renderWithLocale(render, 'es', <PantryPage />);
+// The pantry lives in the query cache now.
+const renderInSpanish = () => renderWithLocale(renderWithQueryClient, 'es', <PantryPage />);
 
 describe('Pantry in Spanish', () => {
   beforeEach(() => {
@@ -51,7 +53,11 @@ describe('Pantry in Spanish', () => {
       status: 200,
       json: async () => ({ pantry: { items: pantryItems } }),
     });
-    mockUseAuth.mockReturnValue({ isAuthenticated: true, isLoading: false });
+    mockUseAuth.mockReturnValue({
+      user: { id: 'owner-1' },
+      isAuthenticated: true,
+      isLoading: false,
+    });
   });
 
   it('should render the header and the filters in Spanish', async () => {
