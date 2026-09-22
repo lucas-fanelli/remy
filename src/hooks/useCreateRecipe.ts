@@ -1,5 +1,7 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
+import { invalidateRecipeLists } from '@/lib/query/patchRecipeEverywhere';
 
 /**
  * Shared hook for creating recipes — used by the one 'New recipe' editor
@@ -14,6 +16,8 @@ import { toNetworkSubmitError, toRecipeSubmitError } from '@/lib/errors/RecipeSu
  * false` so the form prints its own translated copy instead (docs/I18N.md, API errors).
  */
 export function useCreateRecipe(onSuccess?: () => void) {
+  const queryClient = useQueryClient();
+
   const createRecipe = async (data: CreateRecipeDTO) => {
     // The API schema is strict: the author comes from the session (userId is rejected),
     // and a step's image must be a Cloudinary URL or absent. The editor's toPayload()
@@ -42,8 +46,11 @@ export function useCreateRecipe(onSuccess?: () => void) {
       throw await toRecipeSubmitError(response, 'Failed to create recipe');
     }
 
-    // No query invalidation: RecipeFeed uses direct fetch (not React Query), and the editor
-    // leaves for the new recipe's page, which loads fresh.
+    // Every list that could show the new recipe is now out of date. This line used to say
+    // there was nothing to invalidate because the feed fetched directly; once the lists
+    // joined the cache that stopped being true, and going home within a minute of
+    // publishing showed the feed without the recipe just published.
+    void invalidateRecipeLists(queryClient);
     onSuccess?.();
     return response.json();
   };

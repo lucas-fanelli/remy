@@ -111,6 +111,63 @@ const mockRecipeWithAuthor: Recipe = {
   },
 };
 
+describe('the bookmark', () => {
+  // Saving existed on one surface — inside a recipe — while four endpoints served
+  // `viewer.saved` to cards that never showed it. A broken save had nothing to disagree with.
+  const SAVED: ViewerState = { ...NOT_LIKED_BY_ME, saved: true };
+
+  it('shows what the reader saved, filled', () => {
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={SAVED} onSave={jest.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Remove from saved' })).toBeInTheDocument();
+    expect(screen.getByTestId('BookmarkIcon')).toBeInTheDocument();
+  });
+
+  it('shows what the reader has not saved, empty', () => {
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    expect(screen.getByTestId('BookmarkBorderIcon')).toBeInTheDocument();
+  });
+
+  it('hands the tap to the screen', () => {
+    const onSave = jest.fn();
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={onSave} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('is not drawn at all without a handler — a bookmark nobody can press is noise', () => {
+    renderWithTheme(<RecipeCard recipe={mockRecipe} viewer={SAVED} />);
+
+    expect(screen.queryByTestId('BookmarkIcon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('BookmarkBorderIcon')).not.toBeInTheDocument();
+  });
+
+  it("leaves the row's margins to the card, so the bookmark can reach the right edge", () => {
+    // MUI's CardActions spacing sets `margin-left: 8px` on every child after the first with
+    // a selector that beats `sx`, so `ml: 'auto'` computed to 8px and the bookmark sat
+    // beside the counts in the browser. jsdom does not lay out, so the cause is pinned.
+    const { container } = renderWithTheme(
+      <RecipeCard recipe={mockRecipe} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />
+    );
+
+    const row = container.querySelector('.MuiCardActions-root');
+    expect(row).not.toBeNull();
+    expect(row).not.toHaveClass('MuiCardActions-spacing');
+  });
+
+  it('sits in the same row as the heart, even when the card has nothing else to count', () => {
+    renderWithTheme(
+      <RecipeCard recipe={{ id: 'r', title: 'Bare' }} viewer={NOT_LIKED_BY_ME} onSave={jest.fn()} />
+    );
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+});
+
 describe('RecipeCard Component', () => {
   it('should render recipe card with basic information', () => {
     renderWithTheme(<RecipeCard viewer={null} recipe={mockRecipe} />);

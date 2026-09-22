@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse } from '@/lib/privacy/visibility';
 import { logServerError } from '@/lib/utils/logger';
 
 /**
@@ -38,10 +39,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const recipe = await tx.post.findUnique({ where: { id: recipeId }, select: { id: true } });
-      if (!recipe) {
-        throw new Error('RECIPE_NOT_FOUND');
-      }
+      // As in the like route: nothing is saved or unsaved on a recipe the reader may not
+      // see. A save made while they could see it stays in the database, hidden from Saved,
+      // and comes back if they are let in again.
+      const access = await canSeePost(tx, recipeId, user.id);
+      if (access.status !== 'ok') return { denied: access };
 
       const existingSave = await tx.savedRecipe.findUnique({
         where: { userId_postId: { userId: user.id, postId: recipeId } },
@@ -56,20 +58,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         await tx.savedRecipe.delete({ where: { id: existingSave.id } });
       }
 
-      return { saved: shouldBeSaved };
+      return { denied: null, saved: shouldBeSaved };
     });
+
+    if (result.denied) return deniedPostResponse(result.denied);
 
     return NextResponse.json({
       saved: result.saved,
       message: result.saved ? 'Recipe saved successfully' : 'Recipe removed from saved',
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
-      return NextResponse.json(
-        { error: 'Recipe not found', code: 'recipe.notFound' },
-        { status: 404 }
-      );
-    }
     logServerError('Error setting save:', error);
     return NextResponse.json(
       { error: 'Failed to save recipe', code: 'recipe.saveFailed' },
