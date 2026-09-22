@@ -36,6 +36,7 @@ import { useBrandLogo } from '@/config/useBrandLogo';
 import { ViewerState } from '@/domain/types/recipe';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
+import { commentsHref } from './commentsLink';
 import DifficultyChip from './display/DifficultyChip';
 
 // motion.create must be at module scope — calling inside a component creates
@@ -111,7 +112,6 @@ interface RecipeCardProps {
    * a broken save went unnoticed: nothing else in the app could disagree with it.
    */
   onSave?: () => void;
-  onComment?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   currentUserId?: string;
@@ -134,7 +134,6 @@ export default function RecipeCard({
   onClick,
   onLike,
   onSave,
-  onComment,
   onEdit,
   onDelete,
   currentUserId,
@@ -184,7 +183,7 @@ export default function RecipeCard({
   const showEngagement =
     recipe.likeCount !== undefined ||
     recipe.commentCount !== undefined ||
-    Boolean(onLike || onSave || onComment);
+    Boolean(onLike || onSave);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -554,17 +553,21 @@ export default function RecipeCard({
           {/* 8px: what it has always rendered at. The `ml: 2` written here never applied
               under MUI's spacing rule, and nobody has seen 16px. */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
-            {onComment ? (
-              <Tooltip title={t('card.comments')}>
-                <IconButton onClick={onComment} size="small" sx={{ p: 0.5 }}>
-                  <ChatBubbleOutline sx={{ fontSize: 22 }} />
-                </IconButton>
-              </Tooltip>
-            ) : (
-              <Box sx={{ p: 0.5, display: 'flex', color: 'text.secondary' }}>
+            {/* A link the card builds itself, not a handler a surface has to remember to
+                pass: only the home feed ever passed one, so on the profile, in search and
+                in Guardadas this glyph was a number that did nothing. Every card has a
+                recipe to link to, so every card has this. */}
+            <Tooltip title={t('card.comments')}>
+              <IconButton
+                component={Link}
+                href={commentsHref(destination)}
+                onClick={onClick}
+                size="small"
+                sx={{ p: 0.5 }}
+              >
                 <ChatBubbleOutline sx={{ fontSize: 22 }} />
-              </Box>
-            )}
+              </IconButton>
+            </Tooltip>
             <Typography variant="body2" color="text.secondary" sx={{ minWidth: 16 }}>
               {recipe.commentCount ?? 0}
             </Typography>

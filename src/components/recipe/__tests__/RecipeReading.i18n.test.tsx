@@ -246,16 +246,12 @@ describe('RecipeCard in Spanish', () => {
 
   it('should label the like and comment actions in Spanish', () => {
     renderInSpanish(
-      <RecipeCard
-        recipe={{ ...spanishRecipe, likeCount: 2 }}
-        viewer={null}
-        onLike={jest.fn()}
-        onComment={jest.fn()}
-      />
+      <RecipeCard recipe={{ ...spanishRecipe, likeCount: 2 }} viewer={null} onLike={jest.fn()} />
     );
 
     expect(screen.getByRole('button', { name: 'Me gusta' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Comentarios' })).toBeInTheDocument();
+    // A link, not a button: it goes to the recipe's comments.
+    expect(screen.getByRole('link', { name: 'Comentarios' })).toBeInTheDocument();
   });
 
   it('should open the owner menu in Spanish', async () => {

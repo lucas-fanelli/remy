@@ -56,16 +56,7 @@ jest.mock('@/contexts/AuthContext', () => ({
 // only the callbacks and throw the rest away, which meant the feed could hand every card a
 // heart that said `false` — as it did — and every test here would still pass.
 jest.mock('../RecipeCard', () => {
-  return function MockRecipeCard({
-    recipe,
-    viewer,
-    href,
-    onLike,
-    onSave,
-    onComment,
-    onEdit,
-    onDelete,
-  }: any) {
+  return function MockRecipeCard({ recipe, viewer, href, onLike, onSave, onEdit, onDelete }: any) {
     return (
       <div data-testid={`recipe-card-${recipe.id}`}>
         {/* A link, because the real card's title is one now — the feed's navigation is an
@@ -80,7 +71,6 @@ jest.mock('../RecipeCard', () => {
         <div data-testid={`comment-count-${recipe.id}`}>{String(recipe.commentCount)}</div>
         <button onClick={onLike}>Like</button>
         {onSave && <button onClick={onSave}>Bookmark</button>}
-        <button onClick={onComment}>Comment</button>
         {onEdit && <button onClick={onEdit}>Edit</button>}
         {onDelete && <button onClick={onDelete}>Delete</button>}
       </div>
@@ -377,21 +367,6 @@ describe('RecipeFeed Component', () => {
       'href',
       '/recipe/1'
     );
-  });
-
-  it('should navigate to comment section when comment button is clicked', async () => {
-    setupSuccessfulFetch();
-
-    renderWithProviders(<RecipeFeed />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
-    });
-
-    const commentButton = screen.getByRole('button', { name: /comment/i });
-    fireEvent.click(commentButton);
-
-    expect(mockPush).toHaveBeenCalledWith('/recipe/1#comments');
   });
 
   it('should open delete dialog when delete button is clicked', async () => {
