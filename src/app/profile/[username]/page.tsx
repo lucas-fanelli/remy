@@ -22,6 +22,7 @@ import AnimatedTabs from '@/components/ui/AnimatedTabs';
 import TabPanelTransition from '@/components/ui/TabPanelTransition';
 import { useAuth } from '@/contexts/AuthContext';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
+import type { ViewerState } from '@/domain/types/recipe';
 
 interface User {
   id: string;
@@ -33,34 +34,53 @@ interface User {
   createdAt: string;
 }
 
+/**
+ * What `/api/users/[username]/profile` sends for a recipe on either tab.
+ *
+ * Written from the route, not from memory. This interface used to declare nine fields while
+ * the route sent fourteen, so `description`, both times, `servings` and `viewer` arrived
+ * on every request and were discarded here: profile cards had no description, no time and
+ * no servings, and on your OWN profile your own liked recipes showed empty hearts. The
+ * route even carries a comment saying it attaches `viewer` "so the card here takes the
+ * same props as the card anywhere else". The page was not listening.
+ */
 interface Recipe {
   id: string;
   title: string;
+  description: string | null;
   imageUrl: string;
   difficulty: string;
+  prepTime: number | null;
+  cookingTime: number | null;
+  servings: number | null;
   likeCount: number;
   commentCount: number;
   averageRating?: number;
   totalRatings?: number;
+  /** The saved tab only — the owner's own recipes need no byline. */
   author?: {
     username: string;
     avatar?: string;
   };
+  viewer: ViewerState | null;
 }
 
 /**
  * A profile recipe, narrowed to what a card shows.
  *
- * There used to be a rename here — `likeCount: recipe.likesCount` — because the profile
- * API was the one endpoint spelling its counters in the plural. The endpoints agree now
- * (`lib/api/engagementCounts`), so the mapper is a straight pass-through for them, and the
- * cache adapters, which patch `likeCount`, can reach a heart on this page.
+ * A pass-through now. `description`, the times and `servings` come across as they are,
+ * and a `null` from the server stays absent on the card rather than being invented — the
+ * card omits any slot it is not given, which is the whole convergence mechanism.
  */
 const toCardModel = (recipe: Recipe): RecipeCardModel => ({
   id: recipe.id,
   title: recipe.title,
+  description: recipe.description ?? undefined,
   imageUrl: recipe.imageUrl,
   difficulty: recipe.difficulty,
+  prepTime: recipe.prepTime ?? undefined,
+  cookingTime: recipe.cookingTime ?? undefined,
+  servings: recipe.servings,
   author: recipe.author,
   averageRating: recipe.averageRating,
   totalRatings: recipe.totalRatings,
@@ -432,7 +452,7 @@ export default function ProfilePage() {
                           transition={{ delay: Math.min(index, 11) * 0.05 }}
                           sx={{ width: '100%' }}
                         >
-                          <RecipeCard recipe={toCardModel(recipe)} viewer={null} />
+                          <RecipeCard recipe={toCardModel(recipe)} viewer={recipe.viewer} />
                         </MotionBox>
                       </Grid>
                     ))
@@ -469,7 +489,7 @@ export default function ProfilePage() {
                               covers that: the saved payload carries an author and the
                               owner's own recipes do not, so one component serves both and
                               the sixty duplicated lines go. */}
-                          <RecipeCard recipe={toCardModel(recipe)} viewer={null} />
+                          <RecipeCard recipe={toCardModel(recipe)} viewer={recipe.viewer} />
                         </MotionBox>
                       </Grid>
                     ))

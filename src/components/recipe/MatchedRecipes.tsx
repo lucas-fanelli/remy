@@ -21,41 +21,61 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import RecipeCard, { type RecipeCardModel } from './RecipeCard';
+import type { ViewerState } from '@/domain/types/recipe';
 
+/**
+ * What `/api/recipes/match` sends for one result — read off `MatchedRecipeData` in the route,
+ * which is the only honest source for it.
+ *
+ * This declared nine fields while the route sent sixteen. The seven it left out are the
+ * ones a card needs: the author, both times, servings, both counters and the reader's own
+ * `viewer`.
+ */
 interface MatchedRecipe {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   imageUrl: string;
-  difficulty: string;
+  difficulty: string | null;
+  prepTime: number | null;
+  cookingTime: number | null;
+  servings: number | null;
   matchPercentage: number;
   matchedIngredients: number;
   totalIngredients: number;
   missingIngredients: string[];
+  likeCount: number;
+  commentCount: number;
+  /** The author, named `user` by this route where every other one says `author`. */
+  user: { id: string; username: string; avatar: string | null } | null;
+  viewer: ViewerState | null;
 }
 
 /**
  * A matched recipe, narrowed to what a card can show.
  *
- * CORRECTION. An earlier version of this comment said `/api/recipes/match` answers with
- * these five fields and no more, and that the endpoint carries no viewer dimension. Both
- * were false. The route sends the author (`user`), `prepTime`, `cookingTime`, `servings`,
- * both counters and a real `viewer: viewerState(recipe.id)`. The claim was written from
- * the `MatchedRecipe` interface below, which declares nine fields, instead of from what
- * the server sends — an incomplete client type taken as the truth about the payload.
+ * An earlier version of this comment claimed the route answered with five fields and no
+ * viewer, and the mapper beneath it passed exactly five. Both halves were wrong the same
+ * way: written from the client's own nine-field interface rather than from what the route
+ * sends. The cards were sparse because the data was discarded here, and every heart on
+ * the home page rendered as signed-out while the real answer was in the response.
  *
- * So these cards are sparser than a feed card because THIS MAPPER THROWS THE REST AWAY,
- * not because the data is missing, and `viewer={null}` at both call sites renders every
- * heart as signed-out while the real answer is sitting in the response. Wiring both
- * through is P2 step 6; it is left for that step rather than done here because it changes
- * what the home page shows, and a naming change should not also be a visual one.
+ * Everything the card can use now comes across. `user` becomes `author`, because this
+ * route is the only one that calls it `user`, and a `null` stays absent on the card rather
+ * than being invented.
  */
 const toCardModel = (recipe: MatchedRecipe): RecipeCardModel => ({
   id: recipe.id,
   title: recipe.title,
-  description: recipe.description,
+  description: recipe.description ?? undefined,
   imageUrl: recipe.imageUrl,
-  difficulty: recipe.difficulty,
+  difficulty: recipe.difficulty ?? undefined,
+  prepTime: recipe.prepTime ?? undefined,
+  cookingTime: recipe.cookingTime ?? undefined,
+  servings: recipe.servings,
+  likeCount: recipe.likeCount,
+  commentCount: recipe.commentCount,
+  author: recipe.user ? { username: recipe.user.username, avatar: recipe.user.avatar } : undefined,
 });
 
 export default function MatchedRecipes() {
@@ -260,7 +280,7 @@ export default function MatchedRecipes() {
                   >
                     <RecipeCard
                       recipe={toCardModel(recipe)}
-                      viewer={null}
+                      viewer={recipe.viewer}
                       overlay={
                         <Chip
                           icon={<CheckCircle sx={{ fontSize: '1rem' }} />}
@@ -301,7 +321,7 @@ export default function MatchedRecipes() {
                   >
                     <RecipeCard
                       recipe={toCardModel(recipe)}
-                      viewer={null}
+                      viewer={recipe.viewer}
                       overlay={
                         <Chip
                           label={t('matches.match', { percent: recipe.matchPercentage })}
