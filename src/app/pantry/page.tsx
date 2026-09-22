@@ -26,7 +26,6 @@ import {
   ListItemSecondaryAction,
   Divider,
   Autocomplete,
-  Skeleton,
 } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -34,6 +33,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { MotionCard } from '@/components/motion';
+import PantrySkeleton from '@/components/pantry/PantrySkeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { PantryRequestError, usePantry, type PantryItem } from '@/hooks/usePantry';
@@ -53,32 +53,6 @@ const units = ['g', 'kg', 'mL', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'
 const CATEGORY_SELECTORS: Record<string, string> = { other: 'misc' };
 
 const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
-
-/**
- * The first read of the pantry, sized like the page it becomes: the heading, the search
- * bar and two category cards. It used to render nothing, leaving a blank page under the
- * header until the list arrived.
- */
-function PantrySkeleton({ label }: { label: string }) {
-  return (
-    <PageFrame>
-      <Box role="status" aria-label={label}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4 }}>
-          <Skeleton variant="circular" width={40} height={40} />
-          <Skeleton variant="text" width={200} sx={{ fontSize: '2.125rem' }} />
-        </Box>
-        <Skeleton variant="rounded" height={72} sx={{ mb: 3 }} />
-        <Grid container spacing={2}>
-          {[0, 1].map((card) => (
-            <Grid item xs={12} md={6} key={card}>
-              <Skeleton variant="rounded" height={220} />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    </PageFrame>
-  );
-}
 
 export default function PantryPage() {
   const t = useTranslations('pantry');
@@ -281,7 +255,7 @@ export default function PantryPage() {
   // nothing during every read — which, with its entrance animation playing again after,
   // made each add, edit or delete look like a reload of the page.
   if (authLoading || (isAuthenticated && !pantry.query.data && !pantry.query.isError)) {
-    return <PantrySkeleton label={tCommon('status.loading')} />;
+    return <PantrySkeleton />;
   }
 
   // Guest user - show sign-in prompt
