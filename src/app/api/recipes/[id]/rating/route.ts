@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api/auth';
 import { UUID_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
+import { canSeePost, deniedPostResponse } from '@/lib/privacy/visibility';
 import {
   isValidRating,
   loadRatingBreakdown,
@@ -59,9 +60,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     const rating: number = body.rating;
 
-    const summary = await prisma.$transaction(async (tx) => {
-      const recipe = await tx.post.findUnique({ where: { id: postId }, select: { id: true } });
-      if (!recipe) throw new Error('RECIPE_NOT_FOUND');
+    const outcome = await prisma.$transaction(async (tx) => {
+      // First, and in the transaction that writes: a recipe the reader may not see is not
+      // scored, and its average, count and breakdown are not handed back.
+      const access = await canSeePost(tx, postId, user.id);
+      if (access.status !== 'ok') return { denied: access };
 
       await lockRecipeForRating(tx, postId);
       await tx.rating.upsert({
@@ -74,17 +77,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       // The spread, not just the mean. Without it the page could only patch the average
       // and the breakdown table sat on the previous numbers until a reload.
       const breakdown = await loadRatingBreakdown(tx, postId);
-      return { ...recalculated, breakdown };
+      return { denied: null, summary: { ...recalculated, breakdown } };
     });
 
-    return NextResponse.json({ myRating: rating, ...summary });
+    if (outcome.denied) return deniedPostResponse(outcome.denied);
+
+    return NextResponse.json({ myRating: rating, ...outcome.summary });
   } catch (error) {
-    if (error instanceof Error && error.message === 'RECIPE_NOT_FOUND') {
-      return NextResponse.json(
-        { error: 'Recipe not found', code: 'recipe.notFound' },
-        { status: 404 }
-      );
-    }
     logServerError('Error saving rating:', error);
     return NextResponse.json(
       { error: 'Failed to save rating', code: 'rating.saveFailed' },
@@ -114,17 +113,25 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized', code: 'unauthorized' }, { status: 401 });
     }
 
-    const summary = await prisma.$transaction(async (tx) => {
+    const outcome = await prisma.$transaction(async (tx) => {
+      // This handler checked nothing at all: anyone could take a score back from any
+      // recipe and be sent its average and breakdown, and a recipe id that did not exist
+      // got as far as updating a post that was not there. Now it asks what PUT asks.
+      const access = await canSeePost(tx, postId, user.id);
+      if (access.status !== 'ok') return { denied: access };
+
       await lockRecipeForRating(tx, postId);
       // deleteMany, not delete: removing a score you do not have is the state you asked
       // for, not an error.
       await tx.rating.deleteMany({ where: { userId: user.id, postId } });
       const recalculated = await recalculateRecipeRating(tx, postId);
       const breakdown = await loadRatingBreakdown(tx, postId);
-      return { ...recalculated, breakdown };
+      return { denied: null, summary: { ...recalculated, breakdown } };
     });
 
-    return NextResponse.json({ myRating: null, ...summary });
+    if (outcome.denied) return deniedPostResponse(outcome.denied);
+
+    return NextResponse.json({ myRating: null, ...outcome.summary });
   } catch (error) {
     logServerError('Error removing rating:', error);
     return NextResponse.json(

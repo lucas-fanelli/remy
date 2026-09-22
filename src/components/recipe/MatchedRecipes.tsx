@@ -21,7 +21,7 @@ import React, { useState } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMatches, type MatchedRecipe } from '@/hooks/useMatches';
-import { useLike } from '@/hooks/useViewerMutation';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import RecipeCard, { type RecipeCardModel } from './RecipeCard';
 
 /**
@@ -74,6 +74,7 @@ export default function MatchedRecipes() {
   const pantryItemsCount = matches.data?.pantryItemsCount ?? 0;
   const loadMatchedRecipes = () => matches.refetch();
   const likeToggle = useLike();
+  const saveToggle = useSave();
 
   const handleGoToPantry = () => {
     router.push('/pantry');
@@ -236,6 +237,7 @@ export default function MatchedRecipes() {
                       recipe={toCardModel(recipe)}
                       viewer={recipe.viewer}
                       onLike={() => likeToggle.toggle(recipe.id)}
+                      onSave={() => saveToggle.toggle(recipe.id)}
                       overlay={
                         <Chip
                           icon={<CheckCircle sx={{ fontSize: '1rem' }} />}
@@ -278,6 +280,7 @@ export default function MatchedRecipes() {
                       recipe={toCardModel(recipe)}
                       viewer={recipe.viewer}
                       onLike={() => likeToggle.toggle(recipe.id)}
+                      onSave={() => saveToggle.toggle(recipe.id)}
                       overlay={
                         <Chip
                           label={t('matches.match', { percent: recipe.matchPercentage })}

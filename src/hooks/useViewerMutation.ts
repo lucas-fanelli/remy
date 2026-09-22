@@ -33,6 +33,9 @@ export class ViewerMutationError extends Error {
 /** Thrown to abandon a toggle before it starts; never surfaced. */
 class Abort extends Error {}
 
+const hasCode = (body: unknown, code: string) =>
+  typeof body === 'object' && body !== null && (body as { code?: unknown }).code === code;
+
 export interface ViewerToggle {
   /**
    * Fire and forget.
@@ -90,18 +93,23 @@ function useViewerMutation<T>(spec: ViewerSpec<T>): ViewerToggle {
       return { undo };
     },
 
-    onError: (error, _variables, context) => {
+    onError: (error, { next }, context) => {
       if (error instanceof Abort) return;
 
       context?.undo();
 
+      const direction = next ? 'on' : 'off';
+      const body = error instanceof ViewerMutationError ? error.body : null;
+      const failed = renderText(spec.text.failed[direction]);
+
       showError(
         error instanceof ViewerMutationError && error.offline
-          ? renderText(spec.text.offline)
-          : apiErrorMessage(
-              error instanceof ViewerMutationError ? error.body : null,
-              renderText(spec.text.failed)
-            )
+          ? renderText(spec.text.offline[direction])
+          : // The route's catch-all cannot say which way it failed; this can. A specific code
+            // — an expired session, a rate limit — still speaks for itself.
+            hasCode(body, spec.serverFailureCode)
+            ? failed
+            : apiErrorMessage(body, failed)
       );
     },
 
@@ -109,6 +117,12 @@ function useViewerMutation<T>(spec: ViewerSpec<T>): ViewerToggle {
       patchRecipeEverywhere(queryClient, recipeId, (engagement: Engagement) =>
         spec.settle(engagement, data)
       );
+      // Stale, not refetched: see the note below on why nothing refetches after a write.
+      if (user) {
+        for (const queryKey of spec.membership?.(user) ?? []) {
+          void queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
+        }
+      }
       showSuccess(renderText(next ? spec.text.on : spec.text.off));
     },
 

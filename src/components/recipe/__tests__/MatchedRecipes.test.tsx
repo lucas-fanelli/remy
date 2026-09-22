@@ -239,6 +239,44 @@ describe('MatchedRecipes Component', () => {
     expect(screen.getByText(/missing: garam masala/i)).toBeInTheDocument();
   });
 
+  it('puts the bookmark on both kinds of match card', async () => {
+    // Every card that can be liked can be saved — these two call sites included.
+    const match = (id: string, title: string, pct: number) => ({
+      id,
+      title,
+      description: null,
+      imageUrl: 'https://example.com/x.jpg',
+      difficulty: 'easy',
+      prepTime: null,
+      cookingTime: null,
+      servings: null,
+      matchPercentage: pct,
+      matchedIngredients: 1,
+      totalIngredients: 1,
+      missingIngredients: [],
+      likeCount: 0,
+      commentCount: 0,
+      user: null,
+      viewer: { liked: false, saved: true, timesCooked: 0, lastCookedAt: null, myRating: null },
+    });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        readyToCook: [match('1', 'Pasta', 100)],
+        almostThere: [match('2', 'Curry', 75)],
+        pantryItemsCount: 3,
+      }),
+    });
+    mockUseAuth.mockReturnValue({ token: null, isAuthenticated: true });
+
+    renderWithProviders(<MatchedRecipes />);
+
+    expect(await screen.findByRole('button', { name: 'Remove from saved' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /almost there/i }));
+    await screen.findByText('Curry');
+    expect(screen.getByRole('button', { name: 'Remove from saved' })).toBeInTheDocument();
+  });
+
   it('should show info message when no almost there recipes', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
