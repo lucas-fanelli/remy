@@ -34,22 +34,12 @@ import { useFormatter, useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { MotionCard } from '@/components/motion';
+import PantrySkeleton from '@/components/pantry/PantrySkeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { PantryRequestError, usePantry, type PantryItem } from '@/hooks/usePantry';
 import { useUnitLabels } from '@/i18n/units';
-import { readBody } from '@/lib/api/readBody';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { UNIT_TO_TASTE } from '@/lib/constants';
-
-interface PantryItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-  category: string | null;
-  expiresAt: string | null;
-  notes: string | null;
-  addedAt: string;
-}
 
 const categories = ['vegetable', 'protein', 'dairy', 'grain', 'spice', 'fruit', 'other'];
 const units = ['g', 'kg', 'mL', 'l', 'units', 'cups', 'tbsp', 'tsp', 'oz', 'lbs'];
@@ -70,12 +60,12 @@ export default function PantryPage() {
   const format = useFormatter();
   const unitLabels = useUnitLabels();
   const apiErrorMessage = useApiErrorMessage();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const [items, setItems] = useState<PantryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const pantry = usePantry(isAuthenticated ? user?.id : undefined);
+  const { items } = pantry;
   /** A pantry that cannot be read is not an empty pantry, and the page must say which. */
-  const [loadFailed, setLoadFailed] = useState(false);
+  const loadFailed = pantry.query.isError && !pantry.query.data;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -138,49 +128,6 @@ export default function PantryPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const loadPantry = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/pantry');
-
-      if (!response.ok) {
-        // Was silent, and the empty state it fell into is unusually costly here: an
-        // unreadable pantry renders as "your pantry is empty", which is also what the home
-        // page's whole matching block keys off. A 500 told you to go and add ingredients
-        // you had already added.
-        setLoadFailed(true);
-        setSnackbar({
-          open: true,
-          message: apiErrorMessage(await readBody(response), t('feedback.loadFailed')),
-          severity: 'error',
-        });
-        return;
-      }
-
-      setLoadFailed(false);
-      const data = await response.json();
-      setItems(data.pantry.items);
-    } catch (error) {
-      console.error('Error loading pantry:', error);
-      setLoadFailed(true);
-      setSnackbar({ open: true, message: t('feedback.loadFailed'), severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
-    // Both stable: next-intl memoises `t` per locale and `apiErrorMessage` depends only
-    // on it, which matters because the mount effect below depends on this callback.
-  }, [t, apiErrorMessage]);
-
-  useEffect(() => {
-    if (!authLoading) {
-      if (isAuthenticated) {
-        loadPantry();
-      } else {
-        setLoading(false);
-      }
-    }
-  }, [isAuthenticated, authLoading, loadPantry]);
-
   const handleOpenDialog = (item?: PantryItem) => {
     if (item) {
       setEditingItem(item);
@@ -224,59 +171,45 @@ export default function PantryPage() {
       formData.quantity && parseFloat(formData.quantity) > 0 ? parseFloat(formData.quantity) : 0;
 
     try {
-      const url = editingItem ? `/api/pantry/${editingItem.id}` : '/api/pantry';
-      const method = editingItem ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'fetch',
-        },
-        body: JSON.stringify({
+      await pantry.save({
+        id: editingItem?.id,
+        input: {
           name: formData.name.trim(),
           quantity: quantity || 0,
           unit: formData.unit,
           category: categoryToSave,
           notes: formData.notes.trim() || null,
-        }),
+        },
       });
+      handleCloseDialog();
+      setSnackbar({
+        open: true,
+        message: editingItem ? t('feedback.updated') : t('feedback.added'),
+        severity: 'success',
+      });
+    } catch (error) {
+      const failure = error instanceof PantryRequestError ? error : new PantryRequestError(null);
 
-      if (response.ok) {
-        await loadPantry();
-        handleCloseDialog();
-        setSnackbar({
-          open: true,
-          message: editingItem ? t('feedback.updated') : t('feedback.added'),
-          severity: 'success',
-        });
-      } else if (response.status === 409) {
+      if (failure.status === 409) {
         // Server detected duplicate ingredient — offer to modify existing
-        const data = await response.json();
         const existingIngredient = items.find(
           (item) => item.name.toLowerCase() === formData.name.trim().toLowerCase()
         );
         if (existingIngredient) {
           setExistingItem(existingIngredient);
           setModifyDialogOpen(true);
-        } else {
-          setSnackbar({
-            open: true,
-            message: apiErrorMessage(data, t('feedback.alreadyExists')),
-            severity: 'error',
-          });
+          return;
         }
-      } else {
-        const error = await response.json();
-        setSnackbar({
-          open: true,
-          message: apiErrorMessage(error, t('feedback.saveFailed')),
-          severity: 'error',
-        });
       }
-    } catch (error) {
-      console.error('Error saving item:', error);
-      setSnackbar({ open: true, message: t('feedback.saveFailed'), severity: 'error' });
+
+      setSnackbar({
+        open: true,
+        message: apiErrorMessage(
+          failure.body,
+          failure.status === 409 ? t('feedback.alreadyExists') : t('feedback.saveFailed')
+        ),
+        severity: 'error',
+      });
     }
   };
 
@@ -299,31 +232,24 @@ export default function PantryPage() {
   };
 
   const handleDeleteConfirm = async () => {
-    if (!itemToDelete) return;
+    const item = items.find((candidate) => candidate.id === itemToDelete);
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+    if (!item) return;
 
+    // The item leaves the list now; see usePantry for the way back when this fails.
     try {
-      const response = await fetch(`/api/pantry/${itemToDelete}`, {
-        method: 'DELETE',
-        headers: { 'X-Requested-With': 'fetch' },
-      });
-
-      if (response.ok) {
-        await loadPantry();
-        setSnackbar({ open: true, message: t('feedback.deleted'), severity: 'success' });
-      } else {
-        const error = await response.json();
-        setSnackbar({
-          open: true,
-          message: apiErrorMessage(error, t('feedback.deleteFailed')),
-          severity: 'error',
-        });
-      }
+      await pantry.remove(item);
+      setSnackbar({ open: true, message: t('feedback.deleted'), severity: 'success' });
     } catch (error) {
-      console.error('Error deleting item:', error);
-      setSnackbar({ open: true, message: t('feedback.deleteFailed'), severity: 'error' });
-    } finally {
-      setDeleteDialogOpen(false);
-      setItemToDelete(null);
+      setSnackbar({
+        open: true,
+        message: apiErrorMessage(
+          error instanceof PantryRequestError ? error.body : null,
+          t('feedback.deleteFailed')
+        ),
+        severity: 'error',
+      });
     }
   };
 
@@ -348,24 +274,31 @@ export default function PantryPage() {
     return matchesCategory && matchesSearch;
   });
 
-  const groupedItems = filteredItems.reduce(
-    (acc, item) => {
-      const category = item.category || 'other';
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(item);
-      return acc;
-    },
-    {} as Record<string, PantryItem[]>
-  );
+  // Ordered here rather than taken in the order the server sent: an item added or edited
+  // goes into the list where it belongs, not at the end, without the whole pantry being
+  // read again to put it there. Categories by stored value, as the server orders them.
+  const groupedItems = Object.entries(
+    filteredItems.reduce(
+      (acc, item) => {
+        const category = item.category || 'other';
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(item);
+        return acc;
+      },
+      {} as Record<string, PantryItem[]>
+    )
+  )
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(
+      ([category, categoryItems]) =>
+        [category, [...categoryItems].sort((a, b) => a.name.localeCompare(b.name))] as const
+    );
 
-  // Return null during loading - the global LoadingBar shows progress
-  // Guard clauses for loading states
-  if (authLoading) {
-    return null;
-  }
-
-  if (loading) {
-    return null;
+  // Only the first read. A write no longer re-reads the pantry, and the page used to render
+  // nothing during every read — which, with its entrance animation playing again after,
+  // made each add, edit or delete look like a reload of the page.
+  if (authLoading || (isAuthenticated && !pantry.query.data && !pantry.query.isError)) {
+    return <PantrySkeleton />;
   }
 
   // Guest user - show sign-in prompt
@@ -469,16 +402,19 @@ export default function PantryPage() {
             The failure branch comes first and deliberately does NOT invite you to add
             your first ingredient: that is the single most misleading thing this page can
             say to someone whose pantry is full and unreadable. */}
-        {loadFailed && items.length === 0 ? (
+        {loadFailed ? (
           <Alert
             severity="error"
             action={
-              <Button color="inherit" size="small" onClick={loadPantry}>
+              <Button color="inherit" size="small" onClick={() => pantry.query.refetch()}>
                 {tCommon('actions.retry')}
               </Button>
             }
           >
-            {t('feedback.loadFailed')}
+            {apiErrorMessage(
+              pantry.query.error instanceof PantryRequestError ? pantry.query.error.body : null,
+              t('feedback.loadFailed')
+            )}
           </Alert>
         ) : filteredItems.length === 0 ? (
           <Card sx={{ p: 6, textAlign: 'center' }}>
@@ -495,7 +431,7 @@ export default function PantryPage() {
           </Card>
         ) : (
           <Grid container spacing={2}>
-            {Object.entries(groupedItems).map(([category, categoryItems]) => (
+            {groupedItems.map(([category, categoryItems]) => (
               <Grid item xs={12} md={6} key={category}>
                 <MotionCard
                   initial={{ opacity: 0, y: 20 }}
@@ -643,7 +579,7 @@ export default function PantryPage() {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>{tCommon('actions.cancel')}</Button>
-            <Button onClick={handleSubmit} variant="contained">
+            <Button onClick={handleSubmit} variant="contained" disabled={pantry.saving}>
               {editingItem ? tCommon('actions.update') : tCommon('actions.add')}
             </Button>
           </DialogActions>
