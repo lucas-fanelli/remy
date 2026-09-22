@@ -1259,6 +1259,124 @@ describe('Navigation Component', () => {
       expect(mockPush).toHaveBeenCalledWith('/notifications');
     });
 
+    describe('follow requests', () => {
+      const requestNotifications: any[] = [
+        {
+          id: 'notif-req',
+          type: 'follow_request',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          sender: { id: 'sender-r', username: 'asker1', fullName: 'Asker One', avatar: null },
+        },
+        {
+          id: 'notif-acc',
+          type: 'follow_accepted',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          sender: { id: 'sender-a', username: 'owner1', fullName: 'Owner One', avatar: null },
+        },
+      ];
+
+      const poll = (pendingRequestsCount: number) => ({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          notifications: requestNotifications,
+          unreadCount: 2,
+          pendingRequestsCount,
+        }),
+      });
+
+      const notificationReads = () =>
+        mockFetch.mock.calls.filter(([url]) => url === '/api/notifications');
+
+      const openBell = async () => {
+        await waitFor(() => expect(notificationReads()).toHaveLength(1));
+        fireEvent.click(screen.getAllByRole('button', { name: /notifications/i })[0]);
+        await screen.findByText('Asker One requested to follow you');
+      };
+
+      const rowOf = (sentence: string) =>
+        screen.getByText(sentence).closest<HTMLElement>('[role="button"]')!;
+
+      it('says who asked and who accepted, each with an icon of its own', async () => {
+        mockFetch.mockResolvedValueOnce(poll(1));
+        renderWithProviders(<Navigation />);
+        await openBell();
+
+        expect(screen.getByText('Owner One accepted your follow request')).toBeInTheDocument();
+        expect(
+          within(rowOf('Asker One requested to follow you')).getByTestId('PersonAddAlt1Icon')
+        ).toBeInTheDocument();
+        expect(
+          within(rowOf('Owner One accepted your follow request')).getByTestId('HowToRegIcon')
+        ).toBeInTheDocument();
+      });
+
+      it('"requested to follow you" opens the inbox, never a profile', async () => {
+        mockFetch
+          .mockResolvedValueOnce(poll(1))
+          .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+        renderWithProviders(<Navigation />);
+        await openBell();
+
+        fireEvent.click(rowOf('Asker One requested to follow you'));
+
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/notifications/requests'));
+        expect(mockPush).not.toHaveBeenCalledWith('/profile/asker1');
+      });
+
+      it('"accepted your follow request" opens that profile, dropping the locked copy first', async () => {
+        mockFetch
+          .mockResolvedValueOnce(poll(0))
+          .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) });
+        // What the cache last saw of owner1: the lock, and "Solicitado".
+        queryClient.setQueryData(['profile', 'owner1'], {
+          visibility: 'private',
+          followState: 'requested',
+        });
+        renderWithProviders(<Navigation />);
+        await openBell();
+
+        fireEvent.click(rowOf('Owner One accepted your follow request'));
+
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/owner1'));
+        expect(queryClient.getQueryData(['profile', 'owner1'])).toBeUndefined();
+      });
+
+      it('pins the pending count above the rows, and opens the inbox from it', async () => {
+        mockFetch.mockResolvedValueOnce(poll(3));
+        renderWithProviders(<Navigation />);
+        await openBell();
+
+        expect(screen.getByText('Follow requests')).toBeInTheDocument();
+        expect(screen.getByText('3 pending requests')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('Follow requests'));
+
+        expect(mockPush).toHaveBeenCalledWith('/notifications/requests');
+        await waitFor(() =>
+          expect(screen.queryByText('3 pending requests')).not.toBeInTheDocument()
+        );
+      });
+
+      it('fetches again at once when a screen asks for a refresh', async () => {
+        mockFetch.mockResolvedValueOnce(poll(3)).mockResolvedValueOnce(poll(2));
+        renderWithProviders(<Navigation />);
+        await openBell();
+        expect(screen.getByText('3 pending requests')).toBeInTheDocument();
+        // Exactly one read on mount, as before.
+        expect(notificationReads()).toHaveLength(1);
+
+        act(() => {
+          window.dispatchEvent(new Event('remy:notifications-refresh'));
+        });
+
+        expect(await screen.findByText('2 pending requests')).toBeInTheDocument();
+        expect(notificationReads()).toHaveLength(2);
+      });
+    });
+
     it('should navigate to profile when Profile menu item is clicked - line 557', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,

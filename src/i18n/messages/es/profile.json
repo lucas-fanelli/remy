@@ -9,7 +9,9 @@
   "actions": {
     "edit": "Editar perfil",
     "follow": "Seguir",
-    "following": "Siguiendo"
+    "following": "Siguiendo",
+    "requested": "Solicitado",
+    "remove": "Eliminar"
   },
   "stats": {
     "recipes": "{count, plural, one {<value>#</value> receta} other {<value>#</value> recetas}}",
@@ -39,11 +41,24 @@
     "signInPrompt": "Iniciá sesión para ver a quién sigue",
     "loadFailed": "No pudimos cargar a quién sigue"
   },
-  "followFailed": "{action, select, unfollow {No pudimos dejar de seguir a esta persona} other {No pudimos seguir a esta persona}}",
-  "followOffline": "{action, select, unfollow {Sin conexión — seguís siguiendo a esta persona} other {Sin conexión — no empezaste a seguir a esta persona}}",
+  "followFailed": "{action, select, unfollow {No pudimos dejar de seguir a esta persona} request {No pudimos enviar la solicitud} cancel {No pudimos cancelar la solicitud} other {No pudimos seguir a esta persona}}",
+  "followOffline": "{action, select, unfollow {Sin conexión — seguís siguiendo a esta persona} request {Sin conexión — no enviamos la solicitud} cancel {Sin conexión — tu solicitud sigue pendiente} other {Sin conexión — no empezaste a seguir a esta persona}}",
   "private": {
     "title": "Este perfil es privado",
-    "body": "Sus recetas no se muestran."
+    "body": "{state, select, requested {Cuando acepte tu solicitud, vas a ver sus recetas.} other {Seguí esta cuenta para ver sus recetas.}}",
+    "viewProfile": "Ver su perfil"
+  },
+  "unfollowPrivate": {
+    "title": "¿Dejar de seguir a {name}?",
+    "body": "Es una cuenta privada: para volver a ver sus recetas vas a tener que enviarle otra solicitud.",
+    "confirm": "Dejar de seguir"
+  },
+  "removeFollower": {
+    "title": "¿Eliminar a {name} de tus seguidores?",
+    "body": "No le vamos a avisar. Si tu cuenta es privada, va a dejar de ver tus recetas.",
+    "confirm": "Eliminar",
+    "failed": "No pudimos eliminar a este seguidor",
+    "offline": "Sin conexión — sigue siendo tu seguidor"
   },
   "edit": {
     "title": "Editar perfil",
@@ -63,6 +78,7 @@
     "websitePlaceholder": "https://tusitio.com",
     "private": "Cuenta privada",
     "privateDescription": "Solo los seguidores que aceptes pueden ver tus recetas",
+    "publicAcceptsRequests": "Al hacer pública tu cuenta, aceptás todas las solicitudes pendientes.",
     "success": "¡Actualizamos tu perfil!",
     "errors": {
       "fileTooSmall": "El archivo es demasiado chico para identificarlo",

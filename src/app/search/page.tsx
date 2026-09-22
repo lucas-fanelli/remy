@@ -1,6 +1,6 @@
 'use client';
 
-import { Person, Restaurant } from '@mui/icons-material';
+import { LockOutlined, Person, Restaurant } from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -40,6 +40,9 @@ function SearchPageFallback() {
 function SearchPageContent() {
   const t = useTranslations('search');
   const tCommon = useTranslations('common');
+  // For the lock's name, 'Cuenta privada': the words on the switch that makes an account
+  // private, so the owner and the people who find them call it the same thing.
+  const tProfile = useTranslations('profile');
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
@@ -230,9 +233,28 @@ function SearchPageContent() {
                               <Person />
                             </Avatar>
                             <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                              <Typography variant="h6" noWrap>
-                                {user.username}
-                              </Typography>
+                              {/* The lock says the account is private and nothing more:
+                                  no follow button on the row (as on Instagram) — the
+                                  request is made from the profile, where the reader can
+                                  see what they are asking for. It never shrinks, so a long
+                                  name ellipsizes before the lock is lost. */}
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <Typography variant="h6" noWrap sx={{ minWidth: 0 }}>
+                                  {user.username}
+                                </Typography>
+                                {user.isPrivate && (
+                                  <LockOutlined
+                                    // titleAccess gives the icon role="img" and this name,
+                                    // so the lock is read as well as seen.
+                                    titleAccess={tProfile('edit.private')}
+                                    sx={{
+                                      fontSize: '1.125rem',
+                                      color: 'text.secondary',
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                )}
+                              </Box>
                               <Typography variant="body2" color="text.secondary" noWrap>
                                 {user.fullName || `@${user.username}`}
                               </Typography>

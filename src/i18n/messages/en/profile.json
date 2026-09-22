@@ -9,7 +9,9 @@
   "actions": {
     "edit": "Edit Profile",
     "follow": "Follow",
-    "following": "Following"
+    "following": "Following",
+    "requested": "Requested",
+    "remove": "Remove"
   },
   "stats": {
     "recipes": "{count, plural, one {<value>#</value> recipe} other {<value>#</value> recipes}}",
@@ -39,11 +41,24 @@
     "signInPrompt": "Sign in to view following",
     "loadFailed": "Failed to load following"
   },
-  "followFailed": "{action, select, unfollow {Failed to unfollow user} other {Failed to follow user}}",
-  "followOffline": "{action, select, unfollow {No connection — you're still following them} other {No connection — you're not following them}}",
+  "followFailed": "{action, select, unfollow {Failed to unfollow user} request {Failed to send the follow request} cancel {Failed to cancel the follow request} other {Failed to follow user}}",
+  "followOffline": "{action, select, unfollow {No connection — you're still following them} request {No connection — your request was not sent} cancel {No connection — your request is still pending} other {No connection — you're not following them}}",
   "private": {
     "title": "This profile is private",
-    "body": "Their recipes are not shown."
+    "body": "{state, select, requested {Once they accept your request, you'll see their recipes.} other {Follow this account to see their recipes.}}",
+    "viewProfile": "View their profile"
+  },
+  "unfollowPrivate": {
+    "title": "Unfollow {name}?",
+    "body": "This account is private: to see their recipes again you'll have to send another request.",
+    "confirm": "Unfollow"
+  },
+  "removeFollower": {
+    "title": "Remove {name} from your followers?",
+    "body": "We won't tell them. If your account is private, they will stop seeing your recipes.",
+    "confirm": "Remove",
+    "failed": "We could not remove this follower",
+    "offline": "No connection — they are still your follower"
   },
   "edit": {
     "title": "Edit Profile",
@@ -63,6 +78,7 @@
     "websitePlaceholder": "https://yourwebsite.com",
     "private": "Private Account",
     "privateDescription": "Only approved followers can see your recipes",
+    "publicAcceptsRequests": "Making your account public accepts every pending request.",
     "success": "Profile updated successfully!",
     "errors": {
       "fileTooSmall": "File is too small to identify",

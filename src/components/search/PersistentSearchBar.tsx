@@ -1,6 +1,6 @@
 'use client';
 
-import { Search as SearchIcon, Clear as ClearIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Clear as ClearIcon, LockOutlined } from '@mui/icons-material';
 import {
   Box,
   Paper,
@@ -24,15 +24,9 @@ import { useTranslations } from 'next-intl';
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useMotionContext } from '@/contexts/MotionContext';
+import type { SearchUser } from '@/hooks/useSearch';
 
 // Types for live search results
-interface SearchResultUser {
-  id: string;
-  username: string;
-  fullName?: string | null;
-  avatar?: string | null;
-}
-
 interface SearchResultRecipe {
   id: string;
   title: string;
@@ -40,7 +34,10 @@ interface SearchResultRecipe {
 }
 
 interface SearchResults {
-  users: SearchResultUser[];
+  // The route's own account type, not a copy of it: the copy promised an `id` the route
+  // never sent and knew nothing of `isPrivate`, so the rows were keyed by `undefined`
+  // and no private account could show its lock.
+  users: SearchUser[];
   recipes: SearchResultRecipe[];
 }
 
@@ -78,6 +75,9 @@ export default function PersistentSearchBar({
 }: PersistentSearchBarProps) {
   const t = useTranslations('search');
   const tCommon = useTranslations('common');
+  // For the lock's name, 'Cuenta privada': the words on the switch that makes an account
+  // private, so the owner and the people who find them call it the same thing.
+  const tProfile = useTranslations('profile');
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname(); // Used to force snap re-render on route change
@@ -501,7 +501,9 @@ export default function PersistentSearchBar({
                         <Divider sx={{ mx: 2, my: 0.5 }} />
                         <List dense disablePadding>
                           {effectiveResults.users.slice(0, 2).map((user) => (
-                            <ListItem key={`user-${user.id}`} disablePadding>
+                            // By username: /api/search sends no id, and keyed by one every
+                            // row was 'user-undefined'. A username is unique, too.
+                            <ListItem key={`user-${user.username}`} disablePadding>
                               <ListItemButton
                                 onClick={() => {
                                   setQuery(''); // Clear search input
@@ -529,7 +531,37 @@ export default function PersistentSearchBar({
                                   </Box>
                                 </ListItemIcon>
                                 <ListItemText
-                                  primary={user.fullName || user.username}
+                                  // The whole row is already the way to the profile, so a
+                                  // private account gets a lock and no follow button (as
+                                  // on Instagram): the request is made from the profile,
+                                  // where the reader can see who they are asking. A button
+                                  // here would also nest inside this ListItemButton.
+                                  primary={
+                                    <Box
+                                      component="span"
+                                      sx={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 0.5,
+                                        maxWidth: '100%',
+                                      }}
+                                    >
+                                      {user.fullName || user.username}
+                                      {user.isPrivate && (
+                                        <LockOutlined
+                                          // titleAccess gives the icon role="img" and this
+                                          // name, so the lock is read as well as seen. It
+                                          // never shrinks, so a long name wraps first.
+                                          titleAccess={tProfile('edit.private')}
+                                          sx={{
+                                            fontSize: '1em',
+                                            color: 'text.secondary',
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                      )}
+                                    </Box>
+                                  }
                                   secondary={user.fullName ? `@${user.username}` : undefined}
                                   primaryTypographyProps={{
                                     fontSize: '0.9rem',

@@ -1,18 +1,21 @@
 # Notification System Architecture
 
 ## Overview
+
 The notification system has been refactored to follow **Clean Architecture** principles with proper separation of concerns, dependency inversion, and layered design.
 
 ## Architecture Layers
 
 ### 1. Domain Layer (`src/domain/`)
+
 **Purpose**: Contains business rules, interfaces, and domain models. Framework-independent.
 
 #### Domain Types (`src/domain/types/notification.ts`)
+
 - **Notification Types**: Defines core notification domain models
   - `Notification`: Base notification entity
   - `NotificationWithSender`: Notification with populated sender details
-  - `NotificationType`: Type-safe notification types ('follow' | 'like' | 'comment' | 'rating')
+  - `NotificationType`: Type-safe notification types ('follow' | 'follow_request' | 'follow_accepted' | 'like' | 'comment' | 'rating'). The client imports this one union; it used to keep four hand-copied ones.
 
 - **DTOs (Data Transfer Objects)**:
   - `CreateNotificationDTO`: For creating notifications
@@ -21,7 +24,9 @@ The notification system has been refactored to follow **Clean Architecture** pri
   - `NotificationResponse`: API response structure
 
 #### Repository Interface (`src/domain/repositories/INotificationRepository.ts`)
+
 Defines the contract for data access operations:
+
 - `create()`: Create a new notification
 - `findById()`: Find by ID
 - `findMany()`: Query with filters and pagination
@@ -38,7 +43,9 @@ Defines the contract for data access operations:
 - `deleteOldReadNotifications()`: Cleanup old notifications
 
 #### Service Interface (`src/domain/services/INotificationService.ts`)
+
 Defines business logic operations:
+
 - `getUserNotifications()`: Get paginated notifications
 - `getUnreadNotifications()`: Get only unread
 - `markAllAsRead()`: Mark all as read
@@ -49,43 +56,63 @@ Defines business logic operations:
 - `createCommentNotification()`: Create comment notification
 - `createRatingNotification()`: Create rating notification
 - `deleteFollowNotification()`: Remove follow notification
+- `createFollowRequestNotification()` / `deleteFollowRequestNotification()`: the doorbell for a request to follow a private account
+- `createFollowAcceptedNotification()`: tells the requester they were accepted (replaces an earlier one for the pair: the unique index cannot dedupe rows whose postId is NULL)
 - `deleteLikeNotification()`: Remove like notification
 - `cleanupOldNotifications()`: Maintenance operation
 
+#### Follow requests: the table is the truth, the notification is the doorbell
+
+A request to follow a private account lives in `follow_requests`, written only by `src/lib/follows`. Its `follow_request` notification only announces it:
+
+- the inbox (`/notifications/requests`, `GET /api/follow-requests`) reads the TABLE, so a request whose notification was lost, marked read, or pushed past the dropdown's slice can still be answered;
+- `pendingRequestsCount` in `GET /api/notifications` counts the table, and drives the pinned "Solicitudes de seguimiento" row;
+- mark-all-read never resolves a request.
+
+Lifecycle (all written by `src/lib/follows`, after its transaction commits, best-effort): a new request notifies the owner; cancel, decline and accept delete that notification; accept (and the private-to-public sweep) sends `follow_accepted` to the requester; a follow of a public account keeps the plain `follow` notification; removing a follower tells nobody.
+
 ### 2. Infrastructure Layer (`src/infrastructure/`)
+
 **Purpose**: Implements domain interfaces with concrete technologies (Prisma, etc.)
 
 #### Repository Implementation (`src/infrastructure/repositories/NotificationRepository.ts`)
+
 - Implements `INotificationRepository` using Prisma ORM
 - Handles all database operations
 - Maps Prisma models to domain models
 - **Single Responsibility**: Only data access, no business logic
 
 **Key Features**:
+
 - Type-safe database queries
 - Proper error handling
 - Domain model mapping
 - Query optimization with indexes
 
 #### Service Implementation (`src/infrastructure/services/NotificationService.ts`)
+
 - Implements `INotificationService`
 - Contains business logic and rules
 - Uses `INotificationRepository` for data access
 - **Dependency Inversion**: Depends on abstractions, not concretions
 
 **Business Rules Implemented**:
+
 - Don't create notification if user interacts with own content
 - Don't create duplicate notifications for likes/ratings
 - Automatic cleanup of old notifications
 
 ### 3. Presentation Layer (`src/app/api/`)
+
 **Purpose**: Handles HTTP requests/responses
 
 #### API Route (`src/app/api/notifications/route.ts`)
+
 - **GET** `/api/notifications`: Get notifications with pagination
 - **POST** `/api/notifications`: Mark all as read
 
 **Responsibilities**:
+
 - Authentication/authorization
 - Request validation
 - Query parameter parsing
@@ -93,20 +120,20 @@ Defines business logic operations:
 - Error handling
 
 **Clean Design**:
+
 - Thin controller - delegates to service layer
 - No business logic in routes
 - Uses dependency injection container
 
 ### 4. Dependency Injection (`src/lib/container/container.ts`)
+
 Manages all dependencies using Singleton pattern:
 
 ```typescript
 // Registration
-this.services.set('INotificationRepository',
-  new NotificationRepository(prisma));
+this.services.set('INotificationRepository', new NotificationRepository(prisma));
 
-this.services.set('INotificationService',
-  new NotificationService(notificationRepository));
+this.services.set('INotificationService', new NotificationService(notificationRepository));
 
 // Usage
 const notificationService = container.getNotificationService();
@@ -115,26 +142,31 @@ const notificationService = container.getNotificationService();
 ## Benefits of This Architecture
 
 ### 1. **Testability**
+
 - Easy to mock interfaces
 - Each layer can be tested independently
 - Business logic isolated from infrastructure
 
 ### 2. **Maintainability**
+
 - Clear separation of concerns
 - Easy to understand and modify
 - Single Responsibility Principle
 
 ### 3. **Flexibility**
+
 - Easy to swap implementations (e.g., MongoDB instead of Prisma)
 - Add new notification types without changing infrastructure
 - Modify business rules in one place
 
 ### 4. **Type Safety**
+
 - Full TypeScript support
 - Compile-time error detection
 - IntelliSense support
 
 ### 5. **Scalability**
+
 - Can add caching layer without changing business logic
 - Can add event-driven notifications
 - Can add real-time notifications (WebSockets)
@@ -142,23 +174,28 @@ const notificationService = container.getNotificationService();
 ## SOLID Principles Applied
 
 ### Single Responsibility Principle (SRP)
+
 - Repository: Only data access
 - Service: Only business logic
 - API Route: Only HTTP concerns
 
 ### Open/Closed Principle (OCP)
+
 - Open for extension (new notification types)
 - Closed for modification (interfaces stay stable)
 
 ### Liskov Substitution Principle (LSP)
+
 - Any `INotificationRepository` implementation can replace another
 - Any `INotificationService` implementation can replace another
 
 ### Interface Segregation Principle (ISP)
+
 - Interfaces are focused and specific
 - Clients don't depend on methods they don't use
 
 ### Dependency Inversion Principle (DIP)
+
 - High-level modules (Service) depend on abstractions (IRepository)
 - Low-level modules (Repository) depend on abstractions (IRepository)
 - Abstractions don't depend on details
@@ -188,6 +225,7 @@ Client Response
 ## Example Usage
 
 ### Creating a Notification
+
 ```typescript
 // In follow route
 const notificationService = container.getNotificationService();
@@ -195,6 +233,7 @@ await notificationService.createFollowNotification(followerId, followingId);
 ```
 
 ### Getting Notifications
+
 ```typescript
 // In API route
 const notificationService = container.getNotificationService();
@@ -203,6 +242,7 @@ const result = await notificationService.getUserNotifications(userId, 50, 0);
 ```
 
 ### Marking as Read
+
 ```typescript
 const notificationService = container.getNotificationService();
 await notificationService.markAllAsRead(userId);
@@ -211,6 +251,7 @@ await notificationService.markAllAsRead(userId);
 ## Migration Guide
 
 ### Old Approach (Direct Prisma in Route)
+
 ```typescript
 // ❌ Bad: Business logic + data access in route
 const notifications = await prisma.notification.findMany({
@@ -220,6 +261,7 @@ const notifications = await prisma.notification.findMany({
 ```
 
 ### New Approach (Layered Architecture)
+
 ```typescript
 // ✅ Good: Separation of concerns
 const notificationService = container.getNotificationService();
@@ -239,6 +281,7 @@ const result = await notificationService.getUserNotifications(userId);
 ## Testing
 
 ### Unit Tests
+
 ```typescript
 // Test repository with mocked Prisma
 // Test service with mocked repository
@@ -246,6 +289,7 @@ const result = await notificationService.getUserNotifications(userId);
 ```
 
 ### Integration Tests
+
 ```typescript
 // Test full flow from API to database
 // Use test database

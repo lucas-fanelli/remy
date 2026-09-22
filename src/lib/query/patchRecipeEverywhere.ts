@@ -209,8 +209,9 @@ const matchesAdapter = namedListsAdapter(
 );
 
 /**
- * `{ visibility, user, stats, recipes, savedRecipes, isFollowing }` under
- * `['profile', username]` — what `useProfile` stores, not what the route sends.
+ * `{ visibility, user, stats, recipes?, savedRecipes?, followState }` under
+ * `['profile', username]` — what `useProfile` stores, not what the route sends. A locked
+ * profile has no lists, and the adapter leaves it alone.
  *
  * `user` sits right beside the lists and has an `id` too. Naming the fields is what keeps
  * a heart away from the person whose profile it is.

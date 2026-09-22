@@ -24,6 +24,7 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -34,6 +35,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { useToast } from '@/contexts/ToastContext';
+import { FOLLOW_REQUESTS_PATH, afterRequestAccepted } from '@/hooks/useFollowRequests';
 import { useNotificationPolling } from '@/hooks/useNotificationPolling';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { cloudinaryImage } from '@/lib/utils/cloudinary';
@@ -44,10 +46,11 @@ import MobileDrawer from './navigation/MobileDrawer';
 import NotificationDropdown from './navigation/NotificationDropdown';
 import { clearRecipeDraft, recipeDraftKey } from './recipe/form/useRecipeDraft';
 import PersistentSearchBar from './search/PersistentSearchBar';
+import type { NotificationType } from '@/domain/types/notification';
 
 interface Notification {
   id: string;
-  type: 'follow' | 'like' | 'comment' | 'rating';
+  type: NotificationType;
   isRead: boolean;
   createdAt: string;
   sender: {
@@ -87,6 +90,7 @@ export default function Navigation() {
   const isSmallDesktop = useMediaQuery(theme.breakpoints.down('lg'));
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, logout, isAdmin } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
   const { openCreate } = useCreateRecipeDialog();
@@ -98,6 +102,7 @@ export default function Navigation() {
   const {
     notifications,
     unreadCount: unreadNotifications,
+    pendingRequestsCount,
     fetchNotifications: _fetchNotifications,
     markAllAsRead,
     markingAsRead,
@@ -205,7 +210,15 @@ export default function Navigation() {
       );
       setUnreadNotifications((prev) => Math.max(0, prev - 1));
     }
-    if (notification.type === 'follow') {
+    // /notifications routes the same way; the two lists open the same rows.
+    if (notification.type === 'follow_request') {
+      // The inbox, where requests are answered. Never buttons on this row: it is a button.
+      router.push(FOLLOW_REQUESTS_PATH);
+    } else if (notification.type === 'follow' || notification.type === 'follow_accepted') {
+      // An accepted request opens a profile the cache last saw locked: see afterRequestAccepted.
+      if (notification.type === 'follow_accepted') {
+        afterRequestAccepted(queryClient, notification.sender.username, user?.username);
+      }
       router.push(`/profile/${notification.sender.username}`);
     } else if (notification.postId) {
       router.push(`/recipe/${notification.postId}`);
@@ -385,6 +398,7 @@ export default function Navigation() {
           onClose={handleNotificationsClose}
           notifications={notifications}
           unreadCount={unreadNotifications}
+          pendingRequestsCount={pendingRequestsCount}
           markAllAsRead={markAllAsRead}
           markingAsRead={markingAsRead}
           mounted={mounted}
@@ -437,6 +451,7 @@ export default function Navigation() {
         onClose={handleNotificationsClose}
         notifications={notifications}
         unreadCount={unreadNotifications}
+        pendingRequestsCount={pendingRequestsCount}
         markAllAsRead={markAllAsRead}
         markingAsRead={markingAsRead}
         mounted={mounted}
