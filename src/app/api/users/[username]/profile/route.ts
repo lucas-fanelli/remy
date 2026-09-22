@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken } from '@/lib/api/auth';
+import { engagementCounts } from '@/lib/api/engagementCounts';
 import { loadViewerState } from '@/lib/api/viewerState';
 import { USERNAME_REGEX } from '@/lib/constants';
 import prisma from '@/lib/database/prisma';
+import { canViewContentOf, visiblePostsWhere } from '@/lib/privacy/visibility';
 import { extractAuthToken } from '@/lib/utils/auth';
 import { logServerError } from '@/lib/utils/logger';
 import { safeRating } from '@/lib/utils/recipe';
@@ -70,7 +72,10 @@ export async function GET(
       }
     }
 
-    // Single query to get user with all related data
+    // The header only: who this is, whether the account is private, and the three counts.
+    // The recipes are read further down, once the viewer is known to be allowed them. They
+    // used to ride along here as a nested `posts` select, so every stranger who opened a
+    // private profile had its recipes loaded from the database and then thrown away.
     const user = await prisma.user.findUnique({
       where: { username },
       select: {
@@ -89,30 +94,6 @@ export async function GET(
             following: true,
           },
         },
-        posts: {
-          orderBy: { createdAt: 'desc' },
-          take: postsLimit,
-          skip: postsOffset,
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            imageUrl: true,
-            difficulty: true,
-            cookingTime: true,
-            prepTime: true,
-            servings: true,
-            averageRating: true,
-            reviewCount: true,
-            createdAt: true,
-            _count: {
-              select: {
-                likes: true,
-                comments: true,
-              },
-            },
-          },
-        },
       },
     });
 
@@ -122,8 +103,9 @@ export async function GET(
 
     const isOwnProfile = currentUserId === user.id;
 
-    // Enforce privacy - return limited info for private profiles viewed by non-owners
-    if (user.isPrivate && !isOwnProfile) {
+    // A private profile, for a viewer the rule keeps out: the person and none of their
+    // recipes. The website stays off this view too, as it always has.
+    if (!(await canViewContentOf(prisma, currentUserId, user))) {
       return NextResponse.json({
         user: {
           id: user.id,
@@ -138,6 +120,34 @@ export async function GET(
         isPrivateProfile: true,
       });
     }
+
+    // Past the decision, the recipes: the ones this profile published, read in parallel with
+    // the conditional queries below.
+    const postsPromise = prisma.post.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: postsLimit,
+      skip: postsOffset,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        difficulty: true,
+        cookingTime: true,
+        prepTime: true,
+        servings: true,
+        averageRating: true,
+        reviewCount: true,
+        createdAt: true,
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
 
     // Build response with parallel queries for conditional data
     let isFollowing: boolean | undefined = undefined;
@@ -163,7 +173,10 @@ export async function GET(
     if (isOwnProfile && currentUserId) {
       savedRecipesPromise = prisma.savedRecipe
         .findMany({
-          where: { userId: currentUserId },
+          // Only the saves whose recipe the viewer can still see: someone else's recipe
+          // saved before its author went private drops out of the tab. The save itself
+          // stays in the database, and the recipe comes back here if access does.
+          where: { userId: currentUserId, post: { AND: [visiblePostsWhere(currentUserId)] } },
           take: savedLimit,
           skip: savedOffset,
           include: {
@@ -207,8 +220,7 @@ export async function GET(
             cookingTime: s.post.cookingTime,
             prepTime: s.post.prepTime,
             servings: s.post.servings,
-            likesCount: s.post._count.likes,
-            commentsCount: s.post._count.comments,
+            ...engagementCounts(s.post._count),
             createdAt: s.post.createdAt,
             averageRating: safeRating(s.post.averageRating),
             totalRatings: s.post.reviewCount ?? 0,
@@ -220,8 +232,9 @@ export async function GET(
         );
     }
 
-    // Run conditional queries in parallel
-    const [isFollowingResult, savedRecipesResult] = await Promise.all([
+    // Run the recipes and the conditional queries in parallel
+    const [posts, isFollowingResult, savedRecipesResult] = await Promise.all([
+      postsPromise,
       isFollowingPromise ?? Promise.resolve(undefined),
       savedRecipesPromise ?? Promise.resolve(undefined),
     ]);
@@ -233,12 +246,12 @@ export async function GET(
     // hearts on those cards, which is why this is keyed on the reader and not on the owner.
     const savedList = (savedRecipes ?? []) as { id: string }[];
     const viewerState = await loadViewerState(currentUserId, [
-      ...user.posts.map((p) => p.id),
+      ...posts.map((p) => p.id),
       ...savedList.map((r) => r.id),
     ]);
 
     // Format recipes using cached rating values from post record
-    const recipes = user.posts.map((recipe) => ({
+    const recipes = posts.map((recipe) => ({
       id: recipe.id,
       title: recipe.title,
       description: recipe.description,
@@ -247,8 +260,7 @@ export async function GET(
       cookingTime: recipe.cookingTime,
       prepTime: recipe.prepTime,
       servings: recipe.servings,
-      likesCount: recipe._count.likes,
-      commentsCount: recipe._count.comments,
+      ...engagementCounts(recipe._count),
       createdAt: recipe.createdAt,
       averageRating: safeRating(recipe.averageRating),
       totalRatings: recipe.reviewCount ?? 0,

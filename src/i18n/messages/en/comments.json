@@ -24,6 +24,7 @@
     "updateFailed": "Failed to update comment",
     "deleteFailed": "Failed to delete comment",
     "invalidType": "Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.",
-    "tooLarge": "Image too large. Maximum size is 5MB."
+    "tooLarge": "Image too large. Maximum size is 5MB.",
+    "loadFailed": "We could not load the comments"
   }
 }

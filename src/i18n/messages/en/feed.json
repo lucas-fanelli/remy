@@ -43,9 +43,7 @@
   "toasts": {
     "deleted": "Recipe deleted successfully",
     "deleteFailed": "Failed to delete recipe",
-    "updated": "Recipe updated successfully",
-    "loginToLike": "Please log in to like recipes",
-    "likeFailed": "Failed to update like"
+    "updated": "Recipe updated successfully"
   },
   "matches": {
     "title": "Recipes Based on Your Pantry",
@@ -67,5 +65,8 @@
     "missing": "{count, plural, one {Missing} other {Missing}}: {names}",
     "noReady": "No recipes match 100% with your pantry yet. Check the “Almost There” tab for recipes you're close to making!",
     "noAlmost": "No recipes are close to matching. Add more ingredients to your pantry!"
+  },
+  "states": {
+    "loadFailed": "We could not load the recipes"
   }
 }

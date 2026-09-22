@@ -33,19 +33,3 @@ export interface IngredientData {
   category: string;
   createdAt: Date;
 }
-
-export interface RecipeMatch {
-  recipe: any; // Will use Recipe type
-  matchPercentage: number;
-  missingIngredients: string[];
-  hasAllIngredients: boolean;
-  matchedIngredients: string[];
-}
-
-export interface IngredientMatchFilters {
-  difficulty?: string;
-  maxCookingTime?: number;
-  minMatchPercentage?: number; // Only show recipes with at least X% match
-  dietary?: string[];
-  mealType?: string;
-}

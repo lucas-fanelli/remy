@@ -1,7 +1,9 @@
 {
   "states": {
     "notFound": "No encontramos la receta",
-    "loadFailed": "No pudimos cargar la receta"
+    "loadFailed": "No pudimos cargar la receta",
+    "private": "Esta receta es de @{username}, que tiene la cuenta privada.",
+    "viewAuthor": "Ver su perfil"
   },
   "meta": {
     "difficulty": "{level, select, easy {fácil} medium {media} hard {difícil} other {{level}}}",
@@ -51,7 +53,7 @@
     "copyManually": "No podemos copiar el enlace — copiá la URL a mano",
     "deleteFailed": "No pudimos eliminar la receta",
     "deleted": "¡Receta eliminada!",
-    "likeFailed": "No pudimos marcar me gusta",
+    "likeFailed": "No pudimos actualizar tu me gusta",
     "liked": "¡Te gusta esta receta!",
     "linkCopied": "¡Enlace copiado!",
     "loginToCook": "Iniciá sesión para marcar recetas como cocinadas",
@@ -65,7 +67,12 @@
     "undoFailed": "No se pudo deshacer",
     "unliked": "Sacaste tu me gusta",
     "unsaved": "Receta quitada de guardadas",
-    "updated": "¡Receta actualizada!"
+    "updated": "¡Receta actualizada!",
+    "likeOffline": "Sin conexión — el me gusta no se marcó",
+    "saveOffline": "Sin conexión — no se guardó",
+    "unlikeOffline": "Sin conexión — el me gusta sigue puesto",
+    "unsaveOffline": "Sin conexión — sigue en tus guardadas",
+    "unsaveFailed": "No pudimos quitarla de guardadas"
   },
   "card": {
     "comments": "Comentarios",
@@ -75,7 +82,9 @@
     "edit": "Editar receta",
     "like": "Me gusta",
     "options": "opciones de la receta",
-    "unlike": "Ya no me gusta"
+    "save": "Guardar",
+    "unlike": "Ya no me gusta",
+    "unsave": "Quitar de guardadas"
   },
   "cookDialog": {
     "cancel": "Cancelar",

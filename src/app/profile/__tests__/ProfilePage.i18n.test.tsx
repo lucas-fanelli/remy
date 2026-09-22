@@ -1,5 +1,7 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { renderWithLocale } from '@/i18n/testing';
 import ProfilePage from '../[username]/page';
 
@@ -27,6 +29,21 @@ jest.mock('next/navigation', () => ({
 }));
 
 const mockFetch = jest.fn();
+
+/** The page reads through React Query now, and a follow that fails says so in a toast. */
+const renderInSpanish = (ui: React.ReactElement) =>
+  renderWithLocale(
+    (element) =>
+      render(
+        <QueryClientProvider
+          client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+        >
+          <ToastProvider>{element}</ToastProvider>
+        </QueryClientProvider>
+      ),
+    'es',
+    ui
+  );
 
 /**
  * A stat is one paragraph made of two nodes - the bold figure the `<value>` tag wraps and
@@ -58,7 +75,7 @@ describe('Profile page in Spanish', () => {
       profileResponse({ recipesCount: 3, followersCount: 1, followingCount: 5 })
     );
 
-    renderWithLocale(render, 'es', <ProfilePage />);
+    renderInSpanish(<ProfilePage />);
 
     expect(await findStat('3 recetas')).toBeInTheDocument();
     expect(await findStat('1 seguidor')).toBeInTheDocument();
@@ -70,7 +87,7 @@ describe('Profile page in Spanish', () => {
       profileResponse({ recipesCount: 1, followersCount: 2, followingCount: 0 })
     );
 
-    renderWithLocale(render, 'es', <ProfilePage />);
+    renderInSpanish(<ProfilePage />);
 
     expect(await findStat('1 receta')).toBeInTheDocument();
     expect(await findStat('2 seguidores')).toBeInTheDocument();
@@ -81,7 +98,7 @@ describe('Profile page in Spanish', () => {
       profileResponse({ recipesCount: 0, followersCount: 0, followingCount: 0 })
     );
 
-    renderWithLocale(render, 'es', <ProfilePage />);
+    renderInSpanish(<ProfilePage />);
 
     expect(await screen.findByText('Recetas')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Seguir' })).toBeInTheDocument();
@@ -102,7 +119,7 @@ describe('Profile page in Spanish', () => {
       ])
     );
 
-    renderWithLocale(render, 'es', <ProfilePage />);
+    renderInSpanish(<ProfilePage />);
 
     expect(await screen.findByText('fácil')).toBeInTheDocument();
   });
@@ -110,7 +127,7 @@ describe('Profile page in Spanish', () => {
   it('should explain a missing profile in Spanish', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404, json: async () => ({}) });
 
-    renderWithLocale(render, 'es', <ProfilePage />);
+    renderInSpanish(<ProfilePage />);
 
     expect(await screen.findByText('No encontramos a esta persona')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Volver al inicio' })).toBeInTheDocument();
