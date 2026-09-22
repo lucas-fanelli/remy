@@ -35,8 +35,9 @@ import {
   type FeedPage,
   type FeedRecipe,
 } from '@/hooks/useFeed';
-import { useLike } from '@/hooks/useViewerMutation';
+import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
+import { removeRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
 import EditRecipeModal from './EditRecipeModal';
 import RecipeCard from './RecipeCard';
 
@@ -189,9 +190,11 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
         throw new Error(apiErrorMessage(error, t('toasts.deleteFailed')));
       }
 
-      // Out of every cached filter set, not just the one on screen: a recipe that no
-      // longer exists must not be sitting in the cache behind a filter you switch back to.
-      patchFeedCache((list) => list.filter((r) => r.id !== recipeToDelete.id));
+      // Out of every cached list, not just the one on screen: every feed filter set, and
+      // the matches beside it, a profile, a search. This used to reach the feed's filter
+      // sets only, so the recipe stayed on its author's profile and in the pantry matches
+      // on this very page.
+      removeRecipeEverywhere(queryClient, recipeToDelete.id);
 
       setSnackbar({
         open: true,
@@ -241,12 +244,12 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   };
 
   /**
-   * Apply a change to every cached feed page, across every filter set.
+   * Apply an edit to every cached feed page, across every filter set, so the card on
+   * screen shows it at once.
    *
-   * Deleting and editing are still the feed’s own business — they are not viewer state —
-   * but they now have to reach the cache rather than a local array. Across filter sets on
-   * purpose: a recipe you just deleted must not still be sitting behind a filter you
-   * switch back to.
+   * Only the feed's copy: every other list was marked stale by useUpdateRecipe and
+   * refetches when shown. Deleting used to go through here too and so reached the feed
+   * alone; it goes through `removeRecipeEverywhere` now.
    */
   const patchFeedCache = useCallback(
     (update: (recipes: FeedRecipe[]) => FeedRecipe[]) => {
@@ -277,6 +280,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
    * `undefined`, which the specs fall back through rather than blanking the flag.
    */
   const likeToggle = useLike();
+  const saveToggle = useSave();
 
   return (
     <Box>
@@ -427,6 +431,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
                   // No `onClick`: the title is a real anchor to this same place now, so
                   // the card opens in a new tab, takes keyboard focus and has an href.
                   onLike={() => likeToggle.toggle(recipe.id)}
+                  onSave={() => saveToggle.toggle(recipe.id)}
                   onComment={() => router.push(`/recipe/${recipe.id}#comments`)}
                   onEdit={() => handleEditClick(recipe)}
                   onDelete={() => handleDeleteClick(recipe)}

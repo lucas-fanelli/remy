@@ -1,5 +1,7 @@
+import { callHook, testQueryClient } from '@/__tests__/helpers/queryClient';
 import { CreateRecipeDTO } from '@/domain/types/recipe';
 import { RecipeSubmitError } from '@/lib/errors/RecipeSubmitError';
+import { queryKeys } from '@/lib/query/keys';
 import { useCreateRecipe } from '../useCreateRecipe';
 
 // The most a caller may hand over: userId is a placeholder (the editor's toPayload() sends
@@ -32,7 +34,7 @@ describe('useCreateRecipe', () => {
   });
 
   it('should not send userId, which the strict API schema rejects', async () => {
-    const createRecipe = useCreateRecipe();
+    const createRecipe = callHook(() => useCreateRecipe());
 
     await createRecipe(createFormData());
 
@@ -40,7 +42,7 @@ describe('useCreateRecipe', () => {
   });
 
   it('should omit the image of steps that have no photo', async () => {
-    const createRecipe = useCreateRecipe();
+    const createRecipe = callHook(() => useCreateRecipe());
 
     await createRecipe(createFormData());
 
@@ -49,7 +51,7 @@ describe('useCreateRecipe', () => {
 
   it('should keep the image of steps that have a photo', async () => {
     const image = 'https://res.cloudinary.com/demo/image/upload/recipes/step.jpg';
-    const createRecipe = useCreateRecipe();
+    const createRecipe = callHook(() => useCreateRecipe());
 
     await createRecipe(
       createFormData({ instructions: [{ step: 1, description: 'Armar las capas', image }] })
@@ -59,7 +61,7 @@ describe('useCreateRecipe', () => {
   });
 
   it('should send the headers required by the CSRF middleware', async () => {
-    const createRecipe = useCreateRecipe();
+    const createRecipe = callHook(() => useCreateRecipe());
 
     await createRecipe(createFormData());
 
@@ -74,7 +76,7 @@ describe('useCreateRecipe', () => {
 
   it('should call onSuccess and return the created recipe', async () => {
     const onSuccess = jest.fn();
-    const createRecipe = useCreateRecipe(onSuccess);
+    const createRecipe = callHook(() => useCreateRecipe(onSuccess));
 
     const result = await createRecipe(createFormData());
 
@@ -82,10 +84,44 @@ describe('useCreateRecipe', () => {
     expect(result).toEqual({ recipe: { id: 'r1' } });
   });
 
+  describe('the lists that could show it', () => {
+    // Publishing and going home inside the feed's 60-second freshness window showed the
+    // feed without the recipe just published: this hook said there was nothing to
+    // invalidate, which stopped being true when the lists joined the cache.
+    const feedKey = queryKeys.feed({ difficulty: 'all', time: 'any', sort: 'newest' });
+
+    const seeded = () => {
+      const client = testQueryClient();
+      client.setQueryData(feedKey, { pages: [{ recipes: [] }], pageParams: [0] });
+      client.setQueryData(queryKeys.profile('ana'), { visibility: 'private', user: {} });
+      return client;
+    };
+
+    it('marks every one of them out of date once the recipe exists', async () => {
+      const client = seeded();
+      const createRecipe = callHook(() => useCreateRecipe(), client);
+
+      await createRecipe(createFormData());
+
+      expect(client.getQueryState(feedKey)?.isInvalidated).toBe(true);
+      expect(client.getQueryState(queryKeys.profile('ana'))?.isInvalidated).toBe(true);
+    });
+
+    it('leaves them alone when nothing was created', async () => {
+      mockFetch.mockResolvedValue({ ok: false, json: async () => ({ error: 'Invalid url' }) });
+      const client = seeded();
+      const createRecipe = callHook(() => useCreateRecipe(), client);
+
+      await expect(createRecipe(createFormData())).rejects.toThrow();
+
+      expect(client.getQueryState(feedKey)?.isInvalidated).toBe(false);
+    });
+  });
+
   it('should throw the API error message and skip onSuccess when the request fails', async () => {
     mockFetch.mockResolvedValue({ ok: false, json: async () => ({ error: 'Invalid url' }) });
     const onSuccess = jest.fn();
-    const createRecipe = useCreateRecipe(onSuccess);
+    const createRecipe = callHook(() => useCreateRecipe(onSuccess));
 
     await expect(createRecipe(createFormData())).rejects.toThrow('Invalid url');
     expect(onSuccess).not.toHaveBeenCalled();
@@ -100,7 +136,7 @@ describe('useCreateRecipe', () => {
         headers: { get: () => null },
       });
 
-    const createRecipe = useCreateRecipe();
+    const createRecipe = callHook(() => useCreateRecipe());
 
     const submitError = async (): Promise<RecipeSubmitError> =>
       createRecipe(createFormData()).then(
@@ -170,7 +206,7 @@ describe('useCreateRecipe', () => {
     it('should skip onSuccess when the request never got a response', async () => {
       mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
       const onSuccess = jest.fn();
-      const createRecipe = useCreateRecipe(onSuccess);
+      const createRecipe = callHook(() => useCreateRecipe(onSuccess));
 
       await createRecipe(createFormData()).catch(() => undefined);
 
