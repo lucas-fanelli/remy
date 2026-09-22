@@ -34,6 +34,13 @@ beforeEach(() => {
   if (mockI18nHarness) mockI18nHarness.resetTestLocale();
 });
 
+// A delete waiting out its Undo window lives in module state (src/lib/undo/deferredDeletes).
+// Left alone it outlasts the test that started it: it keeps hiding that recipe in the next
+// test, and when its timer fires it sends a DELETE into a test that never asked for one.
+afterEach(() => {
+  require('@/lib/undo/deferredDeletes').resetDeferredDeletesForTests();
+});
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {

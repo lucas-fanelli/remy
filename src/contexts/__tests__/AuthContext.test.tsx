@@ -2,6 +2,7 @@ import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/re
 import React from 'react';
 import '@testing-library/jest-dom';
 import { queryKeys } from '@/lib/query/keys';
+import { deferDelete } from '@/lib/undo/deferredDeletes';
 import { getQueryClient } from '@/providers/QueryProvider';
 import { AuthProvider, useAuth } from '../AuthContext';
 
@@ -343,6 +344,31 @@ describe('AuthContext', () => {
   });
 
   describe('Logout', () => {
+    it('sends a delete still waiting out its Undo before the session goes', async () => {
+      // Once signed out there is no session to send it with, and it would be lost.
+      mockAuthenticatedMount();
+      render(
+        <AuthProvider>
+          <AuthActions />
+        </AuthProvider>
+      );
+      await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+      const order: string[] = [];
+      const commit = jest.fn(async () => {
+        order.push('delete');
+      });
+      deferDelete({ key: 'pantry:1', hide() {}, restore() {}, commit, onFailed() {} });
+      mockFetch.mockImplementation(async (url: string) => {
+        if (url === '/api/auth/logout') order.push('logout');
+        return { ok: true, json: async () => ({ success: true }) };
+      });
+
+      fireEvent.click(screen.getByText('Logout'));
+
+      await waitFor(() => expect(order).toEqual(['delete', 'logout']));
+      expect(commit).toHaveBeenCalledWith({ keepalive: true });
+    });
+
     it('should clear user and token on logout', async () => {
       mockAuthenticatedMount();
 

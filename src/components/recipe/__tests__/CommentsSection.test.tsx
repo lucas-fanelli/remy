@@ -1,7 +1,9 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { sendWaitingDelete } from '@/lib/undo/deferredDeletes';
 import CommentsSection from '../CommentsSection';
 
 // Speed up waitFor - aggressive timeout
@@ -39,8 +41,16 @@ jest.mock('framer-motion', () => {
 const mockTheme = createTheme();
 
 const renderWithProviders = (component: React.ReactElement) => {
-  return render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
+  // The toast is how a delete offers Undo, and says when it failed.
+  return render(
+    <ThemeProvider theme={mockTheme}>
+      <ToastProvider>{component}</ToastProvider>
+    </ThemeProvider>
+  );
 };
+
+/** The Undo window passing without anyone pressing Undo. */
+const letUndoPass = () => act(async () => sendWaitingDelete());
 
 const mockComment = {
   id: '1',
@@ -1026,18 +1036,14 @@ describe('CommentsSection Component', () => {
       });
     });
 
-    it('should not delete comment when canceling delete confirmation', async () => {
-      // This test verifies that canceling the delete confirmation prevents deletion (lines 180-182)
-      global.confirm = jest.fn(() => false);
-
+    /** Your own comment on screen, then "Delete" from its menu — no "are you sure?" after. */
+    async function deleteOwnComment(text: string) {
       const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
       const userComment = {
         ...mockComment,
-        id: 'comment-to-keep',
-        text: 'Comment to keep',
+        text,
         user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
       };
-
       mockUseAuth.mockReturnValue({ token: null, user: testUser });
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -1045,111 +1051,48 @@ describe('CommentsSection Component', () => {
       });
 
       renderWithProviders(<CommentsSection recipeId="recipe1" />);
+      expect(await screen.findByText(text)).toBeInTheDocument();
 
-      // Wait for comment to appear
-      await waitFor(() => {
-        expect(screen.getByText('Comment to keep')).toBeInTheDocument();
-      });
+      const moreButton = screen
+        .getAllByRole('button')
+        .find((btn) => btn.querySelector('svg')?.getAttribute('data-testid') === 'MoreVertIcon');
+      fireEvent.click(moreButton!);
+      fireEvent.click(await screen.findByRole('menuitem', { name: /delete/i }));
+      return userComment;
+    }
 
-      const initialCallCount = mockFetch.mock.calls.length;
+    const commentDeletes = () =>
+      mockFetch.mock.calls.filter(([, init]) => init?.method === 'DELETE').map(([url]) => url);
 
-      // Open menu
-      const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
-      });
+    it('takes a comment away at once, offers Undo, and sends the delete only after', async () => {
+      const comment = await deleteOwnComment('Comment to delete');
 
-      expect(moreButton).toBeDefined();
-      if (moreButton) {
-        fireEvent.click(moreButton);
-
-        // Wait for menu and click delete
-        await waitFor(() => {
-          expect(screen.getByRole('menuitem', { name: /delete/i })).toBeInTheDocument();
-        });
-
-        const deleteMenuItem = screen.getByRole('menuitem', { name: /delete/i });
-        fireEvent.click(deleteMenuItem);
-
-        // Delete confirmation dialog should appear
-        await waitFor(() => {
-          expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
-        });
-
-        // Click Cancel button
-        const cancelButton = screen.getByRole('button', { name: /cancel/i });
-        fireEvent.click(cancelButton);
-
-        // No additional API calls should have been made since we canceled
-        expect(mockFetch.mock.calls.length).toBe(initialCallCount);
-      }
-    });
-
-    it('should delete comment when confirming delete', async () => {
-      const testUser = { id: 'user123', username: 'testuser', email: 'test@example.com' };
-      const userComment = {
-        ...mockComment,
-        text: 'Comment to delete',
-        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
-      };
-
-      mockUseAuth.mockReturnValue({ token: null, user: testUser });
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [userComment] }),
-      });
-
-      renderWithProviders(<CommentsSection recipeId="recipe1" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Comment to delete')).toBeInTheDocument();
-      });
-
-      // Open menu and click delete
-      const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
-      });
-      if (moreButton) fireEvent.click(moreButton);
-
-      await waitFor(() => {
-        const menuItems = screen.getAllByRole('menuitem');
-        if (menuItems.length > 1) {
-          fireEvent.click(menuItems[1]); // Second menu item is Delete
-        }
-      });
-
-      // Delete confirmation dialog should appear
-      await waitFor(() => {
-        expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
-      });
-
-      // Mock DELETE response
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({}),
-      });
-
-      // Click Delete button to confirm
-      const deleteButton = screen.getByRole('button', { name: /delete/i });
-      fireEvent.click(deleteButton);
-
-      // Verify DELETE request
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          `/api/recipes/recipe1/comments/${userComment.id}`,
-          expect.objectContaining({
-            method: 'DELETE',
-          })
-        );
-      });
-
-      // Comment should be removed
       await waitFor(() => {
         expect(screen.queryByText('Comment to delete')).not.toBeInTheDocument();
       });
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByText('Comment deleted')).toBeInTheDocument();
+      expect(commentDeletes()).toEqual([]);
+
+      mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+      await letUndoPass();
+
+      expect(commentDeletes()).toEqual([`/api/recipes/recipe1/comments/${comment.id}`]);
+      expect(screen.queryByText('Comment to delete')).not.toBeInTheDocument();
+    });
+
+    it('puts the comment back, and sends nothing, when the reader presses Undo', async () => {
+      await deleteOwnComment('Comment to keep');
+      await waitFor(() => {
+        expect(screen.queryByText('Comment to keep')).not.toBeInTheDocument();
+      });
+
+      await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+      expect(await screen.findByText('Comment to keep')).toBeInTheDocument();
+      await letUndoPass();
+      expect(commentDeletes()).toEqual([]);
     });
 
     // Additional coverage tests for uncovered lines
@@ -1288,135 +1231,29 @@ describe('CommentsSection Component', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle delete comment error when response is not ok - lines 223-225', async () => {
-      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({
-        token: null,
-        user: testUser,
-      });
-
-      const userComment = {
-        id: '4',
-        text: 'Comment to delete',
-        rating: 4,
-        createdAt: new Date().toISOString(),
-        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [userComment] }),
-      });
-
-      renderWithProviders(<CommentsSection recipeId="recipe1" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Comment to delete')).toBeInTheDocument();
-      });
-
-      // Open menu - find by MoreVertIcon
-      const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
-      });
-      expect(moreButton).toBeDefined();
-      if (moreButton) {
-        fireEvent.click(moreButton);
-      }
-
-      // Click delete option
-      await waitFor(() => {
-        const menuItems = screen.getAllByRole('menuitem');
-        if (menuItems.length > 1) {
-          fireEvent.click(menuItems[1]); // Delete is second
-        }
-      });
-
-      // Confirm delete
-      await waitFor(() => {
-        expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
-      });
-
-      // Mock DELETE response with error
+    it('puts the comment back, and says what the server said, when it refuses the delete', async () => {
+      await deleteOwnComment('Comment to delete');
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Custom delete error' }),
       });
 
-      const deleteButton = screen.getByRole('button', { name: /^delete$/i });
-      fireEvent.click(deleteButton);
+      await letUndoPass();
 
-      // Check for error message
-      await waitFor(() => {
-        expect(screen.getByText('Custom delete error')).toBeInTheDocument();
-      });
+      expect(await screen.findByText('Custom delete error')).toBeInTheDocument();
+      expect(screen.getByText('Comment to delete')).toBeInTheDocument();
     });
 
-    it('should handle delete comment exception - lines 226-228', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      const testUser = { id: 'user1', username: 'testuser', email: 'test@example.com' };
-      mockUseAuth.mockReturnValue({
-        token: null,
-        user: testUser,
-      });
+    it('says the comment is still there when the delete fails for want of a connection', async () => {
+      await deleteOwnComment('Comment to delete');
+      mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
-      const userComment = {
-        id: '5',
-        text: 'Comment to delete',
-        rating: 4,
-        createdAt: new Date().toISOString(),
-        user: { id: testUser.id, username: testUser.username, avatar: '/avatar.jpg' },
-      };
+      await letUndoPass();
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ comments: [userComment] }),
-      });
-
-      renderWithProviders(<CommentsSection recipeId="recipe1" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Comment to delete')).toBeInTheDocument();
-      });
-
-      // Open menu - find by MoreVertIcon
-      const moreButtons = screen.getAllByRole('button');
-      const moreButton = moreButtons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg && svg.getAttribute('data-testid') === 'MoreVertIcon';
-      });
-      expect(moreButton).toBeDefined();
-      if (moreButton) {
-        fireEvent.click(moreButton);
-      }
-
-      // Click delete option
-      await waitFor(() => {
-        const menuItems = screen.getAllByRole('menuitem');
-        if (menuItems.length > 1) {
-          fireEvent.click(menuItems[1]);
-        }
-      });
-
-      // Confirm delete
-      await waitFor(() => {
-        expect(screen.getByText(/delete selected comment/i)).toBeInTheDocument();
-      });
-
-      // Mock DELETE response with exception
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-      const deleteButton = screen.getByRole('button', { name: /^delete$/i });
-      fireEvent.click(deleteButton);
-
-      // Check for error message and console.error
-      await waitFor(() => {
-        expect(screen.getByText('Failed to delete comment')).toBeInTheDocument();
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error deleting comment:', expect.any(Error));
-      });
-
-      consoleErrorSpy.mockRestore();
+      expect(
+        await screen.findByText('No connection — your comment is still there')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Comment to delete')).toBeInTheDocument();
     });
 
     it('should close menu when clicking a menu item - line 488', async () => {

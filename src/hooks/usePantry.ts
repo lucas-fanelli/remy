@@ -1,7 +1,11 @@
 'use client';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
+import { useToast } from '@/contexts/ToastContext';
 import { readBody } from '@/lib/api/readBody';
+import { useApiErrorMessage } from '@/lib/api/translateApiError';
 import { queryKeys } from '@/lib/query/keys';
+import { useDeferredDelete } from './useDeferredDelete';
 
 /** What GET /api/pantry sends for one ingredient — written from the route. */
 export interface PantryItem {
@@ -74,7 +78,8 @@ export function afterPantryChangedElsewhere(queryClient: QueryClient): void {
  * - save (add or edit) waits for the server, whose answer is the item as stored, and puts
  *   that in the list. It waits because the server has the last word on duplicates (409),
  *   which the form turns into "modify the one you have?".
- * - remove takes the item out at once and puts it back if the server refuses.
+ * - remove takes the item out at once and offers Undo; the delete is sent when that has
+ *   gone unanswered, and the item comes back if the server refuses it.
  *
  * Every write also marks the home page's matches stale: they are computed from the pantry.
  *
@@ -82,6 +87,10 @@ export function afterPantryChangedElsewhere(queryClient: QueryClient): void {
  */
 export function usePantry(ownerId: string | undefined) {
   const queryClient = useQueryClient();
+  const deferDelete = useDeferredDelete();
+  const { showError } = useToast();
+  const t = useTranslations('pantry');
+  const apiErrorMessage = useApiErrorMessage();
   const key = queryKeys.pantry(ownerId ?? '');
 
   const query = useQuery({
@@ -116,41 +125,42 @@ export function usePantry(ownerId: string | undefined) {
     },
   });
 
-  const without = (id: string) =>
-    queryClient.setQueryData<PantryItem[]>(key, (items) =>
-      items?.filter((existing) => existing.id !== id)
-    );
-
-  const remove = useMutation({
-    mutationFn: (item: PantryItem) => send(`/api/pantry/${item.id}`, { method: 'DELETE' }),
-    onMutate: async (item) => {
-      // A read already on its way was sent before this delete and would bring the item back.
-      // Cancelled, it is owed rather than dropped: it may carry other changes.
-      const cutShort = queryClient.isFetching({ queryKey: key }) > 0;
-      await queryClient.cancelQueries({ queryKey: key });
-      without(item.id);
-      return { cutShort };
-    },
-    onError: (_error, item) => {
-      queryClient.setQueryData<PantryItem[]>(key, (items = []) =>
-        items.some((existing) => existing.id === item.id) ? items : [...items, item]
-      );
-    },
-    onSuccess: (_body, item) => {
-      // Again, in case a read landed while the delete was on its way.
-      without(item.id);
-      matchesChanged();
-    },
-    onSettled: (_body, _error, _item, context) => {
-      if (context?.cutShort) void queryClient.invalidateQueries({ queryKey: key });
-    },
-  });
+  /**
+   * Delete with Undo: the item leaves the list now and the delete is sent once the toast's
+   * Undo has gone unanswered (lib/undo/deferredDeletes). A read while it waits cannot bring
+   * it back — the deferred delete hides it again after each one.
+   */
+  const remove = (item: PantryItem) =>
+    deferDelete({
+      key: `pantry:${item.id}`,
+      message: t('feedback.deleted'),
+      hide: () =>
+        queryClient.setQueryData<PantryItem[]>(key, (items) =>
+          items?.filter((existing) => existing.id !== item.id)
+        ),
+      restore: () =>
+        queryClient.setQueryData<PantryItem[]>(key, (items = []) =>
+          items.some((existing) => existing.id === item.id) ? items : [...items, item]
+        ),
+      commit: async ({ keepalive }) => {
+        await send(`/api/pantry/${item.id}`, { method: 'DELETE', keepalive });
+      },
+      onCommitted: matchesChanged,
+      onFailed: (error) => {
+        const failure = error instanceof PantryRequestError ? error : new PantryRequestError(null);
+        showError(
+          failure.status === null
+            ? t('feedback.deleteOffline')
+            : apiErrorMessage(failure.body, t('feedback.deleteFailed'))
+        );
+      },
+    });
 
   return {
     query,
     items: query.data ?? [],
     save: save.mutateAsync,
     saving: save.isPending,
-    remove: remove.mutateAsync,
+    remove,
   };
 }

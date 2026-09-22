@@ -20,7 +20,6 @@ import {
   FormControl,
   InputLabel,
   Alert,
-  Snackbar,
   List,
   ListItem,
   ListItemText,
@@ -36,6 +35,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import { MotionCard } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { PantryRequestError, usePantry, type PantryItem } from '@/hooks/usePantry';
 import { useUnitLabels } from '@/i18n/units';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
@@ -95,13 +95,7 @@ export default function PantryPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error',
-  });
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
@@ -184,7 +178,7 @@ export default function PantryPage() {
 
   const handleSubmit = async () => {
     if (!formData.name.trim()) {
-      setSnackbar({ open: true, message: t('feedback.nameRequired'), severity: 'error' });
+      showToast(t('feedback.nameRequired'), 'error');
       return;
     }
 
@@ -208,11 +202,7 @@ export default function PantryPage() {
         },
       });
       handleCloseDialog();
-      setSnackbar({
-        open: true,
-        message: editingItem ? t('feedback.updated') : t('feedback.added'),
-        severity: 'success',
-      });
+      showToast(editingItem ? t('feedback.updated') : t('feedback.added'), 'success');
     } catch (error) {
       const failure = error instanceof PantryRequestError ? error : new PantryRequestError(null);
 
@@ -228,14 +218,13 @@ export default function PantryPage() {
         }
       }
 
-      setSnackbar({
-        open: true,
-        message: apiErrorMessage(
+      showToast(
+        apiErrorMessage(
           failure.body,
           failure.status === 409 ? t('feedback.alreadyExists') : t('feedback.saveFailed')
         ),
-        severity: 'error',
-      });
+        'error'
+      );
     }
   };
 
@@ -250,38 +239,6 @@ export default function PantryPage() {
   const handleCancelModify = () => {
     setModifyDialogOpen(false);
     setExistingItem(null);
-  };
-
-  const handleDeleteClick = (itemId: string) => {
-    setItemToDelete(itemId);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    const item = items.find((candidate) => candidate.id === itemToDelete);
-    setDeleteDialogOpen(false);
-    setItemToDelete(null);
-    if (!item) return;
-
-    // The item leaves the list now; see usePantry for the way back when this fails.
-    try {
-      await pantry.remove(item);
-      setSnackbar({ open: true, message: t('feedback.deleted'), severity: 'success' });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: apiErrorMessage(
-          error instanceof PantryRequestError ? error.body : null,
-          t('feedback.deleteFailed')
-        ),
-        severity: 'error',
-      });
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setItemToDelete(null);
   };
 
   // Get all unique categories from items (both predefined and custom)
@@ -498,7 +455,8 @@ export default function PantryPage() {
                                 <IconButton
                                   edge="end"
                                   size="small"
-                                  onClick={() => handleDeleteClick(item.id)}
+                                  // No "are you sure?": the toast offers Undo instead.
+                                  onClick={() => pantry.remove(item)}
                                   color="error"
                                 >
                                   <Delete fontSize="small" />
@@ -611,22 +569,6 @@ export default function PantryPage() {
           </DialogActions>
         </Dialog>
 
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel} maxWidth="xs" fullWidth>
-          <DialogTitle>{t('delete.title')}</DialogTitle>
-          <DialogContent>
-            <Typography>{t('delete.message')}</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleDeleteCancel} color="inherit">
-              {tCommon('actions.cancel')}
-            </Button>
-            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-              {tCommon('actions.delete')}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
         {/* Modify Existing Ingredient Dialog */}
         <Dialog open={modifyDialogOpen} onClose={handleCancelModify} maxWidth="xs" fullWidth>
           <DialogTitle>{t('duplicate.title')}</DialogTitle>
@@ -648,22 +590,6 @@ export default function PantryPage() {
             </Button>
           </DialogActions>
         </Dialog>
-
-        {/* Snackbar */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={4000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-            severity={snackbar.severity}
-            variant="filled"
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </PageFrame>
     </motion.div>
   );
