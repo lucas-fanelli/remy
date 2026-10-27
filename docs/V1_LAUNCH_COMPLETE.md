@@ -1,6 +1,6 @@
 # 🎉 Remy's v1 - LIVE IN PRODUCTION!
 
-🚀 **LIVE DEMO:** https://remy-s.vercel.app/
+🚀 **LIVE DEMO:** https://remy-recipes.com/
 
 ## Summary
 
@@ -141,7 +141,7 @@ Your Remy's Recipe Sharing App is now **LIVE IN PRODUCTION**! All critical secur
 ### ✅ DEPLOYED TO PRODUCTION
 
 **Platform:** Vercel
-**URL:** https://remy-s.vercel.app/
+**URL:** https://remy-recipes.com/
 **Status:** LIVE ✅
 
 **Infrastructure:**
@@ -196,8 +196,8 @@ Production deployment security verified:
 
 1. **Health Endpoints Tested** ✅
    ```bash
-   curl https://remy-s.vercel.app/api/health
-   curl https://remy-s.vercel.app/api/ready
+   curl https://remy-recipes.com/api/health
+   curl https://remy-recipes.com/api/ready
    ```
 
 2. **Core Functionality Verified** ✅
@@ -386,18 +386,18 @@ You've successfully **LAUNCHED** Remy's to production! Your app includes:
 ✅ Vercel Postgres database
 ✅ Auto-deploy on push
 
-**🚀 v1.0 IS LIVE!** - https://remy-s.vercel.app/
+**🚀 v1.0 IS LIVE!** - https://remy-recipes.com/
 
 ---
 
 ## 📞 Quick Reference
 
 ### Important URLs
-- **Production App:** https://remy-s.vercel.app/
-- **Health Check:** https://remy-s.vercel.app/api/health
-- **Readiness:** https://remy-s.vercel.app/api/ready
-- **Sitemap:** https://remy-s.vercel.app/sitemap.xml
-- **Robots:** https://remy-s.vercel.app/robots.txt
+- **Production App:** https://remy-recipes.com/
+- **Health Check:** https://remy-recipes.com/api/health
+- **Readiness:** https://remy-recipes.com/api/ready
+- **Sitemap:** https://remy-recipes.com/sitemap.xml
+- **Robots:** https://remy-recipes.com/robots.txt
 - **GitHub Repo:** https://github.com/TheReaperGuy/remy-s-master
 
 ### Key Commands
@@ -437,4 +437,4 @@ Enjoy your live production app! 🎉🚀🍽️
 *Built with ❤️ using Next.js, Prisma, Material-UI, and Cloudinary*
 *Version 1.0.0 - LIVE IN PRODUCTION*
 *Deployed: 2025-12-05*
-*Live URL: https://remy-s.vercel.app/*
+*Live URL: https://remy-recipes.com/*
