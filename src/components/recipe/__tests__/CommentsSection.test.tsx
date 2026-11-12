@@ -2,6 +2,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react';
 import React from 'react';
 import '@testing-library/jest-dom';
+import { commentsHref } from '../commentsLink';
 import CommentsSection from '../CommentsSection';
 
 // Speed up waitFor - aggressive timeout
@@ -70,6 +71,22 @@ describe('CommentsSection Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/comments/i)).toBeInTheDocument();
+    });
+  });
+
+  it("is where every card's comment link lands", async () => {
+    // The link pointed at `#comments` for as long as it existed, and nothing had that id:
+    // it opened the recipe at the top. Read the fragment off the link itself, so the two
+    // cannot drift apart again.
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ comments: [] }) });
+
+    renderWithProviders(<CommentsSection recipeId="recipe1" />);
+
+    const fragment = commentsHref('/recipe/recipe1').split('#')[1];
+    const target = document.getElementById(fragment);
+    expect(target).not.toBeNull();
+    await waitFor(() => {
+      expect(target).toHaveTextContent(/comments \(0\)/i);
     });
   });
 
