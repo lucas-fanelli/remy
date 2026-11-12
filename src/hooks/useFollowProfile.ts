@@ -50,9 +50,34 @@ interface FollowBurst {
    * took away — and the paint marks that entry fresh, so no later read would come for it.
    */
   refetchOwed: boolean;
+  /**
+   * The full view of a private account that an unfollow locked at once, kept until the burst
+   * settles: if the server says the reader still follows, the recipes come back from here.
+   */
+  unlocked: FullProfile | null;
   /** Taps in the burst still waiting on the server. The last one out paints the result. */
   inFlight: number;
 }
+
+type FullProfile = Extract<Profile, { visibility: 'public' }>;
+
+/**
+ * A private account as the route shows it to someone it keeps out: who it is and the three
+ * counts, without recipes and without the website.
+ */
+const lockedView = ({ user, stats, followState }: FullProfile): Profile => ({
+  visibility: 'private',
+  user: {
+    id: user.id,
+    username: user.username,
+    fullName: user.fullName,
+    avatar: user.avatar,
+    bio: user.bio,
+    isPrivate: true,
+  },
+  stats,
+  followState,
+});
 
 interface FollowContext {
   burst: FollowBurst;
@@ -74,7 +99,7 @@ function joinBurst(queryClient: QueryClient, username: string, current: FollowFi
 
   let burst = byAccount.get(username);
   if (!burst) {
-    burst = { settled: current, access: null, refetchOwed: false, inFlight: 0 };
+    burst = { settled: current, access: null, refetchOwed: false, unlocked: null, inFlight: 0 };
     byAccount.set(username, burst);
   }
 
@@ -146,6 +171,14 @@ export function useFollowProfile(username: string) {
 
   /** The last tap of a burst is answered: show where things landed. */
   const settle = (burst: FollowBurst) => {
+    // Locked at the tap, but the server says the reader still follows: the unfollow failed,
+    // and the recipes it hid are theirs to see again.
+    if (burst.unlocked && burst.settled.followState === 'following') {
+      queryClient.setQueryData<Profile>(key, burst.unlocked);
+      // The copy is from before the tap; a heart given to one of those recipes elsewhere in
+      // the meantime is not in it. The read below brings it up to date.
+      burst.refetchOwed = true;
+    }
     paint(burst.settled);
     // Only now, with nothing queued behind: a refetch while a later tap still waited could
     // answer before that tap reached the server and paint over its guess with the old state.
@@ -170,9 +203,20 @@ export function useFollowProfile(username: string) {
         .some((query) => query.state.fetchStatus !== 'idle');
       await queryClient.cancelQueries({ queryKey: key });
 
-      const current = fieldsOf(queryClient.getQueryData<Profile>(key));
+      const cached = queryClient.getQueryData<Profile>(key);
+      const current = fieldsOf(cached);
       const burst = joinBurst(queryClient, username, current);
       if (cutShort) burst.refetchOwed = true;
+
+      // Unfollowing a private account takes its recipes away, and they go now rather than
+      // when the server has answered and the profile has been read again — two round trips
+      // Lucas timed at four seconds in production. Hiding something cannot show anything it
+      // should not, so it needs no answer first; if the unfollow fails, settle brings the
+      // recipes back.
+      if (action === 'unfollow' && cached?.visibility === 'public' && cached.user.isPrivate) {
+        burst.unlocked ??= cached;
+        queryClient.setQueryData<Profile>(key, lockedView(cached));
+      }
 
       // Paint first — the whole point, and why the button has no loading state.
       const guess = guessFollowState(action);

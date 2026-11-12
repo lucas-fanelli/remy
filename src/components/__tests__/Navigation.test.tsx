@@ -1344,6 +1344,33 @@ describe('Navigation Component', () => {
         expect(queryClient.getQueryData(['profile', 'owner1'])).toBeUndefined();
       });
 
+      it('"accepted your follow request" unlocks that profile when it arrives, without a tap', async () => {
+        // Lucas, in production with two accounts: the owner accepted, and his window went on
+        // saying "Solicitado" until he reloaded it. The bell had heard, and told nobody.
+        const quiet = {
+          ok: true,
+          status: 200,
+          json: async () => ({ notifications: [], unreadCount: 0, pendingRequestsCount: 0 }),
+        };
+        mockFetch.mockResolvedValueOnce(quiet).mockResolvedValueOnce(poll(0));
+        queryClient.setQueryData(['profile', 'owner1'], {
+          visibility: 'private',
+          followState: 'requested',
+        });
+        renderWithProviders(<Navigation />);
+        await waitFor(() => expect(notificationReads()).toHaveLength(1));
+        expect(queryClient.getQueryData(['profile', 'owner1'])).toBeDefined();
+
+        act(() => {
+          window.dispatchEvent(new Event('remy:notifications-refresh'));
+        });
+
+        await waitFor(() => expect(notificationReads()).toHaveLength(2));
+        await waitFor(() =>
+          expect(queryClient.getQueryData(['profile', 'owner1'])).toBeUndefined()
+        );
+      });
+
       it('pins the pending count above the rows, and opens the inbox from it', async () => {
         mockFetch.mockResolvedValueOnce(poll(3));
         renderWithProviders(<Navigation />);

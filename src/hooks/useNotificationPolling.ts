@@ -51,6 +51,16 @@ interface UseNotificationPollingOptions {
    * every dot stayed where it was and nothing was said.
    */
   onMarkAllFailed?: (body: unknown) => void;
+  /**
+   * Called with the notifications a fetch brought that the previous ones did not have —
+   * never on the first fetch after signing in, which is a baseline rather than news.
+   *
+   * The bell is how the app hears about other people: someone accepting your request,
+   * following you, liking your recipe. It used to keep that to itself, so the profile you
+   * were looking at still said "Solicitado" after the owner had accepted. What a
+   * notification means for the rest of the app is the caller's to decide, as the toast is.
+   */
+  onNewNotifications?: (fresh: Notification[]) => void;
 }
 
 interface UseNotificationPollingReturn {
@@ -75,6 +85,7 @@ export function useNotificationPolling({
   user,
   onAuthInvalid,
   onMarkAllFailed,
+  onNewNotifications,
 }: UseNotificationPollingOptions): UseNotificationPollingReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -105,6 +116,13 @@ export function useNotificationPolling({
 
   // Guard against overlapping fetches (e.g. rapid visibility changes)
   const isFetchingRef = useRef(false);
+
+  // The ids the last fetch returned, so the next one can tell what is new. null until the
+  // first fetch for this account: that one sets the baseline and reports nothing.
+  const seenIdsRef = useRef<Set<string> | null>(null);
+  // In a ref so a new callback each render does not restart polling.
+  const onNewRef = useRef(onNewNotifications);
+  onNewRef.current = onNewNotifications;
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -138,6 +156,14 @@ export function useNotificationPolling({
         ) as Notification[];
 
         if (!isMountedRef.current) return;
+
+        const seen = seenIdsRef.current;
+        seenIdsRef.current = new Set(uniqueNotifications.map((n) => n.id));
+        if (seen) {
+          const fresh = uniqueNotifications.filter((n) => !seen.has(n.id));
+          if (fresh.length > 0) onNewRef.current?.(fresh);
+        }
+
         setNotifications(uniqueNotifications);
         setUnreadCount(data.unreadCount || 0);
         // Zero when the field is missing or not a count, so a server without it shows no
@@ -226,6 +252,7 @@ export function useNotificationPolling({
     setNotifications([]);
     setUnreadCount(0);
     setPendingRequestsCount(0);
+    seenIdsRef.current = null;
     failureTimestampsRef.current = [];
     pollingStoppedRef.current = false;
     breakerTrippedAtRef.current = 0;
@@ -281,6 +308,36 @@ export function useNotificationPolling({
 
     scheduleNext();
 
+    /**
+     * The reader came back: to this tab, or to this window from another one. Switching
+     * between two windows side by side changes no visibility — both stay visible — so a
+     * return used to be noticed only when the tab itself had been hidden.
+     */
+    const handleReturn = () => {
+      // Guard: skip if unmounted or polling explicitly stopped
+      if (!isMountedRef.current || pollingStoppedRef.current) return;
+
+      // Clear any pending visibility timeout to prevent double-fetch on rapid tab switching
+      // (and on the focus and visibilitychange a single return can fire together)
+      if (visibilityTimeoutId) {
+        clearTimeout(visibilityTimeoutId);
+        visibilityTimeoutId = null;
+      }
+      // Normal case: breaker is not tripped, refresh on return.
+      // Failure timestamps are only cleared on successful fetch, not on visibility change.
+      if (!isFetchingRef.current) {
+        clearPolling();
+        const jitter = Math.random() * 3000;
+        visibilityTimeoutId = setTimeout(() => {
+          visibilityTimeoutId = null;
+          if (!isMountedRef.current) return;
+          fetchNotifications();
+          scheduleNext();
+        }, jitter);
+      }
+      // If breaker is tripped, let scheduleNext handle the 5-minute cooldown
+    };
+
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') {
         clearPolling();
@@ -289,33 +346,12 @@ export function useNotificationPolling({
           visibilityTimeoutId = null;
         }
       } else {
-        // Guard: skip if unmounted or polling explicitly stopped
-        if (!isMountedRef.current || pollingStoppedRef.current) return;
-
-        // Clear any pending visibility timeout to prevent double-fetch on rapid tab switching
-        if (visibilityTimeoutId) {
-          clearTimeout(visibilityTimeoutId);
-          visibilityTimeoutId = null;
-        }
-        if (!pollingStoppedRef.current) {
-          // Normal case: breaker is not tripped, refresh on tab focus.
-          // Failure timestamps are only cleared on successful fetch, not on visibility change.
-          if (!isFetchingRef.current) {
-            clearPolling();
-            const jitter = Math.random() * 3000;
-            visibilityTimeoutId = setTimeout(() => {
-              visibilityTimeoutId = null;
-              if (!isMountedRef.current) return;
-              fetchNotifications();
-              scheduleNext();
-            }, jitter);
-          }
-        }
-        // If breaker is tripped, let scheduleNext handle the 5-minute cooldown
+        handleReturn();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleReturn);
 
     return () => {
       cancelled = true;
@@ -327,6 +363,7 @@ export function useNotificationPolling({
       notificationAbortRef.current?.abort();
       meAbortRef.current?.abort();
       document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleReturn);
     };
   }, [user, fetchNotifications]);
 
