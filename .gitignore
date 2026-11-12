@@ -28,6 +28,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# logs and captured command output: redirect these to a scratch folder, never the repo root
+*.log
+/build-output*.txt
+/coverage-report*.txt
+/coverage_output*.txt
+/test-output*.txt
+
 # local env files
 .env
 .env*.local

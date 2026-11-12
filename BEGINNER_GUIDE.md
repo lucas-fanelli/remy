@@ -363,7 +363,6 @@ Open `src/infrastructure/ai/__tests__/unit/AIProviderFactory.test.ts` and add mo
 - [ARCHITECTURE.md](ARCHITECTURE.md) - How the code is organized
 - [TESTING.md](TESTING.md) - How to write tests
 - [ROADMAP.md](ROADMAP.md) - What features are planned
-- [SESSION_SUMMARY.md](SESSION_SUMMARY.md) - What was just built
 
 ### General Learning
 
@@ -493,7 +492,7 @@ Congratulations! You just improved the project! 🎉
 
 ---
 
-**Questions?** Read [SESSION_SUMMARY.md](SESSION_SUMMARY.md) for what was just built.
+**Questions?** Read [ARCHITECTURE.md](ARCHITECTURE.md) for how the code is organized.
 
 **Ready for more?** Check [ROADMAP.md](ROADMAP.md) for what to build next.
 

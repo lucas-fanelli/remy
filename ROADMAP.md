@@ -2,7 +2,7 @@
 
 ## Current Status (2025-12-05)
 
-🚀 **v1.0.0 LIVE IN PRODUCTION** - https://remy-s.vercel.app/
+🚀 **v1.0.0 LIVE IN PRODUCTION** - https://remy-recipes.com/
 
 ✅ **Phase 1: Foundation** - COMPLETE
 - Authentication system (register, login, JWT)
@@ -160,7 +160,7 @@
 - [ ] Analytics (Plausible, PostHog)
 
 ### Infrastructure
-- [x] Production deployment (Vercel) ✅ **LIVE: https://remy-s.vercel.app/**
+- [x] Production deployment (Vercel) ✅ **LIVE: https://remy-recipes.com/**
 - [x] Database hosting (Neon via Vercel Postgres) ✅
 - [x] File storage (Cloudinary) ✅
 - [ ] Email service (SendGrid)
@@ -252,5 +252,5 @@
 
 **Last Updated**: 2025-12-05
 **Version**: 1.0.0 - LIVE IN PRODUCTION 🚀
-**Status**: Production - https://remy-s.vercel.app/
+**Status**: Production - https://remy-recipes.com/
 **Contributors**: 1 (Professional Developer + Claude Code)

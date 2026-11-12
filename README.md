@@ -1,8 +1,6 @@
 # 🍽️ Remy's - Recipe Sharing Platform
 
-[![CI](https://github.com/TheReaperGuy/remy-s-master/actions/workflows/ci.yml/badge.svg)](https://github.com/TheReaperGuy/remy-s-master/actions/workflows/ci.yml)
-[![Test Coverage](https://img.shields.io/badge/coverage-98%25-brightgreen)](./COVERAGE_ACHIEVED.md)
-[![Tests](https://img.shields.io/badge/tests-1161%20passing-success)](./TEST_SUMMARY.md)
+[![CI](https://github.com/lucas-fanelli/remy/actions/workflows/ci.yml/badge.svg)](https://github.com/lucas-fanelli/remy/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-16.0-black)](https://nextjs.org/)
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://remy-recipes.com)
@@ -10,7 +8,7 @@
 
 > **A modern recipe sharing platform where users can discover, create, and share amazing recipes with a vibrant community.**
 
-**🚀 LIVE NOW** - [Try the live demo at remy-s.vercel.app](https://remy-s.vercel.app/)
+**🚀 LIVE NOW** - [Try the live demo at remy-recipes.com](https://remy-recipes.com)
 
 **✅ v1.3.0 Production Release** - Engineering maturity with CI/CD, Sentry, and E2E tests!
 
@@ -428,7 +426,7 @@ Built with:
 
 ### v1.0.0 - Production Release (2025-12-05) 🚀
 
-**🌐 Live at:** [remy-s.vercel.app](https://remy-s.vercel.app/)
+**🌐 Live at:** [remy-recipes.com](https://remy-recipes.com)
 
 #### Core Features
 
