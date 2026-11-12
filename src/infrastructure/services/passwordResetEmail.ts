@@ -18,7 +18,7 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * Password reset email. Bilingual — Spanish first (the audience is Argentine),
+ * Password reset email. Bilingual — Spanish first (most readers speak it),
  * then English (the UI language). The raw token appears only inside resetUrl.
  */
 export function buildPasswordResetEmail(data: PasswordResetEmailData): EmailMessage {
