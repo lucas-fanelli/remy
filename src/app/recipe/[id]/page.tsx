@@ -56,6 +56,7 @@ import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import RatingBreakdown from '@/components/recipe/RatingBreakdown';
 import { useAuth } from '@/contexts/AuthContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
+import { afterPantryChangedElsewhere } from '@/hooks/usePantry';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
 import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { useTextDescriptor } from '@/i18n/text';
@@ -396,6 +397,8 @@ export default function RecipeDetailPage() {
       }
 
       setCookDialogOpen(false);
+      // The cook took its ingredients out of the pantry.
+      afterPantryChangedElsewhere(queryClient);
       patchCachedRecipe((cached) => ({
         ...cached,
         viewer: cached.viewer
@@ -442,6 +445,8 @@ export default function RecipeDetailPage() {
         return;
       }
 
+      // Undoing the cook puts the ingredients back, when it still can.
+      afterPantryChangedElsewhere(queryClient);
       patchCachedRecipe((cached) => ({
         ...cached,
         viewer: cached.viewer

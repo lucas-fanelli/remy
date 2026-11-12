@@ -55,6 +55,17 @@ export const queryKeys = {
    * query: a mutation key, spelled here so the three places that use it cannot drift apart.
    */
   followMutation: (username: string) => ['follow', username] as const,
+  /**
+   * Every cached pantry: the root to invalidate after anything else that changes one —
+   * cooking a recipe takes its ingredients out, undoing the cook puts them back.
+   */
+  pantries: () => ['pantry'] as const,
+  /**
+   * One account's pantry (GET /api/pantry). Keyed on the owner for the same reason as the
+   * follow-request inbox: it is a private list, and the cache being emptied on every change
+   * of account should not be the only thing standing between it and the next account.
+   */
+  pantry: (ownerId: string) => ['pantry', ownerId] as const,
 } as const;
 
 /** The first segment of every recipe-bearing key, for adapters that match by prefix. */
