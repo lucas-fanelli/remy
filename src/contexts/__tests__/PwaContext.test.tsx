@@ -16,19 +16,12 @@ function TestConsumer({ onContextChange }: { onContextChange?: (ctx: any) => voi
       <span data-testid="is-running-standalone">{context.isRunningStandalone.toString()}</span>
       <span data-testid="is-ios-safari">{context.isIOSSafari.toString()}</span>
       <span data-testid="is-desktop-chrome">{context.isDesktopChrome.toString()}</span>
-      <span data-testid="show-install-prompt">{context.showInstallPrompt.toString()}</span>
       <span data-testid="prompt-available">{context.promptAvailable.toString()}</span>
       <button data-testid="trigger-install" onClick={() => context.triggerInstall()}>
         Install
       </button>
-      <button data-testid="dismiss-prompt" onClick={context.dismissInstallPrompt}>
-        Dismiss
-      </button>
       <button data-testid="open-app" onClick={context.openApp}>
         Open App
-      </button>
-      <button data-testid="reset-dismissal" onClick={context.resetDismissal}>
-        Reset
       </button>
     </div>
   );
@@ -303,32 +296,6 @@ describe('PwaContext', () => {
     });
   });
 
-  describe('dismissInstallPrompt', () => {
-    it('should save dismissal to localStorage', async () => {
-      render(
-        <PwaProvider>
-          <TestConsumer />
-        </PwaProvider>
-      );
-
-      fireEvent.click(screen.getByTestId('dismiss-prompt'));
-
-      expect(mockLocalStorage['pwa-install-dismissed']).toBeDefined();
-    });
-
-    it('should mark prompt as shown in sessionStorage', async () => {
-      render(
-        <PwaProvider>
-          <TestConsumer />
-        </PwaProvider>
-      );
-
-      fireEvent.click(screen.getByTestId('dismiss-prompt'));
-
-      expect(mockSessionStorage['pwa-install-prompt-shown-session']).toBe('true');
-    });
-  });
-
   describe('openApp', () => {
     it('should trigger navigation with pwa-open source', () => {
       render(
@@ -340,36 +307,6 @@ describe('PwaContext', () => {
       fireEvent.click(screen.getByTestId('open-app'));
 
       expect(window.location.href).toBe('/?source=pwa-open');
-    });
-  });
-
-  describe('resetDismissal', () => {
-    it('should clear localStorage dismissal', () => {
-      mockLocalStorage['pwa-install-dismissed'] = Date.now().toString();
-
-      render(
-        <PwaProvider>
-          <TestConsumer />
-        </PwaProvider>
-      );
-
-      fireEvent.click(screen.getByTestId('reset-dismissal'));
-
-      expect(mockLocalStorage['pwa-install-dismissed']).toBeUndefined();
-    });
-
-    it('should clear sessionStorage prompt shown flag', () => {
-      mockSessionStorage['pwa-install-prompt-shown-session'] = 'true';
-
-      render(
-        <PwaProvider>
-          <TestConsumer />
-        </PwaProvider>
-      );
-
-      fireEvent.click(screen.getByTestId('reset-dismissal'));
-
-      expect(mockSessionStorage['pwa-install-prompt-shown-session']).toBeUndefined();
     });
   });
 
@@ -416,7 +353,7 @@ describe('PwaContext', () => {
       });
     });
 
-    it('should hide install prompt when appinstalled fires', async () => {
+    it("should forget the browser's install offer when appinstalled fires", async () => {
       render(
         <PwaProvider>
           <TestConsumer />
@@ -434,6 +371,7 @@ describe('PwaContext', () => {
       await act(async () => {
         window.dispatchEvent(event);
       });
+      expect(screen.getByTestId('prompt-available')).toHaveTextContent('true');
 
       // Then fire appinstalled
       await act(async () => {
@@ -441,7 +379,7 @@ describe('PwaContext', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('show-install-prompt')).toHaveTextContent('false');
+        expect(screen.getByTestId('prompt-available')).toHaveTextContent('false');
       });
     });
   });
@@ -578,22 +516,6 @@ describe('PwaContext', () => {
     });
   });
 
-  describe('Dismissed Recently Logic - lines 85-95', () => {
-    it('should not show prompt when dismissed recently', () => {
-      // Set dismissal time to 1 day ago (within 7 day window)
-      const oneDayAgo = Date.now() - 1 * 24 * 60 * 60 * 1000;
-      mockLocalStorage['pwa-install-dismissed'] = oneDayAgo.toString();
-
-      render(
-        <PwaProvider>
-          <TestConsumer />
-        </PwaProvider>
-      );
-
-      expect(screen.getByTestId('show-install-prompt')).toHaveTextContent('false');
-    });
-  });
-
   describe('triggerInstall returns false when dismissed - line 241', () => {
     it('should return false when user dismisses the install prompt', async () => {
       let capturedContext: any;
@@ -632,35 +554,68 @@ describe('PwaContext', () => {
     });
   });
 
-  describe('resetDismissal shows prompt for iOS Safari - line 267', () => {
-    it('should show install prompt when resetting on iOS Safari', async () => {
-      // Mock iOS Safari user agent
+  /**
+   * The provider used to open an install banner by itself: on iOS the moment the site loaded,
+   * in Chrome as soon as the browser offered an install, once a session unless dismissed in
+   * the last week. Installing is now only offered in Settings.
+   */
+  describe('asking to install', () => {
+    const dispatchInstallOffer = async () => {
+      const event = new Event('beforeinstallprompt');
+      Object.defineProperty(event, 'preventDefault', { value: jest.fn() });
+      Object.defineProperty(event, 'prompt', { value: jest.fn() });
+      Object.defineProperty(event, 'userChoice', {
+        value: Promise.resolve({ outcome: 'dismissed' }),
+      });
+      await act(async () => {
+        window.dispatchEvent(event);
+      });
+    };
+
+    it.each([
+      [
+        'iOS Safari',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1',
+      ],
+      [
+        'desktop Chrome',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      ],
+    ])('should put nothing on screen by itself on %s', async (_, userAgent) => {
       Object.defineProperty(window.navigator, 'userAgent', {
-        value:
-          'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1',
+        value: userAgent,
         configurable: true,
       });
-      Object.defineProperty(window.navigator, 'standalone', {
-        value: false,
-        configurable: true,
+      Object.defineProperty(window.navigator, 'standalone', { value: false, configurable: true });
+
+      render(
+        <PwaProvider>
+          <div data-testid="page" />
+        </PwaProvider>
+      );
+      await dispatchInstallOffer();
+      // Let the installed-apps check settle: the iOS banner used to open after it.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
+      // Only the page: no drawer, no dialog, nothing portalled into the body.
+      expect(document.body.children).toHaveLength(1);
+      expect(document.body.firstElementChild?.innerHTML).toBe('<div data-testid="page"></div>');
+      // And no bookkeeping of when it was last shown or dismissed.
+      expect(mockLocalStorage).toEqual({});
+      expect(mockSessionStorage).toEqual({});
+    });
+
+    it("should still keep the browser's offer, so Settings can install", async () => {
       render(
         <PwaProvider>
           <TestConsumer />
         </PwaProvider>
       );
+      await dispatchInstallOffer();
 
-      // First dismiss the prompt
-      fireEvent.click(screen.getByTestId('dismiss-prompt'));
-
-      // Then reset the dismissal
-      fireEvent.click(screen.getByTestId('reset-dismissal'));
-
-      // Should show install prompt again for iOS Safari
-      await waitFor(() => {
-        expect(screen.getByTestId('show-install-prompt')).toHaveTextContent('true');
-      });
+      expect(screen.getByTestId('prompt-available')).toHaveTextContent('true');
     });
   });
 });

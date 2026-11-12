@@ -21,7 +21,6 @@ import enNav from './messages/en/nav.json';
 import enNotifications from './messages/en/notifications.json';
 import enPantry from './messages/en/pantry.json';
 import enProfile from './messages/en/profile.json';
-import enPwa from './messages/en/pwa.json';
 import enRecipe from './messages/en/recipe.json';
 import enRecipeForm from './messages/en/recipeForm.json';
 import enRecipeParser from './messages/en/recipeParser.json';
@@ -41,7 +40,6 @@ import esNav from './messages/es/nav.json';
 import esNotifications from './messages/es/notifications.json';
 import esPantry from './messages/es/pantry.json';
 import esProfile from './messages/es/profile.json';
-import esPwa from './messages/es/pwa.json';
 import esRecipe from './messages/es/recipe.json';
 import esRecipeForm from './messages/es/recipeForm.json';
 import esRecipeParser from './messages/es/recipeParser.json';
@@ -66,7 +64,6 @@ export const NAMESPACES = [
   'profile',
   'notifications',
   'admin',
-  'pwa',
   'errors',
   'units',
   'validation',
@@ -95,7 +92,6 @@ const en = {
   profile: enProfile,
   notifications: enNotifications,
   admin: enAdmin,
-  pwa: enPwa,
   errors: enErrors,
   units: enUnits,
   validation: enValidation,
@@ -125,7 +121,6 @@ const es: Messages = {
   profile: esProfile,
   notifications: esNotifications,
   admin: esAdmin,
-  pwa: esPwa,
   errors: esErrors,
   units: esUnits,
   validation: esValidation,
