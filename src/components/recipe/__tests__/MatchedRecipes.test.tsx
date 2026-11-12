@@ -75,6 +75,54 @@ describe('MatchedRecipes Component', () => {
     mockUseAuth.mockReturnValue({ token: null, isAuthenticated: false }); // Default to unauthenticated
   });
 
+  describe('while the session is still being checked', () => {
+    // The home page no longer waits for /api/auth/me before showing the feed, so this block
+    // decides alone whether to hold its place above it.
+
+    it('keeps its place when the request carried a session cookie, without fetching yet', () => {
+      mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: true, sessionLikely: true });
+
+      const { container } = renderWithProviders(<MatchedRecipes />);
+
+      expect(container.querySelectorAll('.MuiSkeleton-root').length).toBeGreaterThan(0);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('stays out of the way when there was no session cookie', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: false,
+        isLoading: true,
+        sessionLikely: false,
+      });
+
+      const { container } = renderWithProviders(<MatchedRecipes />);
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('goes away when the check says the cookie was not a session after all', () => {
+      mockUseAuth.mockReturnValue({ isAuthenticated: false, isLoading: true, sessionLikely: true });
+      const { container, rerender } = renderWithProviders(<MatchedRecipes />);
+
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: false,
+        isLoading: false,
+        sessionLikely: false,
+      });
+      rerender(
+        <QueryClientProvider client={new QueryClient()}>
+          <ThemeProvider theme={mockTheme}>
+            <ToastProvider>
+              <MatchedRecipes />
+            </ToastProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      );
+
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
   it('should render null during loading state', () => {
     mockFetch.mockImplementation(() => new Promise(() => {}));
 

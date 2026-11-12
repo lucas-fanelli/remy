@@ -33,6 +33,7 @@ import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import PageFrame from '@/components/layout/PageFrame';
 import { MotionPaper } from '@/components/motion';
 import ChangePasswordDialog from '@/components/settings/ChangePasswordDialog';
+import SettingsSkeleton from '@/components/settings/SettingsSkeleton';
 import { BRANDING } from '@/config/branding';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePwa } from '@/contexts/PwaContext';
@@ -71,8 +72,9 @@ export default function SettingsPage() {
     showSuccess(t('appearance.themeChanged', { mode: mode === 'dark' ? 'light' : 'dark' }));
   };
 
+  // The skeleton the route's loading.tsx showed, until the session is known.
   if (isLoading) {
-    return null;
+    return <SettingsSkeleton />;
   }
 
   if (!user) {

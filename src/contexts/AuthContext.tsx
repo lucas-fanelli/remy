@@ -37,6 +37,14 @@ type AuthContextType = {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /**
+   * Whether someone is PROBABLY signed in, before /api/auth/me has said so for certain:
+   * while the session is loading it is the server's first impression (a session cookie
+   * came with the page), and afterwards it is the answer. For reserving the space of
+   * something only a signed-in reader sees, so it does not push the page down when the
+   * answer arrives. Never for deciding what anyone may see: that is `isAuthenticated`.
+   */
+  sessionLikely: boolean;
   isAdmin: boolean;
   login: (emailOrUsername: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string, fullName?: string) => Promise<void>;
@@ -66,7 +74,14 @@ function clearQueryCache() {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+  sessionHint = false,
+}: {
+  children: ReactNode;
+  /** The root layout saw a session cookie on the request: see `sessionLikely`. */
+  sessionHint?: boolean;
+}) {
   const t = useTranslations('auth');
   // These throws are rendered straight into LoginForm / RegisterForm, so they are that
   // screen's text: the server's own sentence when it sent one, ours when it did not.
@@ -307,13 +322,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: null,
       isLoading,
       isAuthenticated: !!user,
+      sessionLikely: isLoading ? sessionHint : !!user,
       isAdmin: user?.role === 'ADMIN',
       login,
       register,
       logout,
       updateProfile,
     }),
-    [user, isLoading, login, register, logout, updateProfile]
+    [user, isLoading, sessionHint, login, register, logout, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -328,6 +328,7 @@ function PersonRow({ person, index, isLast, viewer, onFollowState }: PersonRowPr
           <Avatar
             component={NextLink}
             href={profileHref}
+            prefetch={false}
             tabIndex={-1}
             aria-hidden
             src={cloudinaryImage(person.avatar, 'avatar') || undefined}
@@ -342,6 +343,7 @@ function PersonRow({ person, index, isLast, viewer, onFollowState }: PersonRowPr
           <Typography
             component={NextLink}
             href={profileHref}
+            prefetch={false}
             variant="body1"
             noWrap
             sx={{

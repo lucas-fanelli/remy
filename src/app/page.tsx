@@ -6,19 +6,18 @@ import React from 'react';
 import PageFrame from '@/components/layout/PageFrame';
 import MatchedRecipes from '@/components/recipe/MatchedRecipes';
 import RecipeFeed from '@/components/recipe/RecipeFeed';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCreateRecipeDialog } from '@/contexts/CreateRecipeContext';
 
 export default function Home() {
-  const { isLoading } = useAuth();
   // The one 'New recipe' dialog lives in CreateRecipeProvider; this page only asks for it
   const { openCreate } = useCreateRecipeDialog();
   const shouldReduceMotion = useReducedMotion();
 
-  if (isLoading) {
-    return null;
-  }
-
+  // No waiting for the session. This used to render nothing until /api/auth/me answered,
+  // so every app open and every reload made the PUBLIC feed wait one extra round trip —
+  // measured from Spain, a whole trip to Washington — before it even asked for recipes.
+  // The feed is the same for everyone (its hearts come from the server, which reads the
+  // cookie itself), and the matches block keeps its own place: see MatchedRecipes.
   return (
     <motion.div
       initial={shouldReduceMotion ? undefined : { opacity: 0, y: 20 }}
