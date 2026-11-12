@@ -6,6 +6,7 @@ import '@testing-library/jest-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { queryKeys } from '@/lib/query/keys';
+import { sendWaitingDelete } from '@/lib/undo/deferredDeletes';
 import RecipeFeed from '../RecipeFeed';
 
 // Speed up waitFor - needs longer timeout for multiple sequential async operations
@@ -204,6 +205,24 @@ describe('RecipeFeed Component', () => {
       json: async () => ({ recipes: recipesWithEngagement }),
     });
   };
+
+  /**
+   * A confirmed delete waits out its Undo window before it is sent (lib/undo/deferredDeletes);
+   * this is that window passing without anyone pressing Undo.
+   */
+  const letUndoPass = () => act(async () => sendWaitingDelete());
+
+  /** The toast's Undo, once the confirmation dialog's exit has stopped hiding the page. */
+  const undoButton = async () => {
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    return screen.getByRole('button', { name: 'Undo' });
+  };
+
+  /** Every DELETE the page sent, by URL. */
+  const deletes = () =>
+    mockFetch.mock.calls
+      .filter(([, init]) => (init as RequestInit | undefined)?.method === 'DELETE')
+      .map(([url]) => url);
 
   // Helper to wait for all fetch calls including engagement data
   const waitForAllFetches = async (expectedCalls: number) => {
@@ -682,18 +701,44 @@ describe('RecipeFeed Component', () => {
       expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
     });
 
-    // Mock delete API call
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({}),
-    });
-
     const confirmButton = screen.getByRole('button', { name: /^delete$/i });
     fireEvent.click(confirmButton);
 
+    // Gone at once, with Undo on offer — and nothing sent yet.
     await waitFor(() => {
-      expect(screen.getByText(/recipe deleted successfully/i)).toBeInTheDocument();
+      expect(screen.getByText(/^recipe deleted$/i)).toBeInTheDocument();
     });
+    expect(screen.queryByText('Test Recipe 1')).not.toBeInTheDocument();
+    expect(await undoButton()).toBeInTheDocument();
+    expect(deletes()).toEqual([]);
+
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    await letUndoPass();
+
+    expect(deletes()).toEqual(['/api/recipes/1']);
+  });
+
+  it('puts a deleted recipe back, and sends nothing, when the reader presses Undo', async () => {
+    mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
+    setupSuccessfulFetch();
+    renderWithProviders(<RecipeFeed />);
+    await waitFor(() => {
+      expect(screen.getByText('Test Recipe 1')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /delete/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await waitFor(() => {
+      expect(screen.queryByText('Test Recipe 1')).not.toBeInTheDocument();
+    });
+
+    // The server still has it: the feed reads it back.
+    setupSuccessfulFetch();
+    fireEvent.click(await undoButton());
+
+    expect(await screen.findByText('Test Recipe 1')).toBeInTheDocument();
+    await letUndoPass();
+    expect(deletes()).toEqual([]);
   });
 
   it('takes a deleted recipe off every cached list, not only the feed', async () => {
@@ -722,14 +767,16 @@ describe('RecipeFeed Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
     });
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/recipe deleted successfully/i)).toBeInTheDocument();
+      expect(screen.getByText(/^recipe deleted$/i)).toBeInTheDocument();
     });
     const profile = queryClient.getQueryData<{ recipes: unknown[] }>(queryKeys.profile('author'));
     expect(profile?.recipes).toEqual([]);
+
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    await letUndoPass();
   });
 
   it('should handle delete error', async () => {
@@ -758,6 +805,7 @@ describe('RecipeFeed Component', () => {
 
     const confirmButton = screen.getByRole('button', { name: /^delete$/i });
     fireEvent.click(confirmButton);
+    await letUndoPass();
 
     await waitFor(() => {
       expect(screen.getByText(/failed to delete/i)).toBeInTheDocument();
@@ -1214,13 +1262,12 @@ describe('RecipeFeed Component', () => {
 
       const confirmButton = screen.getByRole('button', { name: /^delete$/i });
       fireEvent.click(confirmButton);
+      await letUndoPass();
 
       // Should show custom error message
       await waitFor(() => {
         expect(screen.getByText('Recipe not found')).toBeInTheDocument();
       });
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error deleting recipe:', expect.any(Error));
 
       consoleErrorSpy.mockRestore();
     });
@@ -1257,7 +1304,7 @@ describe('RecipeFeed Component', () => {
 
       // Should remove recipe and show success
       await waitFor(() => {
-        expect(screen.getByText('Recipe deleted successfully')).toBeInTheDocument();
+        expect(screen.getByText('Recipe deleted')).toBeInTheDocument();
       });
 
       // Recipe 1 should be removed from list
@@ -1267,9 +1314,12 @@ describe('RecipeFeed Component', () => {
 
       // Recipe 2 should still be visible
       expect(screen.getByText('Recipe 2')).toBeInTheDocument();
+
+      await letUndoPass();
+      expect(deletes()).toEqual(['/api/recipes/1']);
     });
 
-    it('should show non-Error exception fallback message - lines 237-241', async () => {
+    it('says the connection failed, not that the server refused, when the delete never arrives', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockUseAuth.mockReturnValue({ token: null, user: { id: 'user1' } });
       setupSuccessfulFetch();
@@ -1287,15 +1337,15 @@ describe('RecipeFeed Component', () => {
         expect(screen.getByText('Delete selected recipe?')).toBeInTheDocument();
       });
 
-      // Mock delete API throwing non-Error exception
-      mockFetch.mockRejectedValueOnce('String error');
+      // The request never reaches the server
+      mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
 
       const confirmButton = screen.getByRole('button', { name: /^delete$/i });
       fireEvent.click(confirmButton);
+      await letUndoPass();
 
-      // Should show fallback error message
       await waitFor(() => {
-        expect(screen.getByText('Failed to delete recipe')).toBeInTheDocument();
+        expect(screen.getByText('No connection — the recipe was not deleted')).toBeInTheDocument();
       });
 
       consoleErrorSpy.mockRestore();
@@ -1584,6 +1634,7 @@ describe('RecipeFeed Component', () => {
 
       const confirmButton = screen.getByRole('button', { name: /^delete$/i });
       fireEvent.click(confirmButton);
+      await letUndoPass();
 
       await waitFor(() => {
         expect(screen.getByText(/failed to delete recipe/i)).toBeInTheDocument();

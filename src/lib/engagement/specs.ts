@@ -85,6 +85,18 @@ export interface ViewerSpec<TResponse> {
    * mutation hook records at its missing `onSettled`.
    */
   membership?: (reader: { username: string }) => ReadonlyArray<readonly unknown[]>;
+
+  /**
+   * Turning the flag OFF is a removal the reader can take back: it waits out the Undo
+   * window before it is sent (lib/undo/deferredDeletes). Unsaving is — Lucas asked for
+   * "Deshacer" on removing from Guardadas, where unsaving takes the card away. Unliking is
+   * not a deletion and goes at once.
+   *
+   * Only for a spec whose `optimistic` can be applied again and again to the same answer
+   * (it sets the flag rather than counting): while the removal waits, it is re-applied
+   * after every read, since the server still has the flag on.
+   */
+  undoableOff?: boolean;
 }
 
 /**
@@ -163,6 +175,8 @@ const saveSpec: ViewerSpec<SaveResponse> = {
   // Your Saved tab. Unsaving from INSIDE it needs nothing here — the tab hides a recipe the
   // moment its bookmark empties — but saving anywhere else adds a recipe it does not hold.
   membership: (reader) => [queryKeys.profile(reader.username)],
+  // `optimistic` above only sets `saved`, so it can be re-applied while the removal waits.
+  undoableOff: true,
 };
 
 /** The registry a test iterates, so a third spec cannot ship without being exercised. */

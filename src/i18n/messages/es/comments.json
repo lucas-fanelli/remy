@@ -14,17 +14,15 @@
   "recently": "hace poco",
   "photoAlt": "Foto de {username}",
   "edit": {},
-  "deleteDialog": {
-    "title": "¿Eliminar el comentario seleccionado?",
-    "message": "El comentario se va a borrar de tu cuenta y de todos los dispositivos sincronizados"
-  },
   "errors": {
     "uploadFailed": "No pudimos subir la imagen",
     "postFailed": "No pudimos publicar el comentario",
     "updateFailed": "No pudimos actualizar el comentario",
     "deleteFailed": "No pudimos eliminar el comentario",
+    "deleteOffline": "Sin conexión — tu comentario sigue publicado",
     "invalidType": "Tipo de archivo inválido. Solo se permiten JPEG, PNG, WebP y GIF.",
     "tooLarge": "La imagen es muy grande. El máximo es 5 MB.",
     "loadFailed": "No pudimos cargar los comentarios"
-  }
+  },
+  "deleted": "Eliminamos el comentario"
 }

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { sendWaitingDelete } from '@/lib/undo/deferredDeletes';
 import ProfilePage from '../[username]/page';
 import '@testing-library/jest-dom';
 
@@ -619,6 +620,13 @@ describe('the profile page', () => {
     const own = (list: unknown[]) =>
       publicProfile({ recipes: [], savedRecipes: list, isFollowing: undefined });
 
+    /** Every call to a save route, by URL. */
+    const saves = () =>
+      mockFetch.mock.calls.filter(([url]) => String(url).includes('/save')).map(([url]) => url);
+
+    /** The Undo window passing without anyone pressing Undo. */
+    const letUndoPass = () => act(async () => sendWaitingDelete());
+
     const openSavedTab = async () => {
       fireEvent.click(await screen.findByText('Saved'));
       await screen.findByText('Guardada s1');
@@ -646,12 +654,33 @@ describe('the profile page', () => {
 
       await waitFor(() => expect(screen.queryByText('Guardada s1')).not.toBeInTheDocument());
       expect(screen.getByText('Guardada s2')).toBeInTheDocument();
+      // Undo on offer, and nothing sent while it is.
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+      expect(saves()).toEqual([]);
+
+      await letUndoPass();
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/recipes/s1/save',
         expect.objectContaining({ body: JSON.stringify({ saved: false }) })
       );
 
       answerSave(ok({ saved: false }));
+    });
+
+    it('puts it back, and sends nothing, when the reader presses Undo', async () => {
+      // Lucas: removing something from Guardadas should offer "Deshacer".
+      mockFetch.mockImplementation(() => Promise.resolve(ok(own([saved('s1'), saved('s2')]))));
+
+      renderPage();
+      await openSavedTab();
+      fireEvent.click(screen.getAllByRole('button', { name: 'Remove from saved' })[0]);
+      await waitFor(() => expect(screen.queryByText('Guardada s1')).not.toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+      expect(await screen.findByText('Guardada s1')).toBeInTheDocument();
+      await letUndoPass();
+      expect(saves()).toEqual([]);
     });
 
     it('brings it back, and says it is still saved, when the unsave fails', async () => {
@@ -671,6 +700,7 @@ describe('the profile page', () => {
       renderPage();
       await openSavedTab();
       fireEvent.click(screen.getByRole('button', { name: 'Remove from saved' }));
+      await letUndoPass();
 
       expect(
         await screen.findByText("We couldn't remove it from your saved recipes")
@@ -688,6 +718,7 @@ describe('the profile page', () => {
       renderPage();
       await openSavedTab();
       fireEvent.click(screen.getByRole('button', { name: 'Remove from saved' }));
+      await letUndoPass();
 
       expect(
         await screen.findByText("No connection — it's still in your saved recipes")
@@ -708,6 +739,7 @@ describe('the profile page', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove from saved' }));
 
       expect(await screen.findByText('No saved recipes yet')).toBeInTheDocument();
+      await letUndoPass();
     });
   });
 

@@ -41,8 +41,6 @@
     "message": "Recipe will be permanently removed from your account and all synced devices."
   },
   "toasts": {
-    "deleted": "Recipe deleted successfully",
-    "deleteFailed": "Failed to delete recipe",
     "updated": "Recipe updated successfully"
   },
   "matches": {

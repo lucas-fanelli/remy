@@ -412,4 +412,125 @@ describe('ToastContext', () => {
       });
     });
   });
+  describe('a toast with an action — Deshacer', () => {
+    // Lucas asked for Undo on every delete; the toast had nowhere to put the button.
+    function Raise({ onUndo, onDismiss }: { onUndo: () => void; onDismiss: () => void }) {
+      const { showToast } = useToast();
+      return (
+        <button
+          onClick={() =>
+            showToast('Deleted', 'success', {
+              duration: 6000,
+              action: { label: 'Undo', onClick: onUndo },
+              onDismiss,
+            })
+          }
+        >
+          Delete
+        </button>
+      );
+    }
+
+    function setup() {
+      const onUndo = jest.fn();
+      const onDismiss = jest.fn();
+      render(
+        <ToastProvider>
+          <Raise onUndo={onUndo} onDismiss={onDismiss} />
+          <p>Somewhere else</p>
+        </ToastProvider>
+      );
+      act(() => screen.getByText('Delete').click());
+      return { onUndo, onDismiss };
+    }
+
+    afterEach(() => jest.useRealTimers());
+
+    it('shows the action, runs it when pressed and closes, without calling it a dismissal', () => {
+      const { onUndo, onDismiss } = setup();
+
+      act(() => screen.getByRole('button', { name: 'Undo' }).click());
+
+      expect(onUndo).toHaveBeenCalledTimes(1);
+      expect(onDismiss).not.toHaveBeenCalled();
+      expect(screen.queryByText('Deleted')).not.toBeInTheDocument();
+    });
+
+    it('reports a dismissal when its time runs out', () => {
+      jest.useFakeTimers();
+      const { onUndo, onDismiss } = setup();
+
+      act(() => jest.advanceTimersByTime(6000));
+
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+      expect(onUndo).not.toHaveBeenCalled();
+    });
+
+    it('stays up when the reader taps somewhere else on the page', () => {
+      // Scrolling or tapping a card is not a decision about the delete.
+      const { onDismiss } = setup();
+
+      act(() => {
+        document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(screen.getByText('Deleted')).toBeInTheDocument();
+      expect(onDismiss).not.toHaveBeenCalled();
+    });
+
+    it('can be taken down from outside without counting as a dismissal', () => {
+      function RaiseAndDrop({ onDismiss }: { onDismiss: () => void }) {
+        const { showToast, dismissToast } = useToast();
+        return (
+          <button onClick={() => dismissToast(showToast('Gone soon', 'info', { onDismiss }))}>
+            Raise and drop
+          </button>
+        );
+      }
+      const onDismiss = jest.fn();
+      render(
+        <ToastProvider>
+          <RaiseAndDrop onDismiss={onDismiss} />
+        </ToastProvider>
+      );
+
+      act(() => screen.getByText('Raise and drop').click());
+
+      expect(screen.queryByText('Gone soon')).not.toBeInTheDocument();
+      expect(onDismiss).not.toHaveBeenCalled();
+    });
+
+    it('keeps two toasts raised in the same moment apart', () => {
+      // Their ids came from Date.now(): the same millisecond gave both the same key, and
+      // closing one closed the other.
+      function Raise2() {
+        const { showToast } = useToast();
+        return (
+          <button
+            onClick={() => {
+              showToast('First', 'info');
+              showToast('Second', 'error');
+            }}
+          >
+            Raise two
+          </button>
+        );
+      }
+      jest.spyOn(Date, 'now').mockReturnValue(1000);
+      render(
+        <ToastProvider>
+          <Raise2 />
+        </ToastProvider>
+      );
+
+      act(() => screen.getByText('Raise two').click());
+      const first = screen.getByText('First').closest('.MuiAlert-root')!;
+      act(() => (first.querySelector('button[aria-label="Close"]') as HTMLButtonElement).click());
+
+      expect(screen.queryByText('First')).not.toBeInTheDocument();
+      expect(screen.getByText('Second')).toBeInTheDocument();
+      jest.restoreAllMocks();
+    });
+  });
 });

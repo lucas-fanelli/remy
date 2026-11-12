@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Snackbar,
   Alert,
   useTheme,
   useMediaQuery,
@@ -27,7 +26,9 @@ import { useTranslations } from 'next-intl';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MotionBox } from '@/components/motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { Recipe } from '@/domain/types/recipe';
+import { useDeleteRecipe } from '@/hooks/useDeleteRecipe';
 import {
   useFeed,
   FEED_PAGE_SIZE,
@@ -36,8 +37,6 @@ import {
   type FeedRecipe,
 } from '@/hooks/useFeed';
 import { useLike, useSave } from '@/hooks/useViewerMutation';
-import { useApiErrorMessage } from '@/lib/api/translateApiError';
-import { removeRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
 import EditRecipeModal from './EditRecipeModal';
 import RecipeCard from './RecipeCard';
 
@@ -55,7 +54,6 @@ interface RecipeFeedProps {
 export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   const t = useTranslations('feed');
   const tCommon = useTranslations('common');
-  const apiErrorMessage = useApiErrorMessage();
   const queryClient = useQueryClient();
   const router = useRouter();
   const { user } = useAuth();
@@ -103,22 +101,15 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
   // Delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const deleteRecipe = useDeleteRecipe();
 
   // Edit modal
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [recipeToEdit, setRecipeToEdit] = useState<Recipe | null>(null);
 
-  // Snackbar for notifications
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({
-    open: false,
-    message: '',
-    severity: 'info',
-  });
+  // The app's one toast. A second, page-local one sat in the same spot and the two could
+  // cover each other — an Undo under an "updated" is an Undo nobody can press.
+  const { showToast } = useToast();
 
   // Infinite scroll via IntersectionObserver on a sentinel element
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -175,44 +166,13 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     if (!recipeToDelete || !user) return;
 
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/recipes/${recipeToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'X-Requested-With': 'fetch' },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(apiErrorMessage(error, t('toasts.deleteFailed')));
-      }
-
-      // Out of every cached list, not just the one on screen: every feed filter set, and
-      // the matches beside it, a profile, a search. This used to reach the feed's filter
-      // sets only, so the recipe stayed on its author's profile and in the pantry matches
-      // on this very page.
-      removeRecipeEverywhere(queryClient, recipeToDelete.id);
-
-      setSnackbar({
-        open: true,
-        message: t('toasts.deleted'),
-        severity: 'success',
-      });
-    } catch (error) {
-      console.error('Error deleting recipe:', error);
-      setSnackbar({
-        open: true,
-        message: error instanceof Error ? error.message : t('toasts.deleteFailed'),
-        severity: 'error',
-      });
-    } finally {
-      setDeleting(false);
-      setDeleteDialogOpen(false);
-      setRecipeToDelete(null);
-    }
+    // Out of every cached list at once, with Undo: see useDeleteRecipe.
+    deleteRecipe(recipeToDelete.id);
+    setDeleteDialogOpen(false);
+    setRecipeToDelete(null);
   };
 
   const handleDeleteCancel = () => {
@@ -232,15 +192,7 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
       list.map((r) => (r.id === updatedRecipe.id ? { ...r, ...updatedRecipe } : r))
     );
 
-    setSnackbar({
-      open: true,
-      message: t('toasts.updated'),
-      severity: 'success',
-    });
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
+    showToast(t('toasts.updated'), 'success');
   };
 
   /**
@@ -525,17 +477,9 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={deleting}>
-            {tCommon('actions.cancel')}
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
-            disabled={deleting}
-            autoFocus
-          >
-            {deleting ? tCommon('status.deleting') : tCommon('actions.delete')}
+          <Button onClick={handleDeleteCancel}>{tCommon('actions.cancel')}</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained" autoFocus>
+            {tCommon('actions.delete')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -547,23 +491,6 @@ export default function RecipeFeed({ onCreateRecipe }: RecipeFeedProps) {
         onClose={() => setEditModalOpen(false)}
         onSuccess={handleEditSuccess}
       />
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

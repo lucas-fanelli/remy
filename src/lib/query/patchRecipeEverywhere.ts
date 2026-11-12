@@ -360,3 +360,14 @@ export function removeRecipeEverywhere(queryClient: QueryClient, recipeId: strin
 
   void invalidateRecipeLists(queryClient);
 }
+
+/**
+ * A recipe removeRecipeEverywhere took out comes back: its delete was undone, or failed.
+ * The server still has it, so the lists on screen read again now — it is on screen that
+ * the reader pressed "Deshacer" — and the others when they are next shown.
+ */
+export function restoreRecipeEverywhere(queryClient: QueryClient): Promise<void> {
+  return Promise.all(
+    RECIPE_LIST_ROOTS.map((root) => queryClient.invalidateQueries({ queryKey: [root] }))
+  ).then(() => undefined);
+}

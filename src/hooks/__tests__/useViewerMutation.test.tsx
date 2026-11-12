@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { queryKeys } from '@/lib/query/keys';
+import { sendWaitingDelete } from '@/lib/undo/deferredDeletes';
 import { useLike, useSave } from '../useViewerMutation';
 
 /**
@@ -105,5 +106,113 @@ describe('a save, beyond the bookmark', () => {
     await act(async () => {});
 
     expect(client.getQueryState(queryKeys.profile('ana'))?.isInvalidated).toBe(false);
+  });
+});
+
+describe('unsaving, which waits out its Undo', () => {
+  // Lucas: removing something from Guardadas should offer "Deshacer". The removal paints at
+  // once and is sent when the toast's Undo has gone unanswered.
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = global.fetch as jest.Mock;
+    mockFetch.mockReset();
+    mockReader = { id: 'u1', username: 'ana' };
+  });
+
+  const savedViewer = { ...viewer, saved: true };
+  const saveCalls = () =>
+    mockFetch.mock.calls.map(([, init]) => JSON.parse((init as RequestInit).body as string));
+  const bookmark = (client: QueryClient) =>
+    client.getQueryData<{ recipes: { viewer: { saved: boolean } }[] }>(queryKeys.search('x'))
+      ?.recipes[0].viewer.saved;
+
+  function setupSaved() {
+    const harness = setup();
+    harness.client.setQueryData(queryKeys.search('x'), {
+      users: [],
+      recipes: [{ id: 'r1', likeCount: 0, viewer: savedViewer }],
+    });
+    const { result } = renderHook(() => useSave(), { wrapper: harness.wrapper });
+    return { ...harness, toggle: (next?: boolean) => result.current.toggle('r1', next) };
+  }
+
+  it('empties the bookmark at once and sends the removal only after the window', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ saved: false }) });
+    const { client, toggle } = setupSaved();
+
+    act(() => toggle());
+
+    expect(bookmark(client)).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    await act(async () => sendWaitingDelete());
+
+    expect(saveCalls()).toEqual([{ saved: false }]);
+    expect(bookmark(client)).toBe(false);
+  });
+
+  it('takes the removal back, sending nothing, when the bookmark is tapped again in time', async () => {
+    // The server was never told, so there is nothing to tell it now.
+    const { client, toggle } = setupSaved();
+
+    act(() => toggle());
+    act(() => toggle());
+    await act(async () => sendWaitingDelete());
+
+    expect(bookmark(client)).toBe(true);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('ignores a second removal of the same recipe while the first waits', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ saved: false }) });
+    const { toggle } = setupSaved();
+
+    act(() => toggle(false));
+    act(() => toggle(false));
+    await act(async () => sendWaitingDelete());
+
+    expect(saveCalls()).toEqual([{ saved: false }]);
+  });
+
+  it('sends a save made while the removal is on its way only after the removal is answered', async () => {
+    // Sent at once, it would race the removal and could land first: the server would end up
+    // unsaved while the screen said saved.
+    let answerRemoval: () => void = () => {};
+    mockFetch.mockImplementation((_url: string, init: RequestInit) =>
+      JSON.parse(init.body as string).saved === false
+        ? new Promise((resolve) => {
+            answerRemoval = () => resolve({ ok: true, json: async () => ({ saved: false }) });
+          })
+        : Promise.resolve({ ok: true, json: async () => ({ saved: true }) })
+    );
+    const { client, toggle } = setupSaved();
+
+    act(() => toggle());
+    await act(async () => sendWaitingDelete());
+    act(() => toggle(true));
+
+    expect(bookmark(client)).toBe(true);
+    expect(saveCalls()).toEqual([{ saved: false }]);
+
+    await act(async () => answerRemoval());
+
+    await waitFor(() => expect(saveCalls()).toEqual([{ saved: false }, { saved: true }]));
+    await waitFor(() => expect(bookmark(client)).toBe(true));
+  });
+
+  it('leaves a like to go at once: unliking is not a deletion', async () => {
+    mockFetch.mockReturnValue(new Promise(() => {}));
+    const { client, wrapper } = setup();
+    client.setQueryData(queryKeys.search('x'), {
+      users: [],
+      recipes: [{ id: 'r1', likeCount: 1, viewer: { ...viewer, liked: true } }],
+    });
+    const { result } = renderHook(() => useLike(), { wrapper });
+
+    act(() => result.current.toggle('r1'));
+
+    // Sent without anyone letting an Undo window pass.
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
   });
 });

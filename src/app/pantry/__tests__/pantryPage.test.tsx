@@ -2,8 +2,10 @@ import { QueryClient } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { queryWrapper, testQueryClient } from '@/__tests__/helpers/queryClient';
+import { ToastProvider } from '@/contexts/ToastContext';
 import { afterPantryChangedElsewhere, type PantryItem } from '@/hooks/usePantry';
 import { queryKeys } from '@/lib/query/keys';
+import { keepDeletesHidden, sendWaitingDelete } from '@/lib/undo/deferredDeletes';
 import PantryPage from '../page';
 
 /**
@@ -38,27 +40,32 @@ const mockFetch = jest.fn();
 const json = (body: unknown, status = 200) =>
   Promise.resolve({ ok: status < 400, status, json: async () => body } as Response);
 
-/** A response that answers only when the test says so. */
-function deferred() {
-  let resolve!: (response: Promise<Response>) => void;
-  const promise = new Promise<Response>((done) => {
-    resolve = (response) => void response.then(done);
-  });
-  return { promise, resolve };
-}
-
 const pantryReads = () =>
   mockFetch.mock.calls.filter(([url, init]) => url === '/api/pantry' && !init?.method);
 
+const pantryDeletes = () =>
+  mockFetch.mock.calls.filter(([, init]) => init?.method === 'DELETE').map(([url]) => url);
+
 function renderPage(client: QueryClient = testQueryClient()) {
-  return { client, ...render(<PantryPage />, { wrapper: queryWrapper(client) }) };
+  // What QueryProvider wires for the app: a read cannot bring back what is waiting to go.
+  keepDeletesHidden(client);
+  const Providers = queryWrapper(client);
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <Providers>
+      <ToastProvider>{children}</ToastProvider>
+    </Providers>
+  );
+  return { client, ...render(<PantryPage />, { wrapper }) };
 }
 
-async function confirmDelete(name: string) {
+/** No "are you sure?" any more: the bin deletes, and the toast offers Undo. */
+async function deleteItem(name: string) {
   const row = (await screen.findByText(name)).closest('li')!;
   fireEvent.click(within(row).getByTestId('DeleteIcon').closest('button')!);
-  fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
 }
+
+/** The Undo window passing without anyone pressing Undo. */
+const letUndoPass = () => act(async () => sendWaitingDelete());
 
 describe('The pantry page', () => {
   beforeEach(() => {
@@ -92,26 +99,41 @@ describe('The pantry page', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('takes a deleted item out at once, without reading the pantry again or going blank', async () => {
-    const pendingDelete = deferred();
+  it('takes a deleted item out at once and offers Undo, sending the delete only after', async () => {
+    // Lucas: "al eliminar algo, la notificación debería mostrarte un Deshacer".
     mockFetch.mockImplementation((url: string, init?: RequestInit) =>
       init?.method === 'DELETE'
-        ? pendingDelete.promise
+        ? json({ message: 'deleted' })
         : json({ pantry: { items: [carrot, onion] } })
     );
     renderPage();
 
-    await confirmDelete('Carrot');
+    await deleteItem('Carrot');
 
-    // The server has not answered yet.
     await waitFor(() => expect(screen.queryByText('Carrot')).not.toBeInTheDocument());
     expect(screen.getByText('Onion')).toBeInTheDocument();
     expect(screen.getByText('My Pantry')).toBeInTheDocument();
+    expect(screen.getByText('Item deleted successfully')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    expect(pantryDeletes()).toEqual([]);
 
-    await act(async () => pendingDelete.resolve(json({ message: 'deleted' })));
+    await letUndoPass();
 
-    expect(await screen.findByText('Item deleted successfully')).toBeInTheDocument();
+    expect(pantryDeletes()).toEqual(['/api/pantry/item-1']);
+    expect(screen.queryByText('Carrot')).not.toBeInTheDocument();
     expect(pantryReads()).toHaveLength(1);
+  });
+
+  it('puts the item back and sends nothing when the reader presses Undo', async () => {
+    renderPage();
+    await deleteItem('Carrot');
+    await waitFor(() => expect(screen.queryByText('Carrot')).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+    expect(await screen.findByText('Carrot')).toBeInTheDocument();
+    await letUndoPass();
+    expect(pantryDeletes()).toEqual([]);
   });
 
   it('puts a deleted item back, and says so, when the server refuses', async () => {
@@ -120,39 +142,43 @@ describe('The pantry page', () => {
     );
     renderPage();
 
-    await confirmDelete('Carrot');
+    await deleteItem('Carrot');
+    await letUndoPass();
 
     expect(await screen.findByText('Failed to delete item')).toBeInTheDocument();
     expect(screen.getByText('Carrot')).toBeInTheDocument();
   });
 
-  it('does not let a read sent before a delete bring the item back', async () => {
-    // A read already on its way — here, one asked for because a cook changed the pantry —
-    // was answered by a server that still had the item.
-    const staleRead = deferred();
-    let reads = 0;
-    let deleted = false;
-    mockFetch.mockImplementation((url: string, init?: RequestInit) => {
-      if (init?.method === 'DELETE') {
-        deleted = true;
-        return json({ message: 'deleted' });
-      }
-      reads += 1;
-      if (reads === 2) return staleRead.promise;
-      return json({ pantry: { items: deleted ? [onion] : [carrot, onion] } });
-    });
+  it('says the item is still there when the delete fails for want of a connection', async () => {
+    mockFetch.mockImplementation((url: string, init?: RequestInit) =>
+      init?.method === 'DELETE'
+        ? Promise.reject(new TypeError('Failed to fetch'))
+        : json({ pantry: { items: [carrot, onion] } })
+    );
+    renderPage();
+
+    await deleteItem('Carrot');
+    await letUndoPass();
+
+    expect(
+      await screen.findByText('No connection — the item is still in your pantry')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Carrot')).toBeInTheDocument();
+  });
+
+  it('does not let a read while the delete waits bring the item back', async () => {
+    // The server still has the item until the delete is sent — here the pantry is read
+    // again because a cook changed it.
     const { client } = renderPage();
-    await screen.findByText('Carrot');
+    await deleteItem('Carrot');
+    await waitFor(() => expect(screen.queryByText('Carrot')).not.toBeInTheDocument());
 
-    act(() => afterPantryChangedElsewhere(client));
-    await waitFor(() => expect(reads).toBe(2));
-    await confirmDelete('Carrot');
-    await act(async () => staleRead.resolve(json({ pantry: { items: [carrot, onion] } })));
+    await act(async () => afterPantryChangedElsewhere(client));
+    await waitFor(() => expect(pantryReads()).toHaveLength(2));
+    await act(async () => {});
 
-    await screen.findByText('Item deleted successfully');
-    // The cancelled read is sent again once the delete is done, and that one is current.
-    await waitFor(() => expect(reads).toBe(3));
     expect(screen.queryByText('Carrot')).not.toBeInTheDocument();
+    expect(screen.getByText('Onion')).toBeInTheDocument();
   });
 
   it('puts an added item where it belongs, from the server’s answer, without reading again', async () => {
@@ -227,7 +253,8 @@ describe('The pantry page', () => {
     );
     renderPage(client);
 
-    await confirmDelete('Carrot');
+    await deleteItem('Carrot');
+    await letUndoPass();
 
     await waitFor(() =>
       expect(client.getQueryState(queryKeys.matched())?.isInvalidated).toBe(true)

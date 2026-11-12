@@ -32,10 +32,6 @@
     "categoryHelper": "Will be saved as: {category}",
     "notes": "Notes (optional)"
   },
-  "delete": {
-    "title": "Delete Pantry Item?",
-    "message": "Ingredient will be permanently removed from your account and all synced devices"
-  },
   "duplicate": {
     "title": "Ingredient Already Exists",
     "message": "{name} already exists in your pantry with {amount}.",
@@ -46,6 +42,7 @@
     "added": "Item added successfully",
     "alreadyExists": "Ingredient already exists",
     "deleteFailed": "Failed to delete item",
+    "deleteOffline": "No connection — the item is still in your pantry",
     "deleted": "Item deleted successfully",
     "loadFailed": "Failed to load pantry",
     "nameRequired": "Please enter ingredient name",

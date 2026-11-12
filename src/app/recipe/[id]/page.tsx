@@ -30,7 +30,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Snackbar,
   useTheme,
   useMediaQuery,
   Rating,
@@ -55,13 +54,14 @@ import StepNumber from '@/components/recipe/display/StepNumber';
 import EditRecipeModal from '@/components/recipe/EditRecipeModal';
 import RatingBreakdown from '@/components/recipe/RatingBreakdown';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { Recipe as DomainRecipe, DifficultyLevel } from '@/domain/types/recipe';
+import { useDeleteRecipe } from '@/hooks/useDeleteRecipe';
 import { afterPantryChangedElsewhere } from '@/hooks/usePantry';
 import { useRecipe, ApiRecipe, RecipeResponse, RecipeFetchError } from '@/hooks/useRecipe';
 import { useLike, useSave } from '@/hooks/useViewerMutation';
 import { useTextDescriptor } from '@/i18n/text';
 import { useApiErrorMessage } from '@/lib/api/translateApiError';
-import { removeRecipeEverywhere } from '@/lib/query/patchRecipeEverywhere';
 import { cloudinaryImage, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { useTokens } from '@/theme/useTokens';
 import type { PantryPlan } from '@/lib/cooking/pantryPlan';
@@ -142,12 +142,10 @@ export default function RecipeDetailPage() {
   const myRating = recipe?.viewer?.myRating ?? null;
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as 'success' | 'error' | 'warning',
-  });
+  const deleteRecipe = useDeleteRecipe();
+  // The app's one toast, which outlives this page: its own went with it when a delete
+  // navigated home, taking "¡Receta eliminada!" along before anyone could read it.
+  const { showToast } = useToast();
   const [cookedLoading, setCookedLoading] = useState(false);
   const [cookDialogOpen, setCookDialogOpen] = useState(false);
   const [cookPlan, setCookPlan] = useState<PantryPlan | null>(null);
@@ -185,11 +183,7 @@ export default function RecipeDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setSnackbar({
-          open: true,
-          message: apiErrorMessage(data, t('toasts.ratingFailed')),
-          severity: 'error',
-        });
+        showToast(apiErrorMessage(data, t('toasts.ratingFailed')), 'error');
         return;
       }
 
@@ -203,14 +197,10 @@ export default function RecipeDetailPage() {
         viewer: cached.viewer ? { ...cached.viewer, myRating: data.myRating } : cached.viewer,
       }));
 
-      setSnackbar({
-        open: true,
-        message: value === null ? t('toasts.ratingCleared') : t('toasts.rated'),
-        severity: 'success',
-      });
+      showToast(value === null ? t('toasts.ratingCleared') : t('toasts.rated'), 'success');
     } catch (error) {
       console.error('Error saving rating:', error);
-      setSnackbar({ open: true, message: t('toasts.ratingFailed'), severity: 'error' });
+      showToast(t('toasts.ratingFailed'), 'error');
     } finally {
       setRatingLoading(false);
     }
@@ -227,47 +217,22 @@ export default function RecipeDetailPage() {
   const handleEditSuccess = (_updatedRecipe: DomainRecipe) => {
     // No invalidation here: useUpdateRecipe refreshes this page and marks every list stale
     // itself, so no screen that edits a recipe can forget to.
-    setSnackbar({ open: true, message: t('toasts.updated'), severity: 'success' });
+    showToast(t('toasts.updated'), 'success');
   };
 
   const handleDelete = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (!user) return;
 
-    try {
-      setDeleting(true);
-      const response = await fetch(`/api/recipes/${recipeId}`, {
-        method: 'DELETE',
-        headers: { 'X-Requested-With': 'fetch' },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(apiErrorMessage(errorData, t('toasts.deleteFailed')));
-      }
-
-      // Out of the feed, the profiles, search and the matches before the reader lands on
-      // any of them. It went nowhere before: the feed you arrived at still had it.
-      removeRecipeEverywhere(queryClient, recipeId);
-
-      setSnackbar({ open: true, message: t('toasts.deleted'), severity: 'success' });
-
-      // Navigate back to feed after a short delay
-      router.push('/');
-    } catch (err) {
-      console.error('Error deleting recipe:', err);
-      setSnackbar({
-        open: true,
-        message: err instanceof Error ? err.message : t('toasts.deleteFailed'),
-        severity: 'error',
-      });
-      setDeleteDialogOpen(false);
-    } finally {
-      setDeleting(false);
-    }
+    setDeleteDialogOpen(false);
+    // Out of the feed, the profiles, search and the matches before the reader lands on any
+    // of them, with Undo in a toast that — unlike this page's own, which it replaced —
+    // outlives the page: see useDeleteRecipe.
+    deleteRecipe(recipeId);
+    router.push('/');
   };
 
   // Liking and saving go through the one mutation layer now. What used to be here was
@@ -294,20 +259,12 @@ export default function RecipeDetailPage() {
           if (navigator.clipboard && window.isSecureContext) {
             try {
               await navigator.clipboard.writeText(url);
-              setSnackbar({
-                open: true,
-                message: t('toasts.linkCopied'),
-                severity: 'success',
-              });
+              showToast(t('toasts.linkCopied'), 'success');
             } catch {
-              setSnackbar({ open: true, message: t('toasts.copyFailed'), severity: 'error' });
+              showToast(t('toasts.copyFailed'), 'error');
             }
           } else {
-            setSnackbar({
-              open: true,
-              message: t('toasts.copyManually'),
-              severity: 'warning',
-            });
+            showToast(t('toasts.copyManually'), 'warning');
           }
         }
       }
@@ -315,16 +272,12 @@ export default function RecipeDetailPage() {
       if (navigator.clipboard && window.isSecureContext) {
         try {
           await navigator.clipboard.writeText(url);
-          setSnackbar({ open: true, message: t('toasts.linkCopied'), severity: 'success' });
+          showToast(t('toasts.linkCopied'), 'success');
         } catch {
-          setSnackbar({ open: true, message: t('toasts.copyFailed'), severity: 'error' });
+          showToast(t('toasts.copyFailed'), 'error');
         }
       } else {
-        setSnackbar({
-          open: true,
-          message: t('toasts.copyManually'),
-          severity: 'warning',
-        });
+        showToast(t('toasts.copyManually'), 'warning');
       }
     }
   };
@@ -346,7 +299,7 @@ export default function RecipeDetailPage() {
   /** Ask what cooking this would take out of the pantry, and show it before doing it. */
   const openCookDialog = async () => {
     if (!user) {
-      setSnackbar({ open: true, message: t('toasts.loginToCook'), severity: 'error' });
+      showToast(t('toasts.loginToCook'), 'error');
       return;
     }
 
@@ -358,11 +311,7 @@ export default function RecipeDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setSnackbar({
-          open: true,
-          message: apiErrorMessage(data, t('toasts.cookFailed')),
-          severity: 'error',
-        });
+        showToast(apiErrorMessage(data, t('toasts.cookFailed')), 'error');
         return;
       }
 
@@ -370,7 +319,7 @@ export default function RecipeDetailPage() {
       setCookDialogOpen(true);
     } catch (error) {
       console.error('Error planning the cook:', error);
-      setSnackbar({ open: true, message: t('toasts.cookFailed'), severity: 'error' });
+      showToast(t('toasts.cookFailed'), 'error');
     } finally {
       setCookedLoading(false);
     }
@@ -388,11 +337,7 @@ export default function RecipeDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setSnackbar({
-          open: true,
-          message: apiErrorMessage(data, t('toasts.cookFailed')),
-          severity: 'error',
-        });
+        showToast(apiErrorMessage(data, t('toasts.cookFailed')), 'error');
         return;
       }
 
@@ -411,16 +356,15 @@ export default function RecipeDetailPage() {
       }));
 
       const missing = (data.shortfall ?? []).map((i: { name: string }) => i.name);
-      setSnackbar({
-        open: true,
-        message: missing.length
+      showToast(
+        missing.length
           ? t('toasts.cookedShort', { names: missing.join(', ') })
           : t('toasts.cooked'),
-        severity: 'success',
-      });
+        'success'
+      );
     } catch (error) {
       console.error('Error marking recipe as cooked:', error);
-      setSnackbar({ open: true, message: t('toasts.cookFailed'), severity: 'error' });
+      showToast(t('toasts.cookFailed'), 'error');
     } finally {
       setCookedLoading(false);
     }
@@ -437,11 +381,7 @@ export default function RecipeDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setSnackbar({
-          open: true,
-          message: apiErrorMessage(data, t('toasts.undoFailed')),
-          severity: 'error',
-        });
+        showToast(apiErrorMessage(data, t('toasts.undoFailed')), 'error');
         return;
       }
 
@@ -454,16 +394,13 @@ export default function RecipeDetailPage() {
           : cached.viewer,
       }));
 
-      setSnackbar({
-        open: true,
-        // Putting the pantry back is only possible for an hour, and saying so is the
-        // difference between a clean undo and one that quietly left the pantry short.
-        message: data.restorationSkipped ? t('toasts.cookUndoneNoRestore') : t('toasts.cookUndone'),
-        severity: data.restorationSkipped ? 'warning' : 'success',
-      });
+      showToast(
+        data.restorationSkipped ? t('toasts.cookUndoneNoRestore') : t('toasts.cookUndone'),
+        data.restorationSkipped ? 'warning' : 'success'
+      );
     } catch (error) {
       console.error('Error undoing the cook:', error);
-      setSnackbar({ open: true, message: t('toasts.undoFailed'), severity: 'error' });
+      showToast(t('toasts.undoFailed'), 'error');
     } finally {
       setCookedLoading(false);
     }
@@ -1057,7 +994,7 @@ export default function RecipeDetailPage() {
         />
 
         {/* Delete Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onClose={() => !deleting && setDeleteDialogOpen(false)}>
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
           <DialogTitle>{t('deleteDialog.title')}</DialogTitle>
           <DialogContent>
             <DialogContentText>
@@ -1065,11 +1002,9 @@ export default function RecipeDetailPage() {
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
-              {tCommon('actions.cancel')}
-            </Button>
-            <Button onClick={confirmDelete} color="error" disabled={deleting} autoFocus>
-              {deleting ? tCommon('status.deleting') : tCommon('actions.delete')}
+            <Button onClick={() => setDeleteDialogOpen(false)}>{tCommon('actions.cancel')}</Button>
+            <Button onClick={confirmDelete} color="error" autoFocus>
+              {tCommon('actions.delete')}
             </Button>
           </DialogActions>
         </Dialog>
@@ -1081,20 +1016,6 @@ export default function RecipeDetailPage() {
           onCancel={() => setCookDialogOpen(false)}
           onConfirm={confirmCook}
         />
-
-        {/* Snackbar for notifications */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-        >
-          <Alert
-            severity={snackbar.severity}
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
 
         {/* Fullscreen Image Viewer */}
         <Dialog
